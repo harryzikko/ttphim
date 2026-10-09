@@ -46,7 +46,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
   WebViewController? _webViewController;
   bool _isEmbedMode = false;
   bool _isWebLoading = false;
-  bool _useDirectEmbedUrl = false;
 
   bool _isPlayerInitializing = true;
   String? _errorMessage;
@@ -162,50 +161,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return null;
   }
 
-  /// Build full-window HTML wrapper for third-party iframe embed player
-  String _buildIframeHtml(String embedUrl) {
-    return '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100vw;
-      height: 100vh;
-      background-color: #000;
-      overflow: hidden;
-    }
-    #player-frame {
-      width: 100vw;
-      height: 100vh;
-      border: 0;
-      display: block;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-  </style>
-</head>
-<body>
-  <iframe
-    id="player-frame"
-    src="$embedUrl"
-    frameborder="0"
-    scrolling="no"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-    allowfullscreen
-    webkitallowfullscreen
-    mozallowfullscreen>
-  </iframe>
-</body>
-</html>
-''';
-  }
-
-  /// Launch In-App Web Embed Player with full media permissions and fallback
+  /// Launch In-App Web Embed Player with full compatibility headers
   void _initWebPlayer(String embedUrl) {
     _disposeControllers();
 
@@ -216,7 +172,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _errorMessage = null;
     });
 
+    // Auto-dismiss loading overlay after 4 seconds so interactions are never blocked
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted && _isWebLoading) {
+        setState(() => _isWebLoading = false);
+      }
+    });
+
     try {
+      final embedUri = Uri.tryParse(embedUrl);
+      final referer = embedUri != null && embedUri.host.isNotEmpty
+          ? '${embedUri.scheme}://${embedUri.host}/'
+          : 'https://phimapi.com/';
+
       final controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.black)
@@ -234,24 +202,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
             onWebResourceError: (error) {
               debugPrint('Web resource error: ${error.description}');
             },
+            onNavigationRequest: (request) => NavigationDecision.navigate,
           ),
         );
 
-      if (_useDirectEmbedUrl) {
-        controller.loadRequest(
-          Uri.parse(embedUrl),
-          headers: const {
-            'Referer': 'https://phimapi.com/',
-            'User-Agent':
-                'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
-          },
-        );
-      } else {
-        controller.loadHtmlString(
-          _buildIframeHtml(embedUrl),
-          baseUrl: 'https://phimapi.com/',
-        );
-      }
+      // Load embedUrl directly with matching referer header
+      controller.loadRequest(
+        Uri.parse(embedUrl),
+        headers: {
+          'Referer': referer,
+        },
+      );
 
       _webViewController = controller;
     } catch (e) {
@@ -275,15 +236,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _nextEpisodeTimer?.cancel();
     await _disposeControllers();
 
-    // 1. If user explicitly chooses In-App Web Embed
-    if (forceEmbed) {
-      if (_currentEpisode.linkEmbed.isNotEmpty) {
-        _initWebPlayer(_currentEpisode.linkEmbed);
-        return;
-      }
+    // 1. If user explicitly requests In-App Web Embed
+    if (forceEmbed && _currentEpisode.linkEmbed.isNotEmpty) {
+      _initWebPlayer(_currentEpisode.linkEmbed);
+      return;
     }
 
-    // 2. Resolve stream URL: Direct HLS or extracted from embed
+    // 2. Resolve stream URL: Direct HLS or automatically extract from embed link
     String streamUrl = _currentEpisode.linkM3u8.trim();
     if (streamUrl.isEmpty && _currentEpisode.linkEmbed.isNotEmpty) {
       final extracted = _extractM3u8FromEmbed(_currentEpisode.linkEmbed);
@@ -292,7 +251,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       }
     }
 
-    // 3. If NO direct HLS exists at all, automatically start In-App Web Embed Player!
+    // 3. If NO direct HLS stream exists at all, launch In-App Web Embed
     if (streamUrl.isEmpty) {
       if (_currentEpisode.linkEmbed.isNotEmpty) {
         _initWebPlayer(_currentEpisode.linkEmbed);
@@ -300,13 +259,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
       } else {
         setState(() {
           _isPlayerInitializing = false;
-          _errorMessage = 'Tập này hiện chưa có luồng phát hoặc liên kết nhúng khả dụng.';
+          _errorMessage = 'Tập phim này hiện chưa có luồng phát trực tiếp.';
         });
         return;
       }
     }
 
-    // 4. Play with native high-performance HLS player
+    // 4. Play with native high-performance video engine
     _isEmbedMode = false;
 
     try {
@@ -335,23 +294,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ? _videoPlayerController!.value.aspectRatio
           : 16 / 9;
 
+      // Note: allowFullScreen is false here because PlayerScreen manages fullscreen cleanly at the scaffold level,
+      // preventing duplicate exit-fullscreen buttons!
       _chewieController = ChewieController(
         videoPlayerController: _videoPlayerController!,
         autoPlay: true,
         looping: false,
         aspectRatio: _getEffectiveAspectRatio(videoRatio),
-        allowFullScreen: true,
+        allowFullScreen: false,
         allowMuting: true,
         showControls: true,
         zoomAndPan: true,
         playbackSpeeds: const [0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
-        deviceOrientationsOnEnterFullScreen: const [
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ],
-        deviceOrientationsAfterFullScreen: const [
-          DeviceOrientation.portraitUp,
-        ],
         materialProgressColors: ChewieProgressColors(
           playedColor: AppTheme.primary,
           handleColor: AppTheme.primaryLight,
@@ -392,7 +346,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
                           icon: const Icon(Icons.play_circle_filled, color: Colors.white, size: 16),
-                          label: const Text('Xem Bằng Web Embed', style: TextStyle(color: Colors.white)),
+                          label: const Text('Xem Web Embed', style: TextStyle(color: Colors.white)),
                         ),
                       ],
                     ],
@@ -410,7 +364,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _resumedSeconds = seekTargetSeconds;
         _showResumeBanner = true;
         _resumeBannerTimer?.cancel();
-        _resumeBannerTimer = Timer(const Duration(seconds: 5), () {
+        _resumeBannerTimer = Timer(const Duration(seconds: 4), () {
           if (mounted) setState(() => _showResumeBanner = false);
         });
       }
@@ -424,7 +378,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
         });
       }
     } catch (e) {
-      // In case of any HLS initialization error, fall back to Web Embed if available
       if (_currentEpisode.linkEmbed.isNotEmpty) {
         _initWebPlayer(_currentEpisode.linkEmbed);
       } else {
@@ -439,6 +392,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   double _getEffectiveAspectRatio(double originalRatio) {
+    if (_isFullScreen) return originalRatio;
     switch (_fitMode) {
       case VideoFitMode.original:
         return originalRatio;
@@ -639,7 +593,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           videoPlayerController: _videoPlayerController!,
           autoPlay: _videoPlayerController!.value.isPlaying,
           aspectRatio: _getEffectiveAspectRatio(videoRatio),
-          allowFullScreen: true,
+          allowFullScreen: false,
           allowMuting: true,
           showControls: true,
           zoomAndPan: true,
@@ -985,25 +939,27 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
           )
         else if (_isEmbedMode && _webViewController != null)
-          // In-App Web Embed Player with full touch and scaling
+          // In-App Web Embed Player
           Stack(
             fit: StackFit.expand,
             children: [
               WebViewWidget(controller: _webViewController!),
               if (_isWebLoading)
-                Container(
-                  color: Colors.black54,
-                  child: const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(color: AppTheme.primary),
-                        SizedBox(height: 10),
-                        Text(
-                          'Đang tải Web Player...',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
+                IgnorePointer(
+                  child: Container(
+                    color: Colors.black45,
+                    child: const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: AppTheme.primary),
+                          SizedBox(height: 10),
+                          Text(
+                            'Đang kết nối Web Player...',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -1100,7 +1056,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
           ),
 
-        // Screen Lock Overlay Shield
+        // Screen Lock Shield (Unobtrusive subtle unlock button in the corner, NEVER blocking the movie center!)
         if (_isScreenLocked)
           Positioned.fill(
             child: Container(
@@ -1108,8 +1064,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Stack(
                 children: [
                   const ModalBarrier(dismissible: false, color: Colors.transparent),
-                  Center(
-                    child: InkWell(
+                  Positioned(
+                    top: 14,
+                    left: 14,
+                    child: GestureDetector(
                       onTap: () {
                         HapticFeedback.mediumImpact();
                         setState(() => _isScreenLocked = false);
@@ -1121,25 +1079,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         );
                       },
-                      borderRadius: BorderRadius.circular(30),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: AppTheme.primary, width: 1.5),
+                          color: Colors.black.withOpacity(0.65),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppTheme.primary, width: 1.2),
                           boxShadow: [
-                            BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 10),
+                            BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 6),
                           ],
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.lock_rounded, color: AppTheme.primary, size: 18),
-                            SizedBox(width: 8),
+                            Icon(Icons.lock_rounded, color: AppTheme.primary, size: 16),
+                            SizedBox(width: 6),
                             Text(
-                              'Màn hình đang khóa • Chạm để mở',
-                              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                              'Mở khóa',
+                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -1151,41 +1108,56 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
           ),
 
-        // Floating Top Navigation & Lock & Fullscreen Buttons
+        // Floating Navigation & Controls Overlay (When screen is NOT locked)
         if (!_isScreenLocked) ...[
-          // Top-Left Back / Exit Fullscreen Button
+          // Top Bar Overlay
           Positioned(
             top: 10,
             left: 10,
-            child: CircleAvatar(
-              radius: 17,
-              backgroundColor: Colors.black54,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: Icon(
-                  isFullScreen ? Icons.fullscreen_exit_rounded : Icons.arrow_back,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                tooltip: isFullScreen ? 'Thu nhỏ màn hình' : 'Quay lại',
-                onPressed: () {
-                  if (isFullScreen) {
-                    _toggleFullScreen();
-                  } else {
-                    Navigator.of(context).pop();
-                  }
-                },
-              ),
-            ),
-          ),
-
-          // Top-Right Action Controls (Lock & Fullscreen Landscape Toggle)
-          Positioned(
-            top: 10,
             right: 10,
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
+                // Single Back / Exit Button (NO duplicate buttons!)
+                CircleAvatar(
+                  radius: 17,
+                  backgroundColor: Colors.black54,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      isFullScreen ? Icons.fullscreen_exit_rounded : Icons.arrow_back,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    tooltip: isFullScreen ? 'Thu nhỏ (Xoay dọc)' : 'Quay lại',
+                    onPressed: () {
+                      if (isFullScreen) {
+                        _toggleFullScreen();
+                      } else {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Movie Title (Visible in Landscape mode for cinema feel)
+                if (isFullScreen)
+                  Expanded(
+                    child: Text(
+                      '${widget.movie.name} • ${_currentEpisode.name}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+
                 // Lock Screen Button
                 CircleAvatar(
                   radius: 17,
@@ -1202,21 +1174,22 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
                 const SizedBox(width: 8),
 
-                // Dedicated Fullscreen / Rotate Screen Button (Works for both HLS & Web Embed!)
-                CircleAvatar(
-                  radius: 17,
-                  backgroundColor: AppTheme.primary.withOpacity(0.85),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                      color: Colors.white,
-                      size: 22,
+                // Fullscreen Toggle Button (Only in portrait mode, so in landscape there is only 1 exit button!)
+                if (!isFullScreen)
+                  CircleAvatar(
+                    radius: 17,
+                    backgroundColor: AppTheme.primary.withOpacity(0.9),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.fullscreen_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                      tooltip: 'Toàn màn hình (Xoay ngang)',
+                      onPressed: _toggleFullScreen,
                     ),
-                    tooltip: isFullScreen ? 'Xoay dọc màn hình' : 'Toàn màn hình (Xoay ngang)',
-                    onPressed: _toggleFullScreen,
                   ),
-                ),
               ],
             ),
           ),
@@ -1301,6 +1274,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
             tooltip: 'Tập kế tiếp',
             onPressed: hasNext ? _playNextEpisode : null,
           ),
+
+          // Fullscreen Rotate Button
+          IconButton(
+            icon: const Icon(
+              Icons.fullscreen_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
+            tooltip: 'Toàn màn hình',
+            onPressed: _toggleFullScreen,
+          ),
         ],
       ),
     );
@@ -1317,13 +1301,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           // Dedicated Fullscreen Landscape Button Chip
           _buildToolChip(
-            icon: Icons.fullscreen_rounded,
+            icon: Icons.screen_rotation_rounded,
             label: 'Xoay ngang màn hình',
             isActive: true,
             onTap: _toggleFullScreen,
           ),
 
-          // Switch Between Native HLS and In-App Web Embed
+          // Switch between Native HLS and Web Embed if movie provides both
           if (_currentEpisode.linkEmbed.isNotEmpty && _currentEpisode.linkM3u8.isNotEmpty)
             _buildToolChip(
               icon: _isEmbedMode ? Icons.video_collection_rounded : Icons.code_rounded,
@@ -1335,25 +1319,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 } else {
                   _initWebPlayer(_currentEpisode.linkEmbed);
                 }
-              },
-            )
-          else if (_isEmbedMode)
-            _buildToolChip(
-              icon: Icons.code_rounded,
-              label: 'Đang xem: Web Embed',
-              isActive: true,
-              onTap: () {},
-            ),
-
-          // In Embed mode: Toggle direct URL vs Iframe
-          if (_isEmbedMode)
-            _buildToolChip(
-              icon: Icons.refresh_rounded,
-              label: _useDirectEmbedUrl ? 'Kiểu: Link Direct' : 'Kiểu: Iframe Nhúng',
-              isActive: false,
-              onTap: () {
-                setState(() => _useDirectEmbedUrl = !_useDirectEmbedUrl);
-                _initWebPlayer(_currentEpisode.linkEmbed);
               },
             ),
 
