@@ -67,6 +67,9 @@ jobs:
         run: |
           cd mobile_app
           flutter pub get
+          # Universal patch for any cached plugins that use flutter.compileSdkVersion without fallback
+          find ~/.pub-cache -name "build.gradle*" -exec sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' {} + || true
+          find ~/.pub-cache -name "build.gradle*" -exec sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' {} + || true
 
       - name: Build Android Release APK
         run: |
