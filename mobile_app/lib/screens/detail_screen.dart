@@ -28,16 +28,24 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   int _selectedServerIndex = 0;
   bool _isDescriptionExpanded = false;
 
+  WatchHistoryItem? _lastHistory;
+
   @override
   void initState() {
     super.initState();
     _checkFavorite();
+    _checkHistory();
     _fetchDetail();
   }
 
   Future<void> _checkFavorite() async {
     final fav = await StorageService.isFavorite(widget.slug);
     if (mounted) setState(() => _isFavorite = fav);
+  }
+
+  Future<void> _checkHistory() async {
+    final history = await StorageService.getHistoryForMovie(widget.slug);
+    if (mounted) setState(() => _lastHistory = history);
   }
 
   Future<void> _toggleFavorite() async {
@@ -67,9 +75,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     }
   }
 
-  void _playEpisode(EpisodeItem episode) {
+  void _playEpisode(EpisodeItem episode, [ServerItem? targetServer]) {
     if (_detail == null) return;
-    final server = _detail!.servers[_selectedServerIndex];
+    final server = targetServer ?? _detail!.servers[_selectedServerIndex];
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PlayerScreen(
@@ -79,7 +87,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
           initialEpisode: episode,
         ),
       ),
-    );
+    ).then((_) {
+      _checkFavorite();
+      _checkHistory();
+    });
   }
 
   @override
@@ -243,20 +254,37 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                             Expanded(
                               child: ElevatedButton.icon(
                                 onPressed: () {
-                                  if (_detail != null &&
-                                      _detail!.servers.isNotEmpty &&
-                                      _detail!.servers[_selectedServerIndex].episodes.isNotEmpty) {
-                                    _playEpisode(_detail!.servers[_selectedServerIndex].episodes.first);
+                                  if (_detail != null && _detail!.servers.isNotEmpty) {
+                                    if (_lastHistory != null) {
+                                      // Search for matching server & episode from history
+                                      for (var s in _detail!.servers) {
+                                        for (var ep in s.episodes) {
+                                          if (ep.slug == _lastHistory!.episodeSlug) {
+                                            _playEpisode(ep, s);
+                                            return;
+                                          }
+                                        }
+                                      }
+                                    }
+                                    if (_detail!.servers[_selectedServerIndex].episodes.isNotEmpty) {
+                                      _playEpisode(_detail!.servers[_selectedServerIndex].episodes.first);
+                                    }
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('Đang tải danh sách tập, vui lòng đợi giây lát...')),
                                     );
                                   }
                                 },
-                                icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
-                                label: const Text(
-                                  'XEM PHIM NGAY',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                icon: Icon(
+                                  _lastHistory != null ? Icons.history_toggle_off_rounded : Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                label: Text(
+                                  _lastHistory != null
+                                      ? 'TIẾP TỤC (${_lastHistory!.episodeName.toUpperCase()})'
+                                      : 'XEM PHIM NGAY',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.primary,

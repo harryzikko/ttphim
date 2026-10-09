@@ -153,6 +153,36 @@ class StorageService {
     return list;
   }
 
+  /// Get watch history for a specific movie
+  static Future<WatchHistoryItem?> getHistoryForMovie(String movieSlug) async {
+    final list = await getHistory();
+    for (var item in list) {
+      if (item.movieSlug == movieSlug) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  /// Get set of watched episode slugs for a movie
+  static Future<Set<String>> getWatchedEpisodes(String movieSlug) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('ttphim_watched_${movieSlug}') ?? [];
+    return list.toSet();
+  }
+
+  /// Mark an episode as watched
+  static Future<void> markEpisodeWatched(String movieSlug, String episodeSlug) async {
+    if (episodeSlug.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'ttphim_watched_${movieSlug}';
+    final list = prefs.getStringList(key) ?? [];
+    if (!list.contains(episodeSlug)) {
+      list.add(episodeSlug);
+      await prefs.setStringList(key, list);
+    }
+  }
+
   /// Clear all history
   static Future<void> clearHistory() async {
     final prefs = await SharedPreferences.getInstance();
