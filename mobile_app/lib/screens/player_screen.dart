@@ -5,8 +5,6 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/storage_service.dart';
@@ -219,27 +217,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
 
     try {
-      // Platform-specific configuration for media & inline playback
-      late final PlatformWebViewControllerCreationParams params;
-      if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-        params = WebKitWebViewControllerCreationParams(
-          allowsInlineMediaPlayback: true,
-        );
-      } else if (WebViewPlatform.instance is AndroidWebViewPlatform) {
-        params = AndroidWebViewControllerCreationParams();
-      } else {
-        params = const PlatformWebViewControllerCreationParams();
-      }
-
-      final controller = WebViewController.fromPlatformCreationParams(params);
-
-      // Disable user gesture requirement on Android so media plays smoothly
-      if (controller.platform is AndroidWebViewController) {
-        (controller.platform as AndroidWebViewController)
-            .setMediaPlaybackRequiresUserGesture(false);
-      }
-
-      controller
+      final controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.black)
         ..setUserAgent(
