@@ -63,22 +63,6 @@ jobs:
           sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 34/g' android/app/build.gradle* || true
           sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle* || true
 
-          # Universal subprojects hook to guarantee all plugin modules have compileSdk 34
-          if [ -f "android/build.gradle" ]; then
-            cat << 'EOF' >> android/build.gradle
-
-          subprojects {
-              afterEvaluate { project ->
-                  if (project.hasProperty("android")) {
-                      project.android {
-                          compileSdkVersion 34
-                      }
-                  }
-              }
-          }
-          EOF
-          fi
-
       - name: Get Dependencies
         run: |
           cd mobile_app
