@@ -20,7 +20,7 @@ class _HeroBannerState extends State<HeroBanner> {
   @override
   Widget build(BuildContext context) {
     if (widget.movies.isEmpty) return const SizedBox.shrink();
-    final displayList = widget.movies.take(5).toList();
+    final displayList = widget.movies.take(8).toList();
 
     return SizedBox(
       height: 420,

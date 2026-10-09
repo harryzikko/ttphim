@@ -18,6 +18,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
+  List<Movie> _featuredMovies = [];
+  List<Movie> _rankingMovies = [];
   List<Movie> _newMovies = [];
   List<Movie> _singleMovies = [];
   List<Movie> _seriesMovies = [];
@@ -34,6 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final results = await Future.wait([
+        ApiService.getFeaturedMovies(), // Phim nổi bật ghim đồng bộ với website
+        ApiService.getTopRankings(),    // Bảng xếp hạng thịnh hành đồng bộ với website
         ApiService.getNewMovies(page: 1),
         ApiService.getSingleMovies(page: 1),
         ApiService.getSeriesMovies(page: 1),
@@ -42,10 +46,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() {
-          _newMovies = results[0];
-          _singleMovies = results[1];
-          _seriesMovies = results[2];
-          _animeMovies = results[3];
+          _featuredMovies = results[0];
+          _rankingMovies = results[1];
+          _newMovies = results[2];
+          _singleMovies = results[3];
+          _seriesMovies = results[4];
+          _animeMovies = results[5];
           _isLoading = false;
         });
       }
@@ -146,13 +152,13 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListView(
                 physics: const BouncingScrollPhysics(),
                 children: [
-                  // Spotlight Hero Banner
-                  HeroBanner(movies: _newMovies),
+                  // Spotlight Hero Banner (Đồng bộ 100% phim nổi bật ghim từ Website)
+                  HeroBanner(movies: _featuredMovies.isNotEmpty ? _featuredMovies : _newMovies),
 
                   const SizedBox(height: 12),
 
-                  // Top 10 Today Reel
-                  Top10Reel(movies: _newMovies),
+                  // Top 10 Today Reel (Đồng bộ thứ hạng lượt xem thực tế từ Website)
+                  Top10Reel(movies: _rankingMovies.isNotEmpty ? _rankingMovies : _newMovies),
 
                   const SizedBox(height: 16),
 
