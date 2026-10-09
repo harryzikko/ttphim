@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/storage_service.dart';
@@ -37,8 +38,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
   late ServerItem _currentServer;
   late EpisodeItem _currentEpisode;
 
+  // Native HLS Player Controllers
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
+
+  // In-App Web Embed Player Controller
+  WebViewController? _webViewController;
+  bool _isEmbedMode = false;
+  bool _isWebLoading = false;
+
   bool _isPlayerInitializing = true;
   String? _errorMessage;
 
@@ -72,9 +80,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   // Episode Pagination / Filter
   int _selectedEpisodeTab = 0;
-  final TextEditingController _searchEpController = TextEditingController();
-  String _epSearchQuery = '';
-
   static const int _episodesPerPage = 25;
 
   @override
@@ -109,7 +114,59 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  Future<void> _initPlayer() async {
+  /// Helper: Extract direct .m3u8 playlist URL from embed wrapper URL if present
+  String? _extractM3u8FromEmbed(String embedUrl) {
+    if (embedUrl.isEmpty) return null;
+    try {
+      final uri = Uri.tryParse(embedUrl);
+      if (uri != null) {
+        final urlParam = uri.queryParameters['url'] ?? uri.queryParameters['file'];
+        if (urlParam != null && urlParam.contains('.m3u8')) {
+          return Uri.decodeFull(urlParam);
+        }
+      }
+    } catch (_) {}
+
+    final regex = RegExp(r'(https?://[^\s"&]+\.m3u8[^\s"&]*)', caseSensitive: false);
+    final match = regex.firstMatch(embedUrl);
+    if (match != null) {
+      return match.group(1);
+    }
+    return null;
+  }
+
+  /// Launch In-App Web Embed Player inside the player area
+  void _initWebPlayer(String embedUrl) {
+    _disposeControllers();
+
+    setState(() {
+      _isEmbedMode = true;
+      _isPlayerInitializing = false;
+      _isWebLoading = true;
+      _errorMessage = null;
+    });
+
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.black)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (url) {
+            if (mounted) setState(() => _isWebLoading = true);
+          },
+          onPageFinished: (url) {
+            if (mounted) setState(() => _isWebLoading = false);
+          },
+          onWebResourceError: (error) {
+            // Ignore minor subresource errors in third-party embed scripts
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(embedUrl));
+  }
+
+  /// Initialize video playback with intelligent HLS -> Extracted M3U8 -> In-App Embed fallback
+  Future<void> _initPlayer({bool forceEmbed = false}) async {
     setState(() {
       _isPlayerInitializing = true;
       _errorMessage = null;
@@ -119,14 +176,39 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _nextEpisodeTimer?.cancel();
     await _disposeControllers();
 
-    final streamUrl = _currentEpisode.linkM3u8;
-    if (streamUrl.isEmpty) {
-      setState(() {
-        _isPlayerInitializing = false;
-        _errorMessage = 'Link phát video không khả dụng cho tập này.';
-      });
-      return;
+    // 1. If user explicitly chooses In-App Web Embed
+    if (forceEmbed) {
+      if (_currentEpisode.linkEmbed.isNotEmpty) {
+        _initWebPlayer(_currentEpisode.linkEmbed);
+        return;
+      }
     }
+
+    // 2. Resolve stream URL: Direct HLS or extracted from embed
+    String streamUrl = _currentEpisode.linkM3u8.trim();
+    if (streamUrl.isEmpty && _currentEpisode.linkEmbed.isNotEmpty) {
+      final extracted = _extractM3u8FromEmbed(_currentEpisode.linkEmbed);
+      if (extracted != null && extracted.isNotEmpty) {
+        streamUrl = extracted;
+      }
+    }
+
+    // 3. If NO direct HLS exists at all, automatically start In-App Web Embed Player!
+    if (streamUrl.isEmpty) {
+      if (_currentEpisode.linkEmbed.isNotEmpty) {
+        _initWebPlayer(_currentEpisode.linkEmbed);
+        return;
+      } else {
+        setState(() {
+          _isPlayerInitializing = false;
+          _errorMessage = 'Tập này hiện chưa có luồng phát hoặc liên kết nhúng khả dụng.';
+        });
+        return;
+      }
+    }
+
+    // 4. Play with native high-performance HLS player
+    _isEmbedMode = false;
 
     try {
       _videoPlayerController = VideoPlayerController.networkUrl(
@@ -190,25 +272,32 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, color: AppTheme.primary, size: 48),
-                  const SizedBox(height: 12),
+                  const Icon(Icons.error_outline, color: AppTheme.primary, size: 44),
+                  const SizedBox(height: 10),
                   const Text(
-                    'Không thể tải luồng video HLS.',
+                    'Không thể tải luồng video trực tiếp.',
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: _initPlayer,
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-                    child: const Text('Thử Lại', style: TextStyle(color: Colors.white)),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => _initPlayer(),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.card),
+                        child: const Text('Thử Lại', style: TextStyle(color: Colors.white)),
+                      ),
+                      if (_currentEpisode.linkEmbed.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+                          icon: const Icon(Icons.play_circle_filled, color: Colors.white, size: 16),
+                          label: const Text('Xem Bằng Web Embed', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ],
                   ),
-                  if (_currentEpisode.linkEmbed.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _openEmbedPlayer,
-                      child: const Text('Mở Bằng Web Player Fallback', style: TextStyle(color: AppTheme.cyan)),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -236,11 +325,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isPlayerInitializing = false;
-          _errorMessage = 'Lỗi phát video: $e';
-        });
+      // In case of any HLS initialization error, fall back to Web Embed if available
+      if (_currentEpisode.linkEmbed.isNotEmpty) {
+        _initWebPlayer(_currentEpisode.linkEmbed);
+      } else {
+        if (mounted) {
+          setState(() {
+            _isPlayerInitializing = false;
+            _errorMessage = 'Lỗi phát video: $e';
+          });
+        }
       }
     }
   }
@@ -343,7 +437,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _isShowingNextEpisodePrompt = false;
       _syncEpisodeTab();
     });
-    _initPlayer();
+    _initPlayer(forceEmbed: _isEmbedMode);
   }
 
   void _switchServer(ServerItem newServer) {
@@ -360,7 +454,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       }
       _syncEpisodeTab();
     });
-    _initPlayer();
+    _initPlayer(forceEmbed: _isEmbedMode);
   }
 
   void _seekRelative(int seconds) {
@@ -413,12 +507,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _copyStreamLink() {
-    if (_currentEpisode.linkM3u8.isNotEmpty) {
-      Clipboard.setData(ClipboardData(text: _currentEpisode.linkM3u8));
+    final linkToCopy = _currentEpisode.linkM3u8.isNotEmpty ? _currentEpisode.linkM3u8 : _currentEpisode.linkEmbed;
+    if (linkToCopy.isNotEmpty) {
+      Clipboard.setData(ClipboardData(text: linkToCopy));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã sao chép link stream HLS (.m3u8)'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(_currentEpisode.linkM3u8.isNotEmpty
+              ? 'Đã sao chép link stream HLS (.m3u8)'
+              : 'Đã sao chép liên kết nhúng Embed'),
+          duration: const Duration(seconds: 2),
           backgroundColor: AppTheme.card,
         ),
       );
@@ -447,6 +544,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           allowMuting: true,
           showControls: true,
           zoomAndPan: true,
+          playbackSpeeds: const [0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
           materialProgressColors: ChewieProgressColors(
             playedColor: AppTheme.primary,
             handleColor: AppTheme.primaryLight,
@@ -632,8 +730,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  Future<void> _openEmbedPlayer() async {
-    final url = _currentEpisode.linkEmbed;
+  Future<void> _openExternalBrowser() async {
+    final url = _currentEpisode.linkEmbed.isNotEmpty ? _currentEpisode.linkEmbed : _currentEpisode.linkM3u8;
     if (url.isNotEmpty) {
       final uri = Uri.parse(url);
       if (await canLaunchUrl(uri)) {
@@ -647,6 +745,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _chewieController = null;
     await _videoPlayerController?.dispose();
     _videoPlayerController = null;
+    _webViewController = null;
   }
 
   @override
@@ -656,7 +755,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _sleepTicker?.cancel();
     _nextEpisodeTimer?.cancel();
     _resumeBannerTimer?.cancel();
-    _searchEpController.dispose();
     _saveProgress();
     _disposeControllers();
 
@@ -689,7 +787,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Video View / Loader / Error
+                    // Video View / In-App WebView / Loader / Error
                     if (_isPlayerInitializing)
                       const Center(
                         child: Column(
@@ -723,16 +821,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   ElevatedButton(
-                                    onPressed: _initPlayer,
+                                    onPressed: () => _initPlayer(),
                                     style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
                                     child: const Text('Thử Lại', style: TextStyle(color: Colors.white)),
                                   ),
                                   if (_currentEpisode.linkEmbed.isNotEmpty) ...[
                                     const SizedBox(width: 8),
                                     ElevatedButton(
-                                      onPressed: _openEmbedPlayer,
+                                      onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
                                       style: ElevatedButton.styleFrom(backgroundColor: AppTheme.card),
-                                      child: const Text('Mở Web', style: TextStyle(color: AppTheme.cyan)),
+                                      child: const Text('Mở Web Embed', style: TextStyle(color: AppTheme.cyan)),
                                     ),
                                   ],
                                 ],
@@ -741,11 +839,36 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         ),
                       )
+                    else if (_isEmbedMode && _webViewController != null)
+                      // In-App Web Embed Player
+                      Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          WebViewWidget(controller: _webViewController!),
+                          if (_isWebLoading)
+                            Container(
+                              color: Colors.black54,
+                              child: const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CircularProgressIndicator(color: AppTheme.primary),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Đang kết nối Web Player...',
+                                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      )
                     else if (_chewieController != null && _videoPlayerController != null)
                       Chewie(controller: _chewieController!),
 
                     // Auto-Resume Floating Banner
-                    if (_showResumeBanner)
+                    if (_showResumeBanner && !_isEmbedMode)
                       Positioned(
                         top: 12,
                         right: 48,
@@ -839,7 +962,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           color: Colors.transparent,
                           child: Stack(
                             children: [
-                              // Absorbs all touches to prevent accidental seek
                               const ModalBarrier(dismissible: false, color: Colors.transparent),
                               Center(
                                 child: InkWell(
@@ -922,7 +1044,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             ),
 
-            // QUICK ACTION PLAYBACK BAR (Dedicated Hardware Control Row)
+            // QUICK ACTION PLAYBACK BAR (Only active for native HLS, or navigation for both)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: const BoxDecoration(
@@ -943,11 +1065,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     onPressed: hasPrev ? _playPreviousEpisode : null,
                   ),
 
-                  // -10s Rewind
+                  // -10s Rewind (Native only)
                   IconButton(
-                    icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 24),
+                    icon: Icon(
+                      Icons.replay_10_rounded,
+                      color: !_isEmbedMode ? Colors.white : Colors.white24,
+                      size: 24,
+                    ),
                     tooltip: 'Tua lùi 10 giây',
-                    onPressed: () => _seekRelative(-10),
+                    onPressed: !_isEmbedMode ? () => _seekRelative(-10) : null,
                   ),
 
                   // Play / Pause Primary Button
@@ -968,15 +1094,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         size: 26,
                       ),
                       tooltip: 'Phát / Tạm dừng',
-                      onPressed: _togglePlayPause,
+                      onPressed: !_isEmbedMode ? _togglePlayPause : null,
                     ),
                   ),
 
-                  // +10s Forward
+                  // +10s Forward (Native only)
                   IconButton(
-                    icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 24),
+                    icon: Icon(
+                      Icons.forward_10_rounded,
+                      color: !_isEmbedMode ? Colors.white : Colors.white24,
+                      size: 24,
+                    ),
                     tooltip: 'Tua tới 10 giây',
-                    onPressed: () => _seekRelative(10),
+                    onPressed: !_isEmbedMode ? () => _seekRelative(10) : null,
                   ),
 
                   // Next Episode
@@ -993,7 +1123,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             ),
 
-            // SECONDARY UTILITIES TOOLBAR (Speed, Aspect, Lock, Sleep, Fav, Link)
+            // SECONDARY UTILITIES TOOLBAR (Mode Switch, Speed, Aspect, Lock, Sleep, Fav, Link)
             Container(
               height: 44,
               color: const Color(0xFF0D0F16),
@@ -1001,23 +1131,47 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 children: [
-                  // Playback Speed
-                  _buildToolChip(
-                    icon: Icons.speed_rounded,
-                    label: '${_currentSpeed}x',
-                    isActive: _currentSpeed != 1.0,
-                    onTap: _showSpeedModal,
-                  ),
+                  // Switch Between Native HLS and In-App Web Embed
+                  if (_currentEpisode.linkEmbed.isNotEmpty && _currentEpisode.linkM3u8.isNotEmpty)
+                    _buildToolChip(
+                      icon: _isEmbedMode ? Icons.video_collection_rounded : Icons.code_rounded,
+                      label: _isEmbedMode ? 'Chuyển: Native HLS' : 'Chuyển: Web Embed',
+                      isActive: _isEmbedMode,
+                      onTap: () {
+                        if (_isEmbedMode) {
+                          _initPlayer(forceEmbed: false);
+                        } else {
+                          _initWebPlayer(_currentEpisode.linkEmbed);
+                        }
+                      },
+                    )
+                  else if (_isEmbedMode)
+                    _buildToolChip(
+                      icon: Icons.code_rounded,
+                      label: 'Đang xem: Web Embed',
+                      isActive: true,
+                      onTap: () {},
+                    ),
 
-                  // Screen Fit
-                  _buildToolChip(
-                    icon: Icons.aspect_ratio_rounded,
-                    label: _fitMode == VideoFitMode.original
-                        ? '16:9'
-                        : (_fitMode == VideoFitMode.fill ? 'Tràn viền' : 'Kéo giãn'),
-                    isActive: _fitMode != VideoFitMode.original,
-                    onTap: _toggleFitMode,
-                  ),
+                  // Playback Speed (Native mode)
+                  if (!_isEmbedMode)
+                    _buildToolChip(
+                      icon: Icons.speed_rounded,
+                      label: '${_currentSpeed}x',
+                      isActive: _currentSpeed != 1.0,
+                      onTap: _showSpeedModal,
+                    ),
+
+                  // Screen Fit (Native mode)
+                  if (!_isEmbedMode)
+                    _buildToolChip(
+                      icon: Icons.aspect_ratio_rounded,
+                      label: _fitMode == VideoFitMode.original
+                          ? '16:9'
+                          : (_fitMode == VideoFitMode.fill ? 'Tràn viền' : 'Kéo giãn'),
+                      isActive: _fitMode != VideoFitMode.original,
+                      onTap: _toggleFitMode,
+                    ),
 
                   // Sleep Timer
                   _buildToolChip(
@@ -1047,22 +1201,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     onTap: _toggleFavorite,
                   ),
 
-                  // Copy Stream Link
+                  // Copy Stream / Embed Link
                   _buildToolChip(
                     icon: Icons.link_rounded,
-                    label: 'Copy link HLS',
+                    label: _isEmbedMode ? 'Copy link Embed' : 'Copy link HLS',
                     isActive: false,
                     onTap: _copyStreamLink,
                   ),
 
-                  // Web Player Fallback
-                  if (_currentEpisode.linkEmbed.isNotEmpty)
-                    _buildToolChip(
-                      icon: Icons.open_in_browser_rounded,
-                      label: 'Mở Web',
-                      isActive: false,
-                      onTap: _openEmbedPlayer,
-                    ),
+                  // External Browser Option
+                  _buildToolChip(
+                    icon: Icons.open_in_browser_rounded,
+                    label: 'Mở trình duyệt ngoài',
+                    isActive: false,
+                    onTap: _openExternalBrowser,
+                  ),
                 ],
               ),
             ),
@@ -1107,6 +1260,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                     _currentServer.serverName,
                                     style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                                   ),
+                                  if (_isEmbedMode) ...[
+                                    const Text(' • ', style: TextStyle(color: AppTheme.textMuted)),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.cyan.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: AppTheme.cyan, width: 0.6),
+                                      ),
+                                      child: const Text('EMBED', style: TextStyle(color: AppTheme.cyan, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ],
