@@ -58,10 +58,10 @@ jobs:
           retention-days: 14
 
   # =============================================================
-  # 2. BUILD IOS IPA (.ipa)
+  # 2. BUILD IOS IPA (.ipa - Unsigned)
   # =============================================================
   build-ios:
-    name: Build iOS IPA
+    name: Build iOS IPA (Unsigned)
     runs-on: macos-14
     steps:
       - name: Checkout Source Code
@@ -76,31 +76,62 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install
 
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
       - name: Install CocoaPods
         run: |
           cd ios/App
           pod install || true
 
-      - name: Sync Capacitor iOS
-        run: npx cap sync ios
-
       - name: Build iOS Archive & Export Unsigned IPA
         run: |
           cd ios/App
           xcodebuild clean -workspace App.xcworkspace -scheme App -configuration Release
+
+          # Attempt archive without code signing, fallback to standard build if archive enforces signing
           xcodebuild archive \
             -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
+            -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -archivePath build/App.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGN_STYLE="Manual" \
+            PROVISIONING_PROFILE="" \
+            PROVISIONING_PROFILE_SPECIFIER="" || \
+          xcodebuild build \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGN_STYLE="Manual" \
+            PROVISIONING_PROFILE="" \
+            PROVISIONING_PROFILE_SPECIFIER=""
 
-          # Package into Unsigned IPA payload (TrollStore / Sideloadly / AltStore ready)
+          # Package into Unsigned IPA (Ready for Sideloadly / AltStore / TrollStore / Scarlet)
           mkdir -p build/Payload
-          cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
+          if [ -d "build/App.xcarchive/Products/Applications/App.app" ]; then
+            echo "Packaging App.app from xcarchive..."
+            cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
+          elif [ -d "build/DerivedData/Build/Products/Release-iphoneos/App.app" ]; then
+            echo "Packaging App.app from DerivedData..."
+            cp -r build/DerivedData/Build/Products/Release-iphoneos/App.app build/Payload/
+          else
+            echo "Locating App.app..."
+            find build -name "App.app" -type d -exec cp -r {} build/Payload/ \;
+          fi
+
           cd build
           zip -r TTPhim-unsigned.ipa Payload
           cd ../..
