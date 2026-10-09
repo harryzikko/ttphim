@@ -1,86 +1,72 @@
-# HƯỚNG DẪN XUẤT FILE CÀI ĐẶT APK (ANDROID) VÀ IPA (IOS) - TTPHIM
+# HƯỚNG DẪN TẢI & CÀI ĐẶT ỨNG DỤNG NATIVE TTPHIM (FLUTTER)
 
-Dự án đã được tích hợp **Capacitor Native Engine** chuyển đổi toàn bộ màn hình điện ảnh Obsidian Cinema thành **2 dự án Native độc lập hoàn chỉnh**:
-- **Android Native Project**: Nằm tại thư mục `android/` (Package: `com.ttphim.cinema`)
-- **iOS Native Project**: Nằm tại thư mục `ios/App/` (Bundle ID: `com.ttphim.cinema`)
-
----
-
-## 🤖 PHẦN 1: XUẤT FILE APK (CHO ANDROID)
-
-### Cách 1: Sử dụng Android Studio (Khuyên Dùng Nhất - Cực Dễ)
-1. Tải và cài đặt [Android Studio](https://developer.android.com/studio) (nếu máy chưa có).
-2. Mở Android Studio, chọn **Open** và chọn thư mục:
-   ```
-   f:\Tài\film\android
-   ```
-3. Đợi Android Studio nạp xong Gradle (khoảng 1 - 2 phút).
-4. Trên thanh menu trên cùng, bấm:
-   ```
-   Build -> Build Bundle(s) / APK(s) -> Build APK(s)
-   ```
-5. Khi build xong, Android Studio sẽ hiện thông báo ở góc phải bên dưới: **"APK(s) generated successfully"**. Bấm nút **locate** để lấy ngay file `app-debug.apk` cài đặt trực tiếp lên điện thoại Android!
+Dự án đã được chuyển đổi hoàn toàn sang **Ứng dụng Native Flutter 100% Thuần (Pure Native Mobile App)**, loại bỏ triệt để kiến trúc WebView cũ nhằm đảm bảo:
+- **Không bao giờ bị lỗi màn hình trắng** khi mở trên iOS / Android (giao diện được biên dịch trực tiếp ra mã máy AOT Native Canvas / Impeller).
+- **Phát luồng video HLS (.m3u8) siêu mượt** với giải mã phần cứng Native AVPlayer (iOS) và ExoPlayer (Android).
+- **Kết nối trực tiếp API đám mây** `https://phimapi.com` độc lập, không cần bất kỳ máy chủ Node.js cục bộ nào.
+- **Obsidian Cinema Dark Theme**: Giao diện rạp chiếu phim bóng đêm sang trọng `#0B0D13` cùng tông đỏ điện ảnh và vàng VIP.
+- **100% Miễn Phí**: Toàn bộ tính năng VIP Pass đã mở khóa sẵn, không có bất kỳ màn hình thanh toán hay thu phí nào.
 
 ---
 
-### Cách 2: Build Nhanh Bằng Dòng Lệnh (Nếu Máy Có Cài JDK 17+)
-Bạn chỉ cần nhấp đúp chuột vào file:
-```
-build-apk.bat
-```
-hoặc mở Terminal gõ:
-```bash
-npm run build:apk
-```
-File APK sẽ xuất hiện tại:
-`android/app/build/outputs/apk/debug/app-debug.apk`
+## 🚀 TẢI ỨNG DỤNG ĐÃ BIÊN DỊCH TRÊN GITHUB ACTIONS
+
+Bạn có thể tải ngay file cài đặt đã được GitHub Actions tự động biên dịch thành công:
+
+👉 **Trang tải Artifacts chính thức**: [https://github.com/harryzikko/ttphim/actions/runs/37956385360](https://github.com/harryzikko/ttphim/actions/runs/37956385360)
+
+| Nền tảng | Tên Artifact | Dung lượng | Định dạng | Tương thích |
+|---|---|---|---|---|
+| **Android** | `TTPhim-Android-APK` | ~23.6 MB | `.apk` | Mọi điện thoại & máy tính bảng Android 5.0 - 15+ |
+| **iOS (iPhone/iPad)** | `TTPhim-iOS-IPA` | ~23.3 MB | `.ipa` (Unsigned) | Mọi iPhone, iPad chạy iOS 12.0 - 18+ |
 
 ---
 
-### Cách 3: Tự Động Build Trên GitHub Actions (Không Cần Cài Gì Lên Máy)
-Đã cấu hình sẵn file CI/CD: [`.github/workflows/build-mobile.yml`](.github/workflows/build-mobile.yml).
-Khi bạn đẩy code lên repository GitHub (hoặc bấm **Run workflow**):
-- Máy chủ Ubuntu Cloud sẽ tự động biên dịch và tạo link tải trực tiếp file `TTPhim-Android-APK` trong tab **Actions > Artifacts**.
+## 📲 HƯỚNG DẪN CÀI ĐẶT LÊN THIẾT BỊ
+
+### 1. Dành cho điện thoại Android (.apk)
+1. Bấm tải file `TTPhim-Android-APK` từ GitHub Actions (hoặc giải nén nếu tải file zip).
+2. Chuyển file `TTPhim-v1.0.0-release.apk` vào điện thoại.
+3. Bấm mở file và chọn **Cài đặt (Install)**.
+4. Nếu máy hỏi cấp quyền "Cài đặt ứng dụng không rõ nguồn gốc", bấm **Cho phép (Allow)**.
+5. Mở ứng dụng **TTPhim** và thưởng thức phim ngay lập tức!
 
 ---
 
-## 🍏 PHẦN 2: XUẤT FILE IPA (CHO IPHONE / IOS)
+### 2. Dành cho iPhone / iPad (.ipa)
+File `.ipa` xuất ra là bản Unsigned chất lượng cao, bạn có thể cài đặt theo một trong các phương thức sau:
 
-### ⚠️ Lưu ý kỹ thuật quan trọng của Apple:
-Apple **bắt buộc** phải sử dụng hệ điều hành **macOS** kết hợp với **Xcode** (`xcodebuild`) để biên dịch mã nguồn Swift/Objective-C và ký chứng chỉ bảo mật cho file `.ipa`. Hệ điều hành **Windows không thể tạo trực tiếp file .ipa cục bộ** nếu không thông qua máy Mac hoặc Cloud CI/CD.
+#### Cách 1: Sử dụng Sideloadly (Khuyên dùng - Cực nhanh trên Windows & Mac)
+1. Tải công cụ miễn phí [Sideloadly](https://sideloadly.io/) trên máy tính.
+2. Kết nối iPhone với máy tính bằng cáp sạc.
+3. Kéo thả file `TTPhim-v1.0.0-unsigned.ipa` vào giao diện Sideloadly.
+4. Nhập Apple ID miễn phí của bạn và bấm **Start**.
+5. Sau khi Sideloadly báo **Done**, trên iPhone bạn vào:
+   - **Cài đặt (Settings) -> Cài đặt chung (General) -> Quản lý VPN & Thiết bị (VPN & Device Management)**.
+   - Bấm vào Apple ID của bạn và chọn **Tin cậy (Trust)**.
+6. Mở app TTPhim và xem phim full màn hình mượt mà!
 
----
+#### Cách 2: Sử dụng TrollStore (Dành cho máy tương thích TrollStore)
+- Chỉ cần gửi file `.ipa` qua AirDrop hoặc mở trực tiếp trên iPhone -> Chọn **Open in TrollStore** -> Cài đặt vĩnh viễn không bao giờ bị thu hồi chứng chỉ (No Revoke).
 
-### Cách 1: Mở Bằng Xcode Trên Máy Mac
-1. Sao chép thư mục `f:\Tài\film\ios\App` sang máy Mac (hoặc mở trực tiếp nếu dùng máy ảo / Mac mini).
-2. Nhấp đúp mở file:
-   ```
-   ios/App/App.xcworkspace
-   ```
-3. Trong Xcode:
-   - Chọn thiết bị đích: **Any iOS Device (arm64)**.
-   - Chọn menu: **Product -> Archive**.
-   - Khi cửa sổ Archives hiện ra, bấm **Distribute App** -> Chọn **Ad Hoc** hoặc **Development** -> Bấm **Export** để lưu file `.ipa`.
-
----
-
-### Cách 2: Tự Động Build File IPA Trên GitHub Actions (Cloud macOS Miễn Phí)
-Bạn **không cần sở hữu máy Mac**! File [`.github/workflows/build-mobile.yml`](.github/workflows/build-mobile.yml) đã được cấu hình chạy trên runner **macOS 14 (Sonoma)** miễn phí của GitHub:
-1. Đẩy mã nguồn lên GitHub.
-2. Vào mục **Actions** trên GitHub, chọn workflow **Build TTPhim APK & IPA** và bấm **Run workflow**.
-3. Máy chủ macOS của GitHub sẽ tự động:
-   - Cài CocoaPods.
-   - Biên dịch Xcode Archive.
-   - Đóng gói thành file `TTPhim-unsigned.ipa`.
-4. Bạn chỉ cần tải file `.ipa` từ mục **Artifacts** về máy.
-5. Để cài file `.ipa` lên iPhone:
-   - Sử dụng phần mềm **Sideloadly**, **AltStore**, hoặc **TrollStore** cài qua dây cáp USB trong 1 phút!
+#### Cách 3: Sử dụng AltStore / Scarlet / Esign
+- Mở ứng dụng Scarlet hoặc AltStore trên điện thoại, bấm nút dấu `+` và chọn file `TTPhim-v1.0.0-unsigned.ipa` để ký và cài đặt trực tiếp không cần máy tính.
 
 ---
 
-## ⚡ PHẦN 3: ĐỒNG BỘ DỮ LIỆU KHI CHỈNH SỬA GIAO DIỆN
-Bất cứ khi nào bạn chỉnh sửa HTML/CSS/JS trong `public/` hoặc `public/mobile/`, chỉ cần chạy lệnh sau để cập nhật sang cả Android và iOS:
-```bash
-npm run cap:sync
-```
-Lệnh này sẽ tự động copy toàn bộ nội dung mới nhất vào cả thư mục `android/` và `ios/`!
+## 🛠️ CẤU TRÚC MÃ NGUỒN FLUTTER (`mobile_app/`)
+
+- `mobile_app/lib/models/`:
+  - `movie.dart`: Khung dữ liệu phim, poster, đánh giá, thể loại.
+  - `movie_detail.dart`: Thông tin chi tiết, danh sách máy chủ (Vietsub, Lồng tiếng) và danh sách tập phim kèm luồng m3u8.
+- `mobile_app/lib/services/`:
+  - `api_service.dart`: Gọi trực tiếp các endpoint công khai của phimapi.com (Trang chủ, Phim Lẻ, Phim Bộ, Hoạt Hình, Tìm kiếm).
+  - `storage_service.dart`: Lưu trữ yêu thích cục bộ và lịch sử đang xem (kèm % tiến độ).
+- `mobile_app/lib/screens/`:
+  - `home_screen.dart`: Spotlight Hero Carousel, Top 10 thịnh hành, các dải phim theo thể loại.
+  - `explore_screen.dart`: Phân loại theo danh mục & thể loại, phân trang cuộn vô tận.
+  - `search_screen.dart`: Tìm kiếm tức thì theo từ khóa và gợi ý hot search.
+  - `watchlist_screen.dart`: Quản lý danh sách yêu thích và lịch sử xem tiếp tục.
+  - `detail_screen.dart`: Xem chi tiết phim, chọn máy chủ, danh sách tập phim.
+  - `player_screen.dart`: Trình phát video chuyên nghiệp hỗ trợ HLS `.m3u8`, xoay ngang toàn màn hình, chuyển tập nhanh 1 chạm.
+  - `profile_screen.dart`: Thẻ thành viên VIP Miễn phí trọn đời, cài đặt chất lượng 1080p, dọn dẹp cache.
