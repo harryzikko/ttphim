@@ -164,7 +164,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
         showControls: true,
         zoomAndPan: true,
         playbackSpeeds: const [0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
-        allowPlaybackSpeeds: true,
         deviceOrientationsOnEnterFullScreen: const [
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
