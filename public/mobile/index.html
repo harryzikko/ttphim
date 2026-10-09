@@ -1,0 +1,354 @@
+﻿<!DOCTYPE html>
+<html class="dark" lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <meta content="mobile_tab" name="shell-type"/>
+  <title>TTPhim - App Xem Phim Chuẩn Điện Ảnh 4K HDR</title>
+  
+  <!-- PWA & Mobile App Meta Tags (iOS & Android) -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TTPhim" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#11131c" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <!-- Tailwind CSS & Custom Config -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#11131c",
+            "surface-dim": "#11131c",
+            "surface-bright": "#373943",
+            "surface-container-lowest": "#0c0e17",
+            "surface-container-low": "#191b24",
+            "surface-container": "#1d1f29",
+            "surface-container-high": "#282933",
+            "surface-container-highest": "#32343e",
+            "on-surface": "#e1e1ef",
+            "on-surface-variant": "#e9bcb6",
+            "primary": "#ffb4aa",
+            "primary-container": "#e50914",
+            "on-primary-container": "#fff7f6",
+            "secondary": "#d3fbff",
+            "secondary-container": "#00eefc",
+            "on-secondary-container": "#00686f",
+            "secondary-fixed": "#7df4ff",
+            "secondary-fixed-dim": "#00dbe9",
+            "tertiary": "#dcb8ff",
+            "tertiary-container": "#9a40f2",
+            "tertiary-fixed": "#efdbff"
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "0.75rem",
+            "xl": "1rem",
+            "2xl": "1.25rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            "display-hero-mobile": ["Montserrat", "sans-serif"],
+            "headline-lg-mobile": ["Montserrat", "sans-serif"],
+            "headline-sm": ["Montserrat", "sans-serif"],
+            "body-md": ["Inter", "sans-serif"],
+            "body-sm": ["Inter", "sans-serif"],
+            "label-lg": ["Inter", "sans-serif"],
+            "label-md": ["Inter", "sans-serif"],
+            "label-badge": ["Inter", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="/mobile/css/mobile.css" />
+</head>
+
+<body class="bg-surface text-on-surface font-body-md flex flex-col min-h-screen">
+
+  <!-- Mobile Header (iOS & Android Safe Area Aware) -->
+  <header class="mobile-app-header fixed top-0 w-full z-50 pt-safe">
+    <div class="h-14 px-4 flex items-center justify-between gap-2">
+      <!-- App Brand Logo -->
+      <a href="/mobile" class="flex items-center gap-1.5 touch-feedback">
+        <span class="w-2 h-5 bg-primary-container rounded-sm shadow-[0_0_12px_rgba(229,9,20,0.6)]"></span>
+        <span class="font-headline-sm text-[18px] tracking-tight font-extrabold text-on-surface">TT<span class="text-primary-container">PHIM</span></span>
+      </a>
+
+      <!-- Header Action Icons -->
+      <div class="flex items-center gap-1">
+        <button id="m-search-btn" aria-label="Tìm kiếm" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[22px]">search</span>
+        </button>
+        <button id="m-cast-btn" aria-label="Truyền màn hình" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[22px]">cast</span>
+        </button>
+        <button id="m-notif-btn" aria-label="Thông báo" class="relative w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[22px]">notifications</span>
+          <span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary-container shadow-[0_0_6px_rgba(229,9,20,0.8)]"></span>
+        </button>
+        <button id="m-profile-btn" aria-label="Tài khoản" class="w-8 h-8 rounded-full bg-surface-container-highest border border-white/10 flex items-center justify-center ml-1 active:scale-95 transition-transform overflow-hidden">
+          <span class="material-symbols-outlined text-primary text-[18px]">person</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex flex-col relative w-full pt-14 pb-24 bg-surface min-h-screen">
+    <div class="flex flex-col w-full pb-6 overflow-hidden select-none">
+
+      <!-- 1. SPOTLIGHT HERO BANNER (Mobile Obsidian Cinema standard) -->
+      <section id="m-spotlight-section" class="relative w-full h-[470px] overflow-hidden">
+        <!-- Background Layer -->
+        <div id="m-spotlight-bg" class="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-700" style="background-image: url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800');"></div>
+        
+        <!-- Scrims & Vignettes -->
+        <div class="absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-surface/80 via-transparent to-transparent"></div>
+        <div class="absolute top-1/3 -left-16 w-44 h-44 rounded-full bg-primary-container/20 blur-3xl pointer-events-none"></div>
+
+        <!-- Spotlight Content Overlay -->
+        <div class="absolute inset-x-0 bottom-0 px-4 flex flex-col items-center text-center pb-4 z-10">
+          <!-- Ranking Badge -->
+          <div id="m-spotlight-rank" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high/90 shadow-md backdrop-blur-md mb-2">
+            <span class="w-2 h-2 rounded-full bg-primary-container animate-pulse shadow-[0_0_8px_rgba(229,9,20,0.8)]"></span>
+            <span class="font-label-badge text-[11px] text-primary-fixed tracking-wide uppercase font-bold">Top 1 Thịnh Hành Hôm Nay</span>
+          </div>
+
+          <!-- Title -->
+          <h1 id="m-spotlight-title" class="font-headline-lg-mobile text-[24px] font-extrabold text-on-surface tracking-tight leading-tight uppercase drop-shadow-lg line-clamp-2">
+            Đang tải phim nổi bật...
+          </h1>
+
+          <!-- Badges Strip -->
+          <div id="m-spotlight-badges" class="flex items-center justify-center flex-wrap gap-1.5 mt-2 mb-3.5">
+            <span class="px-2 py-0.5 rounded-sm bg-surface-container-highest/80 font-label-badge text-[10px] text-secondary font-bold">4K HDR</span>
+            <span class="px-2 py-0.5 rounded-sm bg-surface-container-highest/80 font-label-badge text-[10px] text-on-surface font-semibold">T16</span>
+            <span class="px-2 py-0.5 rounded-sm bg-surface-container-highest/80 font-label-badge text-[10px] text-tertiary-fixed font-semibold">Vietsub + Thuyết Minh</span>
+            <span class="px-2 py-0.5 rounded-sm bg-surface-container-highest/80 font-label-badge text-[10px] text-on-surface-variant">Chiếu Rạp</span>
+          </div>
+
+          <!-- Action Buttons Deck -->
+          <div class="flex items-center justify-center gap-2.5 w-full max-w-xs">
+            <!-- Bookmark Button -->
+            <button id="m-spotlight-watchlist-btn" aria-label="Thêm vào danh sách" class="flex-1 h-11 flex items-center justify-center gap-1.5 rounded-full bg-surface-container-high/90 text-on-surface font-label-lg text-[13px] active:scale-95 transition-transform backdrop-blur-md shadow-sm">
+              <span id="m-spotlight-watchlist-icon" class="material-symbols-outlined text-[19px]">bookmark_add</span>
+              <span id="m-spotlight-watchlist-text">Danh Sách</span>
+            </button>
+
+            <!-- Play CTA Button -->
+            <a id="m-spotlight-play-btn" href="/mobile/kham-pha" class="flex-[1.4] h-11 flex items-center justify-center gap-1.5 rounded-full bg-primary-container text-on-primary-container font-label-lg text-[14px] font-bold shadow-[0_4px_20px_rgba(229,9,20,0.5)] active:scale-95 transition-transform cursor-pointer">
+              <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              <span>Xem Phim</span>
+            </a>
+
+            <!-- Info Button -->
+            <a id="m-spotlight-info-btn" href="/mobile/kham-pha" aria-label="Chi tiết phim" class="w-11 h-11 flex items-center justify-center rounded-full bg-surface-container-high/90 text-on-surface active:scale-95 transition-transform backdrop-blur-md shadow-sm">
+              <span class="material-symbols-outlined text-[20px]">info</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="absolute bottom-0 inset-x-0 h-1 bg-white/10 z-20">
+          <div id="m-spotlight-progress" class="h-full bg-gradient-to-r from-primary-container via-amber-400 to-secondary-container w-0 transition-all duration-300"></div>
+        </div>
+      </section>
+
+      <!-- 2. QUICK CATEGORY FILTER PILLS -->
+      <section class="w-full mt-3 mb-5">
+        <div id="m-quick-pills" class="flex items-center gap-2 px-4 overflow-x-auto no-scrollbar scroll-smooth">
+          <button class="m-pill shrink-0 px-4 py-1.5 rounded-full bg-on-surface text-surface-container-lowest font-label-md text-[12px] font-bold shadow-sm transition-all" data-type="all">Tất cả</button>
+          <button class="m-pill shrink-0 px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[12px] transition-all" data-type="phim-bo">Phim Bộ</button>
+          <button class="m-pill shrink-0 px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[12px] transition-all" data-type="phim-le">Phim Lẻ</button>
+          <button class="m-pill shrink-0 px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[12px] transition-all" data-type="chieu-rap">Chiếu Rạp</button>
+          <button class="m-pill shrink-0 px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[12px] transition-all" data-type="hoat-hinh">Anime</button>
+          <button class="m-pill shrink-0 px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[12px] transition-all" data-type="tv-shows">TV Shows</button>
+        </div>
+      </section>
+
+      <!-- 3. TIẾP TỤC XEM (Continue Watching from localStorage) -->
+      <section id="m-section-continue" class="w-full mb-6 hidden">
+        <div class="flex items-center justify-between px-4 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-primary-container rounded-full"></span>
+            <h2 class="font-headline-sm text-[16px] font-bold text-on-surface">Tiếp Tục Xem</h2>
+          </div>
+          <button onclick="localStorage.removeItem('TTPHIM_continue_watching'); location.reload();" class="text-xs text-on-surface-variant hover:text-primary">Xóa lịch sử</button>
+        </div>
+        <div id="m-rail-continue" class="flex gap-3 px-4 overflow-x-auto no-scrollbar scroll-smooth"></div>
+      </section>
+
+      <!-- 4. MỚI CẬP NHẬT HÔM NAY -->
+      <section class="w-full mb-6">
+        <div class="flex items-center justify-between px-4 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-secondary-fixed-dim rounded-full"></span>
+            <h2 class="font-headline-sm text-[16px] font-bold text-on-surface">Mới Cập Nhật Hôm Nay</h2>
+          </div>
+          <a href="/mobile/kham-pha" class="flex items-center text-primary font-label-md text-[12px] font-semibold">
+            <span>Xem thêm</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+          </a>
+        </div>
+        <div id="m-rail-latest" class="flex gap-3 px-4 overflow-x-auto no-scrollbar scroll-smooth">
+          <!-- Skeleton Loading Placeholders -->
+          <div class="shrink-0 w-28 aspect-[2/3] rounded-lg bg-surface-container animate-pulse"></div>
+          <div class="shrink-0 w-28 aspect-[2/3] rounded-lg bg-surface-container animate-pulse"></div>
+          <div class="shrink-0 w-28 aspect-[2/3] rounded-lg bg-surface-container animate-pulse"></div>
+        </div>
+      </section>
+
+      <!-- 5. TOP 10 PHIM THỊNH HÀNH (Outsized Typography Rank Reel) -->
+      <section class="w-full mb-7">
+        <div class="flex items-center justify-between px-4 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-tertiary-container rounded-full"></span>
+            <h2 class="font-headline-sm text-[16px] font-bold text-on-surface">Top 10 Phim Thịnh Hành</h2>
+          </div>
+          <div class="flex items-center gap-1 text-on-surface-variant font-label-badge text-[11px]">
+            <span class="material-symbols-outlined text-[15px] text-amber-400" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+            <span>Hôm Nay</span>
+          </div>
+        </div>
+        <div id="m-rail-top10" class="flex gap-4 px-4 overflow-x-auto no-scrollbar scroll-smooth"></div>
+      </section>
+
+      <!-- 6. PHIM CHIẾU RẠP BOM TẤN -->
+      <section class="w-full mb-6">
+        <div class="flex items-center justify-between px-4 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-primary-container rounded-full"></span>
+            <h2 class="font-headline-sm text-[16px] font-bold text-on-surface">Phim Chiếu Rạp Bom Tấn</h2>
+          </div>
+          <a href="/mobile/kham-pha?type=chieu-rap" class="flex items-center text-primary font-label-md text-[12px] font-semibold">
+            <span>Xem thêm</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+          </a>
+        </div>
+        <div id="m-rail-cinema" class="flex gap-3 px-4 overflow-x-auto no-scrollbar scroll-smooth"></div>
+      </section>
+
+      <!-- 7. PHIM BỘ THỊNH HÀNH -->
+      <section class="w-full mb-6">
+        <div class="flex items-center justify-between px-4 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-secondary-container rounded-full"></span>
+            <h2 class="font-headline-sm text-[16px] font-bold text-on-surface">Phim Bộ Đang Hot</h2>
+          </div>
+          <a href="/mobile/kham-pha?type=phim-bo" class="flex items-center text-primary font-label-md text-[12px] font-semibold">
+            <span>Xem thêm</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+          </a>
+        </div>
+        <div id="m-rail-series" class="flex gap-3 px-4 overflow-x-auto no-scrollbar scroll-smooth"></div>
+      </section>
+
+      <!-- 8. THẾ GIỚI ANIME & HOẠT HÌNH -->
+      <section class="w-full mb-6">
+        <div class="flex items-center justify-between px-4 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-tertiary rounded-full"></span>
+            <h2 class="font-headline-sm text-[16px] font-bold text-on-surface">Thế Giới Anime</h2>
+          </div>
+          <a href="/mobile/kham-pha?type=hoat-hinh" class="flex items-center text-primary font-label-md text-[12px] font-semibold">
+            <span>Xem thêm</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+          </a>
+        </div>
+        <div id="m-rail-anime" class="flex gap-3 px-4 overflow-x-auto no-scrollbar scroll-smooth"></div>
+      </section>
+
+      <!-- 9. TTPHIM CINEMA FREE PASS BANNER -->
+      <section class="w-full px-4 mb-6">
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-950/40 via-surface-container-high to-zinc-950 p-4 shadow-xl border border-white/10">
+          <div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-primary-container/25 blur-2xl pointer-events-none"></div>
+          <div class="relative z-10 flex items-start justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-1.5 mb-1">
+                <span class="material-symbols-outlined text-secondary text-[20px]">movie</span>
+                <span class="font-headline-sm text-[16px] font-extrabold text-white">TTPhim Cinema</span>
+                <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-label-badge text-[9px] font-bold">100% MIỄN PHÍ</span>
+              </div>
+              <p class="font-body-sm text-[12px] text-on-surface-variant max-w-[240px]">Kho phim chuẩn điện ảnh 4K HDR, Dolby Atmos hoàn toàn miễn phí trọn đời.</p>
+            </div>
+            <a href="/mobile/kham-pha" class="shrink-0 px-3.5 py-2 rounded-full bg-primary-container text-white font-label-md text-[12px] font-bold shadow-[0_2px_12px_rgba(229,9,20,0.5)] active:scale-95 transition-transform">
+              Khám Phá
+            </a>
+          </div>
+
+          <!-- Feature Chips -->
+          <div class="relative z-10 grid grid-cols-3 gap-2 mt-3 pt-3 bg-surface-container-lowest/60 rounded-xl p-2.5">
+            <div class="flex flex-col items-center text-center gap-0.5">
+              <span class="material-symbols-outlined text-[17px] text-secondary">block</span>
+              <span class="font-label-badge text-[10px] text-on-surface">Không QC Phiền</span>
+            </div>
+            <div class="flex flex-col items-center text-center gap-0.5">
+              <span class="material-symbols-outlined text-[17px] text-secondary">hd</span>
+              <span class="font-label-badge text-[10px] text-on-surface">Chuẩn 4K HDR</span>
+            </div>
+            <div class="flex flex-col items-center text-center gap-0.5">
+              <span class="material-symbols-outlined text-[17px] text-secondary">surround_sound</span>
+              <span class="font-label-badge text-[10px] text-on-surface">Dolby Atmos</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Desktop Mode Switcher (Footer Link) -->
+      <div class="px-4 py-3 text-center">
+        <a href="/?view=desktop" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-[11px] font-medium hover:text-white transition-colors">
+          <span class="material-symbols-outlined text-[15px]">desktop_windows</span>
+          <span>Chuyển sang giao diện máy tính (Desktop)</span>
+        </a>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Mobile Bottom Tab Navigation Bar (Fixed 5-Tabs, iOS & Android Safe Area) -->
+  <nav class="mobile-app-nav fixed bottom-0 w-full z-50 pb-safe">
+    <div class="flex items-center justify-around h-16 px-1">
+      <a data-tab="home" href="/mobile" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-primary-container touch-feedback">
+        <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">home</span>
+        <span class="font-label-badge text-[10px]">Trang Chủ</span>
+      </a>
+      <a data-tab="explore" href="/mobile/kham-pha" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">explore</span>
+        <span class="font-label-badge text-[10px]">Khám Phá</span>
+      </a>
+      <a data-tab="list" href="/mobile/danh-sach" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">bookmark</span>
+        <span class="font-label-badge text-[10px]">Danh Sách</span>
+      </a>
+      <a data-tab="downloads" href="/mobile/danh-sach?tab=downloads" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">download_for_offline</span>
+        <span class="font-label-badge text-[10px]">Tải Về</span>
+      </a>
+      <a data-tab="profile" href="/mobile/tai-khoan" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">account_circle</span>
+        <span class="font-label-badge text-[10px]">Tài Khoản</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Mobile Scripts -->
+  <script src="/js/api.js?v=2.7.2"></script>
+  <script src="/mobile/js/mobile-app.js?v=1.0.0"></script>
+  <script src="/mobile/js/home.js?v=1.0.0"></script>
+</body>
+</html>
+

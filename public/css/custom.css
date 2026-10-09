@@ -1,0 +1,721 @@
+/* KKPhim Obsidian Cinema Custom Styles */
+@layer base {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0c0e17;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #282933;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #e50914;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Shimmer Loading Animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #1d1f29 25%, #282933 50%, #1d1f29 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Toast Container */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: rgba(29, 31, 41, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(229, 9, 20, 0.2);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.3s ease;
+}
+
+@keyframes toastIn {
+  from {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.toast-hide {
+  transform: translateY(10px) scale(0.9);
+  opacity: 0;
+}
+
+/* Top 10 Solid 3D Metallic Rank Typography (100% Uncovered & Ultra-Legible) */
+.rank-num {
+  font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.85;
+  user-select: none;
+  display: inline-block;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Rank 1: Crimson Red Champion */
+.rank-num-1 {
+  background: linear-gradient(180deg, #ff6b75 0%, #e50914 45%, #990008 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 18px rgba(229, 9, 20, 0.85));
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.7);
+}
+
+/* Rank 2: Pure Gold */
+.rank-num-2 {
+  background: linear-gradient(180deg, #fffbeb 0%, #fbbf24 45%, #b45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 18px rgba(245, 158, 11, 0.8));
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.7);
+}
+
+/* Rank 3: Radiant Cyan */
+.rank-num-3 {
+  background: linear-gradient(180deg, #ecfeff 0%, #22d3ee 45%, #0e7490 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 18px rgba(6, 182, 212, 0.8));
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.7);
+}
+
+/* Rank 4-10: Bright Titanium Chrome */
+.rank-num-default {
+  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 50%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.95));
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.5);
+}
+
+.top10-item:hover .rank-num-1 {
+  filter: drop-shadow(0 8px 26px rgba(229, 9, 20, 1));
+  transform: scale(1.08);
+}
+
+.top10-item:hover .rank-num-2 {
+  filter: drop-shadow(0 8px 24px rgba(245, 158, 11, 0.95));
+  transform: scale(1.08);
+}
+
+.top10-item:hover .rank-num-3 {
+  filter: drop-shadow(0 8px 24px rgba(6, 182, 212, 0.95));
+  transform: scale(1.08);
+}
+
+.top10-item:hover .rank-num-default {
+  filter: drop-shadow(0 8px 20px rgba(255, 255, 255, 0.5));
+  transform: scale(1.08);
+}
+
+/* Custom Video Player Scrubber & Controls Styling */
+#player-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffb4aa;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(229, 9, 20, 0.8);
+}
+#player-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffb4aa;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 6px rgba(229, 9, 20, 0.8);
+}
+.player-controls-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s ease-out !important;
+}
+.player-cursor-hidden {
+  cursor: none !important;
+}
+
+/* Player Center Ripple Animation */
+@keyframes playerRippleEffect {
+  0% {
+    transform: scale(0.65);
+    opacity: 0.95;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.player-ripple-active {
+  animation: playerRippleEffect 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Skip 10s Floating Badges */
+@keyframes playerSkipBadgeEffect {
+  0% {
+    transform: translateY(-50%) scale(0.7);
+    opacity: 0;
+  }
+  30% {
+    transform: translateY(-50%) scale(1.08);
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50%) scale(0.85);
+    opacity: 0;
+  }
+}
+
+.player-skip-badge-active {
+  animation: playerSkipBadgeEffect 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Fullscreen mode styling */
+#kkphim-player-wrapper:fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  max-width: none !important;
+}
+#kkphim-player-wrapper:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  max-width: none !important;
+}
+
+/* ========================================================
+   CINEMATIC SPOTLIGHT HERO TRANSITION SYSTEM
+   ======================================================== */
+.hero-bg-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: #0c0e17;
+}
+
+.hero-bg-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 20%;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 8s cubic-bezier(0.1, 0.9, 0.2, 1);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.hero-bg-layer.active {
+  opacity: 1;
+  transform: scale(1.01);
+}
+
+.hero-bg-layer.prev {
+  opacity: 0;
+  transform: scale(1.0);
+  transition: opacity 0.75s ease-out, transform 0.75s ease-out;
+}
+
+/* Anamorphic Lens Flare Flash when Switching Spotlight */
+.hero-anamorphic-flare {
+  position: absolute;
+  top: 35%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(229, 9, 20, 0.4) 25%, 
+    rgba(255, 255, 255, 0.95) 50%, 
+    rgba(0, 238, 252, 0.7) 65%, 
+    transparent 100%
+  );
+  filter: blur(2px) drop-shadow(0 0 16px rgba(229, 9, 20, 0.85));
+  opacity: 0;
+  pointer-events: none;
+  z-index: 25;
+  transform: scaleX(0.2);
+}
+
+@keyframes flareFlash {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.1) translateY(0);
+  }
+  30% {
+    opacity: 0.95;
+    transform: scaleX(1.4) translateY(-2px);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(2.2) translateY(2px);
+  }
+}
+
+.hero-anamorphic-flare.flash {
+  animation: flareFlash 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Cinematic Stagger Text Transition */
+@keyframes cinemaTextIn {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(6px);
+  }
+  70% {
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.cinema-text-animate {
+  animation: cinemaTextIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Spotlight Auto-Timer Bar */
+.spotlight-timer-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.spotlight-timer-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #e50914, #ffb4aa, #00eefc);
+  border-radius: 9999px;
+  box-shadow: 0 0 10px rgba(229, 9, 20, 0.75);
+}
+
+@keyframes spotlightCountdown {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.spotlight-timer-bar.running {
+  animation: spotlightCountdown 7.5s linear forwards;
+}
+
+.spotlight-timer-bar.paused {
+  animation-play-state: paused !important;
+}
+
+/* Spotlight Thumbnails */
+.spotlight-thumb-btn {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow, border;
+}
+
+.spotlight-thumb-btn img {
+  object-fit: cover;
+  object-position: top center;
+}
+
+.spotlight-thumb-btn.active-thumb {
+  box-shadow: 0 0 25px rgba(229, 9, 20, 0.65), 0 0 0 2px #e50914 !important;
+  transform: scale(1.04) translateY(-3px) !important;
+  opacity: 1 !important;
+}
+
+/* ========================================================
+   CINEMATIC MOVIECARD HOVER SYSTEM (100% CINEMA FEEL)
+   ======================================================== */
+.movie-card,
+.cinema-card,
+.group.relative.rounded-xl.overflow-hidden.bg-surface-container {
+  position: relative;
+  border-radius: 0.85rem;
+  background-color: #1d1f29;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow, border-color;
+  overflow: hidden;
+}
+
+/* Ambient 3D Obsidian-Crimson Elevation & Aura */
+.movie-card:hover,
+.cinema-card:hover,
+.group.relative.rounded-xl.overflow-hidden.bg-surface-container:hover {
+  transform: translateY(-8px) scale(1.028);
+  border-color: rgba(229, 9, 20, 0.6);
+  box-shadow: 0 24px 45px -12px rgba(0, 0, 0, 0.95),
+              0 0 28px -4px rgba(229, 9, 20, 0.45),
+              0 0 0 1px rgba(229, 9, 20, 0.3);
+}
+
+/* Cinema Light Sheen Reflection Sweep */
+.movie-card::before,
+.cinema-card::before,
+.group.relative.rounded-xl.overflow-hidden.bg-surface-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(105deg, 
+    transparent 20%, 
+    rgba(255, 255, 255, 0.16) 48%, 
+    rgba(255, 180, 170, 0.22) 52%, 
+    transparent 80%
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  z-index: 20;
+  transition: left 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.movie-card:hover::before,
+.cinema-card:hover::before,
+.group.relative.rounded-xl.overflow-hidden.bg-surface-container:hover::before {
+  left: 220%;
+}
+
+/* Poster Image Zoom Depth */
+.movie-card img,
+.cinema-card img,
+.group.relative.rounded-xl.overflow-hidden.bg-surface-container img {
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.45s ease;
+  will-change: transform, filter;
+}
+
+.movie-card:hover img,
+.cinema-card:hover img,
+.group.relative.rounded-xl.overflow-hidden.bg-surface-container:hover img {
+  transform: scale(1.085);
+  filter: brightness(1.06) contrast(1.04);
+}
+
+/* Cinematic Action Play Button Ripple Pulse */
+@keyframes playBtnPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(229, 9, 20, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(229, 9, 20, 0);
+  }
+}
+
+.movie-card-play-btn:hover {
+  animation: playBtnPulse 1.4s infinite;
+}
+
+/* Top 10 Poster Hover Aura */
+.top10-item {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.top10-item:hover {
+  transform: translateY(-8px) scale(1.025);
+}
+
+.top10-item:hover .aspect-\\[2\\/3\\] {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.95), 0 0 30px rgba(229, 9, 20, 0.45);
+  border-color: rgba(229, 9, 20, 0.65) !important;
+}
+
+/* === THEATER CINEMA LIGHTS OFF MODE (TẮT ĐÈN RẠP CAO CẤP) === */
+body.cinema-lights-active {
+  overflow-x: hidden;
+}
+
+body.cinema-lights-active #cinema-backdrop-scrim {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+body.cinema-lights-active #cinema-floating-controls {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: scale(1) !important;
+}
+
+/* Elevate ONLY the player viewport above the pitch-black scrim */
+body.cinema-lights-active #player-viewport {
+  position: relative !important;
+  z-index: 85 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16),
+              0 0 80px rgba(0, 0, 0, 0.98),
+              0 0 120px rgba(229, 9, 20, 0.42),
+              0 30px 80px rgba(0, 0, 0, 0.95) !important;
+  transform: scale(1.015);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+/* High-End OLED/Philips Ambilight Bias Lighting Halo */
+body.cinema-lights-active #player-viewport::before {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  border-radius: 28px;
+  background: radial-gradient(ellipse at center, rgba(229, 9, 20, 0.35) 0%, rgba(200, 16, 46, 0.15) 50%, transparent 75%);
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(28px);
+  animation: cinemaAmbientPulse 4s ease-in-out infinite alternate;
+}
+
+@keyframes cinemaAmbientPulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+/* Drag-to-scroll desktop mouse experience */
+.cursor-grab {
+  cursor: grab;
+}
+.cursor-grabbing {
+  cursor: grabbing;
+}
+.drag-scroll-active {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+.drag-scroll-active * {
+  cursor: grabbing !important;
+  user-select: none !important;
+  pointer-events: none !important;
+}
+
+/* --- High-End Cinematic Movie Card Badges (Glassmorphism & Luxury Aesthetics) --- */
+.badge-song-ngu {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.82) 0%, rgba(67, 56, 202, 0.82) 100%);
+  border: 1px solid rgba(192, 132, 252, 0.45);
+  color: #f5f3ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 3px 10px rgba(79, 70, 229, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  line-height: 1.2;
+}
+
+.badge-song-ngu .material-symbols-outlined {
+  font-size: 11px !important;
+  color: #ddd6fe;
+  line-height: 1;
+}
+
+.badge-glass-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: rgba(18, 18, 22, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f4f4f5;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  line-height: 1.2;
+}
+
+.badge-glass-cinema {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(185, 28, 28, 0.82) 0%, rgba(143, 14, 28, 0.78) 100%);
+  border: 1px solid rgba(252, 165, 165, 0.42);
+  color: #fff1f2;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 3px 10px rgba(225, 29, 72, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  line-height: 1.2;
+}
+
+.badge-glass-series {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  color: #f0f9ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  line-height: 1.2;
+}
+
+.badge-glass-tvshow {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: rgba(59, 7, 100, 0.75);
+  border: 1px solid rgba(240, 171, 252, 0.32);
+  color: #fdf4ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  line-height: 1.2;
+}
+
+.badge-glass-anime {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: rgba(6, 44, 28, 0.75);
+  border: 1px solid rgba(110, 231, 183, 0.32);
+  color: #ecfdf5;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  line-height: 1.2;
+}
+
+.badge-glass-quality {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6.5px;
+  border-radius: 6px;
+  background: rgba(10, 10, 14, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fbbf24;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  line-height: 1.2;
+}
+
+.badge-glass-ep {
+  display: inline-flex;
+  align-items: center;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+  background: rgba(12, 12, 15, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  line-height: 1.2;
+}
+
+
+
+

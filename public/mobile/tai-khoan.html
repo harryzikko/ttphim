@@ -1,0 +1,398 @@
+﻿<!DOCTYPE html>
+<html class="dark" lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <meta content="mobile_tab" name="shell-type"/>
+  <title>Tài Khoản & Cài Đặt - TTPhim Mobile</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#11131c" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#11131c",
+            "surface-dim": "#11131c",
+            "surface-bright": "#373943",
+            "surface-container-lowest": "#0c0e17",
+            "surface-container-low": "#191b24",
+            "surface-container": "#1d1f29",
+            "surface-container-high": "#282933",
+            "surface-container-highest": "#32343e",
+            "on-surface": "#e1e1ef",
+            "on-surface-variant": "#e9bcb6",
+            "primary": "#ffb4aa",
+            "primary-container": "#e50914",
+            "on-primary-container": "#fff7f6",
+            "secondary": "#d3fbff",
+            "secondary-container": "#00eefc",
+            "secondary-fixed": "#7df4ff",
+            "tertiary": "#dcb8ff",
+            "tertiary-container": "#9a40f2",
+            "tertiary-fixed": "#efdbff"
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "0.75rem",
+            "xl": "1rem",
+            "2xl": "1.25rem",
+            "full": "9999px"
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="/mobile/css/mobile.css" />
+</head>
+
+<body class="bg-surface text-on-surface font-body-md flex flex-col min-h-screen">
+
+  <!-- Mobile Top Header -->
+  <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe">
+    <div class="h-16 px-4 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-1">
+        <span class="w-2.5 h-6 bg-primary-container rounded-sm shadow-[0_0_12px_rgba(229,9,20,0.6)]"></span>
+        <span class="font-headline-md text-lg tracking-tight font-extrabold text-on-surface">TT<span class="text-primary-container">PHIM</span></span>
+      </div>
+      <div class="flex items-center gap-1">
+        <a href="/mobile/kham-pha" aria-label="Tìm kiếm" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors">
+          <span class="material-symbols-outlined text-[22px]">search</span>
+        </a>
+        <button id="headerCastBtn" aria-label="Truyền màn hình" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors">
+          <span class="material-symbols-outlined text-[22px]">cast</span>
+        </button>
+        <button id="headerNotifBtn" aria-label="Thông báo" class="relative w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors">
+          <span class="material-symbols-outlined text-[22px]">notifications</span>
+          <span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary-container shadow-[0_0_6px_rgba(229,9,20,0.8)]"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content View -->
+  <main class="flex flex-col relative w-full pt-20 pb-24 bg-surface min-h-screen">
+    <div class="flex flex-col w-full text-on-surface">
+
+      <!-- Profile Header Section -->
+      <section class="relative px-4 pt-4 pb-6 flex flex-col items-center text-center overflow-hidden">
+        <!-- Atmospheric Glows -->
+        <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary-container/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute top-10 right-4 w-40 h-40 bg-secondary-container/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- Avatar -->
+        <div class="relative mb-3">
+          <div class="w-24 h-24 rounded-full p-0.5 bg-gradient-to-tr from-primary-container to-secondary-container shadow-[0_0_24px_rgba(229,9,20,0.35)]">
+            <img id="userAvatar" class="w-full h-full object-cover rounded-full bg-surface-container" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80" alt="Avatar"/>
+          </div>
+          <div class="absolute -bottom-1 -right-1 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white shadow-md">
+            <span class="material-symbols-outlined text-[16px]">check</span>
+          </div>
+        </div>
+
+        <!-- Name & Member Badge -->
+        <div class="flex items-center gap-1.5 mb-1">
+          <h1 id="userName" class="text-lg text-on-surface font-bold tracking-tight">Thành Viên TTPhim</h1>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-wider uppercase flex items-center gap-0.5">
+            <span class="material-symbols-outlined text-[12px]">verified</span> Miễn Phí
+          </span>
+        </div>
+        <p id="userEmail" class="text-xs text-on-surface-variant mb-3">member@ttphim.com</p>
+
+        <!-- Subscription Active Pill & Quick Edit -->
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-1.5 rounded-full bg-surface-container-high flex items-center gap-2 shadow-sm border border-white/5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs text-on-surface font-medium">100% Miễn Phí • Không giới hạn</span>
+          </div>
+          <button id="editProfileBtn" aria-label="Chỉnh sửa hồ sơ" class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-transform active:scale-95 shadow-sm border border-white/5">
+            <span class="material-symbols-outlined text-[16px]">edit</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- TTPhim Cinema Membership Card -->
+      <section class="px-4 mb-6">
+        <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-red-950/40 via-surface-container-high to-zinc-950 shadow-2xl shadow-black/80 border border-white/10">
+          <div class="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-gradient-to-br from-secondary-container/15 to-primary-container/20 blur-2xl pointer-events-none"></div>
+
+          <!-- Card Brand & Status Header -->
+          <div class="flex items-center justify-between relative z-10 mb-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-container to-red-600 flex items-center justify-center text-white font-black text-xs shadow-md">
+                TT
+              </div>
+              <div>
+                <div class="text-sm font-extrabold text-white tracking-wider">
+                  TTPHIM CINEMA PASS
+                </div>
+                <p class="text-[11px] text-emerald-400 font-medium">Trạng thái: Đang hoạt động vĩnh viễn</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-secondary text-[26px]">all_inclusive</span>
+          </div>
+
+          <!-- Perks Grid -->
+          <div class="grid grid-cols-2 gap-2 relative z-10 mb-2">
+            <div class="flex items-start gap-2 bg-black/40 rounded-xl p-2.5 backdrop-blur-sm border border-white/5">
+              <span class="material-symbols-outlined text-secondary text-[18px] shrink-0">high_quality</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-on-surface truncate">4K HDR & Atmos</p>
+                <p class="text-[10px] text-on-surface-variant truncate">Trải nghiệm rạp chiếu</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-2 bg-black/40 rounded-xl p-2.5 backdrop-blur-sm border border-white/5">
+              <span class="material-symbols-outlined text-secondary text-[18px] shrink-0">block</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-on-surface truncate">Không QC Phiền</p>
+                <p class="text-[10px] text-on-surface-variant truncate">Mượt mà liền mạch</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-2 bg-black/40 rounded-xl p-2.5 backdrop-blur-sm border border-white/5">
+              <span class="material-symbols-outlined text-secondary text-[18px] shrink-0">downloading</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-on-surface truncate">Tải Về Không Giới Hạn</p>
+                <p class="text-[10px] text-on-surface-variant truncate">Xem offline mọi nơi</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-2 bg-black/40 rounded-xl p-2.5 backdrop-blur-sm border border-white/5">
+              <span class="material-symbols-outlined text-secondary text-[18px] shrink-0">devices</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-on-surface truncate">Đa Thiết Bị</p>
+                <p class="text-[10px] text-on-surface-variant truncate">iOS, Android & Web</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Viewing Stats -->
+      <section class="px-4 mb-6">
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="bg-surface-container p-3 rounded-2xl flex flex-col items-center text-center shadow-sm border border-white/5">
+            <span class="material-symbols-outlined text-secondary text-[22px] mb-1">schedule</span>
+            <span id="statHours" class="text-base text-on-surface font-extrabold">142h</span>
+            <span class="text-[10px] text-on-surface-variant">Giờ đã xem</span>
+          </div>
+          <div class="bg-surface-container p-3 rounded-2xl flex flex-col items-center text-center shadow-sm border border-white/5">
+            <span class="material-symbols-outlined text-amber-400 text-[22px] mb-1">movie</span>
+            <span id="statMovies" class="text-base text-on-surface font-extrabold">38</span>
+            <span class="text-[10px] text-on-surface-variant">Phim hoàn tất</span>
+          </div>
+          <div class="bg-surface-container p-3 rounded-2xl flex flex-col items-center text-center shadow-sm border border-white/5">
+            <span class="material-symbols-outlined text-primary text-[22px] mb-1">favorite</span>
+            <span id="statWatchlist" class="text-base text-on-surface font-extrabold">15</span>
+            <span class="text-[10px] text-on-surface-variant">Đang theo dõi</span>
+          </div>
+        </div>
+
+        <!-- Quick Navigation Shortcuts -->
+        <div class="grid grid-cols-3 gap-2">
+          <a class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-high hover:bg-surface-container text-on-surface active:scale-95 transition-all text-center border border-white/5" href="/mobile/danh-sach?tab=history">
+            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-secondary mb-1 shadow-inner">
+              <span class="material-symbols-outlined text-[20px]">history</span>
+            </div>
+            <span class="text-xs font-semibold">Lịch Sử Xem</span>
+          </a>
+          <a class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-high hover:bg-surface-container text-on-surface active:scale-95 transition-all text-center border border-white/5" href="/mobile/danh-sach">
+            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary-container mb-1 shadow-inner">
+              <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+            </div>
+            <span class="text-xs font-semibold">Danh Sách</span>
+          </a>
+          <a class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-high hover:bg-surface-container text-on-surface active:scale-95 transition-all text-center border border-white/5" href="/mobile/danh-sach?tab=downloads">
+            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-secondary mb-1 shadow-inner">
+              <span class="material-symbols-outlined text-[20px]">download_for_offline</span>
+            </div>
+            <span class="text-xs font-semibold">Kho Tải Về</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Grouped Settings & Preferences -->
+      <section class="px-4 flex flex-col gap-4 mb-8">
+        <!-- Group 1: Trình phát & Tải về -->
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider px-1">Cài Đặt Trình Phát & Tải Về</span>
+          <div class="bg-surface-container rounded-2xl overflow-hidden shadow-sm flex flex-col border border-white/5">
+            <!-- Quality selector -->
+            <div class="flex items-center justify-between p-3.5 hover:bg-surface-container-high transition-colors cursor-pointer" id="settingQuality">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-secondary text-[22px]">auto_awesome</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-bold text-on-surface">Chất lượng phát mặc định</span>
+                  <span class="text-[11px] text-on-surface-variant">Tự động (Khuyên dùng 4K Ultra HD)</span>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+            </div>
+            <div class="h-[1px] bg-white/5 mx-3.5"></div>
+            <!-- Toggle: Wi-Fi Download only -->
+            <div class="flex items-center justify-between p-3.5">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-on-surface-variant text-[22px]">wifi</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-bold text-on-surface">Chỉ tải xuống qua Wi-Fi</span>
+                  <span class="text-[11px] text-on-surface-variant">Tiết kiệm lưu lượng 4G/5G</span>
+                </div>
+              </div>
+              <button aria-checked="true" class="toggle-btn w-11 h-6 rounded-full bg-primary-container p-0.5 transition-colors relative flex items-center cursor-pointer" role="switch" type="button" data-setting="wifi_only">
+                <span class="w-5 h-5 rounded-full bg-white shadow-md transform translate-x-5 transition-transform"></span>
+              </button>
+            </div>
+            <div class="h-[1px] bg-white/5 mx-3.5"></div>
+            <!-- Toggle: Auto play next -->
+            <div class="flex items-center justify-between p-3.5">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-on-surface-variant text-[22px]">play_circle</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-bold text-on-surface">Tự động phát tập kế tiếp</span>
+                  <span class="text-[11px] text-on-surface-variant">Liền mạch khi xem phim bộ</span>
+                </div>
+              </div>
+              <button aria-checked="true" class="toggle-btn w-11 h-6 rounded-full bg-primary-container p-0.5 transition-colors relative flex items-center cursor-pointer" role="switch" type="button" data-setting="autoplay_next">
+                <span class="w-5 h-5 rounded-full bg-white shadow-md transform translate-x-5 transition-transform"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group 2: Quản lý thiết bị & Tài khoản -->
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider px-1">Thiết Bị & Ngôn Ngữ</span>
+          <div class="bg-surface-container rounded-2xl overflow-hidden shadow-sm flex flex-col border border-white/5">
+            <!-- Active Devices -->
+            <div class="flex items-center justify-between p-3.5 hover:bg-surface-container-high transition-colors cursor-pointer" id="settingDevices">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-secondary text-[22px]">devices</span>
+                <div class="flex flex-col">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-on-surface">Thiết bị đang đồng bộ</span>
+                    <span class="px-1.5 py-0.2 rounded-full bg-surface-container-high text-secondary text-[10px] font-bold">Không giới hạn</span>
+                  </div>
+                  <span class="text-[11px] text-on-surface-variant">iPhone, Android, Máy tính, Smart TV</span>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+            </div>
+            <div class="h-[1px] bg-white/5 mx-3.5"></div>
+            <!-- Audio & Subtitles -->
+            <div class="flex items-center justify-between p-3.5 hover:bg-surface-container-high transition-colors cursor-pointer" id="settingAudio">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-on-surface-variant text-[22px]">subtitles</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-bold text-on-surface">Ngôn ngữ & Phụ đề</span>
+                  <span class="text-[11px] text-on-surface-variant">Mặc định Vietsub / Thuyết Minh</span>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+            </div>
+            <div class="h-[1px] bg-white/5 mx-3.5"></div>
+            <!-- Notification toggle -->
+            <div class="flex items-center justify-between p-3.5">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-on-surface-variant text-[22px]">notifications_active</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-bold text-on-surface">Thông báo tập mới</span>
+                  <span class="text-[11px] text-on-surface-variant">Nhận tin tức phim đang theo dõi</span>
+                </div>
+              </div>
+              <button aria-checked="true" class="toggle-btn w-11 h-6 rounded-full bg-primary-container p-0.5 transition-colors relative flex items-center cursor-pointer" role="switch" type="button" data-setting="notifications">
+                <span class="w-5 h-5 rounded-full bg-white shadow-md transform translate-x-5 transition-transform"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group 3: Trợ giúp & CSKH -->
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider px-1">Trợ Giúp & CSKH</span>
+          <div class="bg-surface-container rounded-2xl overflow-hidden shadow-sm flex flex-col border border-white/5">
+            <button class="flex items-center justify-between p-3.5 hover:bg-surface-container-high transition-colors text-left" id="btnReportIssue">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-on-surface-variant text-[22px]">report_problem</span>
+                <span class="text-xs font-bold text-on-surface">Báo lỗi phát phim & phụ đề</span>
+              </div>
+              <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+            </button>
+            <div class="h-[1px] bg-white/5 mx-3.5"></div>
+            <a class="flex items-center justify-between p-3.5 hover:bg-surface-container-high transition-colors text-left" href="tel:1900888TTPhim">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-on-surface-variant text-[22px]">support_agent</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-bold text-on-surface">Hotline Hỗ Trợ TTPhim 24/7</span>
+                  <span class="text-[11px] text-secondary font-semibold">1900 888 TTPHIM (Miễn phí)</span>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+            </a>
+            <div class="h-[1px] bg-white/5 mx-3.5"></div>
+            <button class="flex items-center justify-between p-3.5 hover:bg-surface-container-high transition-colors text-left text-red-400" id="btnLogout">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-[22px]">logout</span>
+                <span class="text-xs font-bold">Đăng xuất tài khoản</span>
+              </div>
+              <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Desktop Mode Switcher (Footer Link) -->
+        <div class="py-2 text-center">
+          <a href="/?view=desktop" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant text-[11px] font-medium hover:text-white transition-colors border border-white/5">
+            <span class="material-symbols-outlined text-[15px]">desktop_windows</span>
+            <span>Chuyển sang giao diện máy tính (Desktop)</span>
+          </a>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Mobile Bottom Tab Navigation Bar (Fixed 5-Tabs, iOS & Android Safe Area) -->
+  <nav class="mobile-app-nav fixed bottom-0 w-full z-50 pb-safe">
+    <div class="flex items-center justify-around h-16 px-1">
+      <a data-tab="home" href="/mobile" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">home</span>
+        <span class="font-label-badge text-[10px]">Trang Chủ</span>
+      </a>
+      <a data-tab="explore" href="/mobile/kham-pha" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">explore</span>
+        <span class="font-label-badge text-[10px]">Khám Phá</span>
+      </a>
+      <a data-tab="list" href="/mobile/danh-sach" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">bookmark</span>
+        <span class="font-label-badge text-[10px]">Danh Sách</span>
+      </a>
+      <a data-tab="downloads" href="/mobile/danh-sach?tab=downloads" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">download_for_offline</span>
+        <span class="font-label-badge text-[10px]">Tải Về</span>
+      </a>
+      <a data-tab="profile" href="/mobile/tai-khoan" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-primary-container touch-feedback">
+        <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">account_circle</span>
+        <span class="font-label-badge text-[10px]">Tài Khoản</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Mobile Scripts -->
+  <script src="/js/api.js?v=2.7.2"></script>
+  <script src="/mobile/js/mobile-app.js?v=1.0.0"></script>
+  <script src="/mobile/js/tai-khoan.js?v=1.0.0"></script>
+</body>
+</html>
+

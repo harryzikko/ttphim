@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Montserrat:wght@600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-primary":"#690003","surface-container-highest":"#32343e","surface-container-high":"#282933","secondary-container":"#00eefc","inverse-surface":"#e1e1ef","on-background":"#e1e1ef","primary-fixed-dim":"#ffb4aa","surface-container":"#1d1f29","inverse-primary":"#c0000c","on-primary-container":"#fff7f6","surface-container-lowest":"#0c0e17","surface-dim":"#11131c","on-secondary-fixed":"#002022","on-tertiary-fixed":"#2c0051","on-secondary":"#00363a","on-surface":"#e1e1ef","tertiary-fixed-dim":"#dcb8ff","inverse-on-surface":"#2e303a","on-error":"#690005","tertiary-container":"#9a40f2","primary-container":"#e50914","error-container":"#93000a","on-error-container":"#ffdad6","on-secondary-fixed-variant":"#004f54","outline":"#af8782","secondary-fixed":"#7df4ff","on-primary-fixed":"#410001","background":"#11131c","on-surface-variant":"#e9bcb6","tertiary-fixed":"#efdbff","primary-fixed":"#ffdad5","surface-tint":"#ffb4aa","on-primary-fixed-variant":"#930007","on-tertiary-fixed-variant":"#6700b5","surface-variant":"#32343e","on-tertiary-container":"#fff7ff","error":"#ffb4ab","on-secondary-container":"#00686f","on-tertiary":"#480081","surface-bright":"#373943","tertiary":"#dcb8ff","outline-variant":"#5e3f3b","secondary":"#d3fbff","surface-container-low":"#191b24","surface":"#11131c","secondary-fixed-dim":"#00dbe9","primary":"#ffb4aa"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{gutter:"1.5rem",margin:"3.5rem","space-md":"1rem","space-lg":"1.5rem","gutter-mobile":"0.75rem","space-xl":"2.5rem","margin-mobile":"1rem","space-sm":"0.5rem","space-xs":"0.25rem"},fontFamily:{"headline-md":["Montserrat"],"body-sm":["Inter"],"label-badge":["Inter"],"headline-sm":["Montserrat"],"body-md":["Inter"],"display-hero-mobile":["Montserrat"],"label-lg":["Inter"],"display-hero":["Montserrat"],"headline-lg-mobile":["Montserrat"],"label-md":["Inter"],"headline-lg":["Montserrat"],"body-lg":["Inter"]},fontSize:{"headline-md":["22px",{lineHeight:"28px",fontWeight:"600"}],"body-sm":["12px",{lineHeight:"18px",fontWeight:"400"}],"label-badge":["11px",{lineHeight:"14px",fontWeight:"700"}],"headline-sm":["18px",{lineHeight:"24px",fontWeight:"600"}],"body-md":["14px",{lineHeight:"22px",fontWeight:"400"}],"display-hero-mobile":["32px",{lineHeight:"40px",fontWeight:"800"}],"label-lg":["14px",{lineHeight:"20px",fontWeight:"600"}],"display-hero":["56px",{lineHeight:"64px",fontWeight:"800"}],"headline-lg-mobile":["24px",{lineHeight:"32px",fontWeight:"700"}],"label-md":["12px",{lineHeight:"16px",fontWeight:"600"}],"headline-lg":["32px",{lineHeight:"40px",fontWeight:"700"}],"body-lg":["16px",{lineHeight:"26px",fontWeight:"400"}]}}}}</script></head><body class="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.25)]"><div class="h-20 w-full px-gutter flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-lg"><a class="flex items-center gap-space-sm" data-path="trang-chu" href="#"><img alt="KKPhim Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WCgXJ9H-tWLwRPCqPCRlQ-WkeL0DmYMLoQLATG6zUC7m_mRaYXw9V8rpS6oCn2YpFNMV5eCJkqB40ASFcGmB8EVSm4JdhJUnQzRZXllyYk-iFplWk-2hiBgenIAwmXycja2wJQdrIssIaeW2L2chdDSOdkwurLh9W8lcpY9ruEewt7cu8DNtcO1SbJaqqUE7cZ-BOOT6tRM7uADBlkEb1d9ZnHdr5dL2LEJqSRybvk"/><span class="font-headline-sm text-headline-sm tracking-wider uppercase text-on-surface font-extrabold">KK<span class="text-primary-container">PHIM</span></span></a><nav class="hidden xl:flex items-center gap-space-xs" data-active-classes="bg-surface-container text-on-surface font-semibold rounded-lg"><a class="px-space-md py-space-sm text-on-surface-variant hover:text-on-surface transition-colors font-label-lg text-label-lg" data-path="trang-chu" href="#">Trang Chủ</a><a class="px-space-md py-space-sm text-on-surface-variant hover:text-on-surface transition-colors font-label-lg text-label-lg" data-path="phim-bo" href="#">Phim Bộ</a><a class="px-space-md py-space-sm text-on-surface-variant hover:text-on-surface transition-colors font-label-lg text-label-lg" data-path="phim-le" href="#">Phim Lẻ</a><a class="px-space-md py-space-sm text-on-surface-variant hover:text-on-surface transition-colors font-label-lg text-label-lg" data-path="hoat-hinh" href="#">Hoạt Hình</a><a class="px-space-md py-space-sm text-on-surface-variant hover:text-on-surface transition-colors font-label-lg text-label-lg" data-path="kham-pha" href="#">Khám Phá</a><a class="px-space-md py-space-sm text-on-surface-variant hover:text-on-surface transition-colors font-label-lg text-label-lg" data-path="bang-xep-hang" href="#">Bảng Xếp Hạng</a></nav></div><div class="flex items-center gap-space-md"><div class="relative hidden md:flex items-center"><span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px] pointer-events-none">search</span><input class="w-64 lg:w-80 pl-10 pr-14 py-2 rounded-full bg-surface-container-high text-on-surface placeholder:text-on-surface-variant font-body-sm text-body-sm focus:outline-none focus:bg-surface-container-highest transition-all" placeholder="Tìm kiếm phim, diễn viên..." type="text"/><div class="absolute right-3 px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-badge text-label-badge tracking-wider pointer-events-none">Ctrl+K</div></div><a class="hidden sm:flex items-center gap-space-xs px-space-md py-2 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md tracking-wide shadow-[0_0_16px_rgba(229,9,20,0.35)] hover:bg-inverse-primary hover:text-on-primary-container transition-all" data-path="goi-vip" href="#"><span class="material-symbols-outlined text-[18px]">workspace_premium</span><span>Xem không quảng cáo</span></a><div class="relative"><button aria-label="Thông báo" class="relative p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[24px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary-container"></span></button></div><div class="relative"><button aria-label="Hồ sơ cá nhân" class="flex items-center gap-2 p-1 rounded-full hover:bg-surface-container-high transition-colors" type="button"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8"/><span class="material-symbols-outlined text-on-surface-variant text-[18px] hidden sm:block">expand_more</span></button></div></div></div></header><main class="w-full pt-20 bg-background min-h-screen"><div class="flex flex-col w-full">
+<!-- Cinema Ambient Curtains / Light Overlay System -->
+<div class="fixed inset-0 z-40 bg-surface-container-lowest/95 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-500" id="cinema-backdrop-scrim"></div>
+<!-- Top Watch Header Strip -->
+<section class="w-full bg-surface-container-low px-gutter py-space-sm shadow-md relative z-30">
+<div class="w-full max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-md min-w-0">
+<a class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-highest transition-all group shrink-0" data-path="chi-tiet-phim" href="#">
+<span class="material-symbols-outlined text-primary text-[18px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
+<span class="font-label-md text-label-md">Chi tiết phim</span>
+</a>
+<div class="h-4 w-px bg-surface-container-highest hidden sm:block shrink-0"></div>
+<div class="flex items-center gap-space-xs min-w-0">
+<h1 class="font-headline-sm text-headline-sm text-on-surface font-bold truncate">Nữ Hoàng Nước Mắt</h1>
+<span class="text-on-surface-variant font-body-sm text-body-sm hidden md:inline shrink-0">—</span>
+<span class="font-body-md text-body-md text-on-surface-variant truncate hidden md:inline">Tập 1: Đám cưới thế kỷ</span>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary-container/20 text-primary font-label-badge text-label-badge shrink-0 tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+            FHD Vietsub · Server VIP #1
+          </span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" id="btn-cinema-mode" title="Bật/Tắt ánh sáng rạp chiếu">
+<span class="material-symbols-outlined text-[18px]" id="light-icon">lightbulb</span>
+<span class="hidden lg:inline" id="light-label">Tắt đèn rạp</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" title="Tạo phòng xem chung">
+<span class="material-symbols-outlined text-[18px] text-secondary-fixed">group</span>
+<span class="hidden lg:inline">Watch Party</span>
+<span class="px-1 rounded bg-secondary-fixed/20 text-secondary-fixed font-label-badge text-[10px]">LIVE</span>
+</button>
+<button class="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors" id="btn-theater-toggle" title="Mở rộng khung xem (Theater)">
+<span class="material-symbols-outlined text-[20px]">panorama_wide_angle</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Main Theatrical Layout (Player Grid + Dynamic Episode Rail) -->
+<main class="w-full px-gutter py-space-md relative z-30">
+<div class="w-full max-w-[1720px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-space-lg transition-all duration-300" id="player-grid-container">
+<!-- Video Column (Player + Secondary Actions + Servers) -->
+<div class="xl:col-span-8 2xl:col-span-9 flex flex-col gap-space-md min-w-0 transition-all duration-300" id="primary-player-column">
+<!-- Video Player Frame container -->
+<div class="group relative w-full aspect-video bg-surface-container-lowest rounded-xl overflow-hidden shadow-2xl select-none" id="player-viewport">
+<!-- Background Movie Backdrop Media -->
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-[1.01]" data-alt="A vivid, cinematic high-resolution widescreen still from a lavish Korean drama wedding ceremony. A bride in an intricate lace designer gown and a groom in an elegant midnight black tuxedo stand under a magnificent floral arch bathed in romantic stage lighting with soft atmospheric haze, deep moody shadows, ultra sharp 4k film texture." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAW_kGEkKgVkQMeH_pAE6C1aghTaqjjTcABPN-LJ67aq5qAVMG6ZXKXuIXoZ-GcFsakzmki_OGWkWggsk9ErA6VwASJ-doyc8MGDPVZLTtcxaU4hyMK9IgvGnxyCkUF86AcHHpaToB3wvJZHK3eMYXl1VWifeiYX3HAMnFtDaV_HyQHiRXLvqJ9cbaXi3exX8YarUcPPlGdKCPvU75Tjjx1GdL8qSdfNAbyE62uGDg')">
+<!-- Ambient Cinema Vignette Overlay -->
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-surface-container-lowest/40 pointer-events-none"></div>
+<div class="absolute inset-0 bg-gradient-to-r from-surface-container-lowest/60 via-transparent to-surface-container-lowest/40 pointer-events-none"></div>
+</div>
+<!-- Video Watermark / Brand Badge -->
+<div class="absolute top-4 left-4 z-20 pointer-events-none flex items-center gap-2 drop-shadow-md">
+<span class="font-headline-sm text-label-lg font-black tracking-widest uppercase text-on-primary-container/80">KK<span class="text-primary-container">CINEMA</span></span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-lowest/80 text-on-surface-variant font-label-badge text-[10px] uppercase backdrop-blur-sm">Dolby Vision · 4K</span>
+</div>
+<!-- Top Skip Intro Button (Visible around 00:00 - 02:00 in film) -->
+<div class="absolute top-4 right-4 z-20 transition-transform duration-300 ease-out">
+<button class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-lowest/85 hover:bg-primary-container text-on-surface hover:text-on-primary-container font-label-md text-label-md backdrop-blur-xl shadow-lg hover:scale-105 transition-all" id="btn-skip-intro">
+<span>Bỏ qua giới thiệu</span>
+<span class="material-symbols-outlined text-[18px]">fast_forward</span>
+</button>
+</div>
+<!-- Center Buffer/Play Indicator (Interactive) -->
+<div class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+<div class="w-16 h-16 rounded-full bg-surface-container-lowest/70 backdrop-blur-md flex items-center justify-center text-primary-container shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" id="center-play-badge">
+<span class="material-symbols-outlined text-[36px]">play_arrow</span>
+</div>
+</div>
+<!-- Hover Overlay Gradient Scrim -->
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/95 via-surface-container-lowest/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-15"></div>
+<!-- Custom Player Control Rack -->
+<div class="absolute inset-x-0 bottom-0 z-20 p-4 lg:p-6 flex flex-col gap-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<!-- Seekbar & Scrubbing System -->
+<div class="relative w-full group/seek py-2 cursor-pointer flex items-center" id="seek-container">
+<!-- Hover Thumbnail Tooltip Preview (Dynamic Position Mock) -->
+<div class="absolute -top-28 left-[43%] -translate-x-1/2 hidden group-hover/seek:flex flex-col items-center pointer-events-none transition-all" id="seek-tooltip">
+<div class="w-36 h-20 rounded-lg overflow-hidden shadow-2xl bg-surface-container-highest p-0.5">
+<div class="w-full h-full bg-cover bg-center rounded" data-alt="A small preview thumbnail of a Korean luxury drama scene showing a dramatic confrontation inside a lavish marble penthouse room, subtle rim lighting, high contrast cinematic styling." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBDuJwtIZanzERlcSlqEzGH3zVN_3Gdb7gLhY3kBrNNGTAg1Y1hMs8CEAc9hQ_ayilhHP-mevcfxppD12QbCZCgIMpcK0TyqUMmVYnPcBuoKdmBpXMq2jMEgqZmFQ5PqVCRO76s4XwTy0ar8eB0CF5vKBgoqFh7V_9Gte-yJq3NGe61RfdPolGCEhn2rO9uZTHu-pI_G8bHQQjSgrwGfnIRbSQDKri2p1KpwHwN9c0')"></div>
+</div>
+<span class="mt-1 px-2 py-0.5 rounded bg-surface-container-lowest/90 font-label-badge text-label-badge text-on-surface">34:20</span>
+</div>
+<!-- Track background -->
+<div class="w-full h-1.5 group-hover/seek:h-2 bg-surface-container-highest/80 rounded-full relative overflow-hidden transition-all">
+<!-- Buffered progress -->
+<div class="absolute top-0 bottom-0 left-0 w-[72%] bg-surface-variant/90 rounded-full"></div>
+<!-- Playhead progress -->
+<div class="absolute top-0 bottom-0 left-0 w-[43%] bg-primary-container rounded-full"></div>
+</div>
+<!-- Draggable Thumb Knob -->
+<div class="absolute left-[43%] -translate-x-1/2 w-3.5 h-3.5 group-hover/seek:w-4 group-hover/seek:h-4 rounded-full bg-on-primary-container shadow-[0_0_12px_rgba(229,9,20,0.8)] scale-0 group-hover/seek:scale-100 transition-transform"></div>
+</div>
+<!-- Primary Action Bar (Buttons, Speed, Track, Audio, Resolution) -->
+<div class="flex items-center justify-between gap-space-sm text-on-surface">
+<!-- Left Control Group -->
+<div class="flex items-center gap-1 sm:gap-2">
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 transition-colors text-on-surface" title="Phát / Dừng (Space)">
+<span class="material-symbols-outlined text-[24px]">pause</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 transition-colors text-on-surface hidden sm:flex" title="Tập trước">
+<span class="material-symbols-outlined text-[22px]">skip_previous</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 transition-colors text-on-surface" title="Tua lùi 10s">
+<span class="material-symbols-outlined text-[22px]">replay_10</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 transition-colors text-on-surface" title="Tua tới 10s">
+<span class="material-symbols-outlined text-[22px]">forward_10</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 transition-colors text-on-surface hidden sm:flex" title="Tập kế tiếp">
+<span class="material-symbols-outlined text-[22px]">skip_next</span>
+</button>
+<!-- Audio Controller Slider -->
+<div class="flex items-center gap-2 group/volume ml-1 sm:ml-2">
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 transition-colors text-on-surface" title="Âm thanh (M)">
+<span class="material-symbols-outlined text-[22px]">volume_up</span>
+</button>
+<div class="w-0 overflow-hidden group-hover/volume:w-20 transition-all duration-300 flex items-center">
+<input class="w-16 h-1 bg-surface-container-highest rounded-lg accent-primary-container cursor-pointer" max="100" min="0" type="range" value="85"/>
+</div>
+</div>
+<!-- Timestamp Counter -->
+<div class="font-body-sm text-body-sm text-on-surface-variant font-medium tracking-tight ml-2">
+<span class="text-on-surface font-semibold">34:20</span> / 1:18:45
+                </div>
+</div>
+<!-- Right Control Group -->
+<div class="flex items-center gap-1 sm:gap-1.5 relative">
+<!-- Subtitle Selector Quick Popover Toggle -->
+<div class="relative">
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 text-on-surface transition-colors" id="btn-subtitles" title="Phụ đề (C)">
+<span class="material-symbols-outlined text-[22px]">closed_caption</span>
+</button>
+<div class="hidden absolute bottom-12 right-0 w-48 rounded-xl bg-surface-container-high p-2 shadow-2xl backdrop-blur-xl z-50 flex flex-col gap-1 text-on-surface font-label-md text-label-md" id="menu-subtitles">
+<span class="font-label-badge text-label-badge text-on-surface-variant px-2 py-1">PHỤ ĐỀ &amp; LỒNG TIẾNG</span>
+<button class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-surface-container text-primary font-bold">
+<span>Tiếng Việt (Vietsub)</span>
+<span class="material-symbols-outlined text-[16px]">check</span>
+</button>
+<button class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-surface-container text-on-surface">
+<span>Tiếng Anh (English)</span>
+</button>
+<button class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-surface-container text-on-surface">
+<span>Hàn Quốc (Original)</span>
+</button>
+<button class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant">
+<span>Tắt phụ đề</span>
+</button>
+</div>
+</div>
+<!-- Speed Menu Selector -->
+<div class="relative">
+<button class="px-2 py-1 rounded-lg hover:bg-surface-container-high/80 text-on-surface font-label-md text-label-md transition-colors" id="btn-playback-speed" title="Tốc độ phát">
+                    1.0x
+                  </button>
+<div class="hidden absolute bottom-12 right-0 w-32 rounded-xl bg-surface-container-high p-2 shadow-2xl backdrop-blur-xl z-50 flex flex-col gap-0.5 text-on-surface font-label-md text-label-md" id="menu-speed">
+<span class="font-label-badge text-label-badge text-on-surface-variant px-2 py-1">TỐC ĐỘ</span>
+<button class="px-2 py-1 rounded hover:bg-surface-container text-left text-on-surface-variant">0.75x</button>
+<button class="px-2 py-1 rounded bg-surface-container text-primary font-bold text-left flex items-center justify-between">
+<span>1.0x (Chuẩn)</span>
+<span class="material-symbols-outlined text-[14px]">check</span>
+</button>
+<button class="px-2 py-1 rounded hover:bg-surface-container text-left text-on-surface-variant">1.25x</button>
+<button class="px-2 py-1 rounded hover:bg-surface-container text-left text-on-surface-variant">1.5x</button>
+<button class="px-2 py-1 rounded hover:bg-surface-container text-left text-on-surface-variant">2.0x</button>
+</div>
+</div>
+<!-- Resolution Settings Switcher -->
+<div class="relative">
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 text-on-surface transition-colors" id="btn-player-settings" title="Chất lượng hình ảnh">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+</button>
+<div class="hidden absolute bottom-12 right-0 w-44 rounded-xl bg-surface-container-high p-2 shadow-2xl backdrop-blur-xl z-50 flex flex-col gap-1 text-on-surface font-label-md text-label-md" id="menu-settings">
+<span class="font-label-badge text-label-badge text-on-surface-variant px-2 py-1">CHẤT LƯỢNG HÌNH ẢNH</span>
+<button class="flex items-center justify-between px-2 py-1.5 rounded-lg bg-surface-container text-primary font-bold">
+<span class="flex items-center gap-1.5">
+                        4K UltraHD
+                        <span class="px-1 py-0.2 rounded bg-primary-container text-on-primary-container text-[9px] font-black">VIP</span>
+</span>
+<span class="material-symbols-outlined text-[16px]">check</span>
+</button>
+<button class="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-surface-container text-on-surface">
+<span>1080p 60fps</span>
+</button>
+<button class="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-surface-container text-on-surface">
+<span>720p HD</span>
+</button>
+<button class="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant">
+<span>Tự động (Auto HLS)</span>
+</button>
+</div>
+</div>
+<!-- Picture in Picture (PiP) -->
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 text-on-surface transition-colors hidden sm:flex" title="Hình trong hình (PiP)">
+<span class="material-symbols-outlined text-[22px]">picture_in_picture_alt</span>
+</button>
+<!-- Fullscreen Toggle -->
+<button class="p-2 rounded-lg hover:bg-surface-container-high/80 text-on-surface transition-colors" title="Toàn màn hình (F)">
+<span class="material-symbols-outlined text-[24px]">fullscreen</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Interaction Bar Below Player -->
+<div class="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-space-sm bg-surface-container rounded-xl p-space-sm shadow-md">
+<div class="flex items-center flex-wrap gap-2">
+<!-- Server Selector Pills -->
+<span class="text-on-surface-variant font-label-badge text-label-badge uppercase tracking-wider pl-1">Server:</span>
+<button class="px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md font-bold shadow-sm transition-all flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">bolt</span>
+<span>VIP #1 (HLS Tốc Độ Cao)</span>
+</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">cloud_sync</span>
+<span>Server Vietsub 2</span>
+</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">record_voice_over</span>
+<span>Lồng Tiếng AI</span>
+</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">mic</span>
+<span>Thuyết Minh Hà Nội</span>
+</button>
+</div>
+<!-- Utility Action Cluster -->
+<div class="flex items-center gap-1 self-end sm:self-center shrink-0">
+<button class="p-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors flex items-center gap-1.5 px-3" title="Tải về máy xem offline">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span class="font-label-md text-label-md hidden lg:inline">Tải về</span>
+</button>
+<button class="p-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors flex items-center gap-1.5 px-3" title="Báo cáo tập lỗi/đứng hình">
+<span class="material-symbols-outlined text-[18px] text-error">flag</span>
+<span class="font-label-md text-label-md hidden lg:inline">Báo lỗi</span>
+</button>
+<button class="p-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors" title="Đánh giá tập">
+<span class="material-symbols-outlined text-[18px] text-primary">thumb_up</span>
+</button>
+<button class="p-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors" title="Chia sẻ tập này">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+</div>
+<!-- Movie Synopsis, Tags & Key Actors Row -->
+<div class="w-full bg-surface-container-low rounded-xl p-space-md lg:p-space-lg flex flex-col gap-space-md shadow-md">
+<div class="flex flex-col md:flex-row md:items-start justify-between gap-space-md">
+<div class="space-y-2">
+<div class="flex flex-wrap items-center gap-2">
+<span class="px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary-container font-label-badge text-label-badge font-bold uppercase">HOT #1 Tuần</span>
+<span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-badge text-label-badge">T16</span>
+<span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-badge text-label-badge">2024</span>
+<span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-badge text-label-badge">16 Tập</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">Độ trùng khớp: <strong class="text-secondary-fixed">98%</strong></span>
+</div>
+<h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">Queen of Tears (Nữ Hoàng Nước Mắt)</h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed max-w-4xl">
+                Một cuộc khủng hoảng hôn nhân kỳ lạ nổ ra giữa Hong Hae In - nữ thừa kế đời thứ ba quyền quý của tập đoàn bách hóa Queens Group, và Baek Hyun Woo - chàng luật sư tài giỏi sinh ra từ vùng quê Yongdu-ri. Những mâu thuẫn gia tộc đan xen cùng căn bệnh nan y bất ngờ mở ra một câu chuyện tình yêu tái sinh đầy kịch tính và cảm động.
+              </p>
+</div>
+<!-- Quick Rating Meter -->
+<div class="flex flex-col items-center justify-center p-space-md rounded-xl bg-surface-container shrink-0 min-w-[140px] text-center shadow-inner">
+<div class="flex items-center gap-1 text-primary-container">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-headline-lg text-headline-lg font-black text-on-surface">9.6</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant mt-1">128.4k lượt xem</span>
+</div>
+</div>
+<!-- Creator & Cast chips -->
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-space-xs font-body-sm text-body-sm text-on-surface-variant">
+<div><span class="text-on-surface font-semibold">Đạo diễn:</span> Jang Young Woo, Kim Hee Won</div>
+<div><span class="text-on-surface font-semibold">Diễn viên:</span> Kim Soo Hyun, Kim Ji Won, Park Sung Hoon, Kwak Dong Yeon</div>
+<div><span class="text-on-surface font-semibold">Thể loại:</span> Lãng mạn, Hài kịch đen, Chính kịch, Gia đình</div>
+</div>
+</div>
+<!-- Real-Time Interactive Live Chat / Community Discussion Block -->
+<div class="w-full bg-surface-container-low rounded-xl p-space-md lg:p-space-lg flex flex-col gap-space-md shadow-md">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[24px]">forum</span>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Bình Luận Thời Gian Thực</h3>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-secondary-fixed font-label-badge text-label-badge font-semibold">1,492 Bình luận</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 rounded-full bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors">Mới nhất</button>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-primary font-label-md text-label-md font-bold">Nổi bật</button>
+</div>
+</div>
+<!-- User input area -->
+<div class="flex items-start gap-3 bg-surface-container rounded-xl p-3 shadow-inner">
+<img class="w-10 h-10 rounded-full object-cover shrink-0" data-alt="A portrait of an avid young viewer avatar smiling with warm cinematic indoor lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9DV6z-Gfq7FrYxqzASuiRxIF9k00UPzrpo8wVMfs2pO4y5VwGLVG1FcdJVfwiuz-1EOE9pjWL-lNM_KtnPEPap9Nu7H6PufdM59SBNQPr1d22XNywYSa9usDlPfATD5coY7XsNfxt9V8n61Tw8QOzG78y7eBF25mK29DUAfI0NvPoBONjE2FoezWAY8dWY0f8_3wiAZ4hym0Oj-VpkEVE7rrymQJfTgQxbfKgtwM"/>
+<div class="flex-1 flex flex-col gap-2">
+<input class="w-full bg-transparent text-on-surface placeholder:text-on-surface-variant font-body-md text-body-md focus:outline-none" placeholder="Viết cảm nghĩ của bạn về tập 1 (Hãy lịch sự, tránh spoil nội dung)..." type="text"/>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<button class="p-1 rounded hover:bg-surface-container-highest transition-colors" title="Chèn biểu tượng cảm xúc"><span class="material-symbols-outlined text-[18px]">sentiment_satisfied</span></button>
+<button class="p-1 rounded hover:bg-surface-container-highest transition-colors" title="Đính kèm mốc thời gian phim"><span class="material-symbols-outlined text-[18px]">schedule</span></button>
+<span class="text-on-surface-variant font-body-sm text-[11px] pl-1">Nhấn 34:20 để gắn tem phim</span>
+</div>
+<button class="px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold hover:brightness-110 transition-all flex items-center gap-1 shadow-sm">
+<span>Gửi</span>
+<span class="material-symbols-outlined text-[16px]">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Comment feed list -->
+<div class="space-y-space-md pt-2">
+<!-- Comment item 1 -->
+<div class="flex items-start gap-3">
+<img class="w-9 h-9 rounded-full object-cover shrink-0" data-alt="Avatar portrait of a movie enthusiast woman smiling against dark moody neon lights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmV0kJ3rLlFchh-aGILVOr-pQbdtHs2qQKQtkeKftGRHjg2nb7ii3xkFe2aJA7-Gldl5BqHuj4L_uiVmqQyW9CCgKPrUz_MCzKjGtUsI1R3dM0r3vXdhkgOsKaL_SVbs9gl7b2sTWQGr3VphY1X_pUChBkXZ-KPQtC6HeaIV7uxpjuEKEltMKcvR78AOcVjnQlk989xeMDULyOev-eHEjgdEO-N14MVTh2oQR_E3A"/>
+<div class="flex-1 space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md font-bold text-on-surface">Minh Trang Đỗ</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-highest text-secondary-fixed font-label-badge text-[10px]">VIP Member</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">5 phút trước</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface">
+                  Cảnh mở đầu lúc <span class="text-primary hover:underline cursor-pointer font-semibold">12:15</span> biểu cảm của Kim Soo Hyun hài hước thực sự! Đám cưới quay góc máy hoành tráng không khác gì phim rạp.
+                </p>
+<div class="flex items-center gap-4 text-on-surface-variant font-body-sm text-body-sm pt-1">
+<button class="flex items-center gap-1 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[16px]">thumb_up</span> 438</button>
+<button class="hover:text-on-surface transition-colors">Trả lời</button>
+</div>
+</div>
+</div>
+<!-- Comment item 2 -->
+<div class="flex items-start gap-3">
+<img class="w-9 h-9 rounded-full object-cover shrink-0" data-alt="Cinematic profile portrait of a young man wearing headphones in a studio with soft cool blue tone." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBU7pLbePV5REiuUUszeFgpK_nXIMbhtJkS-JfY3YiY48zc9WJAzafC9AAlmfbOYqgCEsz8DySHL2wbWQwJOYL5EyVtzDzxzr_yFOsuHThBn95wHSZiHkFD_HOz8inAH39oWBVBGY7aeVXhQ1Va8EsMxI4UFacIWHPpaIRKLVKPR8f47S1gT7iSOaPfTW1lIK6XvgX6IUOY0TTahILGoTOH5RWFOWT-iaWLkb5AmtY"/>
+<div class="flex-1 space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md font-bold text-on-surface">Hoàng Long Cinema</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">18 phút trước</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface">
+                  Server VIP 1 mượt kinh khủng, load 4K không delay chút nào. Nhạc phim của BSS (SEVENTEEN) xuất hiện khúc cuối làm mình sởn da gà luôn!
+                </p>
+<div class="flex items-center gap-4 text-on-surface-variant font-body-sm text-body-sm pt-1">
+<button class="flex items-center gap-1 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[16px]">thumb_up</span> 219</button>
+<button class="hover:text-on-surface transition-colors">Trả lời</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Episode Playlist Drawer & Recommended Rail -->
+<aside class="xl:col-span-4 2xl:col-span-3 flex flex-col gap-space-md">
+<!-- Smart Episode Drawer -->
+<div class="w-full bg-surface-container-low rounded-xl overflow-hidden shadow-xl flex flex-col max-h-[820px]">
+<!-- Drawer Header -->
+<div class="p-space-md bg-surface-container flex flex-col gap-space-sm border-b-0">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[20px]">video_library</span>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Danh Sách Tập</h3>
+</div>
+<span class="font-label-badge text-label-badge text-on-surface-variant px-2 py-0.5 rounded bg-surface-container-highest">Tập 1 - 16</span>
+</div>
+<!-- Search Episode Filter -->
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[18px]">search</span>
+<input class="w-full pl-9 pr-4 py-2 rounded-lg bg-surface-container-high text-on-surface placeholder:text-on-surface-variant font-body-sm text-body-sm focus:outline-none focus:bg-surface-container-highest transition-all" id="episode-search-input" placeholder="Tìm tập phim (vd: Tập 3, Đám cưới)..." type="text"/>
+</div>
+</div>
+<!-- Episode Scrollable List -->
+<div class="p-2 space-y-2 overflow-y-auto flex-1 overscroll-contain" style="max-height: 700px;">
+<!-- Episode 1 (Current Active Playing) -->
+<div class="w-full rounded-xl bg-surface-container-high p-2 flex gap-3 relative shadow-md group cursor-pointer border-l-4 border-l-primary-container">
+<div class="relative w-28 aspect-video rounded-lg overflow-hidden shrink-0 bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Close-up shot of Kim Ji Won and Kim Soo Hyun exchanged romantic looks in grand hall with floral decor in Korean drama Queen of Tears." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzPVNfuQOlgE5DH41dYkTX1sNmRDvsT2U3jbsyTfW7-vXQX82Hu9Q-tfjbwJxQjkyj6FsU3HIO4Z5MTQdUHZw67qcU-tBxSNppw11Xz_JdhalysUhAZiadUtdQCyvoqKgHtHpmgZYfx_iPNrsZ7uNIemjBZtOOO3-hLA2ncTaRaGLJoaqPxM2o_HyuUddP8fYGSECRzaHHhP-lcxpxEAOmw8z8lihP-zC4aS1FIxE"/>
+<div class="absolute inset-0 bg-surface-container-lowest/50 flex items-center justify-center">
+<div class="flex items-center gap-0.5">
+<span class="w-1 h-3 bg-primary-container animate-pulse"></span>
+<span class="w-1 h-4 bg-primary-container animate-pulse delay-75"></span>
+<span class="w-1 h-2 bg-primary-container animate-pulse delay-150"></span>
+</div>
+</div>
+<span class="absolute bottom-1 right-1 px-1 rounded bg-surface-container-lowest/90 font-label-badge text-[10px] text-on-surface">1:18:45</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-md text-label-md font-bold text-primary truncate">Tập 1: Đám cưới thế kỷ</span>
+</div>
+<p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-2 mt-0.5 leading-snug">
+                    Hyun Woo bối rối trước gia tộc vợ giàu có và quyết định bí mật đòi ly hôn.
+                  </p>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-badge text-[11px] pt-1">
+<span class="text-primary font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span> Đang phát</span>
+<span class="text-on-surface-variant">34:20 đã xem</span>
+</div>
+</div>
+</div>
+<!-- Episode 2 -->
+<div class="w-full rounded-xl bg-surface-container hover:bg-surface-container-high p-2 flex gap-3 transition-colors cursor-pointer group">
+<div class="relative w-28 aspect-video rounded-lg overflow-hidden shrink-0 bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Dramatic scene inside a modern glass office where the female lead looks intensely at legal documents, soft cool cinema lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7JVkAEON8DdR0a6YNjHstO5gP8w2PogkmKsxF5Xaf2M3gQ6bAvHwvzPfxPE0YpHcOH-V2RNpLPBOSoMPw8TDC8i9vTN5M93acPiu9rSyqK8eBs4IXQ2MT4nx-QfzTlacqowCeaDkUPgLYV6l2txTAZkOwTlKZmU-bEq1lTicsLIaRMtsvJ3y2b2JWX1gqbG4QAvP80zJhepXvJlzsGlhqshlBkv-3fA3nBxeaPe0"/>
+<span class="absolute bottom-1 right-1 px-1 rounded bg-surface-container-lowest/90 font-label-badge text-[10px] text-on-surface">1:16:10</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+<div>
+<span class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate block">Tập 2: Tin sét đánh ngang tai</span>
+<p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-2 mt-0.5 leading-snug">
+                    Hae In đột ngột chia sẻ một bí mật sức khỏe kinh hoàng khiến Hyun Woo phải hoãn kế hoạch.
+                  </p>
+</div>
+<div class="flex items-center justify-between font-label-badge text-[11px] text-on-surface-variant pt-1">
+<span>Full HD Vietsub</span>
+<span class="material-symbols-outlined text-[16px] group-hover:text-on-surface">play_circle</span>
+</div>
+</div>
+</div>
+<!-- Episode 3 -->
+<div class="w-full rounded-xl bg-surface-container hover:bg-surface-container-high p-2 flex gap-3 transition-colors cursor-pointer group">
+<div class="relative w-28 aspect-video rounded-lg overflow-hidden shrink-0 bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="A hunt in misty forest with characters carrying rifles in luxurious autumn outdoor attire, moody high-contrast cinematic atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk_Ie_JXyU7stEJA1-QHZoLuVvhKKPlB_zrEeltnB472O2XE-65FcAlxR3Wf0PhbUPPpv_BBn0DVUBOLVZ58OAHePtiPLsYcQt_ib3NqLSbtg868456fdD-pq-Kp-ytXTCAX4w5GCyLqfI3BRZvYlL-9iqct1PEM74QO-1jB9TqCknSXcVX7uIMAlxk86tqFhmePnS1d41ncoI-s178O1Zon_7s3BMVFB2XDxig_Q"/>
+<span class="absolute bottom-1 right-1 px-1 rounded bg-surface-container-lowest/90 font-label-badge text-[10px] text-on-surface">1:19:30</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+<div>
+<span class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate block">Tập 3: Cuộc săn bắn định mệnh</span>
+<p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-2 mt-0.5 leading-snug">
+                    Một tai nạn bất ngờ trong chuyến săn bắn của tập đoàn Queens đẩy Hae In vào hiểm cảnh.
+                  </p>
+</div>
+<div class="flex items-center justify-between font-label-badge text-[11px] text-on-surface-variant pt-1">
+<span>Full HD Vietsub</span>
+<span class="material-symbols-outlined text-[16px] group-hover:text-on-surface">play_circle</span>
+</div>
+</div>
+</div>
+<!-- Episode 4 -->
+<div class="w-full rounded-xl bg-surface-container hover:bg-surface-container-high p-2 flex gap-3 transition-colors cursor-pointer group">
+<div class="relative w-28 aspect-video rounded-lg overflow-hidden shrink-0 bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Romantic night walk scene with umbrella under streetlights on a rainy night in Seoul, rich reflections on asphalt." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDf_QCTuctPZr42wrvsvf22NXYgLX2wvSnNQsi-dxI-LxvIaP4wAgxo8Bv_cVHaJn1a0iTSdo4wp8_jlNHaNeskcxz8IwC16I1eBa9HUF82KhRbJf2Ot3KLABrHGt9EhWTCioYZ0Nog1_m_hLJ9850VAi71f_L_HHvgGUqpv-69AugMcfqyJjawlOYjyHP1Uy0Dh_SgC8Xs6Te56wvXnZTLPfjJR96_Pj8i6sgLgsc"/>
+<span class="absolute bottom-1 right-1 px-1 rounded bg-surface-container-lowest/90 font-label-badge text-[10px] text-on-surface">1:15:02</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+<div>
+<span class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate block">Tập 4: Cảm xúc trỗi dậy</span>
+<p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-2 mt-0.5 leading-snug">
+                    Hyun Woo bắt đầu cảm thấy ghen tuông khi tình cũ của Hae In là Yoon Eun Sung xuất hiện.
+                  </p>
+</div>
+<div class="flex items-center justify-between font-label-badge text-[11px] text-on-surface-variant pt-1">
+<span>Full HD Vietsub</span>
+<span class="material-symbols-outlined text-[16px] group-hover:text-on-surface">play_circle</span>
+</div>
+</div>
+</div>
+<!-- Episode 5 -->
+<div class="w-full rounded-xl bg-surface-container hover:bg-surface-container-high p-2 flex gap-3 transition-colors cursor-pointer group">
+<div class="relative w-28 aspect-video rounded-lg overflow-hidden shrink-0 bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="A picturesque European city street in Germany with historic architecture, spring blossom trees, two lovers walking quietly." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWgVA6FyOfx7k_bheUww8Qygus-TZq9UdaJNWpiXRSTOZBnwy8OKhoEYACmWHFlyePBj8A_701k6k61rnmR1ErMG9WVrQKq0Vn9BXrqehkx1jrNivVE-Tlbl6ABg2HX6YrqsmzBzF-AeK0C3QEPM2lqnW6KaaiOCRLcuXq_jX55xtxH33jEIq0ggks1po0WCF3PK09nwfw522aMhsa26SIdbWoC1gYpAI9rzQ9nwc"/>
+<span class="absolute bottom-1 right-1 px-1 rounded bg-surface-container-lowest/90 font-label-badge text-[10px] text-on-surface">1:21:40</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+<div>
+<span class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate block">Tập 5: Chuyến đi Đức</span>
+<p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-2 mt-0.5 leading-snug">
+                    Hyun Woo bay đến Đức để tìm Hae In tại viện nghiên cứu y học, nối lại những ký ức xưa.
+                  </p>
+</div>
+<div class="flex items-center justify-between font-label-badge text-[11px] text-on-surface-variant pt-1">
+<span>Full HD Vietsub</span>
+<span class="material-symbols-outlined text-[16px] group-hover:text-on-surface">play_circle</span>
+</div>
+</div>
+</div>
+<!-- Episode 6 -->
+<div class="w-full rounded-xl bg-surface-container hover:bg-surface-container-high p-2 flex gap-3 transition-colors cursor-pointer group">
+<div class="relative w-28 aspect-video rounded-lg overflow-hidden shrink-0 bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Dramatic boardroom scene with corporate tension, characters in tailored suits exchanging sharp looks around an executive conference table." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBL64HDuQg2RpW_njqNnSb1Efkkap0_lGBMYzMQ7l6ZcoZB8bQOYlMCXtPAa5Vz4nr7OipxYIzRl9p1P4gxfmBAoX5X4_ODxnF1ySwCe_Iw6q8unW91L6ui_JBRbTwSf6EgcIJHhSbI-iX-kXgXtqb6RXAvgk-XVvUrbbbIhYE5Z-s8radRTbM-CMasIqpZEpBhQUxwwbFiu0rGJuo3RSTxJuwIWuqPB9yhhpHPjPQ"/>
+<span class="absolute bottom-1 right-1 px-1 rounded bg-surface-container-lowest/90 font-label-badge text-[10px] text-on-surface">1:17:55</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+<div>
+<span class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate block">Tập 6: Bí mật phơi bày</span>
+<p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-2 mt-0.5 leading-snug">
+                    Tờ đơn ly hôn bí mật bị gia tộc Queens phát hiện, đe dọa phá hủy lòng tin vừa hàn gắn.
+                  </p>
+</div>
+<div class="flex items-center justify-between font-label-badge text-[11px] text-on-surface-variant pt-1">
+<span>Full HD Vietsub</span>
+<span class="material-symbols-outlined text-[16px] group-hover:text-on-surface">play_circle</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Continue Watching & Recommended For You Rail -->
+<div class="w-full bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-sm shadow-md">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Phim Cùng Thể Loại</h3>
+<a class="text-primary hover:underline font-label-badge text-label-badge" data-path="phim-bo" href="#">Xem tất cả</a>
+</div>
+<div class="space-y-3">
+<!-- Recommendation Card 1 -->
+<a class="flex gap-3 items-center group p-1.5 rounded-lg hover:bg-surface-container transition-colors" data-path="chi-tiet-phim" href="#">
+<div class="w-16 h-22 rounded-md overflow-hidden shrink-0 bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Movie poster of a thrilling Korean legal suspense romance drama featuring charismatic lead attorneys in luxury courtrooms, dark cyan and amber tone." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbfnBnyOp0nD0rCGofhpLn9D-vaC4R16Vpc9H3EXweUDWpJ9i9md1CRYHGrByaOb2qrVXBLJ23G5-exUGiATk5dCO1oWSR2pQ3QnOs23lpSYUxHZQJzq0FQZC-3ZPoPq6eM0yvTWmpCbyztEbNSXtZQMIYejQNyPPhXQFNBNI0noZ8ruMTjMf5r1juXAe08tRb8dgrszXOAEZExofcMmSG0nKGDyBvdTyiAoDukSk"/>
+</div>
+<div class="flex-1 min-w-0">
+<span class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate block">Hạ Cánh Nơi Anh</span>
+<span class="text-on-surface-variant font-body-sm text-[12px] block">16/16 Tập · Hoàn Tất</span>
+<div class="flex items-center gap-1 text-primary-container text-[12px] font-semibold mt-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>9.8</span>
+<span class="text-on-surface-variant font-normal">· Lãng Mạn</span>
+</div>
+</div>
+</a>
+<!-- Recommendation Card 2 -->
+<a class="flex gap-3 items-center group p-1.5 rounded-lg hover:bg-surface-container transition-colors" data-path="chi-tiet-phim" href="#">
+<div class="w-16 h-22 rounded-md overflow-hidden shrink-0 bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Movie poster showing a wealthy chaebol family intrigue drama with stylish dark suits, gold embellishments and deep moody shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVPjwq6EWrF2bw6pDc-3uUWfhQkQCJ6CfrYqL0aUyMS8o32xvgiVVWo_DHnalcruTg2Op6LgBlmJo1LxsrS_DWEGtulBgL9vZgnTPzF97jo4gqvpLGSVpIQ1cunZlYJWtMxfwCGnS3pIz5pM3-w1DbtML0d021uQIlr4MCTH1wI2WPFW7L48uQQzNp8ixjjIJZWR1jyBXAYCkksrimPbYv82fOFUIfchvP5Lrqm_s"/>
+</div>
+<div class="flex-1 min-w-0">
+<span class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate block">Điên Thì Có Sao</span>
+<span class="text-on-surface-variant font-body-sm text-[12px] block">16/16 Tập · Hoàn Tất</span>
+<div class="flex items-center gap-1 text-primary-container text-[12px] font-semibold mt-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>9.5</span>
+<span class="text-on-surface-variant font-normal">· Tâm Lý</span>
+</div>
+</div>
+</a>
+<!-- Recommendation Card 3 -->
+<a class="flex gap-3 items-center group p-1.5 rounded-lg hover:bg-surface-container transition-colors" data-path="chi-tiet-phim" href="#">
+<div class="w-16 h-22 rounded-md overflow-hidden shrink-0 bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Cinematic poster of two corporate executives looking out of a floor-to-ceiling high-rise glass window overlooking modern night skyline of Seoul." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQ8reB4-S22fvOmY1NWynpsWAriEr0IlCmPnSrNosikG05nANqCu3Hv8k5ZkAC6dXd9Nb9coir1Tpm4IdW0IrNC4zACkBOBzlCJ3ZEdLUJLBilRDMchxAE8Qk0wANK2oLa1ZWiVcTdADwH1mEoF6sTVT9xYbFKxzNg01gmadSK26A_Wew1anQ0NVOaNjWEYd28RyY4DH-UWpzOixHX6jzxXd7ruOvxzYHIIm3nXoo"/>
+</div>
+<div class="flex-1 min-w-0">
+<span class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate block">Cõng Anh Mà Chạy</span>
+<span class="text-on-surface-variant font-body-sm text-[12px] block">16/16 Tập · Hoàn Tất</span>
+<div class="flex items-center gap-1 text-primary-container text-[12px] font-semibold mt-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>9.7</span>
+<span class="text-on-surface-variant font-normal">· Xuyên Không</span>
+</div>
+</div>
+</a>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- Interactive Player Script (Cinema Mode, Theater Mode, Dropdown Popovers) -->
+<script>
+    (function initCinemaWatchPage() {
+      // Cinema Light Switcher
+      const lightBtn = document.getElementById('btn-cinema-mode');
+      const lightLabel = document.getElementById('light-label');
+      const lightIcon = document.getElementById('light-icon');
+      const scrim = document.getElementById('cinema-backdrop-scrim');
+      const playerViewport = document.getElementById('player-viewport');
+      let isCinemaDark = false;
+
+      if (lightBtn && scrim && playerViewport) {
+        lightBtn.addEventListener('click', () => {
+          isCinemaDark = !isCinemaDark;
+          if (isCinemaDark) {
+            scrim.classList.remove('opacity-0', 'pointer-events-none');
+            scrim.classList.add('opacity-100');
+            playerViewport.classList.add('relative', 'z-50', 'ring-4', 'ring-primary-container/40', 'shadow-[0_0_50px_rgba(229,9,20,0.3)]');
+            lightLabel.textContent = 'Bật đèn rạp';
+            lightIcon.textContent = 'lightbulb_circle';
+          } else {
+            scrim.classList.add('opacity-0', 'pointer-events-none');
+            scrim.classList.remove('opacity-100');
+            playerViewport.classList.remove('z-50', 'ring-4', 'ring-primary-container/40', 'shadow-[0_0_50px_rgba(229,9,20,0.3)]');
+            lightLabel.textContent = 'Tắt đèn rạp';
+            lightIcon.textContent = 'lightbulb';
+          }
+        });
+      }
+
+      // Theater Expansion Toggle
+      const theaterBtn = document.getElementById('btn-theater-toggle');
+      const playerCol = document.getElementById('primary-player-column');
+      let isTheater = false;
+
+      if (theaterBtn && playerCol) {
+        theaterBtn.addEventListener('click', () => {
+          isTheater = !isTheater;
+          if (isTheater) {
+            playerCol.classList.remove('xl:col-span-8', '2xl:col-span-9');
+            playerCol.classList.add('xl:col-span-12', '2xl:col-span-12');
+            theaterBtn.classList.add('text-primary-container');
+          } else {
+            playerCol.classList.remove('xl:col-span-12', '2xl:col-span-12');
+            playerCol.classList.add('xl:col-span-8', '2xl:col-span-9');
+            theaterBtn.classList.remove('text-primary-container');
+          }
+        });
+      }
+
+      // Dropdown Popovers Management
+      function setupMenu(triggerId, menuId) {
+        const trigger = document.getElementById(triggerId);
+        const menu = document.getElementById(menuId);
+        if (!trigger || !menu) return;
+
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isHidden = menu.classList.contains('hidden');
+          // Close all open menus first
+          document.querySelectorAll('#menu-subtitles, #menu-speed, #menu-settings').forEach(el => el.classList.add('hidden'));
+          if (isHidden) {
+            menu.classList.remove('hidden');
+          }
+        });
+      }
+
+      setupMenu('btn-subtitles', 'menu-subtitles');
+      setupMenu('btn-playback-speed', 'menu-speed');
+      setupMenu('btn-player-settings', 'menu-settings');
+
+      document.addEventListener('click', () => {
+        document.querySelectorAll('#menu-subtitles, #menu-speed, #menu-settings').forEach(el => el.classList.add('hidden'));
+      });
+
+      // Quick Skip Intro Simulation
+      const skipBtn = document.getElementById('btn-skip-intro');
+      if (skipBtn) {
+        skipBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          skipBtn.classList.add('opacity-0', 'pointer-events-none', 'scale-90');
+        });
+      }
+    })();
+  </script>
+</div></main><footer class="w-full bg-surface-container-lowest"><div class="w-full px-gutter py-space-xl"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-space-xl"><div class="lg:col-span-2 space-y-space-md"><div class="flex items-center gap-space-sm"><img alt="KKPhim Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WCgXJ9H-tWLwRPCqPCRlQ-WkeL0DmYMLoQLATG6zUC7m_mRaYXw9V8rpS6oCn2YpFNMV5eCJkqB40ASFcGmB8EVSm4JdhJUnQzRZXllyYk-iFplWk-2hiBgenIAwmXycja2wJQdrIssIaeW2L2chdDSOdkwurLh9W8lcpY9ruEewt7cu8DNtcO1SbJaqqUE7cZ-BOOT6tRM7uADBlkEb1d9ZnHdr5dL2LEJqSRybvk"/><span class="font-headline-sm text-headline-sm tracking-wider uppercase text-on-surface font-extrabold">KK<span class="text-primary-container">PHIM</span></span></div><p class="font-body-md text-body-md text-on-surface-variant max-w-md">Nền tảng xem phim trực tuyến chất lượng cao, cập nhật liên tục các bộ phim bom tấn, phim bộ, anime vietsub và thuyết minh nhanh nhất.</p><div class="flex items-center gap-space-sm pt-space-xs"><a aria-label="Cộng đồng" class="p-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" href="#"><span class="material-symbols-outlined text-[20px]">public</span></a><a aria-label="Kênh chat thông báo" class="p-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" href="#"><span class="material-symbols-outlined text-[20px]">send</span></a><a aria-label="Kênh thảo luận trực tiếp" class="p-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" href="#"><span class="material-symbols-outlined text-[20px]">forum</span></a><a aria-label="Phim trực tuyến" class="p-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" href="#"><span class="material-symbols-outlined text-[20px]">smart_display</span></a></div></div><div class="space-y-space-sm"><h3 class="font-headline-sm text-headline-sm text-on-surface">Danh Mục</h3><ul class="space-y-space-xs font-body-sm text-body-sm text-on-surface-variant"><li><a class="hover:text-on-surface transition-colors" data-path="kham-pha" href="#">Phim Chiếu Rạp</a></li><li><a class="hover:text-on-surface transition-colors" data-path="phim-bo" href="#">Phim Bộ Hàn Quốc</a></li><li><a class="hover:text-on-surface transition-colors" data-path="phim-bo" href="#">Phim Trung Quốc</a></li><li><a class="hover:text-on-surface transition-colors" data-path="phim-bo" href="#">Phim Âu Mỹ</a></li><li><a class="hover:text-on-surface transition-colors" data-path="hoat-hinh" href="#">Phim Anime</a></li></ul></div><div class="space-y-space-sm"><h3 class="font-headline-sm text-headline-sm text-on-surface">Thể Loại</h3><ul class="space-y-space-xs font-body-sm text-body-sm text-on-surface-variant"><li><a class="hover:text-on-surface transition-colors" data-path="kham-pha" href="#">Hành Động</a></li><li><a class="hover:text-on-surface transition-colors" data-path="kham-pha" href="#">Kinh Dị</a></li><li><a class="hover:text-on-surface transition-colors" data-path="kham-pha" href="#">Tình Cảm</a></li><li><a class="hover:text-on-surface transition-colors" data-path="kham-pha" href="#">Viễn Tưởng</a></li><li><a class="hover:text-on-surface transition-colors" data-path="hoat-hinh" href="#">Hoạt Hình</a></li><li><a class="hover:text-on-surface transition-colors" data-path="kham-pha" href="#">Cổ Trang</a></li></ul></div><div class="space-y-space-sm"><h3 class="font-headline-sm text-headline-sm text-on-surface">Hỗ Trợ &amp; Điều Khoản</h3><ul class="space-y-space-xs font-body-sm text-body-sm text-on-surface-variant"><li><a class="hover:text-on-surface transition-colors" data-path="gioi-thieu" href="#">Giới thiệu</a></li><li><a class="hover:text-on-surface transition-colors" data-path="dieu-khoan" href="#">Điều khoản sử dụng</a></li><li><a class="hover:text-on-surface transition-colors" data-path="ban-quyen" href="#">Chính sách bản quyền</a></li><li><a class="hover:text-on-surface transition-colors" data-path="lien-he" href="#">Liên hệ &amp; Báo lỗi</a></li></ul></div></div><div class="mt-space-xl pt-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-sm font-body-sm text-body-sm text-on-surface-variant bg-surface-container-low/40 rounded-xl px-space-md py-space-sm"><span>© 2025 KKPhim. All rights reserved. Nguồn dữ liệu KKPhim API.</span><span class="font-label-badge text-label-badge text-outline">PHIÊN BẢN CINEMA 2.5 HD</span></div></div></footer></body></html>

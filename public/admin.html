@@ -1,0 +1,923 @@
+﻿<!DOCTYPE html>
+<html class="dark" lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Bảng Điều Khiển Quản Trị Hệ Thống - TTPHIM Admin</title>
+  
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'background': '#0B0B0C',
+            'surface': '#121214',
+            'surface-container-low': '#161619',
+            'surface-container': '#1B1B1E',
+            'surface-container-high': '#242428',
+            'surface-container-highest': '#2D2D32',
+            'on-surface': '#F2F2F2',
+            'on-surface-variant': '#A1A1AA',
+            'primary': '#E50914',
+            'primary-container': '#E50914',
+            'on-primary': '#FFFFFF',
+            'on-primary-container': '#FFFFFF',
+            'secondary': '#E2B616',
+            'secondary-container': '#E2B616',
+            'error': '#FF453A',
+            'success': '#30D158'
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="/css/custom.css">
+</head>
+<body class="bg-background font-sans text-on-surface antialiased min-h-screen flex flex-col selection:bg-primary selection:text-white">
+
+  <!-- Top Admin Bar -->
+  <header class="fixed top-0 left-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest/60 h-16 flex items-center justify-between px-6">
+    <div class="flex items-center gap-6">
+      <a href="/" class="flex items-center gap-2 group">
+        <span class="font-display font-black text-[22px] tracking-wider text-primary">KK<span class="text-on-surface">PHIM</span></span>
+        <span class="px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 font-bold text-[11px] tracking-widest uppercase">ADMIN</span>
+      </a>
+      <span class="h-4 w-px bg-surface-container-highest hidden sm:block"></span>
+      <span class="text-on-surface-variant text-sm hidden sm:inline-flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span> Máy chủ hoạt động ổn định
+      </span>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <a href="/" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-sm transition-colors">
+        <span class="material-symbols-outlined text-[18px]">open_in_new</span> Xem Website
+      </a>
+      <div class="flex items-center gap-2 pl-2 border-l border-surface-container-highest">
+        <img id="admin-header-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8" class="w-8 h-8 rounded-full object-cover ring-2 ring-primary" />
+        <span id="admin-header-name" class="font-bold text-sm hidden sm:inline">Quản Trị Viên</span>
+        <button id="admin-logout-btn" class="p-1.5 rounded-lg hover:bg-error/20 text-on-surface-variant hover:text-error transition-colors" title="Đăng xuất">
+          <span class="material-symbols-outlined text-[20px]">logout</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Container -->
+  <div class="pt-16 flex-1 flex flex-col md:flex-row">
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-surface-container-low border-r border-surface-container-highest/60 p-4 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible">
+      <button class="admin-nav-btn active flex items-center gap-3 px-3 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-overview">
+        <span class="material-symbols-outlined text-[20px]">dashboard</span>
+        <span>Tổng Quan</span>
+      </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-analytics">
+        <span class="material-symbols-outlined text-[20px]">insights</span>
+        <span>Thống Kê Chi Tiết</span>
+      </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-users">
+        <span class="material-symbols-outlined text-[20px]">group</span>
+        <span>Quản Lý Người Dùng</span>
+      </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-reports">
+        <span class="material-symbols-outlined text-[20px]">report_problem</span>
+        <span>Báo Lỗi & Sự Cố</span>
+        <span id="badge-reports-count" class="ml-auto px-1.5 py-0.2 rounded bg-error text-white text-[11px] font-bold hidden">0</span>
+      </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-comments">
+        <span class="material-symbols-outlined text-[20px]">forum</span>
+        <span>Duyệt Bình Luận</span>
+      </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-movies">
+        <span class="material-symbols-outlined text-[20px]">movie_filter</span>
+        <span>Tra Cứu & Ghim Phim</span>
+      </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-sources">
+        <span class="material-symbols-outlined text-[20px]">hub</span>
+        <span>Nguồn Phim & Đa Server</span>
+      </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-settings">
+        <span class="material-symbols-outlined text-[20px]">tune</span>
+        <span>Cấu Hình & Banner</span>
+      </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-system">
+        <span class="material-symbols-outlined text-[20px]">memory</span>
+        <span>Hệ Thống & Cache</span>
+      </button>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-6 lg:p-8 max-w-7xl">
+
+      <!-- ================= 1. TAB: TỔNG QUAN ================= -->
+      <section id="tab-overview" class="admin-tab-pane space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="font-display text-2xl font-bold text-on-surface">Bảng Điều Khiển Trung Tâm</h1>
+            <p class="text-on-surface-variant text-sm mt-0.5">Theo dõi hoạt động, người dùng và lưu lượng phát trực tuyến thời gian thực</p>
+          </div>
+          <button id="btn-quick-refresh" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-sm font-semibold transition-all shadow cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">refresh</span> Làm mới dữ liệu
+          </button>
+        </div>
+
+        <!-- 5 Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div class="p-5 rounded-2xl bg-surface-container border border-primary/40 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Tổng Kho Phim</span>
+              <span class="p-2 rounded-xl bg-primary/10 text-primary material-symbols-outlined text-[22px]">movie</span>
+            </div>
+            <div class="mt-3">
+              <div id="stat-total-movies" class="text-3xl font-black font-display text-primary">--</div>
+              <p class="text-xs text-on-surface-variant mt-1">Phim trực tuyến trên web</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Tổng Người Dùng</span>
+              <span class="p-2 rounded-xl bg-primary/10 text-primary material-symbols-outlined text-[22px]">person</span>
+            </div>
+            <div class="mt-3">
+              <div id="stat-total-users" class="text-3xl font-black font-display text-on-surface">--</div>
+              <p class="text-xs text-on-surface-variant mt-1">Đã đăng ký tài khoản</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Lưu Yêu Thích</span>
+              <span class="p-2 rounded-xl bg-secondary/10 text-secondary material-symbols-outlined text-[22px]">bookmark</span>
+            </div>
+            <div class="mt-3">
+              <div id="stat-watchlist" class="text-3xl font-black font-display text-secondary">--</div>
+              <p class="text-xs text-on-surface-variant mt-1">Lượt lưu phim vào danh sách</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Báo Lỗi Tập Phim</span>
+              <span class="p-2 rounded-xl bg-error/10 text-error material-symbols-outlined text-[22px]">flag</span>
+            </div>
+            <div class="mt-3">
+              <div id="stat-reports" class="text-3xl font-black font-display text-error">--</div>
+              <p id="stat-pending-reports" class="text-xs text-on-surface-variant mt-1">Chờ kỹ thuật xử lý</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Bình Luận Đã Đăng</span>
+              <span class="p-2 rounded-xl bg-primary/10 text-primary material-symbols-outlined text-[22px]">chat</span>
+            </div>
+            <div class="mt-3">
+              <div id="stat-comments" class="text-3xl font-black font-display text-on-surface">--</div>
+              <p class="text-xs text-on-surface-variant mt-1">Từ các bài đánh giá phim</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- System & Actions -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+            <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">speed</span> Hiệu Năng & Kết Nối API TTPHIM
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div class="p-4 rounded-xl bg-surface-container-high border border-surface-container-highest/40">
+                <span class="text-xs text-on-surface-variant uppercase font-semibold">Tốc độ phản hồi API</span>
+                <p class="text-xl font-bold text-success mt-1">~42 ms</p>
+                <span class="text-[11px] text-on-surface-variant">https://phimapi.com</span>
+              </div>
+              <div class="p-4 rounded-xl bg-surface-container-high border border-surface-container-highest/40">
+                <span class="text-xs text-on-surface-variant uppercase font-semibold">Hệ thống Video CDN</span>
+                <p class="text-xl font-bold text-success mt-1">Sẵn Sàng 100%</p>
+                <span class="text-[11px] text-on-surface-variant">HLS M3U8 Stream</span>
+              </div>
+              <div class="p-4 rounded-xl bg-surface-container-high border border-surface-container-highest/40">
+                <span class="text-xs text-on-surface-variant uppercase font-semibold">Cơ sở dữ liệu DB</span>
+                <p class="text-xl font-bold text-on-surface mt-1">JSON Fast Storage</p>
+                <span class="text-[11px] text-on-surface-variant">data/db.json</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between space-y-4">
+            <div>
+              <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary">flash_on</span> Tác Vụ Nhanh
+              </h3>
+              <p class="text-sm text-on-surface-variant mt-1">Thao tác cấp bách cho quản trị viên hệ thống</p>
+            </div>
+            <div class="space-y-2 pt-2">
+              <button id="btn-flush-cache" class="w-full py-2.5 px-4 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px] text-primary">cached</span> Xóa Bộ Nhớ Đệm Phim (Cache)
+              </button>
+              <a href="/kham-pha" class="w-full py-2.5 px-4 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-sm font-semibold flex items-center justify-center gap-2 transition-all">
+                <span class="material-symbols-outlined text-[18px] text-secondary">explore</span> Khám Phá Kho Phim
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB: THỐNG KÊ CHI TIẾT ================= -->
+      <section id="tab-analytics" class="admin-tab-pane hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="font-display text-2xl font-bold text-on-surface">Thống Kê & Phân Tích Hệ Thống</h1>
+            <p class="text-on-surface-variant text-sm mt-0.5">Dữ liệu thực tế 100% từ lượt xem, đánh giá và tương tác người dùng</p>
+          </div>
+          <button id="btn-refresh-analytics" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-sm font-semibold transition-all shadow cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">refresh</span> Làm mới thống kê
+          </button>
+        </div>
+
+        <!-- 5 Analytics Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Tổng Kho Phim Web</span>
+              <span class="p-2 rounded-xl bg-primary/10 text-primary material-symbols-outlined text-[22px]">movie</span>
+            </div>
+            <div class="mt-3">
+              <div id="analytics-total-movies" class="text-3xl font-black font-display text-primary">--</div>
+              <p id="analytics-total-sources-sub" class="text-xs text-on-surface-variant mt-1">-- bản ghi từ 3 nguồn</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Tổng Lượt Xem Phim</span>
+              <span class="p-2 rounded-xl bg-secondary/10 text-secondary material-symbols-outlined text-[22px]">visibility</span>
+            </div>
+            <div class="mt-3">
+              <div id="analytics-total-views" class="text-3xl font-black font-display text-secondary">--</div>
+              <p class="text-xs text-on-surface-variant mt-1">Lượt xem tích lũy thực tế</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Điểm Đánh Giá TB</span>
+              <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 material-symbols-outlined text-[22px]">star</span>
+            </div>
+            <div class="mt-3">
+              <div id="analytics-avg-rating" class="text-3xl font-black font-display text-amber-400">--</div>
+              <p id="analytics-total-ratings" class="text-xs text-on-surface-variant mt-1">-- lượt đánh giá</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Kích Thước Dữ Liệu</span>
+              <span class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 material-symbols-outlined text-[22px]">database</span>
+            </div>
+            <div class="mt-3">
+              <div id="analytics-db-size" class="text-3xl font-black font-display text-emerald-400">--</div>
+              <p class="text-xs text-on-surface-variant mt-1">data/db.json</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Bộ Nhớ RAM Server</span>
+              <span class="p-2 rounded-xl bg-purple-500/10 text-purple-400 material-symbols-outlined text-[22px]">memory</span>
+            </div>
+            <div class="mt-3">
+              <div id="analytics-ram-usage" class="text-3xl font-black font-display text-purple-400">--</div>
+              <p id="analytics-uptime-text" class="text-xs text-on-surface-variant mt-1">Uptime: --</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 10 Phim Xem Nhiều Nhất -->
+        <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary">trophy</span> Top 10 Phim Xem Nhiều Nhất (Dữ Liệu Thật)
+              </h3>
+              <p class="text-xs text-on-surface-variant">Bảng xếp hạng dựa trên tổng lượt click xem phim trên hệ thống</p>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-secondary/10 text-secondary text-xs font-bold border border-secondary/20">Thời gian thực</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-surface-container-high/60 text-xs uppercase text-on-surface-variant font-bold border-b border-surface-container-highest/60">
+                <tr>
+                  <th class="p-3 w-16 text-center">Hạng</th>
+                  <th class="p-3">Mã Định Danh (Slug)</th>
+                  <th class="p-3 text-right w-36">Lượt Xem Thực</th>
+                  <th class="p-3 w-64">Tỷ Lệ Thị Phần (%)</th>
+                  <th class="p-3 text-right w-28">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="top-movies-table-body" class="divide-y divide-surface-container-highest/40">
+                <tr><td colspan="5" class="p-6 text-center text-on-surface-variant">Đang nạp dữ liệu thống kê...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Lưu Lượng Khán Giả Xem Gần Đây (Live Activity Stream) -->
+        <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">live_tv</span> Luồng Khán Giả Xem Gần Đây (Activity Stream)
+            </h3>
+            <span class="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Trực tiếp
+            </span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-surface-container-high/60 text-xs uppercase text-on-surface-variant font-bold border-b border-surface-container-highest/60">
+                <tr>
+                  <th class="p-3">Thời Điểm</th>
+                  <th class="p-3">Tên Phim</th>
+                  <th class="p-3">Tập Đang Xem</th>
+                  <th class="p-3 text-right">Tiến Độ Phát</th>
+                  <th class="p-3 text-right">Hành Động</th>
+                </tr>
+              </thead>
+              <tbody id="activity-stream-table-body" class="divide-y divide-surface-container-highest/40">
+                <tr><td colspan="5" class="p-6 text-center text-on-surface-variant">Chưa có luồng xem nào gần đây</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 2. TAB: QUẢN LÝ NGƯỜI DÙNG ================= -->
+      <section id="tab-users" class="admin-tab-pane hidden space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 class="font-display text-2xl font-bold text-on-surface">Danh Sách Người Dùng</h1>
+            <p class="text-on-surface-variant text-sm mt-0.5">Quản lý phân quyền và thông tin tài khoản khán giả</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="relative w-64">
+              <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[18px]">search</span>
+              <input id="search-users-input" class="w-full pl-9 pr-4 py-2 rounded-xl bg-surface-container text-on-surface placeholder:text-on-surface-variant text-sm focus:outline-none focus:ring-1 focus:ring-primary border border-surface-container-highest/60" placeholder="Tìm kiếm email, họ tên..." type="text"/>
+            </div>
+            <select id="filter-user-role" class="px-3 py-2 rounded-xl bg-surface-container text-on-surface text-sm border border-surface-container-highest/60 focus:outline-none focus:ring-1 focus:ring-primary">
+              <option value="all">Tất cả vai trò</option>
+              <option value="admin">Quản Trị Viên (Admin)</option>
+              <option value="user">Khán Giả (User)</option>
+            </select>
+            <button id="btn-open-create-user" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-primary/20 transition-all cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">person_add</span> Thêm Người Dùng
+            </button>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-surface-container border border-surface-container-highest/60 overflow-hidden shadow">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-surface-container-high text-on-surface-variant uppercase text-[11px] font-bold tracking-wider">
+                <tr>
+                  <th class="p-4">Người Dùng</th>
+                  <th class="p-4">Email</th>
+                  <th class="p-4">Vai Trò</th>
+                  <th class="p-4">Ngày Tạo</th>
+                  <th class="p-4 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body" class="divide-y divide-surface-container-highest/40">
+                <!-- Injected via admin.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 3. TAB: BÁO LỖI & SỰ CỐ ================= -->
+      <section id="tab-reports" class="admin-tab-pane hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="font-display text-2xl font-bold text-on-surface">Báo Cáo Sự Cố & Lỗi Tập Phim</h1>
+            <p class="text-on-surface-variant text-sm mt-0.5">Danh sách các tập phim đứng hình, mất tiếng được khán giả báo về</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <select id="filter-report-status" class="px-3 py-2 rounded-xl bg-surface-container text-on-surface text-sm border border-surface-container-highest/60 focus:outline-none focus:ring-1 focus:ring-primary">
+              <option value="all">Tất cả sự cố</option>
+              <option value="pending">Chờ xử lý</option>
+              <option value="resolved">Đã xử lý xong</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-surface-container border border-surface-container-highest/60 overflow-hidden shadow">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-surface-container-high text-on-surface-variant uppercase text-[11px] font-bold tracking-wider">
+                <tr>
+                  <th class="p-4">Phim & Tập</th>
+                  <th class="p-4">Lý Do Báo Lỗi</th>
+                  <th class="p-4">Người Báo Cáo</th>
+                  <th class="p-4">Thời Gian</th>
+                  <th class="p-4">Trạng Thái</th>
+                  <th class="p-4 text-right">Xử Lý</th>
+                </tr>
+              </thead>
+              <tbody id="reports-table-body" class="divide-y divide-surface-container-highest/40">
+                <!-- Injected via admin.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 4. TAB: DUYỆT BÌNH LUẬN ================= -->
+      <section id="tab-comments" class="admin-tab-pane hidden space-y-6">
+        <div>
+          <h1 class="font-display text-2xl font-bold text-on-surface">Kiểm Duyệt Bình Luận Cộng Đồng</h1>
+          <p class="text-on-surface-variant text-sm mt-0.5">Xóa các bình luận có nội dung spoil, phản cảm hoặc vi phạm tiêu chuẩn</p>
+        </div>
+
+        <div class="rounded-2xl bg-surface-container border border-surface-container-highest/60 overflow-hidden shadow">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-surface-container-high text-on-surface-variant uppercase text-[11px] font-bold tracking-wider">
+                <tr>
+                  <th class="p-4">Người Bình Luận</th>
+                  <th class="p-4">Phim</th>
+                  <th class="p-4">Nội Dung</th>
+                  <th class="p-4">Thời Gian</th>
+                  <th class="p-4">Lượt Thích</th>
+                  <th class="p-4 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="comments-table-body" class="divide-y divide-surface-container-highest/40">
+                <!-- Injected via admin.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 5. TAB: HỆ THỐNG & CACHE ================= -->
+      <section id="tab-system" class="admin-tab-pane hidden space-y-6">
+        <div>
+          <h1 class="font-display text-2xl font-bold text-on-surface">Thông Tin Hệ Thống & Bộ Nhớ</h1>
+          <p class="text-on-surface-variant text-sm mt-0.5">Quản lý tài nguyên máy chủ TTPHIM Node.js</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+            <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">developer_board</span> Thông Số Kỹ Thuật
+            </h3>
+            <div class="space-y-3 font-mono text-sm pt-2">
+              <div class="flex justify-between p-3 rounded-lg bg-surface-container-high">
+                <span class="text-on-surface-variant">Môi trường:</span>
+                <span class="text-success font-bold">Node.js Express Server</span>
+              </div>
+              <div class="flex justify-between p-3 rounded-lg bg-surface-container-high">
+                <span class="text-on-surface-variant">Phiên bản Node:</span>
+                <span id="sys-node-version" class="text-on-surface font-bold">--</span>
+              </div>
+              <div class="flex justify-between p-3 rounded-lg bg-surface-container-high">
+                <span class="text-on-surface-variant">Thời gian chạy (Uptime):</span>
+                <span id="sys-uptime" class="text-secondary font-bold">--</span>
+              </div>
+              <div class="flex justify-between p-3 rounded-lg bg-surface-container-high">
+                <span class="text-on-surface-variant">Bộ nhớ RAM sử dụng (RSS):</span>
+                <span id="sys-memory" class="text-primary font-bold">--</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+            <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary">cached</span> Quản Lý Bộ Nhớ Đệm
+            </h3>
+            <p class="text-sm text-on-surface-variant">
+              Bộ nhớ đệm (Node-Cache) được sử dụng để tối ưu thời gian phản hồi cho các danh sách phim trang chủ và danh mục. Khi nội dung API TTPHIM thay đổi, bấm làm mới cache để đồng bộ ngay lập tức.
+            </p>
+            <div class="pt-4">
+              <button id="btn-flush-cache-2" class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-primary/30 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">delete_sweep</span> Làm Mới Toàn Bộ Cache Ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 6. TAB: TRA CỨU & GHIM PHIM ================= -->
+      <section id="tab-movies" class="admin-tab-pane hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="font-display text-2xl font-bold text-on-surface">Tra Cứu & Ghim Phim Hot (Đa Nguồn)</h1>
+            <p class="text-on-surface-variant text-sm mt-0.5">Tìm kiếm phim từ cả 3 nguồn (TTPHIM, ViCDN Song Ngữ, NguonC) và chỉ định phim xuất hiện trên Banner Nổi Bật trang chủ</p>
+          </div>
+        </div>
+
+        <!-- Featured Pin List Card -->
+        <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary">stars</span> Phim Đang Được Ghim Lên Banner Trang Chủ (Phim Nổi Bật)
+            </h3>
+            <div class="flex items-center gap-3">
+              <span id="pinned-count-badge" class="px-2.5 py-0.5 rounded-full bg-secondary/15 text-secondary text-xs font-bold border border-secondary/30">0 phim</span>
+              <button id="btn-clear-all-pins" class="px-3 py-1 rounded-lg bg-surface-container-high hover:bg-error/20 text-on-surface-variant hover:text-error text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer" title="Gỡ ghim toàn bộ phim">
+                <span class="material-symbols-outlined text-[15px]">delete_sweep</span> Gỡ Hết Ghim
+              </button>
+            </div>
+          </div>
+          <div id="featured-slugs-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+            <!-- Injected via admin.js -->
+          </div>
+        </div>
+
+        <!-- Search Multi-Source Catalog -->
+        <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">search</span> Tra Cứu Phim Từ Cả 3 Nguồn (TTPHIM • ViCDN Song Ngữ • NguonC)
+              </h3>
+              <p class="text-xs text-on-surface-variant mt-0.5">Tìm theo tên tiếng Việt, tên gốc tiếng Anh hoặc mã slug phim</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[11px] font-bold">TTPHIM Core</span>
+              <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[11px] font-bold">ViCDN Song Ngữ</span>
+              <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[11px] font-bold">NguonC Stream</span>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <select id="admin-movie-source-filter" class="px-3 py-2 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary shrink-0 sm:w-56 cursor-pointer">
+              <option value="all">🔍 Tất Cả 3 Nguồn</option>
+              <option value="TTPHIM">🟢 TTPHIM Core API</option>
+              <option value="vicdn">🟣 ViCDN Song Ngữ</option>
+              <option value="nguonc">🔵 NguonC Stream VIP</option>
+            </select>
+            <div class="relative flex-1">
+              <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[18px]">movie</span>
+              <input id="admin-movie-search-input" class="w-full pl-9 pr-4 py-2 rounded-xl bg-surface-container-high text-on-surface placeholder:text-on-surface-variant text-sm focus:outline-none focus:ring-1 focus:ring-primary border border-surface-container-highest" placeholder="Nhập tên phim cần tra cứu (ví dụ: Nguyệt Lân, Không thể thay thế, Conan, Quỷ quyệt, tv-278275-1...)" type="text"/>
+            </div>
+            <button id="btn-admin-search-movie" class="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0">
+              <span class="material-symbols-outlined text-[18px]">search</span> Tìm Phim
+            </button>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-surface-container-highest/40 mt-4">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-surface-container-high text-on-surface-variant uppercase text-[11px] font-bold tracking-wider">
+                <tr>
+                  <th class="p-3">Phim & Poster</th>
+                  <th class="p-3">Nguồn Cung Cấp</th>
+                  <th class="p-3">Tên Gốc / Mã Slug</th>
+                  <th class="p-3">Năm / Tập</th>
+                  <th class="p-3">Chất Lượng / Audio</th>
+                  <th class="p-3 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="movie-search-table-body" class="divide-y divide-surface-container-highest/40">
+                <tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Nhập từ khóa bên trên để tìm kiếm phim từ cả 3 nguồn (TTPHIM, ViCDN Song Ngữ, NguonC)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB: NGUỒN PHIM & ĐA SERVER ================= -->
+      <section id="tab-sources" class="admin-tab-pane hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="font-display text-2xl font-bold text-on-surface">Quản Lý Đa Nguồn Phim & Đồng Bộ</h1>
+            <p class="text-on-surface-variant text-sm mt-0.5">Tích hợp và tự động gộp 3 nguồn phim: TTPHIM, ViCDN Song Ngữ và NguonC</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="btn-ping-sources" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-sm font-semibold transition-all shadow cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">network_ping</span> Kiểm Tra Kết Nối (Ping)
+            </button>
+            <button id="btn-sync-sources" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold shadow-lg shadow-primary/20 transition-all cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]" id="icon-sync-sources">sync</span> Đồng Bộ Danh Mục Ngay
+            </button>
+          </div>
+        </div>
+
+        <!-- Telemetry Summary 4-Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Tổng Phim Toàn Web</span>
+              <span class="p-2 rounded-xl bg-primary/10 text-primary material-symbols-outlined text-[22px]">movie</span>
+            </div>
+            <div class="mt-3">
+              <div id="sources-total-web" class="text-3xl font-black font-display text-primary">--</div>
+              <p id="sources-total-all-sub" class="text-xs text-on-surface-variant mt-1">Tổng 3 nguồn: -- bản ghi</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Nguồn TTPHIM Core</span>
+              <span class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 material-symbols-outlined text-[22px]">layers</span>
+            </div>
+            <div class="mt-3">
+              <div id="sources-stat-TTPHIM" class="text-3xl font-black font-display text-emerald-400">--</div>
+              <p id="sources-stat-TTPHIM-sub" class="text-xs text-on-surface-variant mt-1">Kho phim chính (phimapi.com)</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Nguồn ViCDN Song Ngữ</span>
+              <span class="p-2 rounded-xl bg-purple-500/10 text-purple-400 material-symbols-outlined text-[22px]">translate</span>
+            </div>
+            <div class="mt-3">
+              <div id="sources-stat-vicdn" class="text-3xl font-black font-display text-purple-400">--</div>
+              <p id="sources-stat-vicdn-sub" class="text-xs text-on-surface-variant mt-1">Server Song Ngữ (vicdn.cc)</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Nguồn NguonC Stream VIP</span>
+              <span class="p-2 rounded-xl bg-blue-500/10 text-blue-400 material-symbols-outlined text-[22px]">video_library</span>
+            </div>
+            <div class="mt-3">
+              <div id="sources-stat-nguonc" class="text-3xl font-black font-display text-blue-400">--</div>
+              <p id="sources-stat-nguonc-sub" class="text-xs text-on-surface-variant mt-1">Server Dự Phòng (nguonc.com)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Sources Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Source 1: TTPHIM -->
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between space-y-5">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 text-xs font-bold uppercase">Nguồn Chính</span>
+                <span class="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Hoạt Động
+                </span>
+              </div>
+              <h3 class="font-display font-bold text-xl text-on-surface mt-3">TTPHIM Core API</h3>
+              <p class="text-xs text-on-surface-variant font-mono mt-1">https://phimapi.com</p>
+              <div class="mt-4 space-y-2 text-xs text-on-surface-variant">
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Tổng số phim nguồn:</span>
+                  <span id="source-TTPHIM-count" class="text-primary font-bold text-sm">-- phim</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Số trang danh mục:</span>
+                  <span id="source-TTPHIM-pages" class="text-on-surface font-semibold">-- trang</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Loại dữ liệu:</span>
+                  <span class="text-on-surface font-semibold">Phim Lẻ, Phim Bộ, Chiếu Rạp</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Trình phát:</span>
+                  <span class="text-on-surface font-semibold">HLS .m3u8 4K + Iframe VIP</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span>CDN Hình Ảnh:</span>
+                  <span class="text-on-surface font-semibold">phimimg.com</span>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 rounded-xl bg-surface-container-high/60 text-xs text-on-surface-variant flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-[18px]">verified</span>
+              <span>Cung cấp catalog phong phú và metadata chuẩn rạp chiếu.</span>
+            </div>
+          </div>
+
+          <!-- Source 2: ViCDN Song Ngữ -->
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between space-y-5">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs font-bold uppercase">Song Ngữ</span>
+                <span id="vicdn-status-badge" class="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Đã Kết Nối
+                </span>
+              </div>
+              <h3 class="font-display font-bold text-xl text-on-surface mt-3">ViCDN Song Ngữ</h3>
+              <p class="text-xs text-on-surface-variant font-mono mt-1">https://vicdn.cc</p>
+              <div class="mt-4 space-y-2 text-xs text-on-surface-variant">
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Tổng số phim nguồn:</span>
+                  <span id="source-vicdn-total" class="text-purple-400 font-bold text-sm">-- phim</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Phim Cache trong RAM:</span>
+                  <span id="source-vicdn-count" class="text-on-surface font-semibold">-- phim</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Số trang danh mục:</span>
+                  <span id="source-vicdn-pages" class="text-on-surface font-semibold">-- trang</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Đặc quyền âm thanh:</span>
+                  <span class="text-on-surface font-semibold">Đa Giọng (Nam/Nữ) + Phụ Đề</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span>Cơ chế ghép:</span>
+                  <span class="text-on-surface font-semibold">Tự động gắn Server Song Ngữ</span>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 rounded-xl bg-surface-container-high/60 text-xs text-on-surface-variant flex items-center gap-2">
+              <span class="material-symbols-outlined text-purple-400 text-[18px]">record_voice_over</span>
+              <span>Khán giả có thể đổi giữa audio gốc và thuyết minh tức thì.</span>
+            </div>
+          </div>
+
+          <!-- Source 3: NguonC -->
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between space-y-5">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-bold uppercase">Dự Phòng VIP</span>
+                <span id="nguonc-status-badge" class="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Đã Kết Nối
+                </span>
+              </div>
+              <h3 class="font-display font-bold text-xl text-on-surface mt-3">NguonC Stream</h3>
+              <p class="text-xs text-on-surface-variant font-mono mt-1">https://phim.nguonc.com</p>
+              <div class="mt-4 space-y-2 text-xs text-on-surface-variant">
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Tổng số phim nguồn:</span>
+                  <span id="source-nguonc-total" class="text-blue-400 font-bold text-sm">-- phim</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Phim Cache trong RAM:</span>
+                  <span id="source-nguonc-count" class="text-on-surface font-semibold">-- phim</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Số trang danh mục:</span>
+                  <span id="source-nguonc-pages" class="text-on-surface font-semibold">-- trang</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
+                  <span>Tốc độ tải CDN:</span>
+                  <span class="text-on-surface font-semibold">Băng thông cao không giới hạn</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span>Cơ chế ghép:</span>
+                  <span class="text-on-surface font-semibold">Tự động gắn Server Vietsub & TM</span>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 rounded-xl bg-surface-container-high/60 text-xs text-on-surface-variant flex items-center gap-2">
+              <span class="material-symbols-outlined text-blue-400 text-[18px]">cloud_sync</span>
+              <span>Đảm bảo xem phim mượt mà ngay cả khi một máy chủ bảo trì.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hướng Dẫn & Ghi Chú Kỹ Thuật -->
+        <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-3">
+          <h3 class="font-display font-bold text-base text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary">info</span> Cơ Chế Chuẩn Hóa & Ghép Server Tự Động
+          </h3>
+          <p class="text-sm text-on-surface-variant leading-relaxed">
+            Hệ thống TTPHIM tự động đối chiếu thông tin phim (TMDB ID, Tiêu đề gốc tiếng Anh, Tên tiếng Việt và Năm phát hành). Khi một bộ phim có mặt ở nhiều nguồn, hệ thống tự động gộp tất cả các server phát (Server TTPHIM HLS 4K, ViCDN Song Ngữ, NguonC Vietsub & Thuyết minh) vào chung một trang xem phim duy nhất, gắn nhãn badge <strong>Song Ngữ</strong> nổi bật và chuẩn hóa danh sách tập thành dạng <strong>Tập 01, Tập 02...</strong>.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= 7. TAB: CẤU HÌNH & BANNER ================= -->
+      <section id="tab-settings" class="admin-tab-pane hidden space-y-6">
+        <div>
+          <h1 class="font-display text-2xl font-bold text-on-surface">Cấu Hình Website & Thông Báo</h1>
+          <p class="text-on-surface-variant text-sm mt-0.5">Tùy biến banner thông báo toàn trang, chế độ bảo trì và sao lưu hệ thống</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Site Settings Form -->
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+            <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">campaign</span> Banner Thông Báo Toàn Trang (Header Announcement)
+            </h3>
+            
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Nội dung thông báo chạy trên Header</label>
+                <textarea id="setting-announcement" rows="3" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Ví dụ: 🔥 Chào mừng bạn đến với TTPHIM! Trải nghiệm cụm máy chủ xem phim 4K không quảng cáo và âm thanh vòm sống động..."></textarea>
+              </div>
+
+              <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-high border border-surface-container-highest/40">
+                <div>
+                  <span class="text-sm font-bold text-on-surface block">Hiển thị thông báo trên toàn website</span>
+                  <span class="text-xs text-on-surface-variant">Bật để hiển thị dải banner màu cam đỏ ở đầu trang</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input id="setting-announcement-active" type="checkbox" class="sr-only peer">
+                  <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Tiêu Đề Website (Site Title)</label>
+                <input id="setting-site-title" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" />
+              </div>
+
+              <div class="pt-2">
+                <button id="btn-save-settings" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-primary/20 transition-all cursor-pointer">
+                  <span class="material-symbols-outlined text-[18px]">save</span> Lưu Cài Đặt Ngay
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Backup & System Utilities -->
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-6 flex flex-col justify-between">
+            <div class="space-y-4">
+              <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary">database</span> Sao Lưu Dữ Liệu Hệ Thống
+              </h3>
+              <p class="text-sm text-on-surface-variant">
+                Xuất toàn bộ cơ sở dữ liệu người dùng, bình luận, lịch sử xem, đánh giá và cấu hình website ra tệp JSON an toàn. Bạn có thể lưu trữ để phục hồi bất kỳ lúc nào.
+              </p>
+              <div class="p-4 rounded-xl bg-surface-container-high border border-surface-container-highest/40 space-y-2">
+                <div class="flex items-center gap-2 text-xs text-on-surface-variant">
+                  <span class="material-symbols-outlined text-success text-[18px]">verified_user</span>
+                  <span>Định dạng chuẩn: <strong>data/db.json</strong></span>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-on-surface-variant">
+                  <span class="material-symbols-outlined text-success text-[18px]">lock</span>
+                  <span>Chỉ Quản Trị Viên mới có quyền tải dữ liệu này</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-surface-container-highest/40">
+              <a href="/api/admin/backup" target="_blank" class="w-full py-3 px-5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest border border-secondary/40 text-secondary hover:text-white font-bold text-sm flex items-center justify-center gap-2 transition-all">
+                <span class="material-symbols-outlined text-[20px]">download</span> Tải Bản Sao Lưu JSON Ngay (Backup DB)
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal Tạo Người Dùng Mới -->
+  <div id="modal-create-user" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-surface-container rounded-3xl overflow-hidden shadow-2xl border border-surface-container-highest/80 flex flex-col">
+      <div class="p-5 bg-surface-container-high flex items-center justify-between border-b border-surface-container-highest">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-[22px]">person_add</span>
+          <h3 class="font-bold text-base text-on-surface">Thêm Tài Khoản Mới</h3>
+        </div>
+        <button id="btn-close-create-user" class="p-1 rounded-full hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+      <form id="form-create-user" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Họ và tên</label>
+          <input id="new-user-name" type="text" required class="w-full p-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Ví dụ: Nguyễn Văn A" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Email đăng nhập</label>
+          <input id="new-user-email" type="email" required class="w-full p-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="email@example.com" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Mật khẩu</label>
+          <input id="new-user-password" type="password" required minlength="6" class="w-full p-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Tối thiểu 6 ký tự" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Vai trò tài khoản</label>
+          <select id="new-user-role" class="w-full p-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary">
+            <option value="user">Khán Giả (User)</option>
+            <option value="admin">Quản Trị Viên (Admin)</option>
+          </select>
+        </div>
+        <div class="pt-3 flex gap-3">
+          <button type="button" id="btn-cancel-create-user" class="flex-1 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-sm font-semibold transition-all cursor-pointer">
+            Hủy
+          </button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold shadow-lg shadow-primary/20 transition-all cursor-pointer">
+            Tạo Tài Khoản
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
+

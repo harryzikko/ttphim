@@ -1,0 +1,255 @@
+﻿<!DOCTYPE html>
+<html class="dark" lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <meta content="mobile_tab" name="shell-type"/>
+  <title>Khám Phá & Bộ Lọc Phim - TTPhim Mobile</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#11131c" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#11131c",
+            "surface-dim": "#11131c",
+            "surface-bright": "#373943",
+            "surface-container-lowest": "#0c0e17",
+            "surface-container-low": "#191b24",
+            "surface-container": "#1d1f29",
+            "surface-container-high": "#282933",
+            "surface-container-highest": "#32343e",
+            "on-surface": "#e1e1ef",
+            "on-surface-variant": "#e9bcb6",
+            "primary": "#ffb4aa",
+            "primary-container": "#e50914",
+            "on-primary-container": "#fff7f6",
+            "secondary": "#d3fbff",
+            "secondary-container": "#00eefc",
+            "on-secondary-container": "#00686f",
+            "secondary-fixed": "#7df4ff",
+            "secondary-fixed-dim": "#00dbe9",
+            "tertiary": "#dcb8ff",
+            "tertiary-container": "#9a40f2",
+            "tertiary-fixed": "#efdbff"
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "0.75rem",
+            "xl": "1rem",
+            "2xl": "1.25rem",
+            "full": "9999px"
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="/mobile/css/mobile.css" />
+</head>
+
+<body class="bg-surface text-on-surface font-body-md flex flex-col min-h-screen">
+
+  <!-- Mobile Header -->
+  <header class="mobile-app-header fixed top-0 w-full z-50 pt-safe">
+    <div class="h-14 px-4 flex items-center justify-between gap-2">
+      <a href="/mobile" class="flex items-center gap-1.5 touch-feedback">
+        <span class="w-2 h-5 bg-primary-container rounded-sm shadow-[0_0_12px_rgba(229,9,20,0.6)]"></span>
+        <span class="font-bold text-[18px] tracking-tight text-on-surface font-headline-sm">KK<span class="text-primary-container">PHIM</span></span>
+      </a>
+
+      <div class="flex items-center gap-1">
+        <button id="m-cast-btn" aria-label="Truyền màn hình" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[22px]">cast</span>
+        </button>
+        <button id="m-notif-btn" aria-label="Thông báo" class="relative w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[22px]">notifications</span>
+          <span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary-container shadow-[0_0_6px_rgba(229,9,20,0.8)]"></span>
+        </button>
+        <button id="m-profile-btn" aria-label="Tài khoản" class="w-8 h-8 rounded-full bg-surface-container-highest border border-white/10 flex items-center justify-center ml-1 active:scale-95 transition-transform overflow-hidden">
+          <span class="material-symbols-outlined text-primary text-[18px]">person</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex flex-col relative w-full pt-14 pb-24 bg-surface min-h-screen">
+    <div class="flex flex-col w-full relative">
+
+      <!-- Ambient Glow Backdrop -->
+      <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-80 h-36 bg-gradient-to-r from-primary-container/15 via-secondary-container/10 to-tertiary-container/15 blur-3xl pointer-events-none rounded-full"></div>
+
+      <!-- Search & Filter Controls -->
+      <div class="flex flex-col gap-2.5 px-4 pt-2.5 pb-2">
+        <!-- Search Input Box -->
+        <div class="relative flex items-center w-full bg-surface-container-high rounded-full shadow-md px-3.5 py-1.5 focus-within:bg-surface-container-highest transition-all duration-300">
+          <span class="material-symbols-outlined text-on-surface-variant text-[20px] mr-2 shrink-0">search</span>
+          <input id="movieSearchInput" class="w-full bg-transparent text-on-surface placeholder:text-on-surface-variant/60 text-[14px] focus:outline-none min-w-0 pr-8" placeholder="Tìm tên phim, diễn viên, đạo diễn..." type="text" autocomplete="off" />
+          
+          <button id="clearSearchBtn" aria-label="Xóa tìm kiếm" class="hidden absolute right-12 w-6 h-6 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center hover:text-on-surface active:scale-95 transition-all shrink-0" type="button">
+            <span class="material-symbols-outlined text-[14px]">close</span>
+          </button>
+          
+          <button id="openFilterSheetBtn" aria-label="Bộ lọc chuyên sâu" class="relative w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-[0_0_12px_rgba(229,9,20,0.4)] active:scale-90 transition-transform shrink-0 ml-1" type="button">
+            <span class="material-symbols-outlined text-[18px]">tune</span>
+            <span id="activeFilterBadge" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-secondary-container border border-surface shadow-[0_0_6px_#00eefc]"></span>
+          </button>
+        </div>
+
+        <!-- Category Chips Rail -->
+        <div id="m-category-rail" class="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 py-1">
+          <button class="m-chip shrink-0 px-3.5 py-1.5 rounded-full text-[12px] bg-on-surface text-surface shadow-sm font-semibold transition-all" data-type="all">Tất cả</button>
+          <button class="m-chip shrink-0 px-3.5 py-1.5 rounded-full text-[12px] bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" data-type="phim-bo">Phim Bộ</button>
+          <button class="m-chip shrink-0 px-3.5 py-1.5 rounded-full text-[12px] bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" data-type="phim-le">Phim Lẻ</button>
+          <button class="m-chip shrink-0 px-3.5 py-1.5 rounded-full text-[12px] bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" data-type="chieu-rap">Chiếu Rạp</button>
+          <button class="m-chip shrink-0 px-3.5 py-1.5 rounded-full text-[12px] bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" data-type="hoat-hinh">Anime</button>
+          <button class="m-chip shrink-0 px-3.5 py-1.5 rounded-full text-[12px] bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" data-country="han-quoc">Hàn Quốc</button>
+          <button class="m-chip shrink-0 px-3.5 py-1.5 rounded-full text-[12px] bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" data-country="trung-quoc">Trung Quốc</button>
+          <button class="m-chip shrink-0 px-3.5 py-1.5 rounded-full text-[12px] bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all" data-country="au-my">Âu Mỹ</button>
+        </div>
+
+        <!-- Meta Quick Filter Pills -->
+        <div class="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5">
+          <div class="flex items-center gap-1.5">
+            <button id="quickYearBtn" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container text-on-surface text-[11px] shadow-sm active:bg-surface-container-highest transition-colors">
+              <span id="quickYearLabel">Năm: Tất cả</span>
+              <span class="material-symbols-outlined text-[13px] text-on-surface-variant">expand_more</span>
+            </button>
+            <button id="quickSortBtn" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container text-on-surface text-[11px] shadow-sm active:bg-surface-container-highest transition-colors">
+              <span id="quickSortLabel">Mới nhất</span>
+              <span class="material-symbols-outlined text-[13px] text-on-surface-variant">sort</span>
+            </button>
+          </div>
+          <span id="activeFilterCounter" class="text-[11px] text-on-surface-variant font-medium"></span>
+        </div>
+      </div>
+
+      <!-- Catalog Results Meta Counter Bar -->
+      <div class="flex items-center justify-between px-4 py-2 bg-surface-container-lowest/70 backdrop-blur-md border-y border-white/5">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+          <span class="text-[11px] text-on-surface-variant">Kết quả khám phá:</span>
+          <span id="resultsCount" class="text-[12px] text-on-surface font-bold">Đang tải...</span>
+        </div>
+        <div class="flex items-center gap-1 text-on-surface-variant text-[11px]">
+          <span class="material-symbols-outlined text-[13px] text-secondary-container">auto_awesome</span>
+          <span>Cập nhật liên tục</span>
+        </div>
+      </div>
+
+      <!-- 2-Columns Movie Grid (2:3 aspect ratio, Obsidian Cinema standard) -->
+      <div id="movieGrid" class="grid grid-cols-2 gap-3 px-4 py-3">
+        <!-- Skeleton Loaders -->
+        <div class="aspect-[2/3] rounded-xl bg-surface-container animate-pulse"></div>
+        <div class="aspect-[2/3] rounded-xl bg-surface-container animate-pulse"></div>
+        <div class="aspect-[2/3] rounded-xl bg-surface-container animate-pulse"></div>
+        <div class="aspect-[2/3] rounded-xl bg-surface-container animate-pulse"></div>
+      </div>
+
+      <!-- Load More Button -->
+      <div class="p-4 text-center">
+        <button id="loadMoreBtn" class="w-full py-2.5 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-semibold text-[13px] active:scale-95 transition-all shadow-md">
+          Xem thêm phim khác
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Filter Bottom Sheet Drawer Modal -->
+  <div id="filterSheetBackdrop" class="bottom-sheet-backdrop">
+    <div class="bottom-sheet-content p-5 pb-safe">
+      <div class="sheet-handle"></div>
+      <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+        <h3 class="font-bold text-[17px] text-on-surface flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-primary-container">tune</span>
+          <span>Bộ Lọc Chuyên Sâu</span>
+        </h3>
+        <button id="closeFilterSheetBtn" class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-white">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <!-- Thể Loại -->
+      <div class="mb-4">
+        <p class="text-[12px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">Thể Loại</p>
+        <div id="sheetGenres" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto no-scrollbar pr-1">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Quốc Gia -->
+      <div class="mb-4">
+        <p class="text-[12px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">Quốc Gia</p>
+        <div id="sheetCountries" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto no-scrollbar pr-1">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Năm Phát Hành -->
+      <div class="mb-5">
+        <p class="text-[12px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">Năm Phát Hành</p>
+        <div id="sheetYears" class="flex flex-wrap gap-1.5">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-3 pt-2">
+        <button id="resetFilterBtn" class="flex-1 py-3 rounded-full bg-surface-container-highest text-on-surface text-[13px] font-bold active:scale-95 transition-transform">
+          Đặt Lại
+        </button>
+        <button id="applyFilterBtn" class="flex-[1.5] py-3 rounded-full bg-primary-container text-white text-[14px] font-bold shadow-lg shadow-primary-container/40 active:scale-95 transition-transform">
+          Áp Dụng Bộ Lọc
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Tab Navigation Bar -->
+  <nav class="mobile-app-nav fixed bottom-0 w-full z-50 pb-safe">
+    <div class="flex items-center justify-around h-16 px-1">
+      <a data-tab="home" href="/mobile" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">home</span>
+        <span class="font-label-badge text-[10px]">Trang Chủ</span>
+      </a>
+      <a data-tab="explore" href="/mobile/kham-pha" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-primary-container touch-feedback">
+        <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">explore</span>
+        <span class="font-label-badge text-[10px]">Khám Phá</span>
+      </a>
+      <a data-tab="list" href="/mobile/danh-sach" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">bookmark</span>
+        <span class="font-label-badge text-[10px]">Danh Sách</span>
+      </a>
+      <a data-tab="downloads" href="/mobile/danh-sach?tab=downloads" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">download_for_offline</span>
+        <span class="font-label-badge text-[10px]">Tải Về</span>
+      </a>
+      <a data-tab="profile" href="/mobile/tai-khoan" class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface touch-feedback">
+        <span class="material-symbols-outlined text-[22px]">account_circle</span>
+        <span class="font-label-badge text-[10px]">Tài Khoản</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Mobile Scripts -->
+  <script src="/js/api.js?v=2.7.2"></script>
+  <script src="/mobile/js/mobile-app.js?v=1.0.0"></script>
+  <script src="/mobile/js/kham-pha.js?v=1.0.0"></script>
+</body>
+</html>
+

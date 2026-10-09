@@ -1,0 +1,41 @@
+{
+  "name": "TTPhim - Rạp Chiếu Phim 4K HDR",
+  "short_name": "TTPhim",
+  "description": "Nền tảng xem phim trực tuyến miễn phí chuẩn điện ảnh 4K HDR, âm thanh Dolby Atmos trên iOS và Android",
+  "start_url": "/mobile",
+  "display": "standalone",
+  "background_color": "#11131c",
+  "theme_color": "#11131c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64 128x128 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "entertainment",
+    "movies",
+    "video"
+  ],
+  "shortcuts": [
+    {
+      "name": "Trang Chủ",
+      "url": "/mobile",
+      "description": "Mở trang chủ phim nổi bật"
+    },
+    {
+      "name": "Khám Phá",
+      "url": "/mobile/kham-pha",
+      "description": "Tìm kiếm và lọc phim"
+    },
+    {
+      "name": "Danh Sách",
+      "url": "/mobile/danh-sach",
+      "description": "Phim yêu thích và lịch sử xem"
+    }
+  ],
+  "screenshots": []
+}

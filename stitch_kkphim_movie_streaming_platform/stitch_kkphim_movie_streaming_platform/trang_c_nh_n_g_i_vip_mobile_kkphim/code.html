@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#11131c;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-surface": "#e1e1ef", "on-secondary-fixed-variant": "#004f54", "on-secondary-container": "#00686f", "surface-dim": "#11131c", "surface-container-lowest": "#0c0e17", "inverse-on-surface": "#2e303a", "primary": "#ffb4aa", "on-tertiary": "#480081", "background": "#11131c", "on-tertiary-fixed": "#2c0051", "surface-bright": "#373943", "on-secondary-fixed": "#002022", "on-error": "#690005", "on-primary": "#690003", "on-tertiary-fixed-variant": "#6700b5", "secondary": "#d3fbff", "secondary-fixed-dim": "#00dbe9", "inverse-surface": "#e1e1ef", "secondary-container": "#00eefc", "outline": "#af8782", "primary-fixed-dim": "#ffb4aa", "surface-tint": "#ffb4aa", "tertiary": "#dcb8ff", "tertiary-container": "#9a40f2", "on-tertiary-container": "#fff7ff", "tertiary-fixed": "#efdbff", "on-secondary": "#00363a", "outline-variant": "#5e3f3b", "surface": "#11131c", "tertiary-fixed-dim": "#dcb8ff", "surface-container-low": "#191b24", "error-container": "#93000a", "on-background": "#e1e1ef", "primary-fixed": "#ffdad5", "surface-variant": "#32343e", "surface-container": "#1d1f29", "inverse-primary": "#c0000c", "on-surface-variant": "#e9bcb6", "on-primary-fixed": "#410001", "surface-container-highest": "#32343e", "on-primary-fixed-variant": "#930007", "on-primary-container": "#fff7f6", "primary-container": "#e50914", "surface-container-high": "#282933", "on-error-container": "#ffdad6", "secondary-fixed": "#7df4ff", "error": "#ffb4ab" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-lg": "1.5rem", "margin": "3.5rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "gutter-mobile": "0.75rem", "space-xl": "2.5rem", "margin-mobile": "1rem", "gutter": "1.5rem", "space-md": "1rem" }, fontFamily: { "label-md": ["Inter"], "headline-lg": ["Montserrat"], "headline-md": ["Montserrat"], "headline-lg-mobile": ["Montserrat"], "display-hero": ["Montserrat"], "body-md": ["Inter"], "label-badge": ["Inter"], "body-sm": ["Inter"], "body-lg": ["Inter"], "display-hero-mobile": ["Montserrat"], "label-lg": ["Inter"], "headline-sm": ["Montserrat"] }, fontSize: { "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "600" }], "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }], "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }], "display-hero": ["56px", { "lineHeight": "64px", "fontWeight": "800" }], "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }], "label-badge": ["11px", { "lineHeight": "14px", "fontWeight": "700" }], "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }], "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "fontWeight": "800" }], "label-lg": ["14px", { "lineHeight": "20px", "fontWeight": "600" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-surface text-on-surface font-body-md flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-margin-mobile flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-xs"><div class="flex items-center gap-1"><span class="w-2.5 h-6 bg-primary-container rounded-sm shadow-[0_0_12px_rgba(229,9,20,0.6)]"></span><span class="font-headline-md text-headline-md tracking-tight font-extrabold text-on-surface">KK<span class="text-primary-container">PHIM</span></span></div></div><div class="flex items-center gap-space-xs"><button aria-label="Tìm kiếm" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">search</span></button><button aria-label="Truyền màn hình (Cast)" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">cast</span></button><button aria-label="Thông báo" class="relative w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary-container shadow-[0_0_6px_rgba(229,9,20,0.8)]"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-space-xs"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-20 bg-surface min-h-screen"><div class="flex flex-col w-full text-on-surface">
+<!-- Profile Header Section -->
+<section class="relative px-margin-mobile pt-space-md pb-space-lg flex flex-col items-center text-center overflow-hidden">
+<!-- Atmospheric Ambient Glow behind profile -->
+<div class="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary-container/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute top-10 right-4 w-40 h-40 bg-secondary-container/10 rounded-full blur-2xl pointer-events-none"></div>
+<!-- User Avatar & VIP Crown Badge -->
+<div class="relative mb-space-sm">
+<div class="w-24 h-24 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-primary-container to-amber-300 shadow-[0_0_24px_rgba(245,158,11,0.35)]">
+<img class="w-full h-full object-cover rounded-full bg-surface-container" data-alt="Close-up portrait of a stylish young East Asian movie buff with subtle neon cinema reflections in ambient dark cinematic studio lighting, crisp high definition, premium profile photograph" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAg7HrLrCIAbgL4c5IyHBEanshv9ToeLqqiEk6HUMCeLkyNarE0-d8vRxQ4w5t02dR2wJ3BCuKvp4cHPjPQCS5aAgzhdVLteClo9DsruJYBbiVtva0j-cE-GIkIp2P50Xmu8pKUwp3q4Ck0lxP6TUXii9zpjOuQ57itmfI9YDJY6s2wmiD7JohpktPaQp8GpEbYm75dAuzFsXHxJlSlxUFLpQVTZqdEpHvxFdh_xtM"/>
+</div>
+<!-- Crown Badge -->
+<div class="absolute -bottom-1 -right-1 flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-b from-amber-300 to-amber-600 text-surface-container-lowest shadow-lg shadow-amber-900/60">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</div>
+</div>
+<!-- Name & Handle -->
+<div class="flex items-center gap-1.5 mb-1">
+<h1 class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">Minh Triết</h1>
+<span class="px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 font-label-badge text-label-badge tracking-wider uppercase flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">star</span> VIP
+      </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">minhtriet.cinema@gmail.com</p>
+<!-- Subscription Active Pill & Quick Edit -->
+<div class="flex items-center gap-2">
+<div class="px-3 py-1.5 rounded-full bg-surface-container-high flex items-center gap-2 shadow-sm">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+<span class="font-label-md text-label-md text-on-surface">VIP 4K • Còn 215 ngày</span>
+</div>
+<button aria-label="Chỉnh sửa hồ sơ" class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-transform active:scale-95 shadow-sm" id="editProfileBtn">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+</section>
+<!-- VIP Metallic Prestige Card -->
+<section class="px-margin-mobile mb-space-lg">
+<div class="relative overflow-hidden rounded-xl p-space-md bg-gradient-to-br from-amber-950/70 via-surface-container-high to-zinc-950 shadow-2xl shadow-black/80">
+<!-- Shimmer decorative glow -->
+<div class="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-gradient-to-br from-amber-400/25 to-primary-container/20 blur-2xl pointer-events-none"></div>
+<!-- Card Brand & Status Header -->
+<div class="flex items-center justify-between relative z-10 mb-space-md">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-surface-container-lowest font-headline-sm font-black shadow-md">
+            KK
+          </div>
+<div>
+<div class="font-headline-sm text-headline-sm text-amber-200 tracking-wide flex items-center gap-1">
+              VIP PREMIUM
+            </div>
+<p class="font-label-badge text-label-badge text-amber-400/80">Hết hạn: 15/10/2025</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-amber-300/80 text-[26px]" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+</div>
+<!-- Perks Grid -->
+<div class="grid grid-cols-2 gap-2.5 relative z-10 mb-space-md">
+<div class="flex items-start gap-2 bg-surface-container-lowest/60 rounded-lg p-2 backdrop-blur-sm">
+<span class="material-symbols-outlined text-amber-400 text-[18px] shrink-0">high_quality</span>
+<div class="min-w-0">
+<p class="font-label-md text-label-md text-on-surface truncate">4K HDR &amp; Atmos</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Trải nghiệm rạp chiếu</p>
+</div>
+</div>
+<div class="flex items-start gap-2 bg-surface-container-lowest/60 rounded-lg p-2 backdrop-blur-sm">
+<span class="material-symbols-outlined text-amber-400 text-[18px] shrink-0">block</span>
+<div class="min-w-0">
+<p class="font-label-md text-label-md text-on-surface truncate">100% Không QC</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Mượt mà liền mạch</p>
+</div>
+</div>
+<div class="flex items-start gap-2 bg-surface-container-lowest/60 rounded-lg p-2 backdrop-blur-sm">
+<span class="material-symbols-outlined text-amber-400 text-[18px] shrink-0">downloading</span>
+<div class="min-w-0">
+<p class="font-label-md text-label-md text-on-surface truncate">Tải Về 5 Thiết Bị</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Xem offline mọi nơi</p>
+</div>
+</div>
+<div class="flex items-start gap-2 bg-surface-container-lowest/60 rounded-lg p-2 backdrop-blur-sm">
+<span class="material-symbols-outlined text-amber-400 text-[18px] shrink-0">alarm_on</span>
+<div class="min-w-0">
+<p class="font-label-md text-label-md text-on-surface truncate">Xem Sớm Trước 24h</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Độc quyền bom tấn</p>
+</div>
+</div>
+</div>
+<!-- Plan Selection Tabs / Tiers -->
+<div class="relative z-10 flex flex-col gap-2 mb-space-md">
+<p class="font-label-md text-label-md text-amber-200/90 font-semibold uppercase tracking-wider">Chọn gói gia hạn ưu đãi</p>
+<div class="grid grid-cols-3 gap-2" id="planTierSelector">
+<!-- Tier 1: 1 Month -->
+<button class="plan-card flex flex-col items-center justify-between p-2.5 rounded-xl bg-surface-container-lowest/70 text-on-surface hover:bg-surface-container-high transition-all text-center h-28 relative" data-plan="1m" type="button">
+<span class="font-label-md text-label-md font-bold text-on-surface">1 Tháng</span>
+<div class="my-auto">
+<span class="font-headline-sm text-headline-sm font-extrabold text-on-surface block leading-tight">59K</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">/tháng</span>
+</div>
+<span class="font-label-badge text-label-badge text-on-surface-variant">Linh hoạt</span>
+</button>
+<!-- Tier 2: 6 Months -->
+<button class="plan-card flex flex-col items-center justify-between p-2.5 rounded-xl bg-surface-container-lowest/70 text-on-surface hover:bg-surface-container-high transition-all text-center h-28 relative" data-plan="6m" type="button">
+<span class="px-1.5 py-0.5 rounded-full bg-secondary-container/20 text-secondary font-label-badge text-label-badge leading-tight">-15%</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">6 Tháng</span>
+<div class="my-auto">
+<span class="font-headline-sm text-headline-sm font-extrabold text-on-surface block leading-tight">299K</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">50K/tháng</span>
+</div>
+<span class="font-label-badge text-label-badge text-secondary">Tiết kiệm</span>
+</button>
+<!-- Tier 3: 1 Year (POPULAR) Active by default -->
+<button class="plan-card active-plan flex flex-col items-center justify-between p-2.5 rounded-xl bg-gradient-to-b from-primary-container/40 to-surface-container-high text-on-surface shadow-md relative overflow-visible text-center h-28" data-plan="12m" type="button">
+<span class="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-primary-container text-surface-container-lowest font-label-badge text-label-badge whitespace-nowrap shadow-sm font-bold">
+              Phổ Biến Nhất
+            </span>
+<span class="font-label-md text-label-md font-bold text-amber-200 mt-1">1 Năm +1T</span>
+<div class="my-auto">
+<span class="font-headline-sm text-headline-sm font-extrabold text-primary block leading-tight">499K</span>
+<span class="font-body-sm text-body-sm text-amber-200/80">38K/tháng</span>
+</div>
+<span class="px-1.5 py-0.5 rounded-full bg-primary-container text-on-primary font-label-badge text-label-badge leading-tight font-semibold">-30% &amp; Tặng 1T</span>
+</button>
+</div>
+</div>
+<!-- Action Button -->
+<button class="relative z-10 w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-primary-container via-red-600 to-amber-600 text-on-primary-container font-headline-sm text-headline-sm tracking-wide shadow-lg shadow-primary-container/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span>Gia Hạn &amp; Nâng Cấp VIP Ngay</span>
+</button>
+</div>
+</section>
+<!-- Viewing Stats & Quick Shortcuts -->
+<section class="px-margin-mobile mb-space-lg">
+<div class="grid grid-cols-3 gap-2.5 mb-space-sm">
+<div class="bg-surface-container p-3 rounded-xl flex flex-col items-center text-center shadow-sm">
+<span class="material-symbols-outlined text-secondary text-[22px] mb-1">schedule</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-extrabold">142h</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giờ đã xem</span>
+</div>
+<div class="bg-surface-container p-3 rounded-xl flex flex-col items-center text-center shadow-sm">
+<span class="material-symbols-outlined text-amber-400 text-[22px] mb-1">movie</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-extrabold">38</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Phim hoàn tất</span>
+</div>
+<div class="bg-surface-container p-3 rounded-xl flex flex-col items-center text-center shadow-sm">
+<span class="material-symbols-outlined text-primary text-[22px] mb-1">favorite</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-extrabold">15</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Đang theo dõi</span>
+</div>
+</div>
+<!-- Quick Navigation Shortcuts -->
+<div class="grid grid-cols-3 gap-2.5">
+<a class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container-high hover:bg-surface-variant text-on-surface active:scale-95 transition-all text-center" href="#">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-secondary mb-1.5 shadow-inner">
+<span class="material-symbols-outlined text-[20px]">history</span>
+</div>
+<span class="font-label-md text-label-md font-medium">Lịch Sử Xem</span>
+</a>
+<a class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container-high hover:bg-surface-variant text-on-surface active:scale-95 transition-all text-center" href="#">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary-container mb-1.5 shadow-inner">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+</div>
+<span class="font-label-md text-label-md font-medium">Danh Sách</span>
+</a>
+<a class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container-high hover:bg-surface-variant text-on-surface active:scale-95 transition-all text-center" href="#">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-amber-400 mb-1.5 shadow-inner">
+<span class="material-symbols-outlined text-[20px]">download_for_offline</span>
+</div>
+<span class="font-label-md text-label-md font-medium">Kho Tải Về</span>
+</a>
+</div>
+</section>
+<!-- Grouped Settings & Preferences -->
+<section class="px-margin-mobile flex flex-col gap-space-md mb-space-xl">
+<!-- Group: Trình phát & Tải về -->
+<div class="flex flex-col gap-1.5">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider px-1">Cài Đặt Trình Phát &amp; Tải Về</span>
+<div class="bg-surface-container rounded-xl overflow-hidden shadow-sm flex flex-col">
+<!-- Quality selector -->
+<div class="flex items-center justify-between p-3.5 hover:bg-surface-variant/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-[22px]">auto_awesome</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Chất lượng phát mặc định</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Tự động (Khuyên dùng 4K Ultra HD)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+</div>
+<div class="h-[1px] bg-surface-variant/40 mx-3.5"></div>
+<!-- Toggle: Wi-Fi Download only -->
+<div class="flex items-center justify-between p-3.5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[22px]">wifi</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Chỉ tải xuống qua Wi-Fi</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Tiết kiệm lưu lượng 4G/5G</span>
+</div>
+</div>
+<button aria-checked="true" class="toggle-btn w-12 h-6 rounded-full bg-primary-container p-0.5 transition-colors relative flex items-center" role="switch" type="button">
+<span class="w-5 h-5 rounded-full bg-on-primary-container shadow-md transform translate-x-6 transition-transform"></span>
+</button>
+</div>
+<div class="h-[1px] bg-surface-variant/40 mx-3.5"></div>
+<!-- Toggle: Auto play next -->
+<div class="flex items-center justify-between p-3.5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[22px]">play_circle</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Tự động phát tập kế tiếp</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Liền mạch khi xem phim bộ</span>
+</div>
+</div>
+<button aria-checked="true" class="toggle-btn w-12 h-6 rounded-full bg-primary-container p-0.5 transition-colors relative flex items-center" role="switch" type="button">
+<span class="w-5 h-5 rounded-full bg-on-primary-container shadow-md transform translate-x-6 transition-transform"></span>
+</button>
+</div>
+</div>
+</div>
+<!-- Group: Quản lý thiết bị & Tài khoản -->
+<div class="flex flex-col gap-1.5">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider px-1">Thiết Bị &amp; Ngôn Ngữ</span>
+<div class="bg-surface-container rounded-xl overflow-hidden shadow-sm flex flex-col">
+<!-- Active Devices -->
+<div class="flex items-center justify-between p-3.5 hover:bg-surface-variant/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-[22px]">devices</span>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg text-on-surface">Thiết bị đang đăng nhập</span>
+<span class="px-1.5 py-0.2 rounded-full bg-surface-container-high text-secondary font-label-badge text-label-badge">3 / 5</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">iPhone 15 Pro, iPad Air, Samsung TV 4K</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+</div>
+<div class="h-[1px] bg-surface-variant/40 mx-3.5"></div>
+<!-- Audio & Subtitles -->
+<div class="flex items-center justify-between p-3.5 hover:bg-surface-variant/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[22px]">subtitles</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Ngôn ngữ &amp; Phụ đề</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Mặc định Vietsub / Âm thanh Gốc</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+</div>
+<div class="h-[1px] bg-surface-variant/40 mx-3.5"></div>
+<!-- Notification toggle -->
+<div class="flex items-center justify-between p-3.5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[22px]">notifications_active</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Thông báo tập mới &amp; Ưu đãi</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Nhận tin tức phim đang theo dõi</span>
+</div>
+</div>
+<button aria-checked="true" class="toggle-btn w-12 h-6 rounded-full bg-primary-container p-0.5 transition-colors relative flex items-center" role="switch" type="button">
+<span class="w-5 h-5 rounded-full bg-on-primary-container shadow-md transform translate-x-6 transition-transform"></span>
+</button>
+</div>
+</div>
+</div>
+<!-- Group: Trợ giúp & Pháp lý -->
+<div class="flex flex-col gap-1.5">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider px-1">Trợ Giúp &amp; Phản Hồi</span>
+<div class="bg-surface-container rounded-xl overflow-hidden shadow-sm flex flex-col">
+<a class="flex items-center justify-between p-3.5 hover:bg-surface-variant/50 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[22px]">report_problem</span>
+<span class="font-label-lg text-label-lg text-on-surface">Báo lỗi phát phim &amp; phụ đề</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+</a>
+<div class="h-[1px] bg-surface-variant/40 mx-3.5"></div>
+<a class="flex items-center justify-between p-3.5 hover:bg-surface-variant/50 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[22px]">support_agent</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Hotline CSKH VIP 24/7</span>
+<span class="font-body-sm text-body-sm text-secondary font-medium">1900 888 KKPHIM (Ưu tiên)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+</a>
+<div class="h-[1px] bg-surface-variant/40 mx-3.5"></div>
+<a class="flex items-center justify-between p-3.5 hover:bg-surface-variant/50 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[22px]">policy</span>
+<span class="font-label-lg text-label-lg text-on-surface">Điều khoản sử dụng &amp; Quyền riêng tư</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+</a>
+</div>
+</div>
+<!-- App Version & Log Out Button -->
+<div class="flex flex-col items-center gap-3 pt-space-xs">
+<button class="w-full py-3.5 px-4 rounded-xl bg-surface-container-high hover:bg-error-container/40 text-error font-label-lg text-label-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all" id="logoutBtn">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span>Đăng Xuất Tài Khoản</span>
+</button>
+<p class="font-body-sm text-body-sm text-on-surface-variant/60">Phiên bản KKPhim Cinema v4.8.2 (Build 2025)</p>
+</div>
+</section>
+<!-- Interactive Client-side Script -->
+<script>
+    (function initProfileInteractivity() {
+      // Toggle Switches Micro-interaction
+      const toggles = document.querySelectorAll('.toggle-btn');
+      toggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+          const isChecked = toggle.getAttribute('aria-checked') === 'true';
+          const thumb = toggle.querySelector('span');
+          if (isChecked) {
+            toggle.setAttribute('aria-checked', 'false');
+            toggle.classList.remove('bg-primary-container');
+            toggle.classList.add('bg-surface-variant');
+            thumb.classList.remove('translate-x-6');
+            thumb.classList.add('translate-x-0.5');
+          } else {
+            toggle.setAttribute('aria-checked', 'true');
+            toggle.classList.remove('bg-surface-variant');
+            toggle.classList.add('bg-primary-container');
+            thumb.classList.remove('translate-x-0.5');
+            thumb.classList.add('translate-x-6');
+          }
+        });
+      });
+
+      // VIP Plan Tier Selection
+      const planCards = document.querySelectorAll('.plan-card');
+      planCards.forEach(card => {
+        card.addEventListener('click', () => {
+          planCards.forEach(c => {
+            c.classList.remove('active-plan', 'bg-gradient-to-b', 'from-primary-container/40', 'to-surface-container-high', 'shadow-md');
+            c.classList.add('bg-surface-container-lowest/70');
+          });
+          card.classList.remove('bg-surface-container-lowest/70');
+          card.classList.add('active-plan', 'bg-gradient-to-b', 'from-primary-container/40', 'to-surface-container-high', 'shadow-md');
+        });
+      });
+
+      // Logout Prompt Delight Feedback
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          const confirmed = confirm('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản VIP Minh Triết không?');
+          if (confirmed) {
+            alert('Đã đăng xuất an toàn. Hẹn gặp lại bạn tại KKPhim!');
+          }
+        });
+      }
+    })();
+  </script>
+</div></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary-container"><div class="flex items-center justify-around h-16 px-space-xs"><a class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="trang-chu" href="#"><span class="material-symbols-outlined text-[22px]">home</span><span class="font-label-badge text-label-badge">Trang Chủ</span></a><a class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="kham-pha" href="#"><span class="material-symbols-outlined text-[22px]">explore</span><span class="font-label-badge text-label-badge">Khám Phá</span></a><a class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="danh-sach" href="#"><span class="material-symbols-outlined text-[22px]">bookmark</span><span class="font-label-badge text-label-badge">Danh Sách</span></a><a class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="tai-ve" href="#"><span class="material-symbols-outlined text-[22px]">download_for_offline</span><span class="font-label-badge text-label-badge">Tải Về</span></a><a class="flex flex-col items-center justify-center w-14 h-full gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="tai-khoan" href="#"><span class="material-symbols-outlined text-[22px]">account_circle</span><span class="font-label-badge text-label-badge">Tài Khoản</span></a></div></nav></body></html>
