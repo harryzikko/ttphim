@@ -33,8 +33,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Accept Android SDK Licenses & Install SDK 35
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" || true
 
       - name: Sync Capacitor Web Assets
         run: npx cap sync android
@@ -42,7 +47,7 @@ jobs:
       - name: Make Gradle Executable
         run: chmod +x android/gradlew
 
-      - name: Build APK (Release & Debug)
+      - name: Build Android APK
         run: |
           cd android
           ./gradlew assembleDebug --stacktrace
@@ -79,31 +84,16 @@ jobs:
       - name: Sync Capacitor iOS
         run: npx cap sync ios
 
-      - name: Install CocoaPods
+      - name: Install CocoaPods Dependencies
         run: |
           cd ios/App
-          pod install || true
+          pod install || pod install --repo-update || true
 
-      - name: Build iOS Archive & Export Unsigned IPA
+      - name: Build iOS Unsigned App & Package IPA
         run: |
           cd ios/App
-          xcodebuild clean -workspace App.xcworkspace -scheme App -configuration Release
 
-          # Attempt archive without code signing, fallback to standard build if archive enforces signing
-          xcodebuild archive \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -archivePath build/App.xcarchive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGN_ENTITLEMENTS="" \
-            CODE_SIGN_STYLE="Manual" \
-            PROVISIONING_PROFILE="" \
-            PROVISIONING_PROFILE_SPECIFIER="" || \
+          # Build iOS App bundle for generic device without code signing
           xcodebuild build \
             -workspace App.xcworkspace \
             -scheme App \
@@ -119,19 +109,11 @@ jobs:
             PROVISIONING_PROFILE="" \
             PROVISIONING_PROFILE_SPECIFIER=""
 
-          # Package into Unsigned IPA (Ready for Sideloadly / AltStore / TrollStore / Scarlet)
+          # Package into Unsigned IPA (compatible with TrollStore, Sideloadly, AltStore, Scarlet)
           mkdir -p build/Payload
-          if [ -d "build/App.xcarchive/Products/Applications/App.app" ]; then
-            echo "Packaging App.app from xcarchive..."
-            cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
-          elif [ -d "build/DerivedData/Build/Products/Release-iphoneos/App.app" ]; then
-            echo "Packaging App.app from DerivedData..."
-            cp -r build/DerivedData/Build/Products/Release-iphoneos/App.app build/Payload/
-          else
-            echo "Locating App.app..."
-            find build -name "App.app" -type d -exec cp -r {} build/Payload/ \;
-          fi
-
+          APP_PATH=$(find build/DerivedData/Build/Products -name "*.app" -type d | head -n 1)
+          echo "Found compiled app bundle at: $APP_PATH"
+          cp -r "$APP_PATH" build/Payload/
           cd build
           zip -r TTPhim-unsigned.ipa Payload
           cd ../..
