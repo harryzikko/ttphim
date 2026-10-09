@@ -49,6 +49,36 @@ jobs:
           cp -rf /tmp/ttphim_src/lib lib
           cp /tmp/ttphim_src/config/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
+          # Configure Android SDK versions in local.properties
+          touch android/local.properties
+          echo "flutter.compileSdkVersion=34" >> android/local.properties
+          echo "flutter.minSdkVersion=21" >> android/local.properties
+          echo "flutter.targetSdkVersion=34" >> android/local.properties
+
+          # Explicitly set SDK versions in app build.gradle / build.gradle.kts
+          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle* || true
+          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle* || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle* || true
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle* || true
+          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 34/g' android/app/build.gradle* || true
+          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle* || true
+
+          # Universal subprojects hook to guarantee all plugin modules have compileSdk 34
+          if [ -f "android/build.gradle" ]; then
+            cat << 'EOF' >> android/build.gradle
+
+          subprojects {
+              afterEvaluate { project ->
+                  if (project.hasProperty("android")) {
+                      project.android {
+                          compileSdkVersion 34
+                      }
+                  }
+              }
+          }
+          EOF
+          fi
+
       - name: Get Dependencies
         run: |
           cd mobile_app
