@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html class="dark" lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Đang Phát - TTPhim Android TV</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#ffb4aa",
+            "primary-container": "#e50914",
+            "secondary-container": "#00eefc",
+            "background": "#0B0D13",
+            "surface": "#11131c",
+            "surface-container": "#1d1f29",
+            "surface-container-high": "#282933",
+            "surface-container-highest": "#32343e",
+            "surface-container-lowest": "#0c0e17",
+            "on-surface": "#e1e1ef",
+            "on-surface-variant": "#9ca3af",
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar { display: none; }
+    .tv-focused {
+      outline: 4px solid #e50914 !important;
+      transform: scale(1.1) !important;
+      box-shadow: 0 0 25px rgba(229, 9, 20, 0.7) !important;
+      z-index: 40 !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+  </style>
+</head>
+<body class="bg-black text-on-surface antialiased select-none overflow-hidden h-screen w-screen">
+  <!-- Video Container -->
+  <div class="relative w-full h-full bg-black flex items-center justify-center">
+    <!-- Artplayer native HLS container -->
+    <div id="artplayer-container" class="w-full h-full"></div>
+
+    <!-- Embed Iframe fallback -->
+    <iframe id="embed-frame" class="w-full h-full border-0 absolute inset-0 hidden" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+
+    <!-- Leanback TV HUD Overlay -->
+    <div id="tv-hud" class="absolute inset-0 z-30 flex flex-col justify-between p-10 bg-gradient-to-t from-black/90 via-transparent to-black/80 transition-opacity duration-300">
+      <!-- Top Bar: Title & Telemetry -->
+      <header class="flex items-start justify-between w-full">
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-3">
+            <a href="javascript:history.back()" class="tv-focusable flex items-center gap-1.5 px-3 py-1 rounded bg-surface-container-high hover:bg-primary-container text-white text-xs font-bold uppercase transition-all">
+              <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+              <span>Trở Lại</span>
+            </a>
+            <span class="px-2.5 py-1 rounded bg-primary-container text-white text-xs font-black tracking-wider uppercase">
+              TTPHIM TV 4K
+            </span>
+            <span class="px-2.5 py-1 rounded bg-surface-container-high text-secondary-container text-xs font-bold">
+              DOLBY ATMOS
+            </span>
+            <span id="player-ep-badge" class="px-2.5 py-1 rounded bg-surface-container-high text-white text-xs font-bold">
+              Tập 1
+            </span>
+          </div>
+          <div class="flex items-baseline gap-3">
+            <h1 id="player-movie-title" class="text-3xl font-black text-white tracking-tight drop-shadow-md">
+              Đang tải phim...
+            </h1>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 px-5 py-2 rounded-xl bg-surface-container/70 backdrop-blur-xl">
+          <div class="flex items-center gap-2 text-on-surface">
+            <span class="material-symbols-outlined text-[20px]">schedule</span>
+            <span class="font-bold text-sm" id="tv-clock">--:--</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Center Big Notification (buffering / state) -->
+      <div id="center-loading" class="flex flex-col items-center justify-center gap-3 py-6 hidden">
+        <div class="w-14 h-14 border-4 border-primary-container border-t-transparent rounded-full animate-spin"></div>
+        <span class="text-xs font-bold text-white uppercase tracking-wider">Đang đệm phát video...</span>
+      </div>
+
+      <!-- Bottom HUD: Timeline & D-pad Transport Controls -->
+      <div class="flex flex-col w-full gap-4">
+        <!-- Progress Bar & Timestamps -->
+        <div class="flex flex-col gap-1.5">
+          <div class="relative w-full h-3 bg-white/20 rounded-full overflow-hidden cursor-pointer">
+            <div id="progress-buffer" class="absolute left-0 top-0 bottom-0 bg-white/30 w-0"></div>
+            <div id="progress-played" class="absolute left-0 top-0 bottom-0 bg-primary-container shadow-[0_0_12px_rgba(229,9,20,0.8)] w-0"></div>
+          </div>
+          <div class="flex justify-between items-center text-xs font-mono font-bold text-gray-300">
+            <span id="time-current">00:00:00</span>
+            <span id="time-duration">--:--:--</span>
+          </div>
+        </div>
+
+        <!-- D-Pad Transport Controls -->
+        <div class="flex items-center justify-center gap-6 py-2">
+          <!-- Replay 10s -->
+          <button id="btn-replay" class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full bg-surface-container-high/80 hover:bg-surface-container-highest text-white transition-all">
+            <span class="material-symbols-outlined text-[28px]">replay_10</span>
+          </button>
+
+          <!-- Prev Episode -->
+          <button id="btn-prev-ep" class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full bg-surface-container-high/80 hover:bg-surface-container-highest text-white transition-all">
+            <span class="material-symbols-outlined text-[30px]">skip_previous</span>
+          </button>
+
+          <!-- Big Play / Pause (Default focus) -->
+          <button id="btn-play-toggle" class="tv-focusable flex items-center justify-center w-20 h-20 rounded-full bg-primary-container text-white shadow-[0_0_35px_rgba(229,9,20,0.8)] transition-all ring-4 ring-white/20" data-initial-focus>
+            <span id="icon-play-state" class="material-symbols-outlined text-[44px]">play_arrow</span>
+          </button>
+
+          <!-- Next Episode -->
+          <button id="btn-next-ep" class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full bg-surface-container-high/80 hover:bg-surface-container-highest text-white transition-all">
+            <span class="material-symbols-outlined text-[30px]">skip_next</span>
+          </button>
+
+          <!-- Forward 10s -->
+          <button id="btn-forward" class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full bg-surface-container-high/80 hover:bg-surface-container-highest text-white transition-all">
+            <span class="material-symbols-outlined text-[28px]">forward_10</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/tv/js/tv-nav.js"></script>
+  <script>
+    let art = null;
+    let currentMovie = null;
+    let currentEpisodes = [];
+    let currentEpisodeIndex = 0;
+    let currentServerIndex = 0;
+    let hudTimeout = null;
+
+    const pathParts = window.location.pathname.split('/');
+    const movieSlug = pathParts[pathParts.length - 1] || '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetSlug = urlParams.get('slug') || '';
+    const targetServer = parseInt(urlParams.get('server') || '0', 10);
+
+    async function initPlayer() {
+      if (!movieSlug) return;
+      try {
+        const res = await fetch(`/api/movies/${movieSlug}`);
+        const data = await res.json();
+
+        if (data.status && data.data && data.data.movie) {
+          currentMovie = data.data.movie;
+          const servers = data.data.episodes || [];
+          currentServerIndex = Math.min(targetServer, Math.max(0, servers.length - 1));
+
+          const currentServer = servers[currentServerIndex];
+          currentEpisodes = currentServer?.server_data || [];
+
+          // Find episode index matching targetSlug
+          if (targetSlug) {
+            const idx = currentEpisodes.findIndex(ep => ep.slug === targetSlug);
+            if (idx !== -1) currentEpisodeIndex = idx;
+          }
+
+          document.getElementById('player-movie-title').textContent = currentMovie.name;
+          playEpisode(currentEpisodeIndex);
+        }
+      } catch (err) {
+        console.error('Lỗi khởi tạo player TV:', err);
+      }
+    }
+
+    function playEpisode(index) {
+      if (index < 0 || index >= currentEpisodes.length) return;
+      currentEpisodeIndex = index;
+      const ep = currentEpisodes[index];
+
+      document.getElementById('player-ep-badge').textContent = ep.name || `Tập ${index + 1}`;
+
+      const m3u8Url = ep.link_m3u8;
+      const embedUrl = ep.link_embed;
+
+      const artContainer = document.getElementById('artplayer-container');
+      const embedFrame = document.getElementById('embed-frame');
+
+      if (m3u8Url) {
+        embedFrame.style.display = 'none';
+        artContainer.style.display = 'block';
+
+        if (art) {
+          art.switchUrl(m3u8Url);
+          art.play();
+        } else {
+          art = new Artplayer({
+            container: '#artplayer-container',
+            url: m3u8Url,
+            type: 'm3u8',
+            customType: {
+              m3u8: function (video, url) {
+                if (Hls.isSupported()) {
+                  const hls = new Hls();
+                  hls.loadSource(url);
+                  hls.attachMedia(video);
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                  video.src = url;
+                }
+              }
+            },
+            volume: 1,
+            autoplay: true,
+            autoSize: true,
+            fullscreen: true,
+            fullscreenWeb: true
+          });
+
+          art.on('video:timeupdate', () => {
+            const current = art.currentTime;
+            const duration = art.duration || 1;
+            const percent = (current / duration) * 100;
+            document.getElementById('progress-played').style.width = `${percent}%`;
+            document.getElementById('time-current').textContent = formatTime(current);
+            document.getElementById('time-duration').textContent = formatTime(duration);
+          });
+
+          art.on('video:play', () => {
+            document.getElementById('icon-play-state').textContent = 'pause';
+            resetHudTimer();
+          });
+
+          art.on('video:pause', () => {
+            document.getElementById('icon-play-state').textContent = 'play_arrow';
+            showHud();
+          });
+
+          art.on('video:ended', () => {
+            if (currentEpisodeIndex < currentEpisodes.length - 1) {
+              playEpisode(currentEpisodeIndex + 1);
+            }
+          });
+        }
+      } else if (embedUrl) {
+        artContainer.style.display = 'none';
+        embedFrame.style.display = 'block';
+        embedFrame.src = embedUrl;
+      }
+
+      resetHudTimer();
+    }
+
+    function formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '00:00:00';
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function showHud() {
+      const hud = document.getElementById('tv-hud');
+      hud.style.opacity = '1';
+      hud.style.pointerEvents = 'auto';
+    }
+
+    function hideHud() {
+      const hud = document.getElementById('tv-hud');
+      hud.style.opacity = '0';
+      hud.style.pointerEvents = 'none';
+    }
+
+    function resetHudTimer() {
+      showHud();
+      clearTimeout(hudTimeout);
+      hudTimeout = setTimeout(() => {
+        if (art && !art.video.paused) {
+          hideHud();
+        }
+      }, 5000);
+    }
+
+    // Transport button event handlers
+    document.getElementById('btn-play-toggle').addEventListener('click', () => {
+      if (!art) return;
+      art.toggle();
+    });
+
+    document.getElementById('btn-replay').addEventListener('click', () => {
+      if (!art) return;
+      art.currentTime = Math.max(0, art.currentTime - 10);
+      resetHudTimer();
+    });
+
+    document.getElementById('btn-forward').addEventListener('click', () => {
+      if (!art) return;
+      art.currentTime = Math.min(art.duration, art.currentTime + 10);
+      resetHudTimer();
+    });
+
+    document.getElementById('btn-prev-ep').addEventListener('click', () => {
+      if (currentEpisodeIndex > 0) playEpisode(currentEpisodeIndex - 1);
+    });
+
+    document.getElementById('btn-next-ep').addEventListener('click', () => {
+      if (currentEpisodeIndex < currentEpisodes.length - 1) playEpisode(currentEpisodeIndex + 1);
+    });
+
+    // Keyboard Shortcuts for TV remote
+    window.addEventListener('keydown', (e) => {
+      resetHudTimer();
+      if (e.keyCode === 37) { // Left
+        if (art && e.target === document.body) {
+          art.currentTime = Math.max(0, art.currentTime - 10);
+        }
+      } else if (e.keyCode === 39) { // Right
+        if (art && e.target === document.body) {
+          art.currentTime = Math.min(art.duration, art.currentTime + 10);
+        }
+      } else if (e.keyCode === 38) { // Up
+        showHud();
+      } else if (e.keyCode === 40) { // Down
+        hideHud();
+      }
+    });
+
+    window.addEventListener('load', initPlayer);
+  </script>
+</body>
+</html>

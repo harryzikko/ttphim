@@ -1,4 +1,4 @@
-﻿// TTPhim - Movie Detail Page Controller (Real Data Binding)
+// TTPhim - Movie Detail Page Controller (Real Data Binding)
 document.addEventListener('DOMContentLoaded', async () => {
   function cleanEpName(name) {
     if (!name) return '01';
@@ -198,11 +198,51 @@ document.addEventListener('DOMContentLoaded', async () => {
       synopsis.innerText = movie.content || 'Nội dung phim đang được cập nhật...';
     }
 
-    // Cast & Crew
-    const castBoxes = document.querySelectorAll('div.border-t.border-transparent.bg-surface-container-lowest\\/60 div p.text-body-sm');
-    if (castBoxes[0]) castBoxes[0].innerText = movie.director?.length ? movie.director.join(', ') : 'Đang cập nhật';
-    if (castBoxes[1]) castBoxes[1].innerText = movie.country?.map(c => c.name).join(', ') || 'Chính kịch';
-    if (castBoxes[2]) castBoxes[2].innerText = movie.actor?.length ? movie.actor.join(', ') : 'Đang cập nhật';
+    // Cast & Crew Rail with Avatars
+    const castContainer = document.querySelector('div.border-t.border-transparent.bg-surface-container-lowest\\/60');
+    if (castContainer && (movie.director?.length || movie.actor?.length)) {
+      function slugifyPerson(str) {
+        if (!str) return '';
+        return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      }
+
+      const directors = (movie.director || []).filter(Boolean);
+      const actors = (movie.actor || []).filter(Boolean);
+
+      castContainer.innerHTML = `
+        <div class="col-span-full space-y-3">
+          <div class="flex items-center justify-between border-b border-white/5 pb-2">
+            <span class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 font-bold">
+              <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
+              <span>Đạo Diễn & Diễn Viên (${directors.length + actors.length})</span>
+            </span>
+            <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem phim đã đóng</span>
+          </div>
+          
+          <div class="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-none pt-1">
+            ${directors.map(d => `
+              <a href="/dao-dien/${slugifyPerson(d)}" class="group flex flex-col items-center gap-1.5 shrink-0 text-center w-20 cursor-pointer" title="Đạo diễn: ${d}">
+                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container group-hover:shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all">
+                  <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true" alt="${d}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+                </div>
+                <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full">${d}</span>
+                <span class="text-[10px] text-primary font-semibold block uppercase">Đạo Diễn</span>
+              </a>
+            `).join('')}
+
+            ${actors.map(a => `
+              <a href="/dien-vien/${slugifyPerson(a)}" class="group flex flex-col items-center gap-1.5 shrink-0 text-center w-20 cursor-pointer" title="Diễn viên: ${a}">
+                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container group-hover:shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all">
+                  <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true" alt="${a}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+                </div>
+                <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full">${a}</span>
+                <span class="text-[10px] text-on-surface-variant font-semibold block uppercase">Diễn Viên</span>
+              </a>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
 
     // Episodes & Servers Section
     renderEpisodesSection(movie, episodes);

@@ -304,4 +304,45 @@ class ApiService {
     } catch (e) {}
     return null;
   }
+
+  /// Authorize Android TV session via QR Token or 6-digit PIN
+  static Future<Map<String, dynamic>> authorizeTvSession(String codeOrToken) async {
+    try {
+      String cleanCode = codeOrToken.trim();
+      if (cleanCode.contains('token=')) {
+        final uri = Uri.tryParse(cleanCode);
+        if (uri != null && uri.queryParameters.containsKey('token')) {
+          cleanCode = uri.queryParameters['token']!;
+        }
+      }
+
+      final serverUrls = [
+        'http://localhost:3000',
+        'http://10.0.2.2:3000',
+      ];
+
+      for (final host in serverUrls) {
+        try {
+          final uri = Uri.parse('$host/api/auth/tv/authorize');
+          final res = await _client.post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({'token': cleanCode, 'code': cleanCode}),
+          ).timeout(const Duration(seconds: 4));
+
+          if (res.statusCode == 200) {
+            final data = json.decode(utf8.decode(res.bodyBytes));
+            return {'success': true, 'message': data['message'] ?? 'Xác thực TV thành công!'};
+          } else if (res.statusCode == 400) {
+            final data = json.decode(utf8.decode(res.bodyBytes));
+            return {'success': false, 'message': data['message'] ?? 'Mã kích hoạt không đúng hoặc đã hết hạn'};
+          }
+        } catch (_) {}
+      }
+
+      return {'success': false, 'message': 'Không thể kết nối đến máy chủ xác thực TV'};
+    } catch (e) {
+      return {'success': false, 'message': 'Lỗi kết nối: ${e.toString()}'};
+    }
+  }
 }

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html class="dark" lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Chi Tiết Phim - TTPhim Android TV</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#ffb4aa",
+            "primary-container": "#e50914",
+            "secondary-container": "#00eefc",
+            "secondary-fixed-dim": "#00dbe9",
+            "background": "#0B0D13",
+            "surface": "#11131c",
+            "surface-container": "#1d1f29",
+            "surface-container-high": "#282933",
+            "surface-container-highest": "#32343e",
+            "surface-container-low": "#191b24",
+            "surface-container-lowest": "#0c0e17",
+            "on-surface": "#e1e1ef",
+            "on-surface-variant": "#9ca3af",
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar { display: none; }
+    .tv-focused {
+      outline: 4px solid #e50914 !important;
+      transform: scale(1.05) !important;
+      box-shadow: 0 0 30px rgba(229, 9, 20, 0.7) !important;
+      z-index: 40 !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .episode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 10px;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased select-none overflow-x-hidden min-h-screen">
+  <!-- Left Navigation Sidebar -->
+  <aside class="fixed left-0 top-0 h-screen w-20 hover:w-64 transition-all duration-300 ease-out bg-surface-container-lowest/95 backdrop-blur-2xl z-50 flex flex-col justify-between py-6 px-3 group shadow-2xl border-r border-white/5">
+    <div class="flex flex-col gap-8">
+      <a href="/tv" class="tv-focusable flex items-center gap-3 px-2 rounded-xl">
+        <div class="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-white text-[28px]">movie</span>
+        </div>
+        <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+          <span class="font-black text-xl tracking-wider text-white">TT<span class="text-primary-container">PHIM</span></span>
+        </div>
+      </a>
+      <nav class="flex flex-col gap-2">
+        <a href="/tv" class="tv-focusable flex items-center gap-4 px-3 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-white transition-all">
+          <span class="material-symbols-outlined shrink-0 text-[26px]">home</span>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-sm">Trang Chủ</span>
+        </a>
+        <a href="/tv/tim-kiem" class="tv-focusable flex items-center gap-4 px-3 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-white transition-all">
+          <span class="material-symbols-outlined shrink-0 text-[26px]">search</span>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-sm">Tìm Kiếm</span>
+        </a>
+        <a href="/tv/dang-nhap" class="tv-focusable flex items-center gap-4 px-3 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-white transition-all">
+          <span class="material-symbols-outlined shrink-0 text-[26px]">qr_code_scanner</span>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-sm">Đăng Nhập QR</span>
+        </a>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Main Canvas -->
+  <div class="pl-20 w-full min-h-screen relative">
+    <!-- Top Bar -->
+    <header class="fixed top-0 left-20 right-0 h-16 bg-surface/80 backdrop-blur-xl z-40 flex items-center justify-between px-10 border-b border-white/5">
+      <div class="flex items-center gap-4">
+        <a href="/tv" class="tv-focusable flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-high hover:bg-primary-container text-white transition-all">
+          <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+          <span class="text-xs font-bold uppercase">Quay Lại</span>
+        </a>
+        <span id="header-movie-title" class="text-sm font-bold text-gray-300">Đang tải phim...</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-1.5 text-on-surface-variant">
+          <span class="material-symbols-outlined text-[18px]">schedule</span>
+          <span class="font-bold text-sm text-on-surface" id="tv-clock">--:--</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Backdrop Image -->
+    <div id="movie-backdrop" class="fixed inset-0 bg-cover bg-center -z-20 scale-105 filter brightness-75 transition-all duration-700"></div>
+    <div class="fixed inset-0 bg-gradient-to-r from-background via-background/90 to-background/60 -z-10"></div>
+    <div class="fixed inset-0 bg-gradient-to-t from-background via-background/80 to-transparent -z-10"></div>
+
+    <!-- Main Detail Grid -->
+    <main class="w-full max-w-[1780px] mx-auto px-10 pt-24 pb-16 grid grid-cols-12 gap-8 items-start relative z-10">
+      <!-- Left Column: Poster, Info, Cast Rail, Action Buttons -->
+      <div class="col-span-12 xl:col-span-7 flex flex-col gap-6">
+        <!-- Badges -->
+        <div class="flex items-center flex-wrap gap-2.5">
+          <span id="badge-quality" class="px-2.5 py-1 rounded-md bg-primary-container text-white text-xs font-bold uppercase">FHD</span>
+          <span id="badge-year" class="px-2.5 py-1 rounded-md bg-surface-container-high text-white text-xs font-bold">2024</span>
+          <span id="badge-episode" class="px-2.5 py-1 rounded-md bg-surface-container-high text-secondary-container text-xs font-bold">Full</span>
+          <span id="badge-lang" class="px-2.5 py-1 rounded-md bg-surface-container-high text-on-surface text-xs font-bold">Vietsub</span>
+          <span id="badge-rating" class="px-2.5 py-1 rounded-md bg-surface-container-high text-yellow-400 text-xs font-bold flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">star</span>
+            <span>9.0</span>
+          </span>
+        </div>
+
+        <!-- Titles -->
+        <div class="flex flex-col gap-1">
+          <h1 id="movie-title" class="text-4xl lg:text-5xl font-black text-white uppercase tracking-tight drop-shadow-md">
+            Đang tải dữ liệu phim...
+          </h1>
+          <p id="movie-origin" class="text-lg text-gray-300 font-medium">...</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-4 pt-2">
+          <a id="btn-play-primary" href="#" class="tv-focusable flex items-center gap-3 px-8 py-4 rounded-2xl bg-white text-black font-black text-base shadow-[0_0_35px_rgba(255,255,255,0.6)] transition-all" data-initial-focus>
+            <div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-white">
+              <span class="material-symbols-outlined text-[24px]">play_arrow</span>
+            </div>
+            <span id="btn-play-label">XEM PHIM NGAY</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-black/10 text-black uppercase font-bold">OK</span>
+          </a>
+          <button id="btn-favorite" class="tv-focusable flex items-center gap-2 px-6 py-4 rounded-2xl bg-surface-container-high hover:bg-surface-container-highest text-white font-bold text-sm transition-all">
+            <span class="material-symbols-outlined text-[22px]">bookmark_add</span>
+            <span>Yêu Thích</span>
+          </button>
+        </div>
+
+        <!-- Synopsis -->
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-primary mb-1">Nội dung phim</h2>
+          <p id="movie-content" class="text-sm text-gray-300 leading-relaxed max-w-3xl line-clamp-4">
+            Đang tải tóm tắt nội dung...
+          </p>
+        </div>
+
+        <!-- Cast & Director Circular Avatar Rail -->
+        <div id="cast-container" class="flex flex-col gap-3">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-secondary-container">Đạo Diễn &amp; Diễn Viên</h2>
+          <div id="cast-rail" class="flex items-center gap-4 overflow-x-auto py-2">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Dedicated Server Switcher & Episode Grid -->
+      <div class="col-span-12 xl:col-span-5 flex flex-col gap-4 bg-surface-container-lowest/90 backdrop-blur-2xl p-6 rounded-2xl border border-white/5 shadow-2xl">
+        <div class="flex items-center justify-between pb-1">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[24px]">view_module</span>
+            <h2 class="text-lg font-bold text-white">Danh Sách Tập Phim</h2>
+          </div>
+          <span id="episode-count" class="text-xs text-secondary-container bg-surface-container px-3 py-1 rounded-full font-bold">0 Tập</span>
+        </div>
+
+        <!-- Server Selector Tabs -->
+        <div id="server-tabs" class="grid grid-cols-2 gap-2 p-1.5 bg-surface-container rounded-xl">
+          <!-- Server buttons injected here -->
+        </div>
+
+        <!-- Episode Selector Grid -->
+        <div id="episode-list" class="episode-grid py-2">
+          <!-- Episodes injected here -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/tv/js/tv-nav.js"></script>
+  <script>
+    let currentMovie = null;
+    let currentServerIndex = 0;
+    const pathParts = window.location.pathname.split('/');
+    const movieSlug = pathParts[pathParts.length - 1] || '';
+
+    async function loadMovieDetail() {
+      if (!movieSlug) return;
+      try {
+        const res = await fetch(`/api/movies/${movieSlug}`);
+        const data = await res.json();
+
+        if (data.status && data.data && data.data.movie) {
+          const m = data.data.movie;
+          currentMovie = data.data;
+
+          document.title = `${m.name} - TTPhim Android TV`;
+          document.getElementById('header-movie-title').textContent = m.name;
+          document.getElementById('movie-title').textContent = m.name;
+          document.getElementById('movie-origin').textContent = m.origin_name ? `${m.origin_name} (${m.year || 2024})` : '';
+
+          const backdropUrl = m.poster_url || m.thumb_url;
+          document.getElementById('movie-backdrop').style.backgroundImage = `url('${backdropUrl}')`;
+
+          if (m.quality) document.getElementById('badge-quality').textContent = m.quality;
+          if (m.year) document.getElementById('badge-year').textContent = m.year;
+          if (m.episode_current) document.getElementById('badge-episode').textContent = m.episode_current;
+          if (m.lang) document.getElementById('badge-lang').textContent = m.lang;
+          if (m.vote_average) document.getElementById('badge-rating').innerHTML = `<span class="material-symbols-outlined text-[14px]">star</span><span>${m.vote_average}</span>`;
+
+          if (m.content) {
+            document.getElementById('movie-content').textContent = m.content.replace(/<[^>]*>/g, '').trim();
+          }
+
+          // Hydrate Cast Rail
+          renderCast(m.director || [], m.actor || []);
+
+          // Hydrate Servers & Episodes
+          renderServers(data.data.episodes || []);
+        }
+      } catch (err) {
+        console.error('Lỗi tải chi tiết phim TV:', err);
+      }
+    }
+
+    function renderCast(directors, actors) {
+      const container = document.getElementById('cast-rail');
+      const allMembers = [];
+
+      (Array.isArray(directors) ? directors : [directors]).forEach(d => {
+        if (d && d.trim() && d !== 'Đang cập nhật') {
+          allMembers.push({ name: d.trim(), isDirector: true });
+        }
+      });
+      (Array.isArray(actors) ? actors : [actors]).forEach(a => {
+        if (a && a.trim() && a !== 'Đang cập nhật') {
+          allMembers.push({ name: a.trim(), isDirector: false });
+        }
+      });
+
+      if (!allMembers.length) {
+        document.getElementById('cast-container').style.display = 'none';
+        return;
+      }
+
+      container.innerHTML = allMembers.map(item => {
+        const bg = item.isDirector ? 'e5a914' : 'e50914';
+        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=${bg}&color=fff&size=128&bold=true`;
+        return `
+          <div class="tv-focusable shrink-0 flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container/50 border border-white/5 w-24">
+            <img src="${avatarUrl}" alt="${item.name}" class="w-12 h-12 rounded-full object-cover border-2 ${item.isDirector ? 'border-yellow-500' : 'border-primary-container'} shadow-md"/>
+            <span class="text-xs font-bold text-white text-center truncate w-full">${item.name}</span>
+            <span class="text-[10px] ${item.isDirector ? 'text-yellow-400' : 'text-gray-400'} font-semibold">${item.isDirector ? 'Đạo diễn' : 'Diễn viên'}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderServers(episodesData) {
+      const serverTabs = document.getElementById('server-tabs');
+      const episodeList = document.getElementById('episode-list');
+
+      if (!episodesData.length) {
+        episodeList.innerHTML = '<p class="col-span-full text-center text-sm text-gray-400 py-6">Đang cập nhật tập phim...</p>';
+        return;
+      }
+
+      serverTabs.innerHTML = episodesData.map((s, idx) => `
+        <button class="tv-focusable py-2 px-3 rounded-lg text-xs font-bold transition-all ${idx === currentServerIndex ? 'bg-primary-container text-white shadow-md' : 'bg-surface-container text-gray-300 hover:text-white'}" onclick="selectServer(${idx})">
+          ${s.server_name || `Server ${idx + 1}`}
+        </button>
+      `).join('');
+
+      renderEpisodes(episodesData[currentServerIndex]);
+    }
+
+    function selectServer(idx) {
+      currentServerIndex = idx;
+      if (currentMovie && currentMovie.episodes) {
+        renderServers(currentMovie.episodes);
+      }
+    }
+
+    function renderEpisodes(server) {
+      const episodeList = document.getElementById('episode-list');
+      const epData = server?.server_data || [];
+      document.getElementById('episode-count').textContent = `${epData.length} Tập`;
+
+      if (epData.length > 0) {
+        const firstEp = epData[0];
+        document.getElementById('btn-play-primary').href = `/tv/xem-phim/${movieSlug}?server=${currentServerIndex}&slug=${firstEp.slug}`;
+      }
+
+      episodeList.innerHTML = epData.map((ep, idx) => `
+        <a href="/tv/xem-phim/${movieSlug}?server=${currentServerIndex}&slug=${ep.slug}" class="tv-focusable flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container hover:bg-primary-container text-white font-bold text-sm transition-all border border-white/5 shadow-sm">
+          <span>${ep.name || `Tập ${idx + 1}`}</span>
+        </a>
+      `).join('');
+
+      setTimeout(() => {
+        if (window.TVNav) window.TVNav.refreshFocus();
+      }, 100);
+    }
+
+    window.addEventListener('load', loadMovieDetail);
+  </script>
+</body>
+</html>

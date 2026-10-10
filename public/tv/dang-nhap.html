@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html class="dark" lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Đăng Nhập QR - TTPhim Android TV</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#ffb4aa",
+            "primary-container": "#e50914",
+            "secondary-container": "#00eefc",
+            "secondary": "#d3fbff",
+            "background": "#0B0D13",
+            "surface": "#11131c",
+            "surface-container": "#1d1f29",
+            "surface-container-high": "#282933",
+            "surface-container-highest": "#32343e",
+            "surface-container-low": "#191b24",
+            "surface-container-lowest": "#0c0e17",
+            "on-surface": "#e1e1ef",
+            "on-surface-variant": "#9ca3af",
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar { display: none; }
+    .tv-focused {
+      outline: 4px solid #e50914 !important;
+      transform: scale(1.04) !important;
+      box-shadow: 0 0 25px rgba(229, 9, 20, 0.6) !important;
+      z-index: 30 !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col justify-between overflow-hidden select-none">
+  <!-- Header -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-surface-container-lowest via-surface-container-lowest/80 to-transparent backdrop-blur-xl">
+    <div class="h-20 w-full px-12 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <a href="/tv" class="tv-focusable flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container-high text-white hover:bg-primary-container transition-all">
+          <span class="material-symbols-outlined text-[24px]">arrow_back</span>
+          <span class="font-bold text-sm uppercase">Về Trang Chủ</span>
+        </a>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold text-2xl tracking-wider text-primary-container">TTPHIM</span>
+          <span class="text-xs uppercase tracking-widest px-2 py-0.5 rounded bg-surface-container-high text-on-surface border border-white/10 font-bold">TV</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-container-low/80 border border-white/10">
+          <span class="material-symbols-outlined text-secondary-container text-[18px]">wifi</span>
+          <span class="text-xs font-semibold text-on-surface uppercase tracking-wider">Trực tuyến</span>
+        </div>
+        <div class="flex items-center gap-2 text-on-surface-variant">
+          <span class="material-symbols-outlined text-[18px]">schedule</span>
+          <span class="font-bold text-sm text-on-surface" id="tv-clock">--:--</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Canvas -->
+  <main class="w-full pt-24 pb-12 min-h-screen flex items-center justify-center relative">
+    <!-- Ambient Theatrical Glow -->
+    <div class="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-primary-container/15 rounded-full blur-[140px]"></div>
+    <div class="pointer-events-none absolute top-1/3 -right-20 w-[480px] h-[480px] bg-secondary-container/10 rounded-full blur-[160px]"></div>
+
+    <div class="relative w-full max-w-6xl mx-auto px-8 flex flex-col items-center">
+      <!-- Status pill -->
+      <div class="w-full flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3 bg-surface-container-high/80 backdrop-blur-md px-5 py-2.5 rounded-full shadow-lg">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-container opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-secondary-container"></span>
+          </span>
+          <span class="text-xs font-bold text-secondary uppercase tracking-wider" id="tv-session-status">Đang chờ quét từ điện thoại hoặc website...</span>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-on-surface-variant">
+          <div class="flex items-center gap-1.5 bg-surface-container-low px-3.5 py-1.5 rounded-full">
+            <span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+            <span>Mã Hóa 256-bit</span>
+          </div>
+          <div class="flex items-center gap-1.5 bg-surface-container-low px-3.5 py-1.5 rounded-full">
+            <span class="material-symbols-outlined text-[16px] text-secondary-container">stars</span>
+            <span>Tự Động Kích Hoạt VIP Pass</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Dual Panel -->
+      <div class="w-full grid grid-cols-12 gap-8 items-stretch">
+        <!-- Left: QR Code Card -->
+        <div class="col-span-5 flex flex-col justify-between bg-surface-container-high/90 rounded-2xl p-7 backdrop-blur-2xl shadow-2xl border border-white/5 relative">
+          <div>
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="material-symbols-outlined text-primary-container text-[20px]">qr_code_scanner</span>
+              <span class="text-xs font-bold text-primary uppercase tracking-widest">Đăng Nhập Nhanh</span>
+            </div>
+            <h1 class="text-2xl font-black text-on-surface">Quét Mã QR Bằng Điện Thoại</h1>
+            <p class="text-xs text-on-surface-variant mt-1">Dùng Camera hoặc App TTPhim Mobile để quét</p>
+          </div>
+
+          <!-- QR Code Display Box -->
+          <div class="my-5 flex flex-col items-center justify-center">
+            <div class="relative bg-white p-4 rounded-2xl shadow-[0_0_35px_rgba(229,9,20,0.35)] flex items-center justify-center min-h-[220px] min-w-[220px]">
+              <img id="qr-image" src="" alt="TV QR Code" class="w-52 h-52 object-contain" style="display: none;"/>
+              <div id="qr-loading" class="flex flex-col items-center gap-3 py-10">
+                <div class="w-10 h-10 border-4 border-primary-container border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-xs text-gray-700 font-bold">Đang tạo mã QR...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expiration countdown -->
+          <div class="flex flex-col gap-2.5 bg-surface-container p-4 rounded-xl">
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-1.5 text-on-surface">
+                <span class="material-symbols-outlined text-primary text-[18px]">timer</span>
+                <span>Mã hết hạn sau:</span>
+              </div>
+              <span class="text-sm font-mono font-bold text-primary-container" id="countdown-timer">05:00</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-primary to-primary-container transition-all duration-1000 rounded-full" id="progress-bar" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <!-- Refresh Button -->
+          <div class="mt-4">
+            <button id="btn-refresh-qr" class="tv-focusable w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-surface-container-lowest hover:bg-primary-container text-white transition-all font-bold text-sm shadow-md" data-initial-focus>
+              <span class="material-symbols-outlined text-[20px]">refresh</span>
+              <span>LÀM MỚI MÃ QR</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: 6-digit Code & Instructions -->
+        <div class="col-span-7 flex flex-col justify-between gap-6">
+          <!-- Step 1 -->
+          <div class="bg-surface-container-high/70 backdrop-blur-xl p-6 rounded-2xl border border-white/5">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-7 h-7 rounded-full bg-primary-container flex items-center justify-center text-white font-black text-sm">1</div>
+              <h2 class="text-lg font-bold text-on-surface">Cách 1: Quét mã QR bằng ứng dụng</h2>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-surface-container p-3.5 rounded-xl flex items-start gap-3">
+                <span class="material-symbols-outlined text-secondary-container text-[24px]">smartphone</span>
+                <div>
+                  <p class="text-xs text-secondary-container font-bold uppercase">Bước 1</p>
+                  <p class="text-xs text-on-surface mt-0.5">Mở ứng dụng <strong>TTPhim</strong> trên điện thoại &gt; mục <strong>Cá nhân</strong> &gt; <strong>Đăng nhập Android TV</strong>.</p>
+                </div>
+              </div>
+              <div class="bg-surface-container p-3.5 rounded-xl flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary text-[24px]">qr_code_scanner</span>
+                <div>
+                  <p class="text-xs text-primary font-bold uppercase">Bước 2</p>
+                  <p class="text-xs text-on-surface mt-0.5">Hướng camera quét mã QR hoặc nhập mã 6 số bên dưới. TV sẽ tự động đăng nhập!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: 6-digit Code -->
+          <div class="bg-surface-container-high/70 backdrop-blur-xl p-6 rounded-2xl border border-white/5 flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-7 h-7 rounded-full bg-surface-container-highest text-white flex items-center justify-center font-black text-sm">2</div>
+                <h2 class="text-lg font-bold text-on-surface">Cách 2: Nhập mã kích hoạt 6 chữ số</h2>
+              </div>
+              <span class="text-xs text-secondary-container bg-surface-container px-3 py-1 rounded-full font-mono font-bold">ttphim.vn/tv-auth</span>
+            </div>
+
+            <!-- Big 6-Digit Display -->
+            <div class="flex items-center justify-center gap-3 py-3">
+              <div id="digit-0" class="w-14 h-18 bg-surface-container-lowest rounded-xl flex items-center justify-center text-primary-container text-4xl font-black shadow-inner">-</div>
+              <div id="digit-1" class="w-14 h-18 bg-surface-container-lowest rounded-xl flex items-center justify-center text-primary-container text-4xl font-black shadow-inner">-</div>
+              <div id="digit-2" class="w-14 h-18 bg-surface-container-lowest rounded-xl flex items-center justify-center text-primary-container text-4xl font-black shadow-inner">-</div>
+              <span class="text-2xl text-gray-500 font-bold">-</span>
+              <div id="digit-3" class="w-14 h-18 bg-surface-container-lowest rounded-xl flex items-center justify-center text-secondary-container text-4xl font-black shadow-inner">-</div>
+              <div id="digit-4" class="w-14 h-18 bg-surface-container-lowest rounded-xl flex items-center justify-center text-secondary-container text-4xl font-black shadow-inner">-</div>
+              <div id="digit-5" class="w-14 h-18 bg-surface-container-lowest rounded-xl flex items-center justify-center text-secondary-container text-4xl font-black shadow-inner">-</div>
+            </div>
+
+            <p class="text-center text-xs text-on-surface-variant">
+              Truy cập <strong class="text-white">ttphim.vn/tv-auth</strong> trên bất kỳ trình duyệt điện thoại/máy tính để nhập mã này.
+            </p>
+          </div>
+
+          <!-- Quick Return button -->
+          <a href="/tv" class="tv-focusable w-full py-3.5 px-6 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-white flex items-center justify-center gap-2 font-bold text-sm transition-all border border-white/5">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            <span>BỎ QUA &amp; TIẾP TỤC XEM VỚI TƯ CÁCH KHÁCH</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/tv/js/tv-nav.js"></script>
+  <script>
+    let currentSessionToken = null;
+    let pollInterval = null;
+    let countdownInterval = null;
+    let secondsLeft = 300;
+
+    async function createTvSession() {
+      try {
+        clearInterval(pollInterval);
+        clearInterval(countdownInterval);
+
+        const qrLoading = document.getElementById('qr-loading');
+        const qrImage = document.getElementById('qr-image');
+        qrLoading.style.display = 'flex';
+        qrImage.style.display = 'none';
+
+        const res = await fetch('/api/auth/tv/session', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.status && data.data) {
+          const { token, code, qr_url, expires_in } = data.data;
+          currentSessionToken = token;
+
+          // Render 6 digits
+          const codeStr = String(code).padStart(6, '0');
+          for (let i = 0; i < 6; i++) {
+            const el = document.getElementById(`digit-${i}`);
+            if (el) el.textContent = codeStr[i] || '-';
+          }
+
+          // Generate crisp QR Image URL
+          const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(qr_url)}`;
+          qrImage.src = qrCodeApiUrl;
+          qrImage.onload = () => {
+            qrLoading.style.display = 'none';
+            qrImage.style.display = 'block';
+          };
+
+          // Setup countdown timer
+          secondsLeft = expires_in || 300;
+          updateCountdownDisplay();
+          countdownInterval = setInterval(() => {
+            secondsLeft--;
+            updateCountdownDisplay();
+            if (secondsLeft <= 0) {
+              clearInterval(countdownInterval);
+              clearInterval(pollInterval);
+              document.getElementById('tv-session-status').textContent = 'Mã QR đã hết hạn. Vui lòng bấm làm mới.';
+            }
+          }, 1000);
+
+          // Setup polling for approval
+          pollInterval = setInterval(checkSessionStatus, 2500);
+        }
+      } catch (err) {
+        console.error('Lỗi tạo session TV:', err);
+      }
+    }
+
+    function updateCountdownDisplay() {
+      const minutes = Math.floor(secondsLeft / 60);
+      const seconds = secondsLeft % 60;
+      const str = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      const timerEl = document.getElementById('countdown-timer');
+      const progressEl = document.getElementById('progress-bar');
+      if (timerEl) timerEl.textContent = str;
+      if (progressEl) {
+        const percent = Math.max(0, (secondsLeft / 300) * 100);
+        progressEl.style.width = `${percent}%`;
+      }
+    }
+
+    async function checkSessionStatus() {
+      if (!currentSessionToken) return;
+      try {
+        const res = await fetch(`/api/auth/tv/status?token=${encodeURIComponent(currentSessionToken)}`);
+        const data = await res.json();
+
+        if (data.status === 'approved') {
+          clearInterval(pollInterval);
+          clearInterval(countdownInterval);
+
+          document.getElementById('tv-session-status').textContent = 'ĐÃ XÁC THỰC THÀNH CÔNG! ĐANG ĐĂNG NHẬP...';
+          document.getElementById('tv-session-status').className = 'text-xs font-bold text-green-400 uppercase tracking-wider';
+
+          // Store TV authentication
+          if (data.user) {
+            localStorage.setItem('tv_user', JSON.stringify(data.user));
+          }
+          if (data.token) {
+            localStorage.setItem('tv_jwt', data.token);
+            document.cookie = `token=${data.token}; path=/; max-age=2592000`;
+          }
+
+          // Show celebration and redirect
+          setTimeout(() => {
+            window.location.href = '/tv';
+          }, 1200);
+        } else if (data.status === 'expired') {
+          clearInterval(pollInterval);
+          clearInterval(countdownInterval);
+          document.getElementById('tv-session-status').textContent = 'Mã QR đã hết hạn. Vui lòng bấm làm mới.';
+        }
+      } catch (_) {}
+    }
+
+    document.getElementById('btn-refresh-qr').addEventListener('click', createTvSession);
+    window.addEventListener('load', createTvSession);
+  </script>
+</body>
+</html>

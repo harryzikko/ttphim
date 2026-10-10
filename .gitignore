@@ -35,3 +35,5 @@ ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
 
 # Logs
 *.log
+.temp_release/
+build_output/

@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'player_screen.dart';
+import 'person_screen.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final String slug;
@@ -352,37 +353,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                           const SizedBox(height: 16),
                         ],
 
-                        // Actors & Directors
-                        if (movie.actors.isNotEmpty) ...[
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Diễn viên: ', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                              Expanded(
-                                child: Text(
-                                  movie.actors.join(', '),
-                                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                        ],
-                        if (movie.directors.isNotEmpty) ...[
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Đạo diễn: ', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                              Expanded(
-                                child: Text(
-                                  movie.directors.join(', '),
-                                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+                        // Actors & Directors Cast Rail
+                        _buildCastRail(movie),
 
                         const Divider(color: AppTheme.border, height: 24),
 
@@ -496,5 +468,109 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   String _cleanHtml(String html) {
     return html.replaceAll(RegExp(r'<[^>]*>'), '').replaceAll('&nbsp;', ' ').trim();
+  }
+
+  Widget _buildCastRail(Movie movie) {
+    final rawDirectors = movie.directors.where((d) => d.trim().isNotEmpty && d != 'Đang cập nhật').toList();
+    final rawActors = movie.actors.where((a) => a.trim().isNotEmpty && a != 'Đang cập nhật').toList();
+    if (rawDirectors.isEmpty && rawActors.isEmpty) return const SizedBox.shrink();
+
+    final List<Map<String, dynamic>> items = [
+      ...rawDirectors.map((d) => {'name': d.trim(), 'isDirector': true}),
+      ...rawActors.map((a) => {'name': a.trim(), 'isDirector': false}),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Đạo Diễn & Diễn Viên',
+          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 116,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final name = item['name'] as String;
+              final isDirector = item['isDirector'] as bool;
+              final avatarUrl = 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=${isDirector ? "e5a914" : "e50914"}&color=fff&size=160&bold=true';
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PersonScreen(name: name, isDirector: isDirector),
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  width: 74,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDirector ? AppTheme.gold : AppTheme.primary,
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isDirector ? AppTheme.gold : AppTheme.primary).withOpacity(0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: avatarUrl,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(color: AppTheme.card),
+                            errorWidget: (_, __) => const Icon(Icons.person, color: Colors.white54),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.15,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isDirector ? 'Đạo diễn' : 'Diễn viên',
+                        style: TextStyle(
+                          color: isDirector ? AppTheme.gold : AppTheme.textMuted,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
   }
 }

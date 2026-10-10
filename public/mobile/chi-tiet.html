@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html class="dark" lang="vi">
 <head>
   <meta charset="utf-8"/>
@@ -189,6 +189,20 @@
             Đang tải tóm tắt nội dung...
           </p>
           <button id="toggleContentBtn" class="text-xs text-primary font-semibold mt-1">Xem thêm</button>
+        </div>
+
+        <!-- Cast & Director Rail with Avatars -->
+        <div id="m-cast-section" class="mt-4 pt-3 border-t border-white/5 space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-[14px] text-on-surface flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
+              <span>Đạo Diễn & Diễn Viên</span>
+            </h3>
+            <span class="text-[10px] text-on-surface-variant">Chạm để xem thông tin</span>
+          </div>
+          <div id="m-cast-rail" class="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none">
+            <!-- Injected via chi-tiet.js -->
+          </div>
         </div>
 
         <!-- Server & Episode Selector Tab Section -->

@@ -1,4 +1,4 @@
-﻿// TTPhim Mobile - Movie Detail Controller
+// TTPhim Mobile - Movie Detail Controller
 document.addEventListener('DOMContentLoaded', async () => {
   // Extract slug from URL path: /mobile/phim/:slug or query param ?slug=
   const pathParts = window.location.pathname.split('/').filter(Boolean);
@@ -88,6 +88,43 @@ function renderMovieDetail(movie) {
         toggleContentBtn.innerText = 'Xem thêm';
       }
     };
+  }
+
+  // Cast & Crew Rail with Avatars
+  const castRail = document.getElementById('m-cast-rail');
+  const castSection = document.getElementById('m-cast-section');
+  if (castRail && (movie.director?.length || movie.actor?.length)) {
+    function toSlug(str) {
+      if (!str) return '';
+      return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    const directors = (movie.director || []).filter(Boolean);
+    const actors = (movie.actor || []).filter(Boolean);
+
+    castRail.innerHTML = `
+      ${directors.map(d => `
+        <a href="/dien-vien/${toSlug(d)}?type=director" class="flex flex-col items-center gap-1 shrink-0 text-center w-16 cursor-pointer">
+          <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container p-0.5 bg-surface-container shadow-md">
+            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true" alt="${d}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+          </div>
+          <span class="text-[11px] font-bold text-white line-clamp-1 block w-full">${d}</span>
+          <span class="text-[9px] text-primary font-semibold block uppercase">Đạo Diễn</span>
+        </a>
+      `).join('')}
+
+      ${actors.map(a => `
+        <a href="/dien-vien/${toSlug(a)}" class="flex flex-col items-center gap-1 shrink-0 text-center w-16 cursor-pointer">
+          <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md">
+            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true" alt="${a}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+          </div>
+          <span class="text-[11px] font-bold text-white line-clamp-1 block w-full">${a}</span>
+          <span class="text-[9px] text-on-surface-variant font-semibold block uppercase">Diễn Viên</span>
+        </a>
+      `).join('')}
+    `;
+  } else if (castSection) {
+    castSection.classList.add('hidden');
   }
 
   // Play button

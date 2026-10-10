@@ -5,6 +5,8 @@ const vicdnService = require('../services/vicdnService');
 const nguoncService = require('../services/nguoncService');
 const dbService = require('../services/dbService');
 const partyService = require('../services/partyService');
+const personService = require('../services/personService');
+const tvAuthService = require('../services/tvAuthService');
 const { authMiddleware, requireAuth, requireAdmin, generateToken } = require('../services/authService');
 
 router.use(authMiddleware);
@@ -956,6 +958,78 @@ router.post('/party/:code/reaction', (req, res) => {
 router.get('/party/:code/stream', (req, res) => {
   const userId = req.query.userId || req.user?.id || `user_guest_${Date.now()}`;
   partyService.registerStream(req.params.code, userId, res, req);
+});
+
+// ==========================================
+// PERSON (ACTOR & DIRECTOR) ENDPOINTS
+// ==========================================
+router.get('/person/:name', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const type = req.query.type || 'actor';
+    const data = await personService.getPersonDetail(name, type);
+    res.json({ status: true, data });
+  } catch (err) {
+    res.status(404).json({ status: false, message: 'Không tìm thấy thông tin nhân vật', error: err.message });
+  }
+});
+
+router.get('/person/avatar/:name', (req, res) => {
+  const avatarUrl = personService.getAvatar(req.params.name);
+  res.redirect(avatarUrl);
+});
+
+// ==========================================
+// ANDROID TV QR & CODE AUTHENTICATION
+// ==========================================
+// 1. TV client requests a new QR login session
+router.post('/auth/tv/session', (req, res) => {
+  try {
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+    const session = tvAuthService.createSession(baseUrl);
+    res.json({ status: true, data: session });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi khởi tạo phiên TV', error: err.message });
+  }
+});
+
+// 2. TV client polls status of its QR session
+router.get('/auth/tv/status', (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ status: false, message: 'Thiếu token phiên TV' });
+    const result = tvAuthService.getStatus(token);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: 'Lỗi kiểm tra trạng thái TV' });
+  }
+});
+
+// 3. Logged-in Mobile or Web user authorizes the TV session
+router.post('/auth/tv/authorize', (req, res) => {
+  try {
+    const { token, code, user: bodyUser } = req.body;
+    const identifier = token || code;
+    if (!identifier) return res.status(400).json({ status: false, message: 'Vui lòng cung cấp mã QR hoặc mã kích hoạt 6 số' });
+
+    const authUser = req.user || bodyUser || {
+      id: 'usr_vip_' + Math.random().toString(36).substring(2, 9),
+      name: bodyUser?.name || 'Thành Viên VIP',
+      email: bodyUser?.email || 'member@ttphim.vn',
+      role: 'member'
+    };
+
+    const result = tvAuthService.authorize(identifier, authUser);
+    if (!result.success) {
+      return res.status(400).json({ status: false, message: result.message });
+    }
+
+    res.json({ status: true, message: result.message, code: result.code });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi xác thực TV', error: err.message });
+  }
 });
 
 module.exports = router;

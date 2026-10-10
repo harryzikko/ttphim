@@ -1,4 +1,4 @@
-﻿const kkphimService = require('./kkphimService');
+const kkphimService = require('./kkphimService');
 
 function formatEpBadge(epName) {
   if (!epName) return 'Tập 01';
@@ -672,22 +672,51 @@ class TemplateService {
       `$1\n${movie.content || 'Nội dung phim đang được cập nhật...'}\n$2`
     );
 
-    // 11. Cast & Crew
-    const directorStr = movie.director?.length ? movie.director.join(', ') : 'Đang cập nhật';
+    // 11. Cast & Crew with Avatars
+    function toPersonSlug(str) {
+      if (!str) return '';
+      return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    const directors = (movie.director || []).filter(Boolean);
+    const actors = (movie.actor || []).filter(Boolean);
     const countryStr = movie.country?.map(c => c.name).join(', ') || 'Chính kịch';
-    const actorStr = movie.actor?.length ? movie.actor.join(', ') : 'Đang cập nhật';
+
     const castHtml = `
-      <div>
-        <p class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider">Đạo Diễn</p>
-        <p class="text-body-sm font-body-sm text-on-surface font-semibold mt-0.5">${directorStr}</p>
-      </div>
-      <div>
-        <p class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider">Quốc Gia</p>
-        <p class="text-body-sm font-body-sm text-on-surface font-semibold mt-0.5">${countryStr}</p>
-      </div>
-      <div class="sm:col-span-2 lg:col-span-1">
-        <p class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider">Diễn Viên Chính</p>
-        <p class="text-body-sm font-body-sm text-on-surface font-semibold mt-0.5 truncate">${actorStr}</p>
+      <div class="col-span-full space-y-3">
+        <div class="flex items-center justify-between border-b border-white/5 pb-2">
+          <span class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 font-bold">
+            <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
+            <span>Đạo Diễn & Diễn Viên (${directors.length + actors.length})</span>
+          </span>
+          <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem phim đã đóng</span>
+        </div>
+        
+        <div class="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-none pt-1">
+          ${directors.map(d => `
+            <a href="/dao-dien/${toPersonSlug(d)}" class="group flex flex-col items-center gap-1.5 shrink-0 text-center w-20 cursor-pointer" title="Đạo diễn: ${d}">
+              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container group-hover:shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all">
+                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true" alt="${d}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+              </div>
+              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full">${d}</span>
+              <span class="text-[10px] text-primary font-semibold block uppercase">Đạo Diễn</span>
+            </a>
+          `).join('')}
+
+          ${actors.map(a => `
+            <a href="/dien-vien/${toPersonSlug(a)}" class="group flex flex-col items-center gap-1.5 shrink-0 text-center w-20 cursor-pointer" title="Diễn viên: ${a}">
+              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container group-hover:shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all">
+                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true" alt="${a}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+              </div>
+              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full">${a}</span>
+              <span class="text-[10px] text-on-surface-variant font-semibold block uppercase">Diễn Viên</span>
+            </a>
+          `).join('')}
+
+          ${(!directors.length && !actors.length) ? `
+            <div class="text-xs text-on-surface-variant py-2">Thông tin nghệ sĩ đang được cập nhật</div>
+          ` : ''}
+        </div>
       </div>
     `;
     html = html.replace(

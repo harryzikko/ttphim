@@ -9,6 +9,7 @@ const router = express.Router();
 
 const publicFile = (file) => path.join(config.PUBLIC_DIR, file);
 const mobileFile = (file) => path.join(config.PUBLIC_DIR, 'mobile', file);
+const tvFile = (file) => path.join(config.PUBLIC_DIR, 'tv', file);
 
 // 1. View Preference & Auto-detection Middleware
 router.use((req, res, next) => {
@@ -19,8 +20,8 @@ router.use((req, res, next) => {
     res.cookie('kkphim_view_preference', 'mobile', { maxAge: 86400000 * 30, path: '/' });
   }
 
-  // Check if request is for static asset or API or already in /mobile
-  if (req.path.startsWith('/mobile') || req.path.startsWith('/api') || req.path.includes('.')) {
+  // Check if request is for static asset or API or already in /mobile or /tv
+  if (req.path.startsWith('/mobile') || req.path.startsWith('/tv') || req.path.startsWith('/api') || req.path.includes('.')) {
     return next();
   }
 
@@ -58,6 +59,15 @@ router.get('/mobile/xem-phim/:slug', (req, res) => res.sendFile(mobileFile('xem-
 router.get('/mobile/xem-phim/:slug/:episode', (req, res) => res.sendFile(mobileFile('xem-phim.html')));
 router.get('/mobile/danh-sach', (req, res) => res.sendFile(mobileFile('danh-sach.html')));
 router.get('/mobile/tai-khoan', (req, res) => res.sendFile(mobileFile('tai-khoan.html')));
+
+// ==========================================
+// ANDROID TV LEANBACK 10-FOOT ROUTES
+// ==========================================
+router.get(['/tv', '/tv/'], (req, res) => res.sendFile(tvFile('index.html')));
+router.get('/tv/chi-tiet/:slug', (req, res) => res.sendFile(tvFile('chi-tiet.html')));
+router.get('/tv/xem-phim/:slug', (req, res) => res.sendFile(tvFile('xem-phim.html')));
+router.get('/tv/tim-kiem', (req, res) => res.sendFile(tvFile('tim-kiem.html')));
+router.get(['/tv/dang-nhap', '/tv/qr-login'], (req, res) => res.sendFile(tvFile('dang-nhap.html')));
 
 // ==========================================
 // DESKTOP ROUTES
@@ -156,6 +166,16 @@ router.get('/dang-ky', (req, res) => res.sendFile(publicFile('auth.html')));
 router.get('/auth', (req, res) => res.sendFile(publicFile('auth.html')));
 router.get('/tai-khoan', (req, res) => res.sendFile(publicFile('tai-khoan.html')));
 router.get(['/admin', '/quan-tri'], (req, res) => res.sendFile(publicFile('admin.html')));
+
+// Actor & Director Profile Pages
+router.get(['/dien-vien', '/dien-vien/:name', '/dao-dien', '/dao-dien/:name', '/nghe-si/:name'], (req, res) => {
+  res.sendFile(publicFile('dien-vien.html'));
+});
+
+// TV QR Code Mobile Authorization Page
+router.get(['/tv-auth', '/tv-login', '/tv-dang-nhap'], (req, res) => {
+  res.sendFile(publicFile('tv-auth.html'));
+});
 
 // Favicon
 router.get(['/favicon.ico', '/favicon.svg'], (req, res) => res.type('image/svg+xml').sendFile(publicFile('favicon.svg')));
