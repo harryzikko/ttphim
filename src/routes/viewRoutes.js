@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const config = require('../config');
 const kkphimService = require('../services/kkphimService');
 const templateService = require('../services/templateService');
+const tmdbService = require('../services/tmdbService');
 const dbService = require('../services/dbService');
 const router = express.Router();
 
@@ -109,6 +110,13 @@ router.get('/phim/:slug', async (req, res) => {
     if (!movieData || !movieData.movie) {
       return res.sendFile(publicFile('chi-tiet.html'));
     }
+    
+    // Enrich with accurate TMDb / IMDb credits
+    try {
+      const credits = await tmdbService.getMovieCredits(movieData.movie);
+      movieData.movie.credits = credits;
+    } catch (_) {}
+
     const comments = await dbService.getComments(req.params.slug).catch(() => []);
     const rendered = templateService.renderDetail(rawHtml, movieData, comments);
     res.send(rendered);

@@ -1,3 +1,26 @@
+class CastMember {
+  final String name;
+  final String character;
+  final String avatar;
+  final bool isDirector;
+
+  CastMember({
+    required this.name,
+    this.character = '',
+    required this.avatar,
+    this.isDirector = false,
+  });
+
+  factory CastMember.fromJson(Map<String, dynamic> json) {
+    return CastMember(
+      name: json['name']?.toString() ?? '',
+      character: json['character']?.toString() ?? '',
+      avatar: json['avatar']?.toString() ?? '',
+      isDirector: json['isDirector'] == true,
+    );
+  }
+}
+
 class Movie {
   final String id;
   final String name;
@@ -16,6 +39,7 @@ class Movie {
   final List<String> countries;
   final List<String> actors;
   final List<String> directors;
+  final List<CastMember> castMembers;
 
   Movie({
     required this.id,
@@ -35,6 +59,7 @@ class Movie {
     this.countries = const [],
     this.actors = const [],
     this.directors = const [],
+    this.castMembers = const [],
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -96,6 +121,36 @@ class Movie {
       }
     }
 
+    // Parse TMDb Cast & Directors if present
+    List<CastMember> members = [];
+    if (json['tmdb_directors'] is List) {
+      for (var d in json['tmdb_directors']) {
+        if (d is Map<String, dynamic>) {
+          members.add(CastMember.fromJson(d));
+        }
+      }
+    }
+    if (json['tmdb_cast'] is List) {
+      for (var c in json['tmdb_cast']) {
+        if (c is Map<String, dynamic>) {
+          members.add(CastMember.fromJson(c));
+        }
+      }
+    }
+    if (members.isEmpty && json['credits'] is Map) {
+      final creds = json['credits'];
+      if (creds['directors'] is List) {
+        for (var d in creds['directors']) {
+          if (d is Map<String, dynamic>) members.add(CastMember.fromJson(d));
+        }
+      }
+      if (creds['cast'] is List) {
+        for (var c in creds['cast']) {
+          if (c is Map<String, dynamic>) members.add(CastMember.fromJson(c));
+        }
+      }
+    }
+
     return Movie(
       id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
@@ -114,6 +169,7 @@ class Movie {
       countries: counts,
       actors: acts,
       directors: dirs,
+      castMembers: members,
     );
   }
 

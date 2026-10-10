@@ -71,22 +71,32 @@ jobs:
           find ~/.pub-cache -name "build.gradle*" -exec sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' {} + || true
           find ~/.pub-cache -name "build.gradle*" -exec sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' {} + || true
 
-      - name: Build Android Release APK
+      - name: Build Android Release APK (Mobile & Tablet)
         run: |
           cd mobile_app
           flutter build apk --release
 
-      - name: Rename & Organize APK
+      - name: Build Android TV Release APK (Leanback 10-Foot)
+        run: |
+          cd mobile_app
+          flutter build apk -t lib/main_tv.dart --release
+
+      - name: Rename & Organize APKs
         run: |
           mkdir -p output
+          cp mobile_app/build/app/outputs/flutter-apk/app-release.apk output/TTPhim-AndroidTV-v1.0.0-release.apk
+          # Build default mobile APK for output
+          cd mobile_app
+          flutter build apk --release
+          cd ..
           cp mobile_app/build/app/outputs/flutter-apk/app-release.apk output/TTPhim-v1.0.0-release.apk
-          echo "Built APK successfully: output/TTPhim-v1.0.0-release.apk"
+          echo "Built APKs successfully: output/TTPhim-v1.0.0-release.apk and output/TTPhim-AndroidTV-v1.0.0-release.apk"
 
-      - name: Upload Android APK Artifact
+      - name: Upload Android APK Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TTPhim-Android-APK
-          path: output/TTPhim-v1.0.0-release.apk
+          name: TTPhim-Android-APKs
+          path: output/*.apk
           retention-days: 14
 
   # =============================================================

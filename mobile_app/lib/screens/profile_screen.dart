@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import 'tv/tv_main_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -218,19 +219,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.border),
             ),
-            child: ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.15),
-                  shape: BoxShape.circle,
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primaryLight, size: 22),
+                  ),
+                  title: const Text('Đăng nhập Android TV', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Quét QR hoặc nhập mã 6 số hiển thị trên TV', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.primary, size: 14),
+                  onTap: _showTvLoginDialog,
                 ),
-                child: const Icon(Icons.tv_rounded, color: AppTheme.primaryLight, size: 22),
-              ),
-              title: const Text('Đăng nhập Android TV', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-              subtitle: const Text('Quét QR hoặc nhập mã 6 số hiển thị trên TV', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-              trailing: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primary),
-              onTap: _showTvLoginDialog,
+                const Divider(color: AppTheme.border, height: 1),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.gold.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.tv_rounded, color: AppTheme.gold, size: 22),
+                  ),
+                  title: const Text('Mở giao diện Android TV', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Trải nghiệm giao diện 10-foot chuẩn TV Box & Leanback', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.gold, size: 14),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TvMainScreen()),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
 

@@ -20,6 +20,21 @@
   "watchlist": [],
   "history": [
     {
+      "id": "hist_1791617860736",
+      "user_id": "usr_demo_01",
+      "movie_slug": "nap-day-trai-tim",
+      "movie_name": "Nạp Đầy Trái Tim",
+      "origin_name": "Take Charge Of My Heart",
+      "poster_url": "https://phimimg.com/uploads/movies/20261010/nap-day-trai-tim-poster.webp",
+      "thumb_url": "https://phimimg.com/uploads/movies/20261010/nap-day-trai-tim-thumb.webp",
+      "episode_slug": "tap-01",
+      "episode_name": "Tập 01",
+      "current_time": 890,
+      "duration": 3746,
+      "progress_percent": 24,
+      "updated_at": "2026-10-10T07:38:40.151Z"
+    },
+    {
       "id": "hist_1791449877501",
       "user_id": "usr_admin_01",
       "movie_slug": "nghich-thien-ta-than",
@@ -298,6 +313,13 @@
     "tv-278275-1": 4,
     "chuyen-ma-giang-duong-4": 1,
     "truy-sat-gai-goi": 2,
-    "co-lang-truyen": 1
+    "co-lang-truyen": 1,
+    "truy-sat-salazar": 1,
+    "mai": 1,
+    "lat-mat-7-mot-dieu-uoc": 1,
+    "tro-choi-con-muc": 1,
+    "sieu-dai-chien-thai-binh-duong": 1,
+    "nap-day-trai-tim": 4,
+    "oppenheimer": 3
   }
 }

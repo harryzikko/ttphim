@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../models/movie.dart';
 import '../services/api_service.dart';
@@ -21,19 +22,57 @@ class PersonScreen extends StatefulWidget {
 class _PersonScreenState extends State<PersonScreen> {
   List<Movie> _movies = [];
   bool _isLoading = true;
+  String _displayName = '';
+  String _role = '';
+  String _avatarUrl = '';
+  String _biography = '';
+  String _placeOfBirth = '';
+  bool _isBioExpanded = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchMovies();
+    _displayName = widget.name;
+    _role = widget.isDirector ? 'Đạo Diễn Điện Ảnh' : 'Diễn Viên Điện Ảnh';
+    _avatarUrl = 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(widget.name)}&background=${widget.isDirector ? "e5a914" : "e50914"}&color=fff&size=300&bold=true';
+    _loadPersonData();
   }
 
-  Future<void> _fetchMovies() async {
+  Future<void> _loadPersonData() async {
     setState(() => _isLoading = true);
-    final results = await ApiService.searchMovies(widget.name);
+
+    // 1. Fetch rich profile from TMDb via backend API
+    final personData = await ApiService.getPersonDetail(widget.name);
+    if (personData != null && personData['person'] != null) {
+      final p = personData['person'] as Map<String, dynamic>;
+      final rawMovies = (personData['movies'] as List?) ?? [];
+
+      List<Movie> parsedMovies = [];
+      for (final m in rawMovies) {
+        if (m is Map<String, dynamic>) {
+          parsedMovies.add(Movie.fromJson(m));
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _displayName = p['name']?.toString() ?? widget.name;
+          _role = p['role']?.toString() ?? (widget.isDirector ? 'Đạo Diễn' : 'Diễn Viên');
+          _avatarUrl = p['avatar']?.toString() ?? _avatarUrl;
+          _biography = p['biography']?.toString() ?? '';
+          _placeOfBirth = p['place_of_birth']?.toString() ?? p['nationality']?.toString() ?? '';
+          _movies = parsedMovies;
+          _isLoading = false;
+        });
+        return;
+      }
+    }
+
+    // 2. Secondary fallback: Search movies directly by name
+    final searchResults = await ApiService.searchMovies(widget.name);
     if (mounted) {
       setState(() {
-        _movies = results;
+        _movies = searchResults;
         _isLoading = false;
       });
     }
@@ -41,15 +80,13 @@ class _PersonScreenState extends State<PersonScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final roleText = widget.isDirector ? 'Đạo Diễn' : 'Diễn Viên';
-
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          widget.name,
+          _displayName,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
@@ -70,7 +107,7 @@ class _PersonScreenState extends State<PersonScreen> {
                       gradient: LinearGradient(
                         colors: [
                           AppTheme.card,
-                          AppTheme.cardElevated.withOpacity(0.5),
+                          AppTheme.cardElevated.withOpacity(0.6),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -85,74 +122,136 @@ class _PersonScreenState extends State<PersonScreen> {
                         ),
                       ],
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Avatar Circle
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppTheme.primary, width: 2.5),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primary.withOpacity(0.4),
-                                blurRadius: 14,
+                        Row(
+                          children: [
+                            // High-Res TMDb Avatar Portrait
+                            Container(
+                              width: 84,
+                              height: 84,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: widget.isDirector ? AppTheme.gold : AppTheme.primary,
+                                  width: 2.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: (widget.isDirector ? AppTheme.gold : AppTheme.primary).withOpacity(0.4),
+                                    blurRadius: 14,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            backgroundColor: const Color(0xFF1F2330),
-                            backgroundImage: NetworkImage(
-                              'https://ui-avatars.com/api/?name=${Uri.encodeComponent(widget.name)}&background=e50914&color=fff&size=256&bold=true',
+                              child: ClipOval(
+                                child: CachedNetworkImage(
+                                  imageUrl: _avatarUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, __) => Container(color: const Color(0xFF1F2330)),
+                                  errorWidget: (_, __) => const Icon(Icons.person, color: Colors.white54, size: 40),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            // Details
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: (widget.isDirector ? AppTheme.gold : AppTheme.primary).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: widget.isDirector ? AppTheme.gold : AppTheme.primary,
+                                            width: 0.8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _role.toUpperCase(),
+                                          style: TextStyle(
+                                            color: widget.isDirector ? AppTheme.gold : AppTheme.primaryLight,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.1,
+                                          ),
+                                        ),
+                                      ),
+                                      if (_placeOfBirth.isNotEmpty) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white10,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            _placeOfBirth,
+                                            style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _displayName,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${_movies.length} tác phẩm đã tham gia',
+                                    style: const TextStyle(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // TMDb Biography
+                        if (_biography.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          const Divider(color: Colors.white10),
+                          const SizedBox(height: 8),
+                          Text(
+                            _biography,
+                            maxLines: _isBioExpanded ? null : 3,
+                            overflow: _isBioExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 12.5,
+                              height: 1.45,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Name & Role Details
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: AppTheme.primary, width: 0.8),
-                                ),
-                                child: Text(
-                                  roleText.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: AppTheme.primaryLight,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.1,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                widget.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                          GestureDetector(
+                            onTap: () => setState(() => _isBioExpanded = !_isBioExpanded),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                _isBioExpanded ? 'Thu gọn ▲' : 'Xem tiểu sử đầy đủ ▼',
                                 style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
+                                  color: AppTheme.primaryLight,
+                                  fontSize: 11.5,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${_movies.length} tác phẩm đã tham gia',
-                                style: const TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -216,3 +315,4 @@ class _PersonScreenState extends State<PersonScreen> {
     );
   }
 }
+

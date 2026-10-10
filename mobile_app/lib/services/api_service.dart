@@ -347,4 +347,72 @@ class ApiService {
       return {'success': false, 'message': 'Lỗi kết nối: ${e.toString()}'};
     }
   }
+
+  /// Get person details with TMDb biography and filmography
+  static Future<Map<String, dynamic>?> getPersonDetail(String name) async {
+    final serverUrls = [
+      'http://localhost:3001',
+      'http://10.0.2.2:3001',
+      'http://localhost:3000',
+      'http://10.0.2.2:3000',
+    ];
+    for (final host in serverUrls) {
+      try {
+        final uri = Uri.parse('$host/api/person/${Uri.encodeComponent(name)}');
+        final res = await _client.get(uri).timeout(const Duration(seconds: 5));
+        if (res.statusCode == 200) {
+          final data = json.decode(utf8.decode(res.bodyBytes));
+          if (data['status'] == true && data['data'] != null) {
+            return data['data'] as Map<String, dynamic>;
+          }
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Request a new TV QR login session
+  static Future<Map<String, dynamic>?> createTvSession() async {
+    final serverUrls = [
+      'http://localhost:3001',
+      'http://10.0.2.2:3001',
+      'http://localhost:3000',
+      'http://10.0.2.2:3000',
+    ];
+    for (final host in serverUrls) {
+      try {
+        final uri = Uri.parse('$host/api/auth/tv/session');
+        final res = await _client.post(uri).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          final data = json.decode(utf8.decode(res.bodyBytes));
+          if (data['status'] == true && data['data'] != null) {
+            return data['data'] as Map<String, dynamic>;
+          }
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Poll status of a TV QR login session
+  static Future<Map<String, dynamic>?> checkTvSessionStatus(String token) async {
+    final serverUrls = [
+      'http://localhost:3001',
+      'http://10.0.2.2:3001',
+      'http://localhost:3000',
+      'http://10.0.2.2:3000',
+    ];
+    for (final host in serverUrls) {
+      try {
+        final uri = Uri.parse('$host/api/auth/tv/status?token=$token');
+        final res = await _client.get(uri).timeout(const Duration(seconds: 3));
+        if (res.statusCode == 200) {
+          final data = json.decode(utf8.decode(res.bodyBytes));
+          return data as Map<String, dynamic>;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
 }
+

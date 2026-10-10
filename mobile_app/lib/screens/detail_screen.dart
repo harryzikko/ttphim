@@ -471,25 +471,63 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   }
 
   Widget _buildCastRail(Movie movie) {
-    final rawDirectors = movie.directors.where((d) => d.trim().isNotEmpty && d != 'Đang cập nhật').toList();
-    final rawActors = movie.actors.where((a) => a.trim().isNotEmpty && a != 'Đang cập nhật').toList();
-    if (rawDirectors.isEmpty && rawActors.isEmpty) return const SizedBox.shrink();
+    final List<Map<String, dynamic>> items = [];
 
-    final List<Map<String, dynamic>> items = [
-      ...rawDirectors.map((d) => {'name': d.trim(), 'isDirector': true}),
-      ...rawActors.map((a) => {'name': a.trim(), 'isDirector': false}),
-    ];
+    if (movie.castMembers.isNotEmpty) {
+      for (final m in movie.castMembers) {
+        items.add({
+          'name': m.name,
+          'isDirector': m.isDirector,
+          'role': m.character.isNotEmpty ? m.character : (m.isDirector ? 'Đạo Diễn' : 'Diễn Viên'),
+          'avatar': m.avatar.isNotEmpty
+              ? m.avatar
+              : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(m.name)}&background=${m.isDirector ? "e5a914" : "e50914"}&color=fff&size=160&bold=true',
+        });
+      }
+    } else {
+      final rawDirectors = movie.directors.where((d) => d.trim().isNotEmpty && d != 'Đang cập nhật').toList();
+      final rawActors = movie.actors.where((a) => a.trim().isNotEmpty && a != 'Đang cập nhật').toList();
+      if (rawDirectors.isEmpty && rawActors.isEmpty) return const SizedBox.shrink();
+
+      for (final d in rawDirectors) {
+        items.add({
+          'name': d.trim(),
+          'isDirector': true,
+          'role': 'Đạo Diễn',
+          'avatar': 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(d)}&background=e5a914&color=fff&size=160&bold=true',
+        });
+      }
+      for (final a in rawActors) {
+        items.add({
+          'name': a.trim(),
+          'isDirector': false,
+          'role': 'Diễn Viên',
+          'avatar': 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(a)}&background=e50914&color=fff&size=160&bold=true',
+        });
+      }
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Đạo Diễn & Diễn Viên',
-          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Đạo Diễn & Diễn Viên',
+              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'TMDb Verified',
+              style: TextStyle(color: AppTheme.gold.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 116,
+          height: 124,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -499,7 +537,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               final item = items[index];
               final name = item['name'] as String;
               final isDirector = item['isDirector'] as bool;
-              final avatarUrl = 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=${isDirector ? "e5a914" : "e50914"}&color=fff&size=160&bold=true';
+              final role = item['role'] as String;
+              final avatarUrl = item['avatar'] as String;
 
               return GestureDetector(
                 onTap: () {
@@ -511,12 +550,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   );
                 },
                 child: SizedBox(
-                  width: 74,
+                  width: 78,
                   child: Column(
                     children: [
                       Container(
-                        width: 56,
-                        height: 56,
+                        width: 58,
+                        height: 58,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
@@ -543,19 +582,21 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                       const SizedBox(height: 6),
                       Text(
                         name,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          height: 1.15,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        isDirector ? 'Đạo diễn' : 'Diễn viên',
+                        role,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: isDirector ? AppTheme.gold : AppTheme.textMuted,
                           fontSize: 9.5,

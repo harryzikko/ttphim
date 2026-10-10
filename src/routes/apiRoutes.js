@@ -6,6 +6,7 @@ const nguoncService = require('../services/nguoncService');
 const dbService = require('../services/dbService');
 const partyService = require('../services/partyService');
 const personService = require('../services/personService');
+const tmdbService = require('../services/tmdbService');
 const tvAuthService = require('../services/tvAuthService');
 const { authMiddleware, requireAuth, requireAdmin, generateToken } = require('../services/authService');
 
@@ -37,6 +38,22 @@ router.get('/movies/:slug', async (req, res) => {
 
     const data = await kkphimService.getMovieDetail(slug);
     
+    // Enrich with accurate TMDb / IMDb credits (cast & directors with portraits)
+    if (data && data.movie) {
+      try {
+        const credits = await tmdbService.getMovieCredits(data.movie);
+        data.movie.credits = credits;
+        if (credits.cast && credits.cast.length > 0) {
+          data.movie.tmdb_cast = credits.cast;
+        }
+        if (credits.directors && credits.directors.length > 0) {
+          data.movie.tmdb_directors = credits.directors;
+        }
+      } catch (e) {
+        console.warn(`[API] TMDb credits fetch failed for ${slug}:`, e.message);
+      }
+    }
+
     // Check if in user watchlist
     let inWatchlist = false;
     let watchedHistory = null;

@@ -37,9 +37,11 @@ const FAMOUS_PORTRAITS = {
   'christopher-nolan': 'https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&auto=format&fit=crop&q=80'
 };
 
+const tmdbService = require('./tmdbService');
+
 class PersonService {
   /**
-   * Deterministic avatar for any person name
+   * Deterministic avatar for any person name with TMDb caching
    */
   getAvatar(name) {
     if (!name) return 'https://ui-avatars.com/api/?name=Actor&background=1d1f29&color=fff&size=256';
@@ -47,23 +49,36 @@ class PersonService {
     if (FAMOUS_PORTRAITS[slug]) {
       return FAMOUS_PORTRAITS[slug];
     }
-    // High-resolution UI Avatar with Obsidian Cinema branding
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=e50914&color=ffffff&size=256&bold=true&font-size=0.45`;
   }
 
   /**
-   * Get detailed person info + real filmography list
+   * Get detailed person info + real filmography list from TMDb and IMDb
    */
   async getPersonDetail(query, type = 'actor') {
     const rawName = (query || '').trim();
     if (!rawName) throw new Error('Tên diễn viên / đạo diễn không hợp lệ');
 
-    const slug = slugify(rawName);
-    const displayName = rawName.includes('-') 
+    const displayName = rawName.includes('-')
       ? rawName.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
       : rawName;
 
-    // Search movies containing this person
+    // 1. Primary source: Fetch from TMDb (accurate credits, real photos, bios, stats)
+    try {
+      const tmdbData = await tmdbService.getPersonDetail(displayName);
+      if (tmdbData && tmdbData.person) {
+        // Person found on TMDb!
+        // Return enriched person info & movies
+        return {
+          person: tmdbData.person,
+          movies: tmdbData.movies || []
+        };
+      }
+    } catch (e) {
+      console.warn(`[PersonService] TMDb fetch failed for ${displayName}, falling back to KKPhim:`, e.message);
+    }
+
+    // 2. Secondary fallback: Search KKPhim if not found on TMDb
     let movies = [];
     try {
       const searchRes = await kkphimService.searchMovies(displayName, 1, 30);
@@ -71,10 +86,9 @@ class PersonService {
         movies = searchRes.items;
       }
     } catch (e) {
-      console.warn(`[PersonService] Search failed for ${displayName}:`, e.message);
+      console.warn(`[PersonService] KKPhim search failed for ${displayName}:`, e.message);
     }
 
-    // Determine nationality & bio based on matching movies or default
     let nationality = 'Quốc tế';
     let prominentGenres = new Set();
     movies.forEach(m => {
@@ -93,14 +107,14 @@ class PersonService {
 
     const person = {
       name: displayName,
-      slug,
+      slug: slugify(displayName),
       role: roleTitle,
       type: isDirector ? 'director' : 'actor',
       avatar: this.getAvatar(displayName),
       nationality,
       genres: Array.from(prominentGenres).slice(0, 4),
       movies_count: movies.length,
-      bio: `${displayName} là một ${roleTitle.toLowerCase()} nổi tiếng, được khán giả yêu thích qua nhiều tác phẩm điện ảnh và truyền hình xuất sắc chất lượng cao tại TTPHIM.`
+      biography: `${displayName} là một ${roleTitle.toLowerCase()} nổi tiếng, được khán giả yêu thích qua nhiều tác phẩm điện ảnh và truyền hình xuất sắc chất lượng cao tại TTPHIM.`
     };
 
     return {
@@ -111,3 +125,4 @@ class PersonService {
 }
 
 module.exports = new PersonService();
+
