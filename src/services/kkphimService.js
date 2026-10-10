@@ -786,6 +786,10 @@ class KKPhimService {
     }
   }
 
+  async searchMovies(keyword, page = 1, limit = 30) {
+    return this.getCatalog({ keyword, page, limit });
+  }
+
   clearHomeCache() {
     this.cache.delete('home_data');
   }
