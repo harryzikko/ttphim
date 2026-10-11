@@ -1,7 +1,8 @@
 class AppConfig {
-  // Build with --dart-define=BACKEND_URL=https://your-server.example
-  // Empty is intentional: localhost on a phone/TV is not the development PC.
-  static const String backendUrl = String.fromEnvironment('BACKEND_URL');
+  // Local development default. On devices, forward port 3001 or override with a reachable LAN/HTTPS URL.
+  static const String backendUrl = String.fromEnvironment(
+    'BACKEND_URL', defaultValue: 'http://localhost:3001',
+  );
   static bool get hasBackend => backendUrl.trim().isNotEmpty;
 
   static Uri backendUri(String path, [Map<String, String>? query]) {

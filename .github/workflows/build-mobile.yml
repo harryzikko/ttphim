@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  BACKEND_URL: ${{ vars.BACKEND_URL }}
+  BACKEND_URL: ${{ vars.BACKEND_URL || 'http://localhost:3001' }}
 
 jobs:
   build-android:
@@ -38,7 +38,7 @@ jobs:
           cache: true
       - name: Validate backend build configuration
         run: |
-          python3 -c 'import os, urllib.parse; u=urllib.parse.urlparse(os.environ.get("BACKEND_URL", "")); assert u.scheme in ("http", "https") and u.hostname and u.hostname not in ("localhost", "127.0.0.1", "10.0.2.2"), "Set repository variable BACKEND_URL to a server reachable from your devices"'
+          python3 -c 'import os, urllib.parse; u=urllib.parse.urlparse(os.environ.get("BACKEND_URL", "")); assert u.scheme in ("http", "https") and u.hostname, "BACKEND_URL must be a valid HTTP(S) URL"; print("App backend:", u.geturl()); print("Localhost builds require port forwarding on physical devices.") if u.hostname in ("localhost", "127.0.0.1") else None'
       - name: Prepare native platform
         working-directory: mobile_app
         run: |
@@ -87,7 +87,7 @@ jobs:
           cache: true
       - name: Validate backend build configuration
         run: |
-          python3 -c 'import os, urllib.parse; u=urllib.parse.urlparse(os.environ.get("BACKEND_URL", "")); assert u.scheme in ("http", "https") and u.hostname and u.hostname not in ("localhost", "127.0.0.1", "10.0.2.2"), "Set repository variable BACKEND_URL to a server reachable from your devices"'
+          python3 -c 'import os, urllib.parse; u=urllib.parse.urlparse(os.environ.get("BACKEND_URL", "")); assert u.scheme in ("http", "https") and u.hostname, "BACKEND_URL must be a valid HTTP(S) URL"; print("App backend:", u.geturl()); print("Localhost builds require port forwarding on physical devices.") if u.hostname in ("localhost", "127.0.0.1") else None'
       - name: Prepare native platform
         working-directory: mobile_app
         run: |
