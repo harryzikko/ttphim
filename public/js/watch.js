@@ -29,6 +29,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   let useEmbed = false;
   let drawerEpisodesList = [];
   let watchPartyController = null;
+  let playerSession = null, cleanupControls = null, saveCurrentProgress = null, progressStore = null, user = null;
+  let embedTimer = null;
+  function cleanupPlayback() {
+    saveCurrentProgress?.(true);
+    saveCurrentProgress = null;
+    cleanupControls?.();
+    cleanupControls = null;
+    clearTimeout(embedTimer);
+    clearInterval(window._watchHistoryInterval);
+    window.removeEventListener('keydown', window._playerKeydownHandler);
+    playerSession?.destroy();
+    playerSession = null;
+    hlsInstance = null;
+  }
+  window.addEventListener('pagehide', cleanupPlayback);
+  window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveCurrentProgress?.(true); });
 
   // DOM Elements
   const viewport = document.getElementById('player-viewport');
@@ -62,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load Movie Details
   try {
     console.log('[TTPhim] Fetching movie for watch player, slug:', slug);
-    movieData = await API.getMovieDetail(slug);
+    [movieData, user] = await Promise.all([API.getMovieDetail(slug), API.getMe().catch(() => null)]);
     if (!movieData || !movieData.movie) {
       if (window.showToast) window.showToast('Không tìm thấy tập phim', 'error');
       return;
@@ -72,6 +89,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     console.error('[TTPhim] Failed to load movie for player:', err);
     if (window.showToast) window.showToast('Lỗi kết nối máy chủ phát phim', 'error');
+    if (viewport) {
+      viewport.replaceChildren();
+      const status = PlayerUX.createStatus(viewport, { retry: () => window.location.reload() });
+      status('error', 'Không thể tải thông tin phim. Kiểm tra kết nối và thử lại.');
+    }
   }
 
   function initPage({ movie, episodes, watchedHistory }) {
@@ -91,54 +113,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const getEpNum = (val) => {
-      if (!val) return '';
-      const m = String(val).match(/\d+/);
-      return m ? String(parseInt(m[0], 10)) : String(val).trim().toLowerCase();
-    };
-
-    // Check if user specifically requested a server via query param (?server=0, 1, 2...)
-    const serverParam = urlParams.get('server');
-    if (serverParam !== null && !isNaN(parseInt(serverParam, 10))) {
-      const parsedS = parseInt(serverParam, 10);
-      if (parsedS >= 0 && parsedS < allServers.length) {
-        activeServerIndex = parsedS;
-      }
-    }
-
-    // Determine target episode
-    let matchedEp = null;
-    if (epSlug) {
-      // First check within activeServerIndex if specified
-      matchedEp = allServers[activeServerIndex]?.server_data?.find(e => 
-        e.slug === epSlug || getEpNum(e.slug) === getEpNum(epSlug) || getEpNum(e.name) === getEpNum(epSlug)
-      );
-
-      // If not in activeServer, search all servers
-      if (!matchedEp) {
-        for (let s = 0; s < allServers.length; s++) {
-          const found = allServers[s].server_data?.find(e => 
-            e.slug === epSlug || getEpNum(e.slug) === getEpNum(epSlug) || getEpNum(e.name) === getEpNum(epSlug)
-          );
-          if (found) {
-            activeServerIndex = s;
-            matchedEp = found;
-            break;
-          }
-        }
-      }
-    }
-
-    if (!matchedEp) {
-      matchedEp = allServers[activeServerIndex]?.server_data?.[0];
-    }
-    currentEpisode = matchedEp;
+    progressStore = PlayerUX.createProgress({ movie, user, api: API });
+    const localHistory = progressStore.get();
+    const history = localHistory && (!watchedHistory || localHistory.updated_at > watchedHistory.updated_at) ? localHistory : watchedHistory;
+    const selection = PlayerUX.selectInitial(allServers, epSlug, urlParams.get('server'), history);
+    activeServerIndex = selection.server;
+    currentEpisode = selection.episode;
 
     // Render Server Switches
     renderServerPills(allServers);
 
     // Render Video Player
-    loadEpisode(currentEpisode, watchedHistory?.current_time || 0);
+    loadEpisode(currentEpisode, selection.resume);
 
     // Render Episode Drawer Sidebar
     renderEpisodeDrawer(allServers[activeServerIndex]?.server_data || []);
@@ -193,6 +179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- Video Player Engine (HLS.js + Iframe Fallback) ---
   function loadEpisode(ep, initialTime = 0) {
     if (!ep) return;
+    cleanupPlayback();
     currentEpisode = ep;
 
     // Update ep label in top bar
@@ -213,28 +200,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Update active highlight in episode drawer
     highlightActiveEpisodeInDrawer(ep.slug);
 
-    // Save watch history immediately on episode start (ensures both HLS and Iframe save to Continue Watching)
-    try {
-      API.saveHistory({
-        movie_slug: movieData.movie.slug,
-        movie_name: movieData.movie.name,
-        origin_name: movieData.movie.origin_name,
-        poster_url: movieData.movie.poster_url,
-        thumb_url: movieData.movie.thumb_url,
-        episode_slug: ep.slug,
-        episode_name: formatEpDisplay(ep.name),
-        current_time: initialTime || 10,
-        duration: 3600
-      });
-    } catch (err) {
-      console.warn('Failed to save watch history on load:', err);
-    }
-
-    // Clean up previous HLS
-    if (hlsInstance) {
-      hlsInstance.destroy();
-      hlsInstance = null;
-    }
+    // History is saved from actual playback, never with a made-up duration.
 
     if (!viewport) return;
     viewport.innerHTML = ''; // CRITICAL: Clear viewport so elements never stack or duplicate!
@@ -553,6 +519,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isDraggingScrubber = false;
     let autoHideTimer = null;
     let countdownTimer = null;
+    const controlEvents = new AbortController();
+    function globalListen(target, event, callback) {
+      target.addEventListener(event, callback, { signal: controlEvents.signal });
+    }
+    cleanupControls = () => {
+      controlEvents.abort();
+      clearTimeout(autoHideTimer);
+      clearTimeout(centerClickTimer);
+      clearInterval(countdownTimer);
+    };
+    const playbackServer = movieData.episodes[activeServerIndex]?.server_name;
+    saveCurrentProgress = keepalive => progressStore?.save(ep, playbackServer, video, keepalive);
     let lastVolume = video.volume > 0 ? video.volume : 1;
 
     // Helper: Show ripple in center
@@ -576,7 +554,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Helper: Play / Pause toggle
     function togglePlayPause() {
       if (video.paused || video.ended) {
-        video.play().catch(() => {});
+        playerSession?.play();
         triggerCenterRipple('play_arrow');
       } else {
         video.pause();
@@ -617,8 +595,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         fullscreenIcon.innerText = isFs ? 'fullscreen_exit' : 'fullscreen';
       }
     }
-    document.addEventListener('fullscreenchange', onFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    globalListen(document, 'fullscreenchange', onFullscreenChange);
+    globalListen(document, 'webkitfullscreenchange', onFullscreenChange);
 
     // Next Episode Helper
     function getNextEpisode() {
@@ -790,7 +768,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       resetAutoHideTimer();
     });
 
-    window.addEventListener('mousemove', (e) => {
+    globalListen(window, 'mousemove', (e) => {
       if (isDraggingScrubber) {
         const percent = getScrubberPercent(e);
         if (video.duration > 0) {
@@ -801,7 +779,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    window.addEventListener('mouseup', () => {
+    globalListen(window, 'mouseup', () => {
       if (isDraggingScrubber) {
         isDraggingScrubber = false;
         resetAutoHideTimer();
@@ -820,7 +798,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       resetAutoHideTimer();
     });
 
-    window.addEventListener('touchmove', (e) => {
+    globalListen(window, 'touchmove', (e) => {
       if (isDraggingScrubber) {
         const percent = getScrubberPercent(e);
         if (video.duration > 0) {
@@ -831,7 +809,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    window.addEventListener('touchend', () => {
+    globalListen(window, 'touchend', () => {
       if (isDraggingScrubber) {
         isDraggingScrubber = false;
         resetAutoHideTimer();
@@ -872,7 +850,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Close menus when clicking outside
-    document.addEventListener('click', () => {
+    globalListen(document, 'click', () => {
       if (!qualityMenu.classList.contains('hidden')) qualityMenu.classList.add('hidden');
       if (!speedMenu.classList.contains('hidden')) speedMenu.classList.add('hidden');
     });
@@ -902,19 +880,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     video.addEventListener('pause', () => {
       playIcon.innerText = 'play_arrow';
       resetAutoHideTimer();
-      if (video.duration > 0) {
-        API.saveHistory({
-          movie_slug: movieData.movie.slug,
-          movie_name: movieData.movie.name,
-          origin_name: movieData.movie.origin_name,
-          poster_url: movieData.movie.poster_url,
-          thumb_url: movieData.movie.thumb_url,
-          episode_slug: ep.slug,
-          episode_name: formatEpDisplay(ep.name),
-          current_time: video.currentTime,
-          duration: video.duration
-        });
-      }
+      saveCurrentProgress?.();
       if (watchPartyController && watchPartyController.isInRoom() && !watchPartyController.isRemoteSync) {
         watchPartyController.emitPlayerAction('pause', video.currentTime);
       }
@@ -961,6 +927,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Auto-Next Episode on End
     video.addEventListener('ended', () => {
+      saveCurrentProgress?.(true);
       playIcon.innerText = 'play_arrow';
       const isAutoNext = localStorage.getItem('TTPhim_auto_next') !== 'false';
       const nextEpisode = getNextEpisode();
@@ -1006,19 +973,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Periodic History Saving (Every 10s)
     if (window._watchHistoryInterval) clearInterval(window._watchHistoryInterval);
     window._watchHistoryInterval = setInterval(() => {
-      if (!video.paused && video.duration > 0) {
-        API.saveHistory({
-          movie_slug: movieData.movie.slug,
-          movie_name: movieData.movie.name,
-          origin_name: movieData.movie.origin_name,
-          poster_url: movieData.movie.poster_url,
-          thumb_url: movieData.movie.thumb_url,
-          episode_slug: ep.slug,
-          episode_name: formatEpDisplay(ep.name),
-          current_time: video.currentTime,
-          duration: video.duration
-        });
-      }
+      if (!video.paused) saveCurrentProgress?.();
     }, 10000);
 
     // Global Keyboard Shortcuts (With inputs guard)
@@ -1150,74 +1105,36 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // Initialize Hls.js
-    if (window.Hls && Hls.isSupported()) {
-      hlsInstance = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 90
-      });
-      hlsInstance.loadSource(ep.link_m3u8);
-      hlsInstance.attachMedia(video);
-
-      hlsInstance.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-        if (initialTime > 0) video.currentTime = initialTime;
-        populateQualityMenu(data.levels, hlsInstance.currentLevel);
-
-        const p = video.play();
-        if (p !== undefined) {
-          p.catch(() => {
-            console.log('[TTPhim Hls] Autoplay deferred, user can click to start');
-          });
-        }
-      });
-
-      hlsInstance.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-        if (hlsInstance.autoLevelEnabled) {
-          const lvl = hlsInstance.levels[data.level];
-          if (lvl && lvl.height) {
-            qualityLabel.innerText = `Auto (${lvl.height}p)`;
+    const updateStatus = PlayerUX.createStatus(container, {
+      retry: () => {
+        useEmbed = false;
+        const resume = PlayerUX.selectInitial(movieData.episodes, ep.slug, activeServerIndex, progressStore?.get()).resume;
+        loadEpisode(ep, resume || initialTime);
+      },
+      changeServer: () => document.getElementById('server-pills-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+      play: () => playerSession?.play()
+    });
+    playerSession = PlayerUX.createSession({
+      video, Hls: window.Hls, url: ep.link_m3u8, embedUrl: ep.link_embed, initialTime,
+      onState: (state, message) => { bufferingEl.classList.add('opacity-0'); updateStatus(state, message); },
+      onBeforeStop: () => saveCurrentProgress?.(true),
+      onHls: hls => {
+        hlsInstance = hls;
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
+          if (playerSession?.isActive() && hls.autoLevelEnabled) {
+            const height = hls.levels[data.level]?.height;
+            if (height) qualityLabel.innerText = `Auto (${height}p)`;
           }
-        }
-      });
-
-      hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-        console.warn('[TTPhim Hls Error]', data.type, data.details, 'fatal:', data.fatal);
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.warn('[TTPhim Hls] Retrying network load...');
-              hlsInstance.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.warn('[TTPhim Hls] Recovering media error...');
-              hlsInstance.recoverMediaError();
-              break;
-            default:
-              if (ep.link_embed) {
-                console.warn('[TTPhim Hls] Fatal error, falling back to iframe embed');
-                window.showToast('Stream HLS gặp sự cố, đang tự động chuyển sang server nhúng...', 'info');
-                useEmbed = true;
-                loadEpisode(ep, video.currentTime);
-              }
-              break;
-          }
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = ep.link_m3u8;
-      video.addEventListener('loadedmetadata', () => {
-        if (initialTime > 0) video.currentTime = initialTime;
-        video.play().catch(() => {});
-      });
-      qualityBtn.classList.add('hidden'); // Native Safari HLS manages quality automatically
-    } else {
-      if (ep.link_embed) {
+        });
+      },
+      onManifest: (data, hls) => populateQualityMenu(data.levels, hls.currentLevel),
+      onFallback: time => {
         useEmbed = true;
-        loadEpisode(ep);
-        return;
+        window.showToast?.('Nguồn HLS gặp lỗi, đang chuyển sang server nhúng. Server nhúng có thể không tua tiếp đúng thời điểm.', 'info');
+        loadEpisode(ep, time);
       }
-    }
+    });
+    if (!window.Hls || !Hls.isSupported()) qualityBtn.classList.add('hidden');
   }
 
   function renderEmbedPlayer(ep) {
@@ -1231,6 +1148,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
     iframe.allowFullscreen = true;
     container.appendChild(iframe);
+    const updateEmbedStatus = PlayerUX.createStatus(container, {
+      retry: () => loadEpisode(ep),
+      changeServer: () => document.getElementById('server-pills-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    });
+    updateEmbedStatus('embed', 'Đang mở server nhúng; tua tiếp đúng thời điểm có thể không được hỗ trợ.');
+    iframe.title = `Trình phát ${movieData.movie.name}`;
+    iframe.onload = () => { clearTimeout(embedTimer); updateEmbedStatus('ready'); };
+    embedTimer = setTimeout(() => updateEmbedStatus('error', 'Server nhúng phản hồi chậm. Hãy thử lại hoặc đổi server.'), 20000);
+    cleanupControls = () => { iframe.onload = null; iframe.src = 'about:blank'; };
 
     // Switch back to HLS pill (if link_m3u8 is present or extractable)
     const canHls = ep.link_m3u8 || extractM3u8FromEmbed(ep.link_embed);
@@ -1359,6 +1285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const container = document.querySelector('div.flex.items-center.flex-wrap.gap-2:has(.pl-1)') ||
                       document.querySelector('div.flex.items-center.flex-wrap.gap-2');
     if (!container) return;
+    container.id = 'server-pills-container';
 
     container.innerHTML = `
       <span class="text-on-surface-variant font-label-badge text-label-badge uppercase tracking-wider pl-1">Server:</span>
@@ -1378,6 +1305,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        const time = viewport.querySelector('video')?.currentTime || 0;
+        const previous = currentEpisode;
+        cleanupPlayback();
         activeServerIndex = parseInt(btn.dataset.index, 10);
         useEmbed = false;
         renderServerPills(servers);
@@ -1389,7 +1319,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           (curNum && (ep.name || '').toString().match(/\d+/)?.[0] === curNum)
         ) || newServerEps[0];
         if (targetEp) {
-          loadEpisode(targetEp);
+          const sameEpisode = PlayerUX.episodeMatches(targetEp.slug, previous?.slug) || PlayerUX.episodeMatches(targetEp.name, previous?.name);
+          loadEpisode(targetEp, sameEpisode ? time : 0);
         }
       });
     });

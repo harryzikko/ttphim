@@ -9,8 +9,11 @@ const personService = require('../services/personService');
 const tmdbService = require('../services/tmdbService');
 const tvAuthService = require('../services/tvAuthService');
 const { authMiddleware, requireAuth, requireAdmin, generateToken } = require('../services/authService');
+const { publicUser } = require('../services/passwordService');
 
 router.use(authMiddleware);
+router.use('/admin', requireAuth, requireAdmin);
+router.use('/user', requireAuth);
 
 // --- Public Movie Endpoints ---
 
@@ -231,7 +234,7 @@ router.post('/comments/:id/like', async (req, res) => {
 router.post('/auth/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
-    if (!email || !password) {
+    if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || password.length < 6 || (name != null && typeof name !== 'string')) {
       return res.status(400).json({ status: false, message: 'Vui lòng cung cấp email và mật khẩu' });
     }
 
@@ -244,21 +247,21 @@ router.post('/auth/register', async (req, res) => {
     const token = generateToken(user);
 
     res.cookie('token', token, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
-    res.json({ status: true, message: 'Đăng ký thành công', data: { user, token } });
+    res.json({ status: true, message: 'Đăng ký thành công', data: { user: publicUser(user), token } });
   } catch (err) {
-    res.status(500).json({ status: false, message: 'Lỗi đăng ký tài khoản' });
+    res.status(err.message === 'Email này đã được sử dụng' ? 400 : 500).json({ status: false, message: 'Lỗi đăng ký tài khoản' });
   }
 });
 
 router.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
+    if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || !password) {
       return res.status(400).json({ status: false, message: 'Vui lòng điền đầy đủ email và mật khẩu' });
     }
 
-    const user = await dbService.findUserByEmail(email);
-    if (!user || user.password !== password) {
+    const user = await dbService.authenticateUser(email, password);
+    if (!user) {
       return res.status(400).json({ status: false, message: 'Email hoặc mật khẩu không chính xác' });
     }
 
@@ -287,8 +290,7 @@ router.post('/auth/logout', (req, res) => {
 
 router.get('/user/library', async (req, res) => {
   try {
-    // If user is not logged in, use demo user or return empty
-    const userId = req.user ? req.user.id : 'usr_demo_01';
+    const userId = req.user.id;
     const [watchlist, history] = await Promise.all([
       dbService.getWatchlist(userId),
       dbService.getHistory(userId)
@@ -322,7 +324,7 @@ router.get('/user/library', async (req, res) => {
 
 router.post('/user/watchlist/toggle', async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 'usr_demo_01';
+    const userId = req.user.id;
     const movieData = req.body;
     if (!movieData.movie_slug) {
       return res.status(400).json({ status: false, message: 'Thiếu slug phim' });
@@ -337,7 +339,7 @@ router.post('/user/watchlist/toggle', async (req, res) => {
 
 router.post('/user/watchlist/remove', async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 'usr_demo_01';
+    const userId = req.user.id;
     const { movie_slug } = req.body;
     await dbService.removeFromWatchlist(userId, movie_slug);
     res.json({ status: true, message: 'Đã xóa khỏi danh sách yêu thích' });
@@ -348,7 +350,7 @@ router.post('/user/watchlist/remove', async (req, res) => {
 
 router.post('/user/history', async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 'usr_demo_01';
+    const userId = req.user.id;
     const data = req.body;
     if (!data.movie_slug) {
       return res.status(400).json({ status: false, message: 'Thiếu dữ liệu phim' });
@@ -363,7 +365,7 @@ router.post('/user/history', async (req, res) => {
 
 router.post('/user/history/clear', async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 'usr_demo_01';
+    const userId = req.user.id;
     await dbService.clearHistory(userId);
     res.json({ status: true, message: 'Đã xóa toàn bộ lịch sử xem' });
   } catch (err) {
@@ -373,7 +375,7 @@ router.post('/user/history/clear', async (req, res) => {
 
 router.post('/user/history/remove', async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 'usr_demo_01';
+    const userId = req.user.id;
     const { movie_slug } = req.body;
     if (!movie_slug) {
       return res.status(400).json({ status: false, message: 'Thiếu slug phim' });
@@ -387,43 +389,13 @@ router.post('/user/history/remove', async (req, res) => {
 
 
 
-// Movie Star Rating
-router.post('/movies/:slug/rate', async (req, res) => {
-  try {
-    const { slug } = req.params;
-    const { score } = req.body;
-    const userId = req.user ? req.user.id : 'usr_demo_01';
-    const result = await dbService.rateMovie(userId, slug, parseInt(score, 10) || 5);
-    res.json({ status: true, message: 'Đã gửi đánh giá sao thành công!', data: result });
-  } catch (err) {
-    res.status(500).json({ status: false, message: 'Lỗi đánh giá phim' });
-  }
-});
-
-// Movie Issue Report
-router.post('/movies/:slug/report', async (req, res) => {
-  try {
-    const { slug } = req.params;
-    const { episode_slug, reason } = req.body;
-    const userEmail = req.user ? req.user.email : 'guest';
-    const report = await dbService.reportError({
-      movieSlug: slug,
-      episodeSlug: episode_slug,
-      reason,
-      userEmail
-    });
-    res.json({ status: true, message: 'Báo cáo lỗi đã được tiếp nhận!', data: report });
-  } catch (err) {
-    res.status(500).json({ status: false, message: 'Lỗi gửi báo cáo' });
-  }
-});
 
 // Change Password
 router.post('/user/password', async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 'usr_demo_01';
+    const userId = req.user.id;
     const { old_password, new_password } = req.body;
-    if (!new_password || new_password.length < 6) {
+    if (typeof old_password !== 'string' || typeof new_password !== 'string' || new_password.length < 6) {
       return res.status(400).json({ status: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
     }
     const result = await dbService.changePassword(userId, old_password, new_password);
@@ -436,7 +408,7 @@ router.post('/user/password', async (req, res) => {
 // Batch remove watchlist
 router.post('/user/watchlist/batch-remove', async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 'usr_demo_01';
+    const userId = req.user.id;
     const { slugs } = req.body;
     if (!Array.isArray(slugs) || slugs.length === 0) {
       return res.status(400).json({ status: false, message: 'Danh sách phim không hợp lệ' });
@@ -451,13 +423,13 @@ router.post('/user/watchlist/batch-remove', async (req, res) => {
 // Update Profile
 router.post('/user/profile', async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 'usr_test_02';
+    const userId = req.user.id;
     const { name, avatar } = req.body;
     const updated = await dbService.updateUser(userId, {
       ...(name && { name: name.trim() }),
       ...(avatar && { avatar: avatar.trim() })
     });
-    res.json({ status: true, message: 'Cập nhật thông tin thành công!', data: updated });
+    res.json({ status: true, message: 'Cập nhật thông tin thành công!', data: publicUser(updated) });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Lỗi cập nhật thông tin cá nhân' });
   }
@@ -505,7 +477,7 @@ router.post('/admin/users/:id/update', async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     const updated = await dbService.updateUser(id, updates);
-    res.json({ status: true, message: 'Đã cập nhật tài khoản người dùng', data: updated });
+    res.json({ status: true, message: 'Đã cập nhật tài khoản người dùng', data: publicUser(updated) });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Lỗi cập nhật người dùng' });
   }
@@ -1025,20 +997,13 @@ router.get('/auth/tv/status', (req, res) => {
 });
 
 // 3. Logged-in Mobile or Web user authorizes the TV session
-router.post('/auth/tv/authorize', (req, res) => {
+router.post('/auth/tv/authorize', requireAuth, (req, res) => {
   try {
-    const { token, code, user: bodyUser } = req.body;
+    const { token, code } = req.body;
     const identifier = token || code;
     if (!identifier) return res.status(400).json({ status: false, message: 'Vui lòng cung cấp mã QR hoặc mã kích hoạt 6 số' });
 
-    const authUser = req.user || bodyUser || {
-      id: 'usr_vip_' + Math.random().toString(36).substring(2, 9),
-      name: bodyUser?.name || 'Thành Viên VIP',
-      email: bodyUser?.email || 'member@ttphim.vn',
-      role: 'member'
-    };
-
-    const result = tvAuthService.authorize(identifier, authUser);
+    const result = tvAuthService.authorize(identifier, req.user);
     if (!result.success) {
       return res.status(400).json({ status: false, message: result.message });
     }

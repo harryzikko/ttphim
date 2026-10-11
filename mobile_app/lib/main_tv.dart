@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/tv/tv_main_screen.dart';
+import 'services/api_service.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -13,6 +15,7 @@ void main() {
     DeviceOrientation.landscapeRight,
   ]);
 
+  unawaited(ApiService.restoreSession());
   runApp(const TTPhimTvApp());
 }
 

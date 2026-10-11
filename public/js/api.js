@@ -26,6 +26,10 @@ const API = {
 
   // Home
   async getHome() {
+    const embedded = document.getElementById('home-data');
+    if (embedded) {
+      try { return JSON.parse(embedded.textContent); } catch (_) {}
+    }
     const res = await this.request('/api/home');
     return res.data;
   },
@@ -122,11 +126,7 @@ const API = {
       localStorage.setItem('kk_user', JSON.stringify(res.data));
       return res.data;
     }
-    // Fallback to local storage or demo user
-    const local = localStorage.getItem('kk_user');
-    if (local) {
-      try { return JSON.parse(local); } catch(e) {}
-    }
+    localStorage.removeItem('kk_user');
     return null;
   },
 
@@ -138,6 +138,7 @@ const API = {
   // Library & Watchlist
   async getLibrary() {
     const res = await this.request('/api/user/library');
+    if (!res.status) throw new Error(res.message || 'Không thể tải thư viện');
     return res.data || { watchlist: [], history: [], continueWatching: [] };
   },
 

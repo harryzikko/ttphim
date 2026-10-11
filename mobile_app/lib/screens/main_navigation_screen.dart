@@ -15,10 +15,12 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  int _libraryRefresh = 0;
 
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
+      if (index == 3) _libraryRefresh++;
     });
   }
 
@@ -28,7 +30,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomeScreen(onNavigateTab: _onTabTapped),
       const ExploreScreen(),
       const SearchScreen(),
-      WatchlistScreen(onNavigateTab: _onTabTapped),
+      WatchlistScreen(onNavigateTab: _onTabTapped, refreshVersion: _libraryRefresh),
       const ProfileScreen(),
     ];
 

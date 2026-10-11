@@ -24,7 +24,7 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
   MovieDetailResponse? _detail;
   bool _isLoading = true;
   int _selectedServerIndex = 0;
-  WatchHistory? _history;
+  WatchHistoryItem? _history;
   bool _isFavorite = false;
 
   @override
@@ -44,6 +44,10 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
       setState(() {
         _detail = res;
         _history = hist;
+        if (res != null && hist != null) {
+          final index = res.servers.indexWhere((server) => server.serverName == hist.serverName);
+          if (index >= 0) _selectedServerIndex = index;
+        }
         _isFavorite = fav;
         _isLoading = false;
       });
@@ -68,7 +72,7 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final movie = _detail?.movie ?? widget.movie;
-    final backdrop = movie.thumbUrl.isNotEmpty ? movie.thumbUrl : movie.posterUrl;
+    final backdrop = movie.fullThumbUrl;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0C0E17),
@@ -81,7 +85,7 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
               imageUrl: backdrop,
               fit: BoxFit.cover,
               placeholder: (_, __) => Container(color: const Color(0xFF0C0E17)),
-              errorWidget: (_, __) => Container(color: const Color(0xFF0C0E17)),
+              errorWidget: (_, __, ___) => Container(color: const Color(0xFF0C0E17)),
             ),
           ),
 
@@ -251,7 +255,9 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                                   autofocus: true,
                                   onPressed: () {
                                     if (_detail != null && _detail!.servers.isNotEmpty && _detail!.servers[_selectedServerIndex].episodes.isNotEmpty) {
-                                      _playEpisode(_detail!.servers[_selectedServerIndex].episodes.first);
+                                      final episodes = _detail!.servers[_selectedServerIndex].episodes;
+                                      final episode = episodes.firstWhere((ep) => ep.slug == _history?.episodeSlug, orElse: () => episodes.first);
+                                      _playEpisode(episode);
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
@@ -271,9 +277,12 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                                 const SizedBox(width: 16),
                                 OutlinedButton.icon(
                                   onPressed: () async {
-                                    await StorageService.toggleFavorite(movie);
-                                    final fav = await StorageService.isFavorite(movie.slug);
-                                    if (mounted) setState(() => _isFavorite = fav);
+                                    try {
+                                      final newState = await StorageService.toggleFavorite(movie);
+                                      if (mounted) setState(() => _isFavorite = newState);
+                                    } catch (error) {
+                                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+                                    }
                                   },
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: Colors.white,
@@ -330,7 +339,7 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                                             width: 60,
                                             height: 60,
                                             fit: BoxFit.cover,
-                                            errorWidget: (_, __) => const Icon(Icons.person, color: Colors.white38),
+                                            errorWidget: (_, __, ___) => const Icon(Icons.person, color: Colors.white38),
                                           ),
                                         ),
                                         const SizedBox(width: 10),

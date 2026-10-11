@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const movie = detailData?.movie;
     if (!movie) throw new Error('Empty movie data');
 
-    renderMovieDetail(movie);
-    renderEpisodes(movie);
+    renderMovieDetail(movie, detailData?.episodes || []);
+    renderEpisodes(detailData?.episodes || [], movie.slug);
     loadSimilarMovies(movie);
 
   } catch (err) {
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 let currentTrailerUrl = null;
 
-function renderMovieDetail(movie) {
+function renderMovieDetail(movie, episodes = []) {
   const backdrop = document.getElementById('m-detail-backdrop');
   const title = document.getElementById('m-detail-title');
   const subtitle = document.getElementById('m-detail-subtitle');
@@ -128,7 +128,7 @@ function renderMovieDetail(movie) {
   }
 
   // Play button
-  const firstEp = movie.episodes?.[0]?.server_data?.[0]?.slug || 'tap-1';
+  const firstEp = episodes[0]?.server_data?.[0]?.slug || 'tap-1';
   if (playBtn) {
     playBtn.href = `/mobile/xem-phim/${movie.slug}/${firstEp}`;
   }
@@ -144,6 +144,10 @@ function renderMovieDetail(movie) {
         year: movie.year,
         quality: movie.quality
       });
+      if (!res?.status) {
+        MobileApp.toast(res?.message || 'Không thể cập nhật danh sách', 'error');
+        return;
+      }
       if (res?.data?.added) {
         watchlistIcon.innerText = 'check';
         watchlistLabel.innerText = 'Đã Lưu';
@@ -172,12 +176,11 @@ function renderMovieDetail(movie) {
   if (actionTrailerBtn) actionTrailerBtn.onclick = doTrailer;
 }
 
-function renderEpisodes(movie) {
+function renderEpisodes(episodes = [], movieSlug) {
   const serverPills = document.getElementById('m-server-pills');
   const episodeGrid = document.getElementById('m-episode-grid');
   const episodeCount = document.getElementById('m-episode-count');
 
-  const episodes = movie.episodes || [];
   if (episodes.length === 0) {
     if (episodeGrid) episodeGrid.innerHTML = '<p class="col-span-4 text-xs text-on-surface-variant py-2">Đang cập nhật luồng phát...</p>';
     return;
@@ -221,7 +224,7 @@ function renderEpisodes(movie) {
     }
 
     episodeGrid.innerHTML = items.map((ep, i) => `
-      <a href="/mobile/xem-phim/${movie.slug}/${ep.slug}?server=${activeServerIdx}" class="py-2.5 px-2 rounded-xl text-center text-[12px] font-bold bg-surface-container hover:bg-surface-container-highest active:scale-95 transition-all text-on-surface border border-white/5 truncate block">
+      <a href="/mobile/xem-phim/${movieSlug}/${ep.slug}?server=${activeServerIdx}" class="py-2.5 px-2 rounded-xl text-center text-[12px] font-bold bg-surface-container hover:bg-surface-container-highest active:scale-95 transition-all text-on-surface border border-white/5 truncate block">
         ${ep.name || `Tập ${i + 1}`}
       </a>
     `).join('');

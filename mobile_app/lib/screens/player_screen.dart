@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
@@ -92,7 +91,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   Timer? _sleepTimer;
   Timer? _sleepTicker;
   int _sleepRemainingSeconds = 0;
-  int? _sleepSelectedMinutes;
 
   // Favorites & Watched Tracking
   bool _isFavorite = false;
@@ -101,6 +99,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   // Episode Tabs
   int _selectedEpisodeTab = 0;
   static const int _episodesPerPage = 25;
+  int _playerGeneration = 0;
 
   @override
   void initState() {
@@ -117,6 +116,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
 
   @override
   void dispose() {
+    _saveProgress();
+    _playerGeneration++;
     _hideControlsTimer?.cancel();
     _gestureHudTimer?.cancel();
     _seekLeftTimer?.cancel();
@@ -141,10 +142,12 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   Future<void> _loadInitialState() async {
     final fav = await StorageService.isFavorite(widget.movie.slug);
     final watched = await StorageService.getWatchedEpisodes(widget.movie.slug);
+    final autoNext = await StorageService.getAutoNext();
     if (mounted) {
       setState(() {
         _isFavorite = fav;
         _watchedSlugs = watched;
+        _isAutoPlayEnabled = autoNext;
         _syncEpisodeTab();
       });
     }
@@ -322,6 +325,10 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
 
   /// Initialize video playback with intelligent HLS -> Extracted M3U8 -> In-App Embed fallback
   Future<void> _initPlayer({bool forceEmbed = false}) async {
+    if (!mounted) return;
+    final generation = ++_playerGeneration;
+    final episode = _currentEpisode;
+    bool isCurrent() => mounted && generation == _playerGeneration;
     setState(() {
       _isPlayerInitializing = true;
       _errorMessage = null;
@@ -329,20 +336,22 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     });
 
     _nextCountdownTimer?.cancel();
-    _videoPlayerController?.removeListener(_videoListener);
-    await _videoPlayerController?.dispose();
+    final previous = _videoPlayerController;
     _videoPlayerController = null;
+    previous?.removeListener(_videoListener);
+    await previous?.dispose();
+    if (!isCurrent()) return;
 
     // 1. Force Embed
-    if (forceEmbed && _currentEpisode.linkEmbed.isNotEmpty) {
-      _initWebPlayer(_currentEpisode.linkEmbed);
+    if (forceEmbed && episode.linkEmbed.isNotEmpty) {
+      _initWebPlayer(episode.linkEmbed);
       return;
     }
 
     // 2. Resolve stream URL: Direct HLS or automatically extract from embed link
-    String streamUrl = _currentEpisode.linkM3u8.trim();
-    if (streamUrl.isEmpty && _currentEpisode.linkEmbed.isNotEmpty) {
-      final extracted = _extractM3u8FromEmbed(_currentEpisode.linkEmbed);
+    String streamUrl = episode.linkM3u8.trim();
+    if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
+      final extracted = _extractM3u8FromEmbed(episode.linkEmbed);
       if (extracted != null && extracted.isNotEmpty) {
         streamUrl = extracted;
       }
@@ -350,8 +359,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
 
     // 3. Fallback to Web Embed if no direct HLS
     if (streamUrl.isEmpty) {
-      if (_currentEpisode.linkEmbed.isNotEmpty) {
-        _initWebPlayer(_currentEpisode.linkEmbed);
+      if (episode.linkEmbed.isNotEmpty) {
+        _initWebPlayer(episode.linkEmbed);
         return;
       } else {
         setState(() {
@@ -365,6 +374,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     // 4. Play with native high-performance video engine
     _isEmbedMode = false;
 
+    VideoPlayerController? pendingController;
     try {
       final ctrl = VideoPlayerController.networkUrl(
         Uri.parse(streamUrl),
@@ -373,16 +383,21 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           'Referer': 'https://phimapi.com/',
         },
       );
+      pendingController = ctrl;
 
-      await ctrl.initialize();
+      await ctrl.initialize().timeout(const Duration(seconds: 20));
+      if (!isCurrent()) return;
       await ctrl.setPlaybackSpeed(_currentSpeed);
+      if (!isCurrent()) return;
       await ctrl.setVolume(_volume);
+      if (!isCurrent()) return;
 
       // Check Watch History to Auto-Resume
       final history = await StorageService.getHistoryForMovie(widget.movie.slug);
+      if (!isCurrent()) return;
       int? seekTargetSeconds;
       if (history != null &&
-          history.episodeSlug == _currentEpisode.slug &&
+          history.episodeSlug == episode.slug &&
           history.positionSeconds > 15 &&
           history.progressPercentage < 0.95) {
         seekTargetSeconds = history.positionSeconds;
@@ -390,18 +405,20 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
 
       if (seekTargetSeconds != null) {
         await ctrl.seekTo(Duration(seconds: seekTargetSeconds));
+        if (!isCurrent()) return;
         _resumedSeconds = seekTargetSeconds;
         _showResumeBanner = true;
         _resumeBannerTimer?.cancel();
         _resumeBannerTimer = Timer(const Duration(seconds: 4), () {
-          if (mounted) setState(() => _showResumeBanner = false);
+          if (isCurrent()) setState(() => _showResumeBanner = false);
         });
       }
 
       await ctrl.play();
+      if (!isCurrent()) return;
       ctrl.addListener(_videoListener);
 
-      if (mounted) {
+      if (isCurrent()) {
         setState(() {
           _videoPlayerController = ctrl;
           _isPlayerInitializing = false;
@@ -409,9 +426,10 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         _resetControlsTimer();
       }
     } catch (e) {
+      if (!isCurrent()) return;
       debugPrint('Video init failed: $e');
-      if (_currentEpisode.linkEmbed.isNotEmpty) {
-        _initWebPlayer(_currentEpisode.linkEmbed);
+      if (episode.linkEmbed.isNotEmpty) {
+        _initWebPlayer(episode.linkEmbed);
       } else {
         if (mounted) {
           setState(() {
@@ -419,6 +437,11 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
             _errorMessage = 'Không thể tải luồng video HLS: $e';
           });
         }
+      }
+    }
+    finally {
+      if (pendingController != null && !identical(pendingController, _videoPlayerController)) {
+        await pendingController.dispose();
       }
     }
   }
@@ -463,17 +486,23 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     final pos = _videoPlayerController!.value.position.inSeconds;
     final dur = _videoPlayerController!.value.duration.inSeconds;
     if (dur > 0 && pos > 5) {
-      await StorageService.saveHistory(
-        movie: widget.movie,
-        episodeSlug: _currentEpisode.slug,
-        episodeName: _currentEpisode.name,
+      final episode = _currentEpisode;
+      final server = _currentServer;
+      await StorageService.saveHistory(WatchHistoryItem(
+        movieSlug: widget.movie.slug,
+        movieName: widget.movie.name,
+        posterUrl: widget.movie.posterUrl,
+        episodeSlug: episode.slug,
+        episodeName: episode.name,
         positionSeconds: pos,
         durationSeconds: dur,
-        serverName: _currentServer.serverName,
-      );
+        serverName: server.serverName,
+        updatedAt: DateTime.now(),
+      ));
+      await StorageService.markEpisodeWatched(widget.movie.slug, episode.slug);
       if (mounted) {
         setState(() {
-          _watchedSlugs.add(_currentEpisode.slug);
+          _watchedSlugs.add(episode.slug);
         });
       }
     }
@@ -489,6 +518,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   void _switchServer(ServerItem server) {
+    if (server.episodes.isEmpty) return;
     if (server.serverName == _currentServer.serverName) return;
     _saveProgress();
     setState(() {
@@ -572,11 +602,10 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return PopScope(
       canPop: !_isFullScreen,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (!didPop && _isFullScreen) {
           _toggleFullScreen();
         }
@@ -1411,9 +1440,12 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 label: _isFavorite ? 'Đã Lưu' : 'Lưu Phim',
                 color: _isFavorite ? AppTheme.gold : Colors.white70,
                 onTap: () async {
-                  await StorageService.toggleFavorite(widget.movie);
-                  final fav = await StorageService.isFavorite(widget.movie.slug);
-                  if (mounted) setState(() => _isFavorite = fav);
+                  try {
+                    final newState = await StorageService.toggleFavorite(widget.movie);
+                    if (mounted) setState(() => _isFavorite = newState);
+                  } catch (error) {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+                  }
                 },
               ),
               _buildToolChip(
@@ -1765,7 +1797,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     _sleepTicker?.cancel();
 
     _sleepRemainingSeconds = minutes * 60;
-    _sleepSelectedMinutes = minutes;
 
     _sleepTicker = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) return;
@@ -1784,7 +1815,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     _sleepTicker?.cancel();
     setState(() {
       _sleepRemainingSeconds = 0;
-      _sleepSelectedMinutes = null;
     });
   }
 

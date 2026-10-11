@@ -1,6 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const config = require('../config');
+const { hashPassword, verifyPassword, publicUser } = require('./passwordService');
 
 function formatEpBadge(epName) {
   if (!epName) return 'Tập 01';
@@ -21,7 +22,17 @@ class DbService {
   constructor() {
     this.dbPath = config.DB_PATH;
     this.cache = null;
-    this.isWriting = false;
+    this.operationQueue = Promise.resolve();
+    // Serialize complete read-modify-write operations, not just file writes.
+    for (const name of Object.getOwnPropertyNames(DbService.prototype)) {
+      if (['constructor', 'read', 'write'].includes(name)) continue;
+      const operation = this[name].bind(this);
+      this[name] = (...args) => {
+        const result = this.operationQueue.then(() => operation(...args));
+        this.operationQueue = result.catch(() => {});
+        return result;
+      };
+    }
   }
 
   async read() {
@@ -31,33 +42,25 @@ class DbService {
         this.cache = JSON.parse(data);
         return this.cache;
       }
-      if (this.cache) return this.cache;
-      const initial = { users: [], watchlist: [], history: [], comments: [] };
-      await this.write(initial);
-      return initial;
+      throw new Error('Database file is empty');
     } catch (err) {
       if (err.code === 'ENOENT') {
         const initial = { users: [], watchlist: [], history: [], comments: [] };
         await this.write(initial);
         return initial;
       }
-      if (this.cache) {
-        console.warn('[DbService] Error parsing db.json, falling back to in-memory cache:', err.message);
-        return this.cache;
-      }
-      return { users: [], watchlist: [], history: [], comments: [] };
+      throw err;
     }
   }
 
   async write(data) {
-    this.cache = data;
+    const tmpPath = `${this.dbPath}.${require('crypto').randomUUID()}.tmp`;
     try {
-      const tmpPath = `${this.dbPath}.${Date.now()}.tmp`;
       await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf8');
       await fs.rename(tmpPath, this.dbPath);
-    } catch (err) {
-      // Fallback simple write if rename fails on Windows file lock
-      await fs.writeFile(this.dbPath, JSON.stringify(data, null, 2), 'utf8').catch(() => {});
+      this.cache = data;
+    } finally {
+      await fs.unlink(tmpPath).catch(() => {});
     }
     return data;
   }
@@ -73,12 +76,26 @@ class DbService {
     return db.users.find(u => u.id === id);
   }
 
+  async authenticateUser(email, password) {
+    const db = await this.read();
+    const user = db.users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (!user || !await verifyPassword(password, user.password)) return null;
+    if (!user.password.startsWith('scrypt$')) {
+      user.password = await hashPassword(password);
+      await this.write(db);
+    }
+    return publicUser(user);
+  }
+
   async createUser({ email, password, name }) {
     const db = await this.read();
+    if (db.users.some(u => u.email.toLowerCase() === email.trim().toLowerCase())) {
+      throw new Error('Email này đã được sử dụng');
+    }
     const newUser = {
       id: 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       email: email.trim(),
-      password,
+      password: await hashPassword(password),
       name: name || email.split('@')[0],
       avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8',
       role: 'user',
@@ -93,7 +110,12 @@ class DbService {
     const db = await this.read();
     const index = db.users.findIndex(u => u.id === id);
     if (index === -1) return null;
-    db.users[index] = { ...db.users[index], ...updates };
+    const safeUpdates = { ...updates };
+    delete safeUpdates.id;
+    if (Object.hasOwn(safeUpdates, 'password')) {
+      safeUpdates.password = await hashPassword(safeUpdates.password);
+    }
+    db.users[index] = { ...db.users[index], ...safeUpdates };
     await this.write(db);
     return db.users[index];
   }
@@ -206,6 +228,7 @@ class DbService {
       poster_url: data.poster_url || '',
       thumb_url: data.thumb_url || '',
       episode_slug: data.episode_slug || 'tap-1',
+      server_name: typeof data.server_name === 'string' ? data.server_name : '',
       episode_name: formatEpBadge(data.episode_name),
       current_time: Math.round(data.current_time || 0),
       duration: Math.round(data.duration || 0),
@@ -382,10 +405,10 @@ class DbService {
     const db = await this.read();
     const user = db.users.find(u => u.id === userId);
     if (!user) return { status: false, message: 'Người dùng không tồn tại' };
-    if (user.password !== oldPassword) {
+    if (!await verifyPassword(oldPassword, user.password)) {
       return { status: false, message: 'Mật khẩu hiện tại không chính xác' };
     }
-    user.password = newPassword;
+    user.password = await hashPassword(newPassword);
     user.updated_at = new Date().toISOString();
     await this.write(db);
     return { status: true, message: 'Đổi mật khẩu thành công!' };
@@ -556,7 +579,7 @@ class DbService {
     const db = await this.read();
     if (!db.users) db.users = [];
 
-    const existing = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const existing = db.users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
     if (existing) {
       throw new Error('Email này đã tồn tại trong hệ thống');
     }
@@ -564,7 +587,7 @@ class DbService {
     const newUser = {
       id: 'usr_' + Date.now(),
       email: email.trim(),
-      password: password.trim(),
+      password: await hashPassword(password),
       name: name ? name.trim() : email.split('@')[0],
       role: role || 'user',
       avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDmV0kJ3rLlFchh-aGILVOr-pQbdtHs2qQKQtkeKftGRHjg2nb7ii3xkFe2aJA7-Gldl5BqHuj4L_uiVmqQyW9CCgKPrUz_MCzKjGtUsI1R3dM0r3vXdhkgOsKaL_SVbs9gl7b2sTWQGr3VphY1X_pUChBkXZ-KPQtC6HeaIV7uxpjuEKEltMKcvR78AOcVjnQlk989xeMDULyOev-eHEjgdEO-N14MVTh2oQR_E3A',

@@ -5,11 +5,13 @@ import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/movie_card.dart';
 import 'detail_screen.dart';
+import '../services/session_service.dart';
 
 class WatchlistScreen extends StatefulWidget {
   final Function(int tabIndex)? onNavigateTab;
+  final int refreshVersion;
 
-  const WatchlistScreen({super.key, this.onNavigateTab});
+  const WatchlistScreen({super.key, this.onNavigateTab, this.refreshVersion = 0});
 
   @override
   State<WatchlistScreen> createState() => _WatchlistScreenState();
@@ -20,25 +22,36 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
   List<Movie> _favorites = [];
   List<WatchHistoryItem> _history = [];
   bool _isLoading = true;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    SessionService.changes.addListener(_loadData);
     _loadData();
   }
 
   @override
   void dispose() {
+    SessionService.changes.removeListener(_loadData);
     _tabController.dispose();
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant WatchlistScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshVersion != oldWidget.refreshVersion) _loadData();
+  }
+
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+    final generation = ++_loadGeneration;
+    setState(() { _isLoading = true; _favorites = []; _history = []; });
     final favs = await StorageService.getFavorites();
     final hist = await StorageService.getHistory();
-    if (mounted) {
+    if (mounted && generation == _loadGeneration) {
       setState(() {
         _favorites = favs;
         _history = hist;
@@ -72,8 +85,12 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
     );
 
     if (confirm == true) {
-      await StorageService.clearHistory();
-      _loadData();
+      try {
+        await StorageService.clearHistory();
+        if (mounted) _loadData();
+      } catch (error) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
     }
   }
 

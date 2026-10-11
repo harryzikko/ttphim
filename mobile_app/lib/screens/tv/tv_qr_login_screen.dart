@@ -1,8 +1,10 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../services/storage_service.dart';
+import '../../services/app_config.dart';
 
 class TvQrLoginScreen extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -27,6 +29,9 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
   Timer? _pollTimer;
   bool _isAuthorized = false;
   String _userName = '';
+  bool _isPolling = false;
+  int _sessionGeneration = 0;
+  String? _sessionError;
 
   @override
   void initState() {
@@ -41,54 +46,52 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
   }
 
   Future<void> _initTvSession() async {
-    setState(() => _isLoading = true);
+    final generation = ++_sessionGeneration;
     _pollTimer?.cancel();
-
+    setState(() { _isLoading = true; _sessionError = null; _qrUrl = ''; _authCode = ''; _sessionToken = ''; });
     final session = await ApiService.createTvSession();
-    if (session != null && mounted) {
+    if (!mounted || generation != _sessionGeneration) return;
+    if (session == null || session['token'] == null || session['qr_url'] == null) {
       setState(() {
-        _qrUrl = session['qr_url']?.toString() ?? '';
-        _authCode = session['code']?.toString() ?? '892401';
-        _sessionToken = session['token']?.toString() ?? '';
-        _authUrl = session['auth_url']?.toString() ?? 'ttphim.vn/tv-auth';
         _isLoading = false;
+        _sessionError = AppConfig.hasBackend ? 'Không thể tạo phiên. Vui lòng thử lại.' : 'Chưa cấu hình BACKEND_URL khi build app.';
       });
-
-      // Start polling every 2 seconds for mobile/web authorization
-      _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _checkAuthStatus());
-    } else {
-      if (mounted) {
-        setState(() {
-          _authCode = '892401';
-          _qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://ttphim.vn/tv-auth?token=demo_892401';
-          _isLoading = false;
-        });
-      }
+      return;
     }
+    setState(() {
+      _qrUrl = session['qr_url'].toString();
+      _authCode = session['code']?.toString() ?? '';
+      _sessionToken = session['token'].toString();
+      final destination = Uri.tryParse(_qrUrl);
+      _authUrl = destination?.replace(query: '').toString() ?? _qrUrl;
+      _isLoading = false;
+    });
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _checkAuthStatus());
   }
 
   Future<void> _checkAuthStatus() async {
-    if (_sessionToken.isEmpty || _isAuthorized) return;
-
-    final result = await ApiService.checkTvSessionStatus(_sessionToken);
-    if (result != null && result['status'] == 'authorized' && mounted) {
-      _pollTimer?.cancel();
-      final user = result['user'] as Map<String, dynamic>?;
-      setState(() {
-        _isAuthorized = true;
-        _userName = user?['name']?.toString() ?? 'Thành Viên VIP';
-      });
-
-      // Show success celebration and transition
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) {
-        if (widget.onLoginSuccess != null) {
-          widget.onLoginSuccess!();
-        } else {
-          Navigator.pop(context, true);
-        }
+    if (_sessionToken.isEmpty || _isAuthorized || _isPolling) return;
+    final token = _sessionToken;
+    final generation = _sessionGeneration;
+    _isPolling = true;
+    try {
+      final result = await ApiService.checkTvSessionStatus(token);
+      if (!mounted || generation != _sessionGeneration) return;
+      if (result?['status'] == 'expired') {
+        _pollTimer?.cancel();
+        setState(() { _sessionError = 'Phiên đã hết hạn. Vui lòng làm mới mã QR.'; _qrUrl = ''; _authCode = ''; });
+        return;
       }
-    }
+      if (result?['status'] != 'approved' || result?['token'] is! String || result?['user'] is! Map<String, dynamic>) return;
+      _pollTimer?.cancel();
+      await StorageService.saveSession(result!['token'] as String, result['user'] as Map<String, dynamic>);
+      if (!mounted || generation != _sessionGeneration) return;
+      setState(() { _isAuthorized = true; _userName = result['user']['name']?.toString() ?? 'Thành viên'; });
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted || generation != _sessionGeneration) return;
+      if (widget.onLoginSuccess != null) { widget.onLoginSuccess!(); }
+      else { Navigator.pop(context, true); }
+    } finally { _isPolling = false; }
   }
 
   @override
@@ -131,8 +134,10 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
               child: Column(
                 children: [
                   // TV Live Status Top Bar
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: 24,
+                    runSpacing: 12,
                     children: [
                       Row(
                         children: [
@@ -276,21 +281,16 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
                                           height: 220,
                                           child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
                                         )
-                                      : CachedNetworkImage(
-                                          imageUrl: _qrUrl,
-                                          width: 220,
-                                          height: 220,
-                                          fit: BoxFit.contain,
-                                          errorWidget: (_, __) => const SizedBox(
-                                            width: 220,
-                                            height: 220,
-                                            child: Icon(Icons.qr_code_2_rounded, size: 160, color: Colors.black87),
-                                          ),
-                                        ),
+                                      : _qrUrl.isEmpty
+                                          ? SizedBox(width: 220, height: 220, child: Center(child: Padding(
+                                              padding: const EdgeInsets.all(12),
+                                              child: Text(_sessionError ?? 'Chưa có phiên đăng nhập', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black87)),
+                                            )))
+                                          : QrImageView(key: ValueKey(_qrUrl), data: _qrUrl, size: 220, backgroundColor: Colors.white),
                                 ),
                                 const SizedBox(height: 14),
                                 const Text(
-                                  'Mã QR có hiệu lực trong 10 phút',
+                                  'Mã QR có hiệu lực trong 5 phút',
                                   style: TextStyle(color: Colors.white54, fontSize: 11),
                                 ),
                               ],

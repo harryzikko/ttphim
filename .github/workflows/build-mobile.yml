@@ -2,162 +2,123 @@ name: Build TTPhim Native Mobile App (APK & IPA)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
-  workflow_dispatch: # Cho phép bấm "Run workflow" thủ công trên GitHub
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  BACKEND_URL: ${{ vars.BACKEND_URL }}
 
 jobs:
-  # =============================================================
-  # 1. BUILD NATIVE ANDROID APK (.apk)
-  # =============================================================
   build-android:
-    name: Build Native Android APK
+    name: Build Android ${{ matrix.variant }} APK
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - variant: Mobile
+            organization: com.ttphim.cinema
+            target: lib/main.dart
+            artifact: TTPhim-Mobile-release.apk
+          - variant: AndroidTV
+            organization: com.ttphim.tv
+            target: lib/main_tv.dart
+            artifact: TTPhim-AndroidTV-release.apk
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Setup Java JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
-
-      - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          flutter-version: '3.24.x'
+          channel: stable
+          flutter-version: '3.24.5'
           cache: true
-
-      - name: Scaffold & Prepare Flutter App
+      - name: Validate backend build configuration
         run: |
-          # Backup our custom source code
-          mkdir -p /tmp/ttphim_src
-          cp -rf mobile_app/lib /tmp/ttphim_src/
-          cp mobile_app/pubspec.yaml /tmp/ttphim_src/
-          cp -rf mobile_app/config /tmp/ttphim_src/
-
-          # Scaffold official Flutter platform templates
-          cd mobile_app
-          flutter create --org com.ttphim.cinema --project-name ttphim .
-
-          # Apply our custom code, dependencies & Android configuration
-          cp /tmp/ttphim_src/pubspec.yaml pubspec.yaml
-          rm -rf lib
-          cp -rf /tmp/ttphim_src/lib lib
-          cp /tmp/ttphim_src/config/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-
-          # Configure Android SDK versions in local.properties
-          touch android/local.properties
-          echo "flutter.compileSdkVersion=34" >> android/local.properties
-          echo "flutter.minSdkVersion=21" >> android/local.properties
-          echo "flutter.targetSdkVersion=34" >> android/local.properties
-
-          # Explicitly set SDK versions in app build.gradle / build.gradle.kts
-          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle* || true
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle* || true
-          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle* || true
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle* || true
-          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 34/g' android/app/build.gradle* || true
-          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle* || true
-
-      - name: Get Dependencies
+          python3 -c 'import os, urllib.parse; u=urllib.parse.urlparse(os.environ.get("BACKEND_URL", "")); assert u.scheme in ("http", "https") and u.hostname and u.hostname not in ("localhost", "127.0.0.1", "10.0.2.2"), "Set repository variable BACKEND_URL to a server reachable from your devices"'
+      - name: Prepare native platform
+        working-directory: mobile_app
         run: |
-          cd mobile_app
-          flutter pub get
-          # Universal patch for any cached plugins that use flutter.compileSdkVersion without fallback
-          find ~/.pub-cache -name "build.gradle*" -exec sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' {} + || true
-          find ~/.pub-cache -name "build.gradle*" -exec sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' {} + || true
-
-      - name: Build Android Release APK (Mobile & Tablet)
+          cp pubspec.yaml /tmp/ttphim-pubspec.yaml
+          cp pubspec.lock /tmp/ttphim-pubspec.lock
+          flutter create --platforms=android --org "${{ matrix.organization }}" --project-name ttphim .
+          cp /tmp/ttphim-pubspec.yaml pubspec.yaml
+          cp /tmp/ttphim-pubspec.lock pubspec.lock
+          rm -f test/widget_test.dart
+          cp config/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/res/drawable
+          cp config/tv_banner.xml android/app/src/main/res/drawable/tv_banner.xml
+          if [ "${{ matrix.variant }}" = "Mobile" ]; then
+            sed -i '/android.intent.category.LEANBACK_LAUNCHER/d' android/app/src/main/AndroidManifest.xml
+          fi
+          # Keep SDK levels compatible with the pinned plugin versions.
+          sed -i 's/flutter.compileSdkVersion/34/g; s/flutter.minSdkVersion/21/g; s/flutter.targetSdkVersion/34/g' android/app/build.gradle
+      - name: Resolve and verify
+        working-directory: mobile_app
         run: |
-          cd mobile_app
-          flutter build apk --release
-
-      - name: Build Android TV Release APK (Leanback 10-Foot)
-        run: |
-          cd mobile_app
-          flutter build apk -t lib/main_tv.dart --release
-
-      - name: Rename & Organize APKs
+          flutter pub get --enforce-lockfile
+          flutter analyze --no-fatal-infos
+          flutter test --dart-define=BACKEND_URL=https://backend.test
+      - name: Build sideload APK (default debug signature, no release keystore)
+        working-directory: mobile_app
+        run: flutter build apk --release -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL"
+      - name: Organize APK
         run: |
           mkdir -p output
-          cp mobile_app/build/app/outputs/flutter-apk/app-release.apk output/TTPhim-AndroidTV-v1.0.0-release.apk
-          # Build default mobile APK for output
-          cd mobile_app
-          flutter build apk --release
-          cd ..
-          cp mobile_app/build/app/outputs/flutter-apk/app-release.apk output/TTPhim-v1.0.0-release.apk
-          echo "Built APKs successfully: output/TTPhim-v1.0.0-release.apk and output/TTPhim-AndroidTV-v1.0.0-release.apk"
-
-      - name: Upload Android APK Artifacts
-        uses: actions/upload-artifact@v4
+          cp mobile_app/build/app/outputs/flutter-apk/app-release.apk "output/${{ matrix.artifact }}"
+      - uses: actions/upload-artifact@v4
         with:
-          name: TTPhim-Android-APKs
+          name: TTPhim-${{ matrix.variant }}-APK
           path: output/*.apk
           retention-days: 14
 
-  # =============================================================
-  # 2. BUILD NATIVE IOS IPA (.ipa - Unsigned)
-  # =============================================================
   build-ios:
-    name: Build Native iOS IPA (Unsigned)
+    name: Build iOS IPA (Unsigned)
     runs-on: macos-14
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          flutter-version: '3.24.x'
+          channel: stable
+          flutter-version: '3.24.5'
           cache: true
-
-      - name: Scaffold & Prepare Flutter App
+      - name: Validate backend build configuration
         run: |
-          # Backup our custom source code
-          mkdir -p /tmp/ttphim_src
-          cp -rf mobile_app/lib /tmp/ttphim_src/
-          cp mobile_app/pubspec.yaml /tmp/ttphim_src/
-          cp -rf mobile_app/config /tmp/ttphim_src/
-
-          # Scaffold official Flutter platform templates
-          cd mobile_app
-          flutter create --org com.ttphim.cinema --project-name ttphim .
-
-          # Apply our custom code, dependencies & iOS configuration
-          cp /tmp/ttphim_src/pubspec.yaml pubspec.yaml
-          rm -rf lib
-          cp -rf /tmp/ttphim_src/lib lib
-          cp /tmp/ttphim_src/config/Info.plist ios/Runner/Info.plist
-
-      - name: Get Dependencies & Install Pods
+          python3 -c 'import os, urllib.parse; u=urllib.parse.urlparse(os.environ.get("BACKEND_URL", "")); assert u.scheme in ("http", "https") and u.hostname and u.hostname not in ("localhost", "127.0.0.1", "10.0.2.2"), "Set repository variable BACKEND_URL to a server reachable from your devices"'
+      - name: Prepare native platform
+        working-directory: mobile_app
         run: |
-          cd mobile_app
-          flutter pub get
+          cp pubspec.yaml /tmp/ttphim-pubspec.yaml
+          cp pubspec.lock /tmp/ttphim-pubspec.lock
+          flutter create --platforms=ios --org com.ttphim.cinema --project-name ttphim .
+          cp /tmp/ttphim-pubspec.yaml pubspec.yaml
+          cp /tmp/ttphim-pubspec.lock pubspec.lock
+          rm -f test/widget_test.dart
+          cp config/Info.plist ios/Runner/Info.plist
+      - name: Resolve and verify
+        working-directory: mobile_app
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter analyze --no-fatal-infos
+          flutter test --dart-define=BACKEND_URL=https://backend.test
           cd ios
-          pod install || pod install --repo-update || true
-          cd ..
-
-      - name: Build iOS App Bundle (No Code Sign)
-        run: |
-          cd mobile_app
-          flutter build ios --release --no-codesign
-
-      - name: Package into Unsigned IPA
+          pod install --repo-update
+      - name: Build iOS bundle
+        working-directory: mobile_app
+        run: flutter build ios --release --no-codesign --dart-define="BACKEND_URL=$BACKEND_URL"
+      - name: Package unsigned IPA
         run: |
           mkdir -p Payload
-          # Copy compiled Runner.app bundle into Payload directory
           cp -r mobile_app/build/ios/iphoneos/Runner.app Payload/
-          zip -r TTPhim-v1.0.0-unsigned.ipa Payload
-          echo "Packaged IPA successfully: TTPhim-v1.0.0-unsigned.ipa"
-
-      - name: Upload iOS IPA Artifact
-        uses: actions/upload-artifact@v4
+          find Payload -type d -name _CodeSignature -prune -exec rm -rf {} +
+          find Payload -name embedded.mobileprovision -delete
+          find Payload -type f -exec sh -c 'file "$1" | grep -q "Mach-O" && codesign --remove-signature "$1" 2>/dev/null || true' sh {} \;
+          zip -r TTPhim-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
         with:
-          name: TTPhim-iOS-IPA
-          path: TTPhim-v1.0.0-unsigned.ipa
+          name: TTPhim-iOS-IPA-Unsigned
+          path: TTPhim-unsigned.ipa
           retention-days: 14

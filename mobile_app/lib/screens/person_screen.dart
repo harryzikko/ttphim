@@ -149,7 +149,7 @@ class _PersonScreenState extends State<PersonScreen> {
                                   imageUrl: _avatarUrl,
                                   fit: BoxFit.cover,
                                   placeholder: (_, __) => Container(color: const Color(0xFF1F2330)),
-                                  errorWidget: (_, __) => const Icon(Icons.person, color: Colors.white54, size: 40),
+                                  errorWidget: (_, __, ___) => const Icon(Icons.person, color: Colors.white54, size: 40),
                                 ),
                               ),
                             ),

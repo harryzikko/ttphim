@@ -225,9 +225,9 @@
         const data = await res.json();
 
         if (data.status && data.data) {
-          const featured = data.data.featuredMovies || [];
-          const series = data.data.seriesMovies || [];
-          const singles = data.data.singleMovies || [];
+          const featured = data.data.spotlights || [];
+          const series = data.data.series || [];
+          const singles = data.data.singles || [];
 
           // Hydrate Hero Billboard
           if (featured.length > 0) {

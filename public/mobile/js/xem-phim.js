@@ -70,7 +70,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isDraggingScrubber = false;
   const speeds = [1.0, 1.25, 1.5, 2.0];
   let currentSpeedIdx = 0;
+  let playerSession = null, progressStore = null, user = null;
+  let nextTimer = null, historyTimer = null, embedTimer = null;
+  const notify = (message, type = 'info') => MobileApp.toast(message, type);
+  const updateStatus = PlayerUX.createStatus(playerWrapper, {
+    retry: () => {
+      if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; updateStatus('ready'); return; }
+      if (movieData) {
+        const history = progressStore?.get();
+        const resume = PlayerUX.selectInitial(allServers, epSlug, currentServerIndex, history).resume;
+        loadEpisode(currentEpIndex, resume);
+      } else window.location.reload();
+    },
+    changeServer: () => serverContainer?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+    play: () => playerSession?.play()
+  });
+  function saveProgress(keepalive = false) {
+    if (!iframeEl.classList.contains('hidden')) return;
+    return progressStore?.save(currentEpisodes[currentEpIndex], allServers[currentServerIndex]?.server_name, videoEl, keepalive);
+  }
+  function cleanupPlayer() {
+    clearTimeout(nextTimer);
+    nextTimer = null;
+    clearTimeout(embedTimer);
+    playerSession?.destroy();
+    playerSession = null;
+    hlsInstance = null;
+    iframeEl.onload = null;
+    iframeEl.src = 'about:blank';
+  }
+  window.addEventListener('pagehide', () => { saveProgress(true); cleanupPlayer(); clearInterval(historyTimer); clearTimeout(hideOverlayTimer); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(true); });
 
+  window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
+  [[playBtn, 'Phát hoặc tạm dừng'], [rewindBtn, 'Tua lùi 10 giây'], [forwardBtn, 'Tua tới 10 giây'],
+    [fullscreenBtn, 'Toàn màn hình'], [drawerToggleBtn, 'Chọn tập phim'], [commentSend, 'Gửi bình luận']]
+    .forEach(([button, label]) => button?.setAttribute('aria-label', label));
   // Format seconds to mm:ss or hh:mm:ss
   function formatTime(seconds) {
     if (isNaN(seconds) || seconds < 0) return '00:00';
@@ -86,9 +121,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load Movie Data
   try {
     loaderEl.classList.remove('hidden');
-    movieData = await API.getMovieDetail(slug);
+    [movieData, user] = await Promise.all([API.getMovieDetail(slug), API.getMe().catch(() => null)]);
     if (!movieData || !movieData.movie) {
-      if (window.MobileApp) MobileApp.showToast('Không tìm thấy dữ liệu phim', 'error');
+      notify('Không tìm thấy dữ liệu phim', 'error');
       setTimeout(() => window.location.href = '/mobile', 1500);
       return;
     }
@@ -101,44 +136,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (infoTitle) infoTitle.textContent = movie.name;
 
     // Check watchlist state
-    updateFavButtonState(movie.slug);
+    updateFavButtonState(Boolean(movieData.inWatchlist));
+    progressStore = PlayerUX.createProgress({ movie, user, api: API });
 
     if (favBtn) {
-      favBtn.addEventListener('click', () => {
-        if (window.MobileApp) {
-          const isAdded = MobileApp.toggleWatchlist({
-            slug: movie.slug,
-            name: movie.name,
-            origin_name: movie.origin_name,
-            thumb_url: movie.thumb_url || movie.poster_url,
-            quality: movie.quality || 'HD',
-            year: movie.year || ''
-          });
-          updateFavButtonState(movie.slug);
-          MobileApp.showToast(isAdded ? 'Đã thêm vào Danh sách' : 'Đã xóa khỏi Danh sách');
-        }
+      favBtn.addEventListener('click', async () => {
+        try {
+          const result = await API.toggleWatchlist({ movie_slug: movie.slug, movie_name: movie.name,
+            origin_name: movie.origin_name, poster_url: movie.poster_url, thumb_url: movie.thumb_url,
+            quality: movie.quality, year: movie.year });
+          if (!result.status) throw new Error(result.message);
+          updateFavButtonState(result.data.added);
+          notify(result.data.added ? 'Đã thêm vào Danh sách' : 'Đã xóa khỏi Danh sách');
+        } catch (error) { notify(error.message || 'Không thể lưu phim', 'error'); }
       });
     }
 
     if (allServers.length === 0) {
-      loaderEl.innerHTML = `<div class="text-white text-xs text-center p-4">Phim đang được cập nhật tập mới</div>`;
+      loaderEl.classList.add('hidden');
+      updateStatus('error', 'Phim chưa có tập phát. Bạn có thể quay lại trang chi tiết.');
       return;
     }
 
+    const localHistory = progressStore.get();
+    const history = localHistory && (!movieData.watchedHistory || localHistory.updated_at > movieData.watchedHistory.updated_at) ? localHistory : movieData.watchedHistory;
+    const selected = PlayerUX.selectInitial(allServers, epSlug, urlParams.get('server'), history);
+    currentServerIndex = selected.server;
+    currentEpisodes = allServers[currentServerIndex]?.server_data || [];
     renderServerPills();
-    selectServer(0);
+    loadEpisode(selected.index, selected.resume);
+    historyTimer = setInterval(() => { if (!videoEl.paused) saveProgress(); }, 10000);
 
     // Setup Comments
     setupComments(movie.slug);
 
   } catch (err) {
     console.error('Player error:', err);
-    if (window.MobileApp) MobileApp.showToast('Lỗi tải phim: ' + err.message, 'error');
+    loaderEl.classList.add('hidden');
+    updateStatus('error', 'Không thể tải phim. Kiểm tra kết nối và tải lại trang.');
+    notify('Lỗi tải phim: ' + err.message, 'error');
   }
 
-  function updateFavButtonState(slug) {
+  function updateFavButtonState(isSaved) {
     if (!favIcon) return;
-    const isSaved = window.MobileApp && window.MobileApp.isWatchlisted(slug);
     if (isSaved) {
       favIcon.textContent = 'bookmark_added';
       favIcon.classList.add('text-primary-container');
@@ -169,26 +209,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Switch Server
   function selectServer(serverIdx) {
+    saveProgress(true);
+    const previousEpisode = currentEpisodes[currentEpIndex];
+    const previousTime = videoEl.currentTime || 0;
+    cleanupPlayer();
     currentServerIndex = serverIdx;
     renderServerPills();
-
     currentEpisodes = allServers[currentServerIndex]?.server_data || [];
-    if (epTotalEl) epTotalEl.textContent = `${currentEpisodes.length} tập`;
-
-    // Find requested epSlug or default to first
-    let targetIdx = 0;
-    if (epSlug) {
-      const foundIdx = currentEpisodes.findIndex(e => e.slug === epSlug || e.name === epSlug);
-      if (foundIdx !== -1) targetIdx = foundIdx;
-    }
-    loadEpisode(targetIdx);
+    const target = currentEpisodes.findIndex(ep => PlayerUX.episodeMatches(ep.slug, previousEpisode?.slug) || PlayerUX.episodeMatches(ep.name, previousEpisode?.name));
+    loadEpisode(Math.max(0, target), target >= 0 ? previousTime : 0);
   }
 
   // Load specific Episode
-  function loadEpisode(epIdx) {
-    if (!currentEpisodes[epIdx]) return;
+  function loadEpisode(epIdx, initialTime = 0) {
+    saveProgress(true);
+    cleanupPlayer();
+    if (!currentEpisodes[epIdx]) {
+      loaderEl.classList.add('hidden');
+      updateStatus('error', 'Server này chưa có tập phát. Hãy chọn server khác.');
+      return;
+    }
     currentEpIndex = epIdx;
     const ep = currentEpisodes[epIdx];
+    epSlug = ep.slug;
+    window.history.replaceState(null, '', `/mobile/xem-phim/${slug}/${ep.slug}?server=${currentServerIndex}`);
+    if (epTotalEl) epTotalEl.textContent = `${currentEpisodes.length} tập`;
 
     if (epNameEl) epNameEl.textContent = ep.name || `Tập ${epIdx + 1}`;
     if (infoSub) infoSub.textContent = `Server: ${allServers[currentServerIndex]?.server_name || 'VIP'} • ${ep.name || 'Tập ' + (epIdx + 1)}`;
@@ -199,12 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const streamUrl = ep.link_m3u8 || '';
     const embedUrl = ep.link_embed || '';
 
-    playStream(streamUrl, embedUrl, ep);
-
-    // Save to Continue Watching
-    if (movieData?.movie) {
-      saveContinueWatching(movieData.movie, ep);
-    }
+    playStream(streamUrl, embedUrl, ep, initialTime);
   }
 
   // Render Episode horizontal list
@@ -253,65 +293,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Play stream logic (HLS -> Direct -> Embed)
-  function playStream(m3u8Url, embedUrl, ep) {
-    loaderEl.classList.remove('hidden');
-
-    if (hlsInstance) {
-      hlsInstance.destroy();
-      hlsInstance = null;
-    }
-
-    if (m3u8Url && (m3u8Url.includes('.m3u8') || m3u8Url.startsWith('http'))) {
-      iframeEl.classList.add('hidden');
-      iframeEl.src = '';
-      videoEl.classList.remove('hidden');
-
-      if (Hls.isSupported()) {
-        hlsInstance = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 90
-        });
-        hlsInstance.loadSource(m3u8Url);
-        hlsInstance.attachMedia(videoEl);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-          loaderEl.classList.add('hidden');
-          videoEl.play().catch(() => {});
-        });
-        hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            console.warn('HLS Fatal Error, trying embed fallback:', data);
-            fallbackToEmbed(embedUrl);
-          }
-        });
-      } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
-        // Native Safari iOS HLS support
-        videoEl.src = m3u8Url;
-        videoEl.addEventListener('loadedmetadata', () => {
-          loaderEl.classList.add('hidden');
-          videoEl.play().catch(() => {});
-        }, { once: true });
-        videoEl.addEventListener('error', () => {
-          fallbackToEmbed(embedUrl);
-        }, { once: true });
-      } else {
-        fallbackToEmbed(embedUrl);
-      }
-    } else {
-      fallbackToEmbed(embedUrl);
-    }
+  function playStream(m3u8Url, embedUrl, ep, initialTime = 0) {
+    loaderEl.classList.add('hidden');
+    iframeEl.classList.add('hidden');
+    overlayEl.hidden = false;
+    videoEl.classList.remove('hidden');
+    videoEl.playbackRate = speeds[currentSpeedIdx];
+    playerSession = PlayerUX.createSession({
+      video: videoEl, Hls: window.Hls, url: m3u8Url, embedUrl, initialTime,
+      onHls: hls => { hlsInstance = hls; },
+      onState: updateStatus,
+      onBeforeStop: () => saveProgress(true),
+      onFallback: () => fallbackToEmbed(embedUrl)
+    });
   }
 
   function fallbackToEmbed(embedUrl) {
-    if (!embedUrl) {
-      loaderEl.innerHTML = `<div class="text-white text-xs p-4 text-center">Không tìm thấy luồng phát khả dụng</div>`;
-      return;
-    }
+    playerSession?.destroy();
+    playerSession = null;
+    hlsInstance = null;
+    if (!embedUrl) { updateStatus('error', 'Không tìm thấy luồng phát khả dụng.'); return; }
     videoEl.classList.add('hidden');
-    videoEl.pause();
+    overlayEl.hidden = true;
     iframeEl.classList.remove('hidden');
-    iframeEl.src = embedUrl;
     loaderEl.classList.add('hidden');
+    updateStatus('embed', 'Đang mở server nhúng. Nếu không phát được, hãy đổi server.');
+    notify('Đang dùng server nhúng; tua tiếp đúng thời điểm có thể không được hỗ trợ.');
+    iframeEl.onload = () => { clearTimeout(embedTimer); updateStatus('ready'); };
+    iframeEl.src = embedUrl;
+    embedTimer = setTimeout(() => updateStatus('error', 'Server nhúng phản hồi chậm. Hãy đổi server.'), 20000);
   }
 
   // Video Native Event Listeners
@@ -323,6 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   videoEl.addEventListener('pause', () => {
     if (playIcon) playIcon.textContent = 'play_arrow';
     showOverlay();
+    saveProgress();
   });
 
   videoEl.addEventListener('timeupdate', () => {
@@ -340,20 +351,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   videoEl.addEventListener('waiting', () => {
-    loaderEl.classList.remove('hidden');
+    // Loading state is owned by the current playback session.
   });
 
   videoEl.addEventListener('playing', () => {
-    loaderEl.classList.add('hidden');
+    if (playerSession?.isActive()) updateStatus('ready');
   });
 
   videoEl.addEventListener('ended', () => {
-    // Auto play next episode if available
+    saveProgress(true);
+    if (localStorage.getItem('TTPhim_auto_next') === 'false') return;
     if (currentEpIndex + 1 < currentEpisodes.length) {
-      if (window.MobileApp) MobileApp.showToast('Tập tiếp theo sau 3 giây...', 'info');
-      setTimeout(() => {
-        loadEpisode(currentEpIndex + 1);
-      }, 3000);
+      notify('Tập tiếp theo sau 3 giây…');
+      clearTimeout(nextTimer);
+      updateStatus('next', 'Tập tiếp theo sẽ phát sau 3 giây.');
+      nextTimer = setTimeout(() => { nextTimer = null; loadEpisode(currentEpIndex + 1); }, 3000);
     }
   });
 
@@ -397,7 +409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     playBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (videoEl.paused) {
-        videoEl.play();
+        playerSession?.play();
       } else {
         videoEl.pause();
       }
@@ -471,12 +483,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (fullscreenBtn) {
     fullscreenBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (videoEl.requestFullscreen) {
-        videoEl.requestFullscreen();
-      } else if (videoEl.webkitEnterFullscreen) {
-        videoEl.webkitEnterFullscreen(); // iOS Safari
+      if (videoEl.webkitEnterFullscreen && !videoEl.classList.contains('hidden')) {
+        videoEl.webkitEnterFullscreen();
       } else if (playerWrapper.requestFullscreen) {
-        playerWrapper.requestFullscreen();
+        const request = playerWrapper.requestFullscreen();
+        request?.catch(() => notify('Trình duyệt chưa cho phép toàn màn hình.', 'error'));
       }
     });
   }
@@ -511,82 +522,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     epDrawerBackdrop.classList.remove('active');
   }
 
-  // Continue Watching Persistence
-  function saveContinueWatching(movie, ep) {
-    try {
-      const STORAGE_KEY = 'TTPhim_continue_watching';
-      let list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      list = list.filter(item => item.slug !== movie.slug);
-      list.unshift({
-        slug: movie.slug,
-        name: movie.name,
-        thumb_url: movie.thumb_url || movie.poster_url,
-        episode: ep.name || 'Tập 1',
-        episode_slug: ep.slug,
-        server_name: allServers[currentServerIndex]?.server_name || 'VIP',
-        updated_at: Date.now()
-      });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 15)));
-    } catch(e) {}
-  }
 
-  // Comments System (Local demo storage)
-  function setupComments(movieSlug) {
-    const STORAGE_KEY = `TTPhim_comments_${movieSlug}`;
-    
-    function getStoredComments() {
-      const defaultComments = [
-        { name: 'Hoàng Long', time: '10 phút trước', text: 'Chất lượng 4K nét căng mượt mà, âm thanh vòm sống động ghê!' },
-        { name: 'Thanh Thảo', time: '30 phút trước', text: 'Tập này gay cấn quá mọi người ơi, hóng tập sau xỉu!' },
-        { name: 'Tuấn Anh', time: '2 giờ trước', text: 'Server tốc độ cao tải nhanh không hề giật lag, 10/10.' }
-      ];
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : defaultComments;
-      } catch(e) {
-        return defaultComments;
-      }
-    }
-
+  // Real comments shared with the desktop player.
+  async function setupComments(movieSlug) {
+    let comments = [];
     function renderComments() {
       if (!commentList) return;
-      const list = getStoredComments();
-      commentList.innerHTML = '';
-      list.forEach(c => {
+      commentList.replaceChildren();
+      comments.forEach(comment => {
         const item = document.createElement('div');
         item.className = 'p-2.5 rounded-xl bg-surface-container flex flex-col gap-1 border border-white/5';
-        item.innerHTML = `
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-white">${c.name}</span>
-            <span class="text-[10px] text-on-surface-variant">${c.time}</span>
-          </div>
-          <p class="text-xs text-on-surface leading-relaxed">${c.text}</p>
-        `;
+        const name = document.createElement('strong');
+        name.textContent = comment.user_name || 'Khán giả';
+        const content = document.createElement('p');
+        content.textContent = comment.content || '';
+        item.append(name, content);
         commentList.appendChild(item);
       });
+      if (!comments.length) commentList.textContent = 'Chưa có bình luận. Hãy chia sẻ cảm nhận của bạn.';
     }
-
-    renderComments();
-
+    try { comments = await API.getComments(movieSlug); renderComments(); }
+    catch (_) { if (commentList) commentList.textContent = 'Không thể tải bình luận.'; }
     if (commentSend && commentInput) {
-      commentSend.addEventListener('click', () => {
-        const txt = commentInput.value.trim();
-        if (!txt) return;
-        const list = getStoredComments();
-        list.unshift({
-          name: 'Bạn',
-          time: 'Vừa xong',
-          text: txt
-        });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-        commentInput.value = '';
-        renderComments();
-        if (window.MobileApp) MobileApp.showToast('Đã gửi bình luận');
+      commentSend.addEventListener('click', async () => {
+        const content = commentInput.value.trim();
+        if (!content || commentSend.disabled) return;
+        commentSend.disabled = true;
+        try {
+          const result = await API.postComment(movieSlug, { content, user_name: user?.name || 'Khán giả' });
+          if (!result.status) throw new Error(result.message);
+          comments.unshift(result.data);
+          commentInput.value = '';
+          renderComments();
+          notify('Đã gửi bình luận');
+        } catch (error) { notify(error.message || 'Không thể gửi bình luận', 'error'); }
+        finally { commentSend.disabled = false; }
       });
-
-      commentInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') commentSend.click();
-      });
+      commentInput.addEventListener('keydown', event => { if (event.key === 'Enter') commentSend.click(); });
     }
   }
 

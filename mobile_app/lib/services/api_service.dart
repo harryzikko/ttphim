@@ -1,11 +1,66 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
+import 'app_config.dart';
+import 'storage_service.dart';
+import 'backend_service.dart';
 
 class ApiService {
   static const String baseUrl = 'https://phimapi.com';
-  static final http.Client _client = http.Client();
+  static http.Client _client = http.Client();
+
+  @visibleForTesting
+  static void setClientForTesting(http.Client client) {
+    _client = client;
+    BackendService.setClientForTesting(client);
+    _home = null;
+    _homeFetchedAt = null;
+    _homePending = null;
+  }
+  static Map<String, dynamic>? _home;
+  static DateTime? _homeFetchedAt;
+  static Future<Map<String, dynamic>?>? _homePending;
+
+  static Future<Map<String, dynamic>?> _backend(String path, {Map<String, String>? query, Map<String, dynamic>? body}) =>
+      BackendService.request(path, query: query, body: body);
+
+  static Future<Map<String, dynamic>?> restoreSession() async {
+    try {
+      final token = await StorageService.getToken();
+      if (token == null) return null;
+      final result = await BackendService.request('/api/auth/me', token: token);
+      if (await StorageService.getToken() != token) return StorageService.getUser();
+      if (result?['status'] == true && result?['data'] is Map<String, dynamic>) {
+        await StorageService.saveSession(token, result!['data'] as Map<String, dynamic>);
+      } else if (result != null) { await StorageService.clearSession(); }
+    } catch (_) { /* Preserve a saved session while temporarily offline. */ }
+    try { return await StorageService.getUser(); } catch (_) { return null; }
+  }
+
+  static Future<void> logout() async {
+    // Tokens are stateless; remove local credentials even without connectivity.
+    await StorageService.clearSession();
+  }
+
+  static Future<Map<String, dynamic>?> _getHome() async {
+    if (_home != null && DateTime.now().difference(_homeFetchedAt!) < const Duration(minutes: 5)) return _home;
+    if (_homePending != null) return _homePending;
+    final pending = () async {
+      try {
+        final response = await _backend('/api/home');
+        if (response?['status'] == true && response?['data'] is Map<String, dynamic>) {
+          _home = response!['data'] as Map<String, dynamic>;
+          _homeFetchedAt = DateTime.now();
+          return _home;
+        }
+      } catch (_) {}
+      return null;
+    }();
+    _homePending = pending;
+    try { return await pending; } finally { _homePending = null; }
+  }
 
   /// Default fallback list of pinned featured movies from website settings
   static final List<Movie> _defaultFeaturedMovies = [
@@ -101,67 +156,19 @@ class ApiService {
 
   /// Get Featured / Spotlight Movies (Synchronized 100% with Website Admin Settings)
   static Future<List<Movie>> getFeaturedMovies() async {
-    try {
-      // Fetch dynamic db.json from GitHub repo (always up-to-date with website commits)
-      final uri = Uri.parse('https://raw.githubusercontent.com/harryzikko/ttphim/main/data/db.json');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 4));
-      if (res.statusCode == 200) {
-        final data = json.decode(utf8.decode(res.bodyBytes));
-        if (data is Map && data['settings'] is Map && data['settings']['featured_slugs'] is List) {
-          final list = (data['settings']['featured_slugs'] as List)
-              .whereType<Map<String, dynamic>>()
-              .map((item) => Movie(
-                    id: item['slug']?.toString() ?? '',
-                    name: item['name']?.toString() ?? '',
-                    slug: item['slug']?.toString() ?? '',
-                    originName: item['origin_name']?.toString() ?? '',
-                    posterUrl: item['poster_url']?.toString() ?? '',
-                    thumbUrl: item['thumb_url']?.toString() ?? item['poster_url']?.toString() ?? '',
-                    year: item['year'] is int ? item['year'] : int.tryParse(item['year']?.toString() ?? ''),
-                    quality: item['quality']?.toString() ?? 'HD',
-                    lang: item['has_song_ngu'] == true ? 'Song Ngữ' : 'Vietsub',
-                    episodeCurrent: item['episode_current']?.toString() ?? 'Full',
-                    voteAverage: 9.0,
-                  ))
-              .toList();
-          if (list.isNotEmpty) return list;
-        }
-      }
-    } catch (_) {}
-
+    final home = await _getHome();
+    if (home?['spotlights'] is List) {
+      return (home!['spotlights'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+    }
     return _defaultFeaturedMovies;
   }
 
   /// Get Top 10 Ranking Movies (Synchronized with Website View Counts)
   static Future<List<Movie>> getTopRankings() async {
-    try {
-      final uri = Uri.parse('https://raw.githubusercontent.com/harryzikko/ttphim/main/data/db.json');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 4));
-      if (res.statusCode == 200) {
-        final data = json.decode(utf8.decode(res.bodyBytes));
-        if (data is Map && data['movie_views'] is Map) {
-          final viewsMap = data['movie_views'] as Map<String, dynamic>;
-          // Sort slugs by views descending
-          final sortedEntries = viewsMap.entries.toList()
-            ..sort((a, b) => ((b.value as num?) ?? 0).compareTo((a.value as num?) ?? 0));
-
-          // Fetch details for top 10 slugs
-          final top10Slugs = sortedEntries.take(10).map((e) => e.key).toList();
-          final List<Movie> rankingMovies = [];
-          
-          for (final slug in top10Slugs) {
-            final detailRes = await getMovieDetail(slug);
-            if (detailRes != null) {
-              rankingMovies.add(detailRes.movie);
-            }
-          }
-
-          if (rankingMovies.isNotEmpty) return rankingMovies;
-        }
-      }
-    } catch (_) {}
-
-    // Fallback to newest movies if ranking fetch fails
+    final home = await _getHome();
+    if (home?['rankings'] is List) {
+      return (home!['rankings'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+    }
     return getNewMovies(page: 1);
   }
 
@@ -293,6 +300,12 @@ class ApiService {
   /// Get complete movie details & streaming episodes
   static Future<MovieDetailResponse?> getMovieDetail(String slug) async {
     try {
+      final response = await _backend('/api/movies/${Uri.encodeComponent(slug)}');
+      if (response?['status'] == true && response?['data'] is Map<String, dynamic>) {
+        return MovieDetailResponse.fromJson(response!['data'] as Map<String, dynamic>);
+      }
+    } catch (_) {}
+    try {
       final uri = Uri.parse('$baseUrl/phim/$slug');
       final res = await _client.get(uri).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) {
@@ -307,112 +320,52 @@ class ApiService {
 
   /// Authorize Android TV session via QR Token or 6-digit PIN
   static Future<Map<String, dynamic>> authorizeTvSession(String codeOrToken) async {
+    if (!AppConfig.hasBackend) return {'success': false, 'message': 'Chưa cấu hình BACKEND_URL khi build ứng dụng'};
+    if (await StorageService.getToken() == null) return {'success': false, 'message': 'Vui lòng đăng nhập tài khoản trước khi xác nhận TV'};
     try {
-      String cleanCode = codeOrToken.trim();
-      if (cleanCode.contains('token=')) {
-        final uri = Uri.tryParse(cleanCode);
-        if (uri != null && uri.queryParameters.containsKey('token')) {
-          cleanCode = uri.queryParameters['token']!;
-        }
-      }
-
-      final serverUrls = [
-        'http://localhost:3001',
-        'http://10.0.2.2:3001',
-        'http://localhost:3000',
-        'http://10.0.2.2:3000',
-      ];
-
-      for (final host in serverUrls) {
-        try {
-          final uri = Uri.parse('$host/api/auth/tv/authorize');
-          final res = await _client.post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode({'token': cleanCode, 'code': cleanCode}),
-          ).timeout(const Duration(seconds: 4));
-
-          if (res.statusCode == 200) {
-            final data = json.decode(utf8.decode(res.bodyBytes));
-            return {'success': true, 'message': data['message'] ?? 'Xác thực TV thành công!'};
-          } else if (res.statusCode == 400) {
-            final data = json.decode(utf8.decode(res.bodyBytes));
-            return {'success': false, 'message': data['message'] ?? 'Mã kích hoạt không đúng hoặc đã hết hạn'};
-          }
-        } catch (_) {}
-      }
-
-      return {'success': false, 'message': 'Không thể kết nối đến máy chủ xác thực TV'};
-    } catch (e) {
-      return {'success': false, 'message': 'Lỗi kết nối: ${e.toString()}'};
-    }
+      var identifier = codeOrToken.trim();
+      final parsed = Uri.tryParse(identifier);
+      identifier = parsed?.queryParameters['token'] ?? identifier;
+      final response = await _backend('/api/auth/tv/authorize', body: {'token': identifier});
+      return {'success': response?['status'] == true, 'message': response?['message'] ?? 'Không thể xác nhận TV'};
+    } catch (_) { return {'success': false, 'message': 'Không thể kết nối đến máy chủ xác thực TV'}; }
   }
 
   /// Get person details with TMDb biography and filmography
   static Future<Map<String, dynamic>?> getPersonDetail(String name) async {
-    final serverUrls = [
-      'http://localhost:3001',
-      'http://10.0.2.2:3001',
-      'http://localhost:3000',
-      'http://10.0.2.2:3000',
-    ];
-    for (final host in serverUrls) {
-      try {
-        final uri = Uri.parse('$host/api/person/${Uri.encodeComponent(name)}');
-        final res = await _client.get(uri).timeout(const Duration(seconds: 5));
-        if (res.statusCode == 200) {
-          final data = json.decode(utf8.decode(res.bodyBytes));
-          if (data['status'] == true && data['data'] != null) {
-            return data['data'] as Map<String, dynamic>;
-          }
-        }
-      } catch (_) {}
-    }
+    try {
+      final response = await _backend('/api/person/${Uri.encodeComponent(name)}');
+      if (response?['status'] == true && response?['data'] is Map<String, dynamic>) return response!['data'] as Map<String, dynamic>;
+    } catch (_) {}
     return null;
   }
 
   /// Request a new TV QR login session
   static Future<Map<String, dynamic>?> createTvSession() async {
-    final serverUrls = [
-      'http://localhost:3001',
-      'http://10.0.2.2:3001',
-      'http://localhost:3000',
-      'http://10.0.2.2:3000',
-    ];
-    for (final host in serverUrls) {
-      try {
-        final uri = Uri.parse('$host/api/auth/tv/session');
-        final res = await _client.post(uri).timeout(const Duration(seconds: 4));
-        if (res.statusCode == 200) {
-          final data = json.decode(utf8.decode(res.bodyBytes));
-          if (data['status'] == true && data['data'] != null) {
-            return data['data'] as Map<String, dynamic>;
-          }
-        }
-      } catch (_) {}
-    }
+    try {
+      final response = await _backend('/api/auth/tv/session', body: {});
+      if (response?['status'] == true && response?['data'] is Map<String, dynamic>) return response!['data'] as Map<String, dynamic>;
+    } catch (_) {}
     return null;
   }
 
   /// Poll status of a TV QR login session
   static Future<Map<String, dynamic>?> checkTvSessionStatus(String token) async {
-    final serverUrls = [
-      'http://localhost:3001',
-      'http://10.0.2.2:3001',
-      'http://localhost:3000',
-      'http://10.0.2.2:3000',
-    ];
-    for (final host in serverUrls) {
-      try {
-        final uri = Uri.parse('$host/api/auth/tv/status?token=$token');
-        final res = await _client.get(uri).timeout(const Duration(seconds: 3));
-        if (res.statusCode == 200) {
-          final data = json.decode(utf8.decode(res.bodyBytes));
-          return data as Map<String, dynamic>;
-        }
-      } catch (_) {}
-    }
-    return null;
+    try {
+      return await _backend('/api/auth/tv/status', query: {'token': token});
+    } catch (_) { return null; }
+  }
+
+  static Future<Map<String, dynamic>> login(String email, String password) async {
+    if (!AppConfig.hasBackend) return {'status': false, 'message': 'Chưa cấu hình BACKEND_URL khi build ứng dụng'};
+    try {
+      final response = await _backend('/api/auth/login', body: {'email': email, 'password': password});
+      final data = response?['data'];
+      if (response?['status'] == true && data is Map<String, dynamic> && data['token'] is String && data['user'] is Map<String, dynamic>) {
+        await StorageService.saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
+      }
+      return response ?? {'status': false, 'message': 'Không thể đăng nhập'};
+    } catch (_) { return {'status': false, 'message': 'Không thể kết nối máy chủ'}; }
   }
 }
 

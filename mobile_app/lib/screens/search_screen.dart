@@ -19,6 +19,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isSearching = false;
   List<Movie> _results = [];
   bool _hasSearched = false;
+  int _searchGeneration = 0;
 
   final List<String> _trendingKeywords = [
     'Batman',
@@ -42,6 +43,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _onQueryChanged(String query) {
     _debounceTimer?.cancel();
+    _searchGeneration++;
     if (query.trim().isEmpty) {
       setState(() {
         _results = [];
@@ -57,6 +59,9 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _performSearch(String query) async {
+    if (!mounted) return;
+    _debounceTimer?.cancel();
+    final generation = ++_searchGeneration;
     setState(() {
       _isSearching = true;
       _hasSearched = true;
@@ -64,7 +69,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     final res = await ApiService.searchMovies(query);
 
-    if (mounted) {
+    if (mounted && generation == _searchGeneration) {
       setState(() {
         _results = res;
         _isSearching = false;

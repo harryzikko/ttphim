@@ -5,7 +5,6 @@ import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
 import 'tv_card.dart';
-import 'tv_detail_screen.dart';
 
 class TvHomeScreen extends StatefulWidget {
   final Function(Movie) onMovieSelect;
@@ -47,7 +46,7 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
           slug: h.movieSlug,
           originName: h.episodeName,
           posterUrl: h.posterUrl,
-          thumbUrl: h.thumbUrl,
+          thumbUrl: h.posterUrl,
           quality: 'FHD',
         ),
       );
@@ -137,7 +136,7 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
   }
 
   Widget _buildHeroBillboard(Movie m) {
-    final backdrop = m.thumbUrl.isNotEmpty ? m.thumbUrl : m.posterUrl;
+    final backdrop = m.fullThumbUrl;
 
     return Container(
       height: 440,
@@ -155,7 +154,7 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
             child: CachedNetworkImage(
               imageUrl: backdrop,
               fit: BoxFit.cover,
-              errorWidget: (_, __) => Container(color: const Color(0xFF191B24)),
+              errorWidget: (_, __, ___) => Container(color: const Color(0xFF191B24)),
             ),
           ),
 

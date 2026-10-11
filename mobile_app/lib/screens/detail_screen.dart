@@ -52,16 +52,16 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   Future<void> _toggleFavorite() async {
     final movieToSave = _detail?.movie ?? widget.initialMovie;
     if (movieToSave != null) {
-      final newState = await StorageService.toggleFavorite(movieToSave);
-      if (mounted) {
+      try {
+        final newState = await StorageService.toggleFavorite(movieToSave);
+        if (!mounted) return;
         setState(() => _isFavorite = newState);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(newState ? 'Đã thêm vào danh sách yêu thích' : 'Đã xóa khỏi danh sách yêu thích'),
-            backgroundColor: AppTheme.surface,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(newState ? 'Đã thêm vào danh sách yêu thích' : 'Đã xóa khỏi danh sách yêu thích'),
+          backgroundColor: AppTheme.surface, duration: const Duration(seconds: 2),
+        ));
+      } catch (error) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
       }
     }
   }
@@ -575,7 +575,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                             imageUrl: avatarUrl,
                             fit: BoxFit.cover,
                             placeholder: (_, __) => Container(color: AppTheme.card),
-                            errorWidget: (_, __) => const Icon(Icons.person, color: Colors.white54),
+                            errorWidget: (_, __, ___) => const Icon(Icons.person, color: Colors.white54),
                           ),
                         ),
                       ),

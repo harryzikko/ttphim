@@ -18,7 +18,7 @@ setInterval(() => {
       tvSessions.delete(token);
     }
   }
-}, 60000);
+}, 60000).unref();
 
 class TvAuthService {
   /**
@@ -27,8 +27,10 @@ class TvAuthService {
   createSession(baseUrl = '') {
     const token = crypto.randomBytes(24).toString('hex');
     // Generate a clean 6-digit or 6-char alphanumeric code (e.g. 842913 or TV-9481)
-    const randomDigits = Math.floor(100000 + Math.random() * 900000).toString();
-    const code = randomDigits;
+    let code;
+    do {
+      code = crypto.randomInt(100000, 1000000).toString();
+    } while (codeToTokenMap.has(code));
 
     const now = Date.now();
     const session = {
@@ -109,6 +111,9 @@ class TvAuthService {
       codeToTokenMap.delete(session.code);
       tvSessions.delete(token);
       return { success: false, message: 'Mã đăng nhập TV đã hết hạn. Vui lòng lấy mã mới trên TV.' };
+    }
+    if (session.status !== 'pending') {
+      return { success: false, message: 'Phiên đăng nhập TV đã được xác thực' };
     }
 
     // Generate JWT token for this user

@@ -6,6 +6,7 @@ const kkphimService = require('../services/kkphimService');
 const templateService = require('../services/templateService');
 const tmdbService = require('../services/tmdbService');
 const dbService = require('../services/dbService');
+const { renderHomePage } = require('../services/homePageService');
 const router = express.Router();
 
 const publicFile = (file) => path.join(config.PUBLIC_DIR, file);
@@ -77,9 +78,9 @@ router.get(['/tv/dang-nhap', '/tv/qr-login'], (req, res) => res.sendFile(tvFile(
 // Home Page with Server-Side Hydration of real KKPhim data
 router.get('/', async (req, res) => {
   try {
-    const rawHtml = await fs.readFile(publicFile('index.html'), 'utf8');
     const homeData = await kkphimService.getHomeData();
-    const rendered = templateService.renderHome(rawHtml, homeData);
+    const rendered = await renderHomePage(homeData);
+    res.set('Cache-Control', 'private, no-cache');
     res.send(rendered);
   } catch (err) {
     console.error('Error rendering home view:', err);
@@ -127,9 +128,14 @@ router.get('/phim/:slug', async (req, res) => {
 });
 
 // Watch Movie Player with Server-Side Hydration
+async function readWatchTemplate() {
+  return (await fs.readFile(publicFile('xem-phim.html'), 'utf8'))
+    .replace('<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>', '');
+}
+router.get('/xem-phim.html', async (req, res) => res.send(await readWatchTemplate()));
 async function handleWatchView(req, res) {
   try {
-    const rawHtml = await fs.readFile(publicFile('xem-phim.html'), 'utf8');
+    const rawHtml = await readWatchTemplate();
     const slug = req.params.slug;
     const epSlug = req.params.episode;
     const serverParam = req.query.server;
@@ -141,13 +147,13 @@ async function handleWatchView(req, res) {
     ]);
 
     if (!movieData || !movieData.movie) {
-      return res.sendFile(publicFile('xem-phim.html'));
+      return res.send(rawHtml);
     }
     const rendered = templateService.renderWatch(rawHtml, movieData, epSlug, comments, requestedServerIdx);
     res.send(rendered);
   } catch (err) {
     console.error('Error rendering watch view:', err);
-    res.sendFile(publicFile('xem-phim.html'));
+    res.send(await readWatchTemplate());
   }
 }
 

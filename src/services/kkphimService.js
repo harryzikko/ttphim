@@ -107,6 +107,37 @@ class KKPhimService {
     this.cdnUrl = config.IMAGE_CDN;
     this.totalMovies = 30275;
     this.totalPages = 1262;
+    this.pendingRequests = new Map();
+    for (const name of ['getHomeData', 'getMovieDetail']) {
+      const load = this[name].bind(this);
+      this[name] = (...args) => this.singleFlight(`${name}:${JSON.stringify(args)}`, () => load(...args));
+    }
+  }
+
+  singleFlight(key, load) {
+    if (this.pendingRequests.has(key)) return this.pendingRequests.get(key);
+    const pending = Promise.resolve().then(load).finally(() => this.pendingRequests.delete(key));
+    this.pendingRequests.set(key, pending);
+    return pending;
+  }
+
+  async getRankingMetadata(slug) {
+    const detail = this.cache.get(`movie_${slug}`);
+    if (detail?.movie) return detail.movie;
+    const key = `ranking_${slug}`;
+    const cached = this.cache.get(key);
+    if (cached) return cached;
+    return this.singleFlight(key, async () => {
+      const result = await this.fetchJson(`/phim/${encodeURIComponent(slug)}`);
+      if (!result.movie) return null;
+      const metadata = {
+        view: Number(result.movie.view) || 0,
+        quality: result.movie.quality,
+        year: result.movie.year
+      };
+      this.cache.set(key, metadata, config.CACHE_TTL.HOME);
+      return metadata;
+    });
   }
 
   resolveImageUrl(url) {
@@ -169,14 +200,13 @@ class KKPhimService {
         signal: controller.signal,
         ...options
       });
-      clearTimeout(timeoutId);
+      // Keep the deadline active while the response body is downloading too.
       if (!res.ok) {
         throw new Error(`API request failed with status ${res.status}: ${url}`);
       }
-      return res.json();
-    } catch(err) {
+      return await res.json();
+    } finally {
       clearTimeout(timeoutId);
-      throw err;
     }
   }
 
@@ -243,12 +273,11 @@ class KKPhimService {
       const spotlightCandidates = pinnedCandidates;
 
       // Fetch details for spotlights (hỗ trợ cả 3 nguồn: KKPhim, ViCDN Song Ngữ, NguonC)
-      const spotlightList = [];
-      for (const item of spotlightCandidates.slice(0, 10)) {
+      const spotlightList = await Promise.all(spotlightCandidates.slice(0, 10).map(async item => {
         try {
           const detail = await this.getMovieDetail(item.slug);
           if (detail && detail.movie) {
-            spotlightList.push({
+            return {
               id: detail.movie.id || item.slug,
               name: detail.movie.name || item.name || item.slug,
               slug: detail.movie.slug || item.slug,
@@ -265,8 +294,7 @@ class KKPhimService {
               category: (Array.isArray(detail.movie.category) ? detail.movie.category.map(c => c.name || c) : (Array.isArray(item.category) ? item.category : ['Thịnh Hành', 'Đặc Sắc'])).slice(0, 3),
               first_episode_slug: detail.episodes?.[0]?.server_data?.[0]?.slug || 'tap-1',
               trailer_url: detail.movie.trailer_url || item.trailer_url || ''
-            });
-            continue;
+            };
           }
         } catch (e) {
           console.warn(`[Spotlight] Could not fetch remote detail for pinned movie "${item.slug}":`, e.message);
@@ -274,7 +302,7 @@ class KKPhimService {
 
         // Fallback for pinned item when remote fetch is slow or cached
         if (item.name || item.slug) {
-          spotlightList.push({
+          return {
             id: item.id || item.slug,
             name: item.name || item.slug,
             slug: item.slug,
@@ -291,9 +319,10 @@ class KKPhimService {
             category: Array.isArray(item.category) ? item.category : ['Thịnh Hành', 'Đặc Sắc'],
             first_episode_slug: 'tap-1',
             trailer_url: ''
-          });
+          };
         }
-      }
+        return null;
+      }));
 
       // Real Ranking leaderboard (Top 10 Thịnh Hành dựa trên lượt xem thực tế 100%)
       let rankingItems = [];
@@ -319,9 +348,9 @@ class KKPhimService {
         await Promise.all(
           candidatesToFetch.map(async (c) => {
             try {
-              const d = await this.getMovieDetail(c.slug);
-              if (d && d.movie) {
-                detailMap.set(c.slug, d.movie);
+              const movie = await this.getRankingMetadata(c.slug);
+              if (movie) {
+                detailMap.set(c.slug, movie);
               }
             } catch (e) {}
           })
@@ -371,7 +400,7 @@ class KKPhimService {
       }
 
       const homeData = {
-        spotlights: spotlightList, // Tuyệt đối chỉ lấy phim do admin ghim, không fallback!
+        spotlights: spotlightList.filter(Boolean), // Only movies pinned by admin.
         latest: latestItems,
         cinema: cinemaItems,
         series: seriesItems,

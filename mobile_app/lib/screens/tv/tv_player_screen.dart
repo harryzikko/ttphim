@@ -35,6 +35,8 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   bool _isEmbedMode = false;
   bool _isLoading = true;
   String? _errorMessage;
+  int _playerGeneration = 0;
+  bool _autoNext = true;
 
   bool _showControls = true;
   Timer? _hideControlsTimer;
@@ -44,10 +46,6 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   String? _hudMessage;
   Timer? _hudTimer;
 
-  // Auto-next Episode
-  EpisodeItem? _nextEpisode;
-  int _countdown = 5;
-  Timer? _countdownTimer;
 
   final FocusNode _playPauseFocus = FocusNode();
   final FocusNode _rwFocus = FocusNode();
@@ -68,9 +66,10 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
 
   @override
   void dispose() {
+    _saveProgress();
+    _playerGeneration++;
     _hideControlsTimer?.cancel();
     _hudTimer?.cancel();
-    _countdownTimer?.cancel();
     _historyTimer?.cancel();
     _controller?.removeListener(_videoListener);
     _controller?.dispose();
@@ -93,30 +92,37 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     _hideControlsTimer?.cancel();
     _hideControlsTimer = Timer(const Duration(seconds: 4), () {
       if (mounted && (_controller?.value.isPlaying ?? false)) {
+        if (_playPauseFocus.hasFocus || _rwFocus.hasFocus || _ffFocus.hasFocus) return;
         setState(() => _showControls = false);
       }
     });
   }
 
   Future<void> _initPlayer({bool forceEmbed = false}) async {
+    if (!mounted) return;
+    final generation = ++_playerGeneration;
+    final episode = _currentEpisode;
+    bool isCurrent() => mounted && generation == _playerGeneration;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    _controller?.removeListener(_videoListener);
-    await _controller?.dispose();
+    final previous = _controller;
     _controller = null;
+    previous?.removeListener(_videoListener);
+    await previous?.dispose();
+    if (!isCurrent()) return;
 
-    if (forceEmbed && _currentEpisode.linkEmbed.isNotEmpty) {
-      _initEmbedPlayer(_currentEpisode.linkEmbed);
+    if (forceEmbed && episode.linkEmbed.isNotEmpty) {
+      _initEmbedPlayer(episode.linkEmbed);
       return;
     }
 
-    String streamUrl = _currentEpisode.linkM3u8.trim();
-    if (streamUrl.isEmpty && _currentEpisode.linkEmbed.isNotEmpty) {
+    String streamUrl = episode.linkM3u8.trim();
+    if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
       // Check if .m3u8 is embedded in URL parameter
-      final uri = Uri.tryParse(_currentEpisode.linkEmbed);
+      final uri = Uri.tryParse(episode.linkEmbed);
       final param = uri?.queryParameters['url'] ?? uri?.queryParameters['file'];
       if (param != null && param.contains('.m3u8')) {
         streamUrl = Uri.decodeFull(param);
@@ -124,8 +130,8 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     }
 
     if (streamUrl.isEmpty) {
-      if (_currentEpisode.linkEmbed.isNotEmpty) {
-        _initEmbedPlayer(_currentEpisode.linkEmbed);
+      if (episode.linkEmbed.isNotEmpty) {
+        _initEmbedPlayer(episode.linkEmbed);
         return;
       } else {
         setState(() {
@@ -137,6 +143,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     }
 
     _isEmbedMode = false;
+    VideoPlayerController? pendingController;
     try {
       final ctrl = VideoPlayerController.networkUrl(
         Uri.parse(streamUrl),
@@ -145,13 +152,23 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
           'Referer': 'https://phimapi.com/',
         },
       );
+      pendingController = ctrl;
 
-      await ctrl.initialize();
+      await ctrl.initialize().timeout(const Duration(seconds: 20));
+      if (!isCurrent()) return;
+      final history = await StorageService.getHistoryForMovie(widget.movie.slug);
+      _autoNext = await StorageService.getAutoNext();
+      if (!isCurrent()) return;
+      if (history != null && history.episodeSlug == episode.slug && history.progressPercentage < 0.95 && history.positionSeconds > 5 && history.positionSeconds < ctrl.value.duration.inSeconds) {
+        await ctrl.seekTo(Duration(seconds: history.positionSeconds));
+        if (!isCurrent()) return;
+      }
       await ctrl.play();
+      if (!isCurrent()) return;
 
       ctrl.addListener(_videoListener);
 
-      if (mounted) {
+      if (isCurrent()) {
         setState(() {
           _controller = ctrl;
           _isLoading = false;
@@ -159,11 +176,18 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
         _resetControlsTimer();
       }
     } catch (e) {
+      if (!isCurrent()) return;
+      if (episode.linkEmbed.isNotEmpty) { _initEmbedPlayer(episode.linkEmbed); return; }
       if (mounted) {
         setState(() {
           _isLoading = false;
           _errorMessage = 'Lỗi phát HLS: $e';
         });
+      }
+    }
+    finally {
+      if (pendingController != null && !identical(pendingController, _controller)) {
+        await pendingController.dispose();
       }
     }
   }
@@ -234,6 +258,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   }
 
   void _triggerAutoNextEpisode() {
+    if (!_autoNext) return;
     final epIndex = _currentServer.episodes.indexWhere((e) => e.slug == _currentEpisode.slug);
     if (epIndex >= 0 && epIndex < _currentServer.episodes.length - 1) {
       final next = _currentServer.episodes[epIndex + 1];
@@ -242,6 +267,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   }
 
   void _switchEpisode(EpisodeItem ep) {
+    _saveProgress();
     setState(() {
       _currentEpisode = ep;
     });
@@ -253,57 +279,47 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     final pos = _controller!.value.position.inSeconds;
     final dur = _controller!.value.duration.inSeconds;
     if (dur > 0 && pos > 5) {
-      await StorageService.saveHistory(
-        movie: widget.movie,
+      await StorageService.saveHistory(WatchHistoryItem(
+        movieSlug: widget.movie.slug,
+        movieName: widget.movie.name,
+        posterUrl: widget.movie.posterUrl,
         episodeSlug: _currentEpisode.slug,
         episodeName: _currentEpisode.name,
         positionSeconds: pos,
         durationSeconds: dur,
         serverName: _currentServer.serverName,
-      );
+        updatedAt: DateTime.now(),
+      ));
     }
   }
 
   KeyEventResult _handleRemoteKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-    _resetControlsTimer();
-
     final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
-      if (_controller != null) {
-        if (_controller!.value.isPlaying) {
-          _controller!.pause();
-          _showHud('Tạm Dừng');
-        } else {
-          _controller!.play();
-          _showHud('Đang Phát');
-        }
-        setState(() {});
-        return KeyEventResult.handled;
-      }
-    } else if (key == LogicalKeyboardKey.arrowLeft) {
-      if (_controller != null) {
-        final newPos = _controller!.value.position - const Duration(seconds: 10);
-        _controller!.seekTo(newPos > Duration.zero ? newPos : Duration.zero);
-        _showHud('<< 10s');
-        return KeyEventResult.handled;
-      }
-    } else if (key == LogicalKeyboardKey.arrowRight) {
-      if (_controller != null) {
-        final newPos = _controller!.value.position + const Duration(seconds: 10);
-        _controller!.seekTo(newPos);
-        _showHud('10s >>');
-        return KeyEventResult.handled;
-      }
-    } else if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp) {
-      setState(() => _showControls = !_showControls);
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
+    if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
       Navigator.pop(context);
       return KeyEventResult.handled;
     }
-
+    if (_showControls) return KeyEventResult.ignored;
+    if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp) {
+      _resetControlsTimer();
+      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _playPauseFocus.requestFocus(); });
+      return KeyEventResult.handled;
+    }
+    if (_controller == null || !_controller!.value.isInitialized) return KeyEventResult.ignored;
+    if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(key)) {
+      if (_controller!.value.isPlaying) { _controller!.pause(); _saveProgress(); }
+      else { _controller!.play(); }
+      _resetControlsTimer();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight) {
+      final delta = key == LogicalKeyboardKey.arrowLeft ? -10 : 10;
+      final seconds = (_controller!.value.position.inSeconds + delta).clamp(0, _controller!.value.duration.inSeconds);
+      _controller!.seekTo(Duration(seconds: seconds));
+      _showHud(delta < 0 ? '<< 10s' : '10s >>');
+      return KeyEventResult.handled;
+    }
     return KeyEventResult.ignored;
   }
 
@@ -487,6 +503,18 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                       Row(
                         children: [
                           ElevatedButton.icon(
+                            focusNode: _playPauseFocus,
+                            onPressed: _controller == null ? null : () {
+                              if (_controller!.value.isPlaying) { _controller!.pause(); _saveProgress(); }
+                              else { _controller!.play(); }
+                              setState(() {});
+                            },
+                            icon: Icon((_controller?.value.isPlaying ?? false) ? Icons.pause : Icons.play_arrow),
+                            label: Text((_controller?.value.isPlaying ?? false) ? 'Tạm dừng' : 'Phát'),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            focusNode: _ffFocus,
                             onPressed: () => _openTvEpisodesSheet(),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.card,
@@ -498,6 +526,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                           ),
                           const SizedBox(width: 12),
                           OutlinedButton.icon(
+                            focusNode: _rwFocus,
                             onPressed: () => _openTvServerSheet(),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,

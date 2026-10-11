@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'tv/tv_main_screen.dart';
+import 'account_screen.dart';
+import '../services/storage_service.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,9 +15,20 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _autoNextEpisode = true;
-  String _preferredQuality = '1080p Full HD';
 
-  void _clearCache() {
+  @override
+  void initState() {
+    super.initState();
+    StorageService.getAutoNext().then((enabled) {
+      if (mounted) setState(() => _autoNextEpisode = enabled);
+    });
+  }
+
+  Future<void> _clearCache() async {
+    await DefaultCacheManager().emptyCache();
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Đã dọn dẹp bộ nhớ đệm cache sạch sẽ!'),
@@ -35,6 +49,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(16),
         physics: const BouncingScrollPhysics(),
         children: [
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Tài khoản & đồng bộ'),
+            subtitle: const Text('Đăng nhập, đăng xuất và đồng bộ với website'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountScreen())),
+          ),
           // 100% Free VIP Pass Card
           Container(
             padding: const EdgeInsets.all(20),
@@ -160,45 +180,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   subtitle: const Text('Tự chuyển tập khi xem hết phim bộ', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
                   value: _autoNextEpisode,
                   activeColor: AppTheme.primary,
-                  onChanged: (val) => setState(() => _autoNextEpisode = val),
+                  onChanged: (val) {
+                    setState(() => _autoNextEpisode = val);
+                    StorageService.setAutoNext(val);
+                  },
                 ),
                 const Divider(color: AppTheme.border, height: 1),
-                ListTile(
-                  title: const Text('Chất lượng phát ưu tiên', style: TextStyle(color: Colors.white, fontSize: 14)),
-                  subtitle: Text(_preferredQuality, style: const TextStyle(color: AppTheme.primaryLight, fontSize: 12)),
-                  trailing: const Icon(Icons.chevron_right, color: AppTheme.textMuted),
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      backgroundColor: AppTheme.surface,
-                      builder: (ctx) => Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            title: const Text('1080p Full HD (Khuyên dùng)', style: TextStyle(color: Colors.white)),
-                            onTap: () {
-                              setState(() => _preferredQuality = '1080p Full HD');
-                              Navigator.pop(ctx);
-                            },
-                          ),
-                          ListTile(
-                            title: const Text('720p HD (Tiết kiệm dữ liệu)', style: TextStyle(color: Colors.white)),
-                            onTap: () {
-                              setState(() => _preferredQuality = '720p HD');
-                              Navigator.pop(ctx);
-                            },
-                          ),
-                          ListTile(
-                            title: const Text('Tự động thích ứng (Auto)', style: TextStyle(color: Colors.white)),
-                            onTap: () {
-                              setState(() => _preferredQuality = 'Tự động');
-                              Navigator.pop(ctx);
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                const ListTile(
+                  title: Text('Chất lượng tự thích ứng', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  subtitle: Text('Player tự chọn chất lượng theo nguồn và tốc độ mạng. App không ép 1080p/4K khi nguồn không có.',
+                    style: TextStyle(color: AppTheme.primaryLight, fontSize: 12)),
                 ),
               ],
             ),
@@ -280,7 +271,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   leading: const Icon(Icons.cleaning_services_rounded, color: AppTheme.primaryLight),
                   title: const Text('Xóa bộ nhớ đệm cache', style: TextStyle(color: Colors.white, fontSize: 14)),
                   subtitle: const Text('Giải phóng dung lượng hình ảnh đã tải', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                  trailing: const Text('~12 MB', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
                   onTap: _clearCache,
                 ),
               ],
@@ -448,6 +438,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                           setModalState(() => isSubmitting = true);
                           final result = await ApiService.authorizeTvSession(input);
+                          if (!ctx.mounted || !mounted) return;
                           setModalState(() => isSubmitting = false);
 
                           if (mounted) {
@@ -496,6 +487,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-    );
+    ).whenComplete(codeController.dispose);
   }
 }

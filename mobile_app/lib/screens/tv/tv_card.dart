@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../models/movie.dart';
 import '../../theme/app_theme.dart';
 
@@ -31,15 +32,18 @@ class _TvMovieCardState extends State<TvMovieCard> {
 
   @override
   Widget build(BuildContext context) {
-    final poster = widget.movie.posterUrl.isNotEmpty
-        ? widget.movie.posterUrl
-        : widget.movie.thumbUrl;
+    final poster = widget.movie.fullPosterUrl;
 
     return Focus(
       onFocusChange: (focused) {
         setState(() => _isFocused = focused);
       },
       onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
+          widget.onSelect();
+          return KeyEventResult.handled;
+        }
         return KeyEventResult.ignored;
       },
       child: GestureDetector(
@@ -85,7 +89,7 @@ class _TvMovieCardState extends State<TvMovieCard> {
                     imageUrl: poster,
                     fit: BoxFit.cover,
                     placeholder: (_, __) => Container(color: AppTheme.card),
-                    errorWidget: (_, __) => Container(
+                    errorWidget: (_, __, ___) => Container(
                       color: AppTheme.card,
                       child: const Center(
                         child: Icon(Icons.movie_creation_rounded, color: Colors.white24, size: 40),

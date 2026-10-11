@@ -6,6 +6,7 @@ import 'tv_card.dart';
 import 'tv_detail_screen.dart';
 import 'tv_home_screen.dart';
 import 'tv_qr_login_screen.dart';
+import '../account_screen.dart';
 
 class TvMainScreen extends StatefulWidget {
   const TvMainScreen({super.key});
@@ -23,6 +24,7 @@ class _TvMainScreenState extends State<TvMainScreen> {
     {'title': 'Khám Phá', 'icon': Icons.grid_view_rounded},
     {'title': 'Tìm Kiếm', 'icon': Icons.search_rounded},
     {'title': 'Đăng Nhập QR', 'icon': Icons.qr_code_scanner_rounded},
+    {'title': 'Tài Khoản', 'icon': Icons.person_rounded},
   ];
 
   void _onMovieSelected(Movie movie) {
@@ -218,6 +220,8 @@ class _TvMainScreenState extends State<TvMainScreen> {
             setState(() => _selectedNavIndex = 0);
           },
         );
+      case 4:
+        return const AccountScreen();
       default:
         return TvHomeScreen(onMovieSelect: _onMovieSelected);
     }
@@ -293,7 +297,7 @@ class _TvMainScreenState extends State<TvMainScreen> {
                 onSubmitted: (query) async {
                   if (query.trim().isEmpty) return;
                   final results = await ApiService.searchMovies(query);
-                  if (mounted) {
+                  if (context.mounted) {
                     showDialog(
                       context: context,
                       builder: (ctx) => AlertDialog(

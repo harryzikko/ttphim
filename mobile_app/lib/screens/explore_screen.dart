@@ -43,6 +43,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
@@ -67,6 +68,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Future<void> _loadMovies({bool isRefresh = false}) async {
+    final generation = ++_loadGeneration;
+    _isLoadingMore = false;
     if (isRefresh) {
       _currentPage = 1;
       _hasMore = true;
@@ -100,7 +103,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       }
     }
 
-    if (mounted) {
+    if (mounted && generation == _loadGeneration) {
       setState(() {
         _movies = results;
         _isLoading = false;
@@ -110,41 +113,45 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Future<void> _loadMore() async {
+    if (_isLoading || _isLoadingMore || !_hasMore) return;
+    final generation = _loadGeneration;
+    final page = _currentPage + 1;
     setState(() => _isLoadingMore = true);
-    _currentPage++;
 
     List<Movie> results = [];
     final catSlug = _categoryFilters[_selectedCategoryIndex]['slug']!;
     final typeSlug = _typeFilters[_selectedTypeIndex]['slug']!;
 
     if (catSlug.isNotEmpty) {
-      results = await ApiService.getMoviesByCategory(catSlug, page: _currentPage);
+      results = await ApiService.getMoviesByCategory(catSlug, page: page);
     } else {
       switch (typeSlug) {
         case 'phim-le':
-          results = await ApiService.getSingleMovies(page: _currentPage);
+          results = await ApiService.getSingleMovies(page: page);
           break;
         case 'phim-bo':
-          results = await ApiService.getSeriesMovies(page: _currentPage);
+          results = await ApiService.getSeriesMovies(page: page);
           break;
         case 'hoat-hinh':
-          results = await ApiService.getAnimeMovies(page: _currentPage);
+          results = await ApiService.getAnimeMovies(page: page);
           break;
         case 'tv-shows':
-          results = await ApiService.getTvShows(page: _currentPage);
+          results = await ApiService.getTvShows(page: page);
           break;
         default:
-          results = await ApiService.getNewMovies(page: _currentPage);
+          results = await ApiService.getNewMovies(page: page);
           break;
       }
     }
 
-    if (mounted) {
+    if (mounted && generation == _loadGeneration) {
       setState(() {
         if (results.isEmpty) {
           _hasMore = false;
         } else {
-          _movies.addAll(results);
+          _currentPage = page;
+          final known = _movies.map((movie) => movie.slug).toSet();
+          _movies.addAll(results.where((movie) => known.add(movie.slug)));
         }
         _isLoadingMore = false;
       });

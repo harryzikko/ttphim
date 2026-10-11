@@ -1,5 +1,5 @@
 ﻿// TTPhim - Mobile Watchlist & Library Controller
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const initialTab = urlParams.get('tab') || 'watchlist';
 
@@ -23,6 +23,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearListBtn = document.getElementById('clearListBtn');
 
   let activeTab = 'watchlist';
+  let library = { watchlist: [], history: [] };
+  const notify = (message, type = 'info') => {
+    if (typeof MobileApp !== 'undefined') MobileApp.toast(message, type);
+  };
+  const normalize = item => ({ ...item, slug: item.movie_slug, name: item.movie_name, episode: item.episode_name });
+  async function refreshLibrary() {
+    library = await API.getLibrary();
+    loadWatchlist();
+    loadHistory();
+    updateSummary();
+  }
+  async function mutate(operation) {
+    try {
+      const result = await operation();
+      if (!result?.status) throw new Error(result?.message || 'Không thể cập nhật thư viện');
+      await refreshLibrary();
+      notify('Đã cập nhật thư viện');
+    } catch (error) {
+      notify(error.message || 'Lỗi kết nối', 'error');
+    }
+  }
 
   const tabButtons = [
     { btn: tabBtnWatchlist, panel: panelWatchlist, id: 'watchlist' },
@@ -55,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Watchlist Rendering
   function loadWatchlist() {
-    const list = window.MobileApp ? MobileApp.getWatchlist() : JSON.parse(localStorage.getItem('TTPhim_watchlist') || '[]');
+    const list = (library.watchlist || []).map(normalize);
     if (badgeWatchlist) badgeWatchlist.textContent = String(list.length);
 
     if (list.length === 0) {
@@ -101,10 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const s = btn.getAttribute('data-slug');
-            if (window.MobileApp) MobileApp.toggleWatchlist({ slug: s });
-            loadWatchlist();
-            updateSummary();
-            if (window.MobileApp) MobileApp.showToast('Đã xóa phim khỏi Danh sách');
+            void mutate(() => API.removeFromWatchlist(s));
           });
         });
       }
@@ -113,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // History Rendering
   function loadHistory() {
-    const list = JSON.parse(localStorage.getItem('TTPhim_continue_watching') || '[]');
+    const list = (library.history || []).map(normalize);
     if (badgeHistory) badgeHistory.textContent = String(list.length);
 
     if (list.length === 0) {
@@ -154,12 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const s = btn.getAttribute('data-slug');
-            let history = JSON.parse(localStorage.getItem('TTPhim_continue_watching') || '[]');
-            history = history.filter(item => item.slug !== s);
-            localStorage.setItem('TTPhim_continue_watching', JSON.stringify(history));
-            loadHistory();
-            updateSummary();
-            if (window.MobileApp) MobileApp.showToast('Đã xóa khỏi Lịch sử');
+            void mutate(() => API.removeFromHistory(s));
           });
         });
       }
@@ -168,10 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateSummary() {
     if (activeTab === 'watchlist') {
-      const list = JSON.parse(localStorage.getItem('TTPhim_watchlist') || '[]');
+      const list = library.watchlist || [];
       if (tabCountSummary) tabCountSummary.textContent = `${list.length} phim trong danh sách`;
     } else if (activeTab === 'history') {
-      const list = JSON.parse(localStorage.getItem('TTPhim_continue_watching') || '[]');
+      const list = library.history || [];
       if (tabCountSummary) tabCountSummary.textContent = `${list.length} tập phim đang xem`;
     } else {
       if (tabCountSummary) tabCountSummary.textContent = `2 phim đã tải về (2.05 GB)`;
@@ -183,17 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
     clearListBtn.addEventListener('click', () => {
       if (activeTab === 'watchlist') {
         if (confirm('Bạn có chắc muốn xóa tất cả phim khỏi Danh sách yêu thích?')) {
-          localStorage.removeItem('TTPhim_watchlist');
-          loadWatchlist();
-          updateSummary();
-          if (window.MobileApp) MobileApp.showToast('Đã xóa toàn bộ Danh sách');
+          void mutate(() => API.request('/api/user/watchlist/batch-remove', {
+            method: 'POST',
+            body: JSON.stringify({ slugs: (library.watchlist || []).map(item => item.movie_slug) })
+          }));
         }
       } else if (activeTab === 'history') {
         if (confirm('Bạn có chắc muốn xóa toàn bộ lịch sử xem dở?')) {
-          localStorage.removeItem('TTPhim_continue_watching');
-          loadHistory();
-          updateSummary();
-          if (window.MobileApp) MobileApp.showToast('Đã xóa toàn bộ Lịch sử');
+          void mutate(() => API.clearHistory());
         }
       } else {
         alert('Đã dọn dẹp các tập phim tải về');
@@ -202,8 +212,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Init
-  loadWatchlist();
-  loadHistory();
   switchTab(initialTab);
+  try {
+    await refreshLibrary();
+  } catch (error) {
+    loadWatchlist();
+    loadHistory();
+    notify(error.message || 'Lỗi tải thư viện', 'error');
+  }
 });
 

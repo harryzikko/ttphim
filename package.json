@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
+    "test": "node --test tests/backend.test.js tests/frontend.test.js tests/performance.test.js tests/player.test.js",
     "cap:sync": "cap sync",
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios",
@@ -15,10 +16,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
+    "hls.js": "1.7.3",
     "jsdom": "^29.1.1",
     "morgan": "^1.12.1"
   },
