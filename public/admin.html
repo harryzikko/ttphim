@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
   
+  <link rel="stylesheet" href="/css/editorial.css?v=1.1.0">
+  <script defer src="/js/admin-banners.js?v=1.1.0"></script>
+  <script defer src="/js/admin-sources.js?v=1.0.0"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -102,6 +105,7 @@
         <span class="material-symbols-outlined text-[20px]">movie_filter</span>
         <span>Tra Cứu & Ghim Phim</span>
       </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant text-sm" data-tab="tab-banners"><span>Banner quảng cáo</span></button>
       <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-sources">
         <span class="material-symbols-outlined text-[20px]">hub</span>
         <span>Nguồn Phim & Đa Server</span>
@@ -120,6 +124,14 @@
     <main class="flex-1 p-6 lg:p-8 max-w-7xl">
 
       <!-- ================= 1. TAB: TỔNG QUAN ================= -->
+      <section id="tab-banners" class="admin-tab-pane hidden banner-workspace">
+        <header class="banner-heading"><div><p class="eyebrow">QUẢNG CÁO WEBSITE</p><h1>Vị trí banner quảng cáo</h1><p>Quản lý quảng cáo riêng. Không thay đổi phim nổi bật hoặc danh sách phim ghim.</p></div><a href="/?view=desktop" target="_blank" rel="noopener">Mở website</a></header>
+        <div class="banner-toolbar"><p>Bật/tắt và đặt lịch độc lập cho từng vị trí.</p><div><button id="banner-reload" type="button">Tải lại</button><button id="banner-save" type="button" class="primary-button">Lưu quảng cáo</button></div></div>
+        <p id="banner-status" role="status" aria-live="polite"></p>
+        <div class="banner-layout"><div>
+          <section class="editor-block"><h2>Sáu vị trí quảng cáo</h2><p>Header, footer, bên trái, bên phải, dưới phim nổi bật và dưới video player. Banner bên hông chỉ hiện trên desktop đủ rộng; không đè lên nội dung.</p><div id="banner-ads"></div></section>
+        </div><aside class="banner-preview-panel"><h2>Xem trước vị trí</h2><div class="preview-toggle"><button type="button" data-preview="desktop" aria-pressed="true">Desktop</button><button type="button" data-preview="mobile" aria-pressed="false">Mobile</button></div><label>Vị trí quảng cáo<select id="banner-preview-choice"></select></label><p id="banner-preview-state"></p><div id="banner-preview" class="banner-preview"></div><p>Banner ngang: khoảng 1200×300; banner hông: 160×600. Lịch dùng giờ máy admin. Preview không mở liên kết.</p></aside></div>
+      </section>
       <section id="tab-overview" class="admin-tab-pane space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -522,7 +534,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 class="font-display text-2xl font-bold text-on-surface">Tra Cứu & Ghim Phim Hot (Đa Nguồn)</h1>
-            <p class="text-on-surface-variant text-sm mt-0.5">Tìm kiếm phim từ cả 3 nguồn (TTPHIM, ViCDN Song Ngữ, NguonC) và chỉ định phim xuất hiện trên Banner Nổi Bật trang chủ</p>
+            <p class="text-on-surface-variant text-sm mt-0.5">Tìm kiếm phim từ cả 3 nguồn (KKPhim, ViCDN Song Ngữ, NguonC) và chỉ định phim nổi bật trang chủ</p>
           </div>
         </div>
 
@@ -549,12 +561,12 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">search</span> Tra Cứu Phim Từ Cả 3 Nguồn (TTPHIM • ViCDN Song Ngữ • NguonC)
+                <span class="material-symbols-outlined text-primary">search</span> Tra Cứu Phim Từ Cả 3 Nguồn (KKPhim • ViCDN Song Ngữ • NguonC)
               </h3>
               <p class="text-xs text-on-surface-variant mt-0.5">Tìm theo tên tiếng Việt, tên gốc tiếng Anh hoặc mã slug phim</p>
             </div>
             <div class="flex items-center gap-2">
-              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[11px] font-bold">TTPHIM Core</span>
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[11px] font-bold">KKPhim</span>
               <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[11px] font-bold">ViCDN Song Ngữ</span>
               <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[11px] font-bold">NguonC Stream</span>
             </div>
@@ -563,7 +575,7 @@
           <div class="flex flex-col sm:flex-row gap-3">
             <select id="admin-movie-source-filter" class="px-3 py-2 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary shrink-0 sm:w-56 cursor-pointer">
               <option value="all">🔍 Tất Cả 3 Nguồn</option>
-              <option value="TTPHIM">🟢 TTPHIM Core API</option>
+              <option value="kkphim">KKPhim API</option>
               <option value="vicdn">🟣 ViCDN Song Ngữ</option>
               <option value="nguonc">🔵 NguonC Stream VIP</option>
             </select>
@@ -589,7 +601,7 @@
                 </tr>
               </thead>
               <tbody id="movie-search-table-body" class="divide-y divide-surface-container-highest/40">
-                <tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Nhập từ khóa bên trên để tìm kiếm phim từ cả 3 nguồn (TTPHIM, ViCDN Song Ngữ, NguonC)</td></tr>
+                <tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Nhập từ khóa bên trên để tìm kiếm phim từ cả 3 nguồn (KKPhim, ViCDN Song Ngữ, NguonC)</td></tr>
               </tbody>
             </table>
           </div>
@@ -601,7 +613,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 class="font-display text-2xl font-bold text-on-surface">Quản Lý Đa Nguồn Phim & Đồng Bộ</h1>
-            <p class="text-on-surface-variant text-sm mt-0.5">Tích hợp và tự động gộp 3 nguồn phim: TTPHIM, ViCDN Song Ngữ và NguonC</p>
+            <p class="text-on-surface-variant text-sm mt-0.5">Tích hợp và tự động gộp 3 nguồn phim: KKPhim, ViCDN Song Ngữ và NguonC</p>
           </div>
           <div class="flex items-center gap-3">
             <button id="btn-ping-sources" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-sm font-semibold transition-all shadow cursor-pointer">
@@ -628,12 +640,12 @@
 
           <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
             <div class="flex items-center justify-between">
-              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Nguồn TTPHIM Core</span>
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Nguồn KKPhim</span>
               <span class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 material-symbols-outlined text-[22px]">layers</span>
             </div>
             <div class="mt-3">
-              <div id="sources-stat-TTPHIM" class="text-3xl font-black font-display text-emerald-400">--</div>
-              <p id="sources-stat-TTPHIM-sub" class="text-xs text-on-surface-variant mt-1">Kho phim chính (phimapi.com)</p>
+              <div id="sources-stat-kkphim" class="text-3xl font-black font-display text-emerald-400">--</div>
+              <p id="sources-stat-kkphim-sub" class="text-xs text-on-surface-variant mt-1">Kho phim chính (phimapi.com)</p>
             </div>
           </div>
 
@@ -662,25 +674,25 @@
 
         <!-- 3 Sources Cards Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <!-- Source 1: TTPHIM -->
+          <!-- Source 1: KKPhim -->
           <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between space-y-5">
             <div>
               <div class="flex items-center justify-between">
                 <span class="px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 text-xs font-bold uppercase">Nguồn Chính</span>
                 <span class="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
-                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Hoạt Động
+                  <span id="source-kkphim-status">Đang kiểm tra…</span>
                 </span>
               </div>
-              <h3 class="font-display font-bold text-xl text-on-surface mt-3">TTPHIM Core API</h3>
+              <h3 class="font-display font-bold text-xl text-on-surface mt-3">KKPhim API</h3>
               <p class="text-xs text-on-surface-variant font-mono mt-1">https://phimapi.com</p>
               <div class="mt-4 space-y-2 text-xs text-on-surface-variant">
                 <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
                   <span>Tổng số phim nguồn:</span>
-                  <span id="source-TTPHIM-count" class="text-primary font-bold text-sm">-- phim</span>
+                  <span id="source-kkphim-count" class="text-primary font-bold text-sm">-- phim</span>
                 </div>
                 <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
                   <span>Số trang danh mục:</span>
-                  <span id="source-TTPHIM-pages" class="text-on-surface font-semibold">-- trang</span>
+                  <span id="source-kkphim-pages" class="text-on-surface font-semibold">-- trang</span>
                 </div>
                 <div class="flex justify-between py-1 border-b border-surface-container-highest/40">
                   <span>Loại dữ liệu:</span>
@@ -789,7 +801,7 @@
             <span class="material-symbols-outlined text-secondary">info</span> Cơ Chế Chuẩn Hóa & Ghép Server Tự Động
           </h3>
           <p class="text-sm text-on-surface-variant leading-relaxed">
-            Hệ thống TTPHIM tự động đối chiếu thông tin phim (TMDB ID, Tiêu đề gốc tiếng Anh, Tên tiếng Việt và Năm phát hành). Khi một bộ phim có mặt ở nhiều nguồn, hệ thống tự động gộp tất cả các server phát (Server TTPHIM HLS 4K, ViCDN Song Ngữ, NguonC Vietsub & Thuyết minh) vào chung một trang xem phim duy nhất, gắn nhãn badge <strong>Song Ngữ</strong> nổi bật và chuẩn hóa danh sách tập thành dạng <strong>Tập 01, Tập 02...</strong>.
+            Hệ thống TTPHIM tự động đối chiếu thông tin phim (TMDB ID, Tiêu đề gốc, Tên tiếng Việt và Năm phát hành). Khi một bộ phim có mặt ở nhiều nguồn, hệ thống gộp các server phát (KKPhim, ViCDN Song Ngữ, NguonC Vietsub & Thuyết minh) vào chung một trang xem phim và chuẩn hóa danh sách tập.
           </p>
         </div>
       </section>
@@ -917,7 +929,7 @@
 
   <script src="/js/api.js"></script>
   <script src="/js/header.js"></script>
-  <script src="/js/admin.js"></script>
+  <script src="/js/admin.js?v=2.9.2"></script>
 </body>
 </html>
 

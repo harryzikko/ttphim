@@ -10,6 +10,7 @@ const tmdbService = require('../services/tmdbService');
 const tvAuthService = require('../services/tvAuthService');
 const { authMiddleware, requireAuth, requireAdmin, generateToken } = require('../services/authService');
 const { publicUser } = require('../services/passwordService');
+const bannerService = require('../services/bannerService');
 
 router.use(authMiddleware);
 router.use('/admin', requireAuth, requireAdmin);
@@ -25,8 +26,8 @@ router.get('/health', (req, res) => {
 // Home Page Aggregated Feed
 router.get('/home', async (req, res) => {
   try {
-    const data = await kkphimService.getHomeData();
-    res.json({ status: true, data });
+    const [data, settings] = await Promise.all([kkphimService.getHomeData(), dbService.getSettings()]);
+    res.json({ status: true, data: bannerService.applyHome(data, settings) });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Lỗi tải dữ liệu trang chủ', error: err.message });
   }
@@ -448,10 +449,10 @@ router.get('/admin/stats', async (req, res) => {
       vicdnService.getTotalMovies ? vicdnService.getTotalMovies() : 628,
       nguoncService.getTotalMovies ? nguoncService.getTotalMovies() : 33450
     ]);
-    stats.totalWebMovies = kkphimTotal || 30275;
-    stats.totalAllSources = (kkphimTotal || 30275) + (vicdnTotal || 628) + (nguoncTotal || 33450);
+    stats.totalWebMovies = kkphimTotal;
+    stats.totalAllSources = kkphimTotal == null ? null : kkphimTotal + (vicdnTotal || 0) + (nguoncTotal || 0);
     stats.sourceCounts = {
-      kkphim: kkphimTotal || 30275,
+      kkphim: kkphimTotal,
       vicdn: vicdnTotal || 628,
       nguonc: nguoncTotal || 33450
     };
@@ -547,8 +548,8 @@ router.get('/admin/sources', async (req, res) => {
     const vicdnIndexed = (vicdnService && vicdnService.allMovies) ? vicdnService.allMovies.length : 0;
     const nguoncIndexed = (nguoncService && nguoncService.recentMovies) ? nguoncService.recentMovies.length : 0;
 
-    const totalWebMovies = kkphimTotal || 30275;
-    const totalAllSources = totalWebMovies + (vicdnTotal || 628) + (nguoncTotal || 33450);
+    const totalWebMovies = kkphimTotal;
+    const totalAllSources = totalWebMovies == null ? null : totalWebMovies + (vicdnTotal || 0) + (nguoncTotal || 0);
 
     res.json({
       status: true,
@@ -558,9 +559,9 @@ router.get('/admin/sources', async (req, res) => {
         kkphim: {
           name: 'KKPhim API (Phimapi)',
           endpoint: 'https://phimapi.com',
-          status: 'online',
+          status: kkphimService.sourceStatus || 'unknown',
           total_movies: totalWebMovies,
-          total_pages: kkphimService.totalPages || 1262,
+          total_pages: kkphimService.totalPages,
           type: 'Phim Lẻ, Phim Bộ, TV Shows, Hoạt Hình, Chiếu Rạp'
         },
         vicdn: {
@@ -648,51 +649,31 @@ router.get('/notifications', async (req, res) => {
       });
     }
 
+    const notificationFeeds = await Promise.allSettled([
+      kkphimService.getCatalog({ type: 'chieu-rap', limit: 4 }),
+      kkphimService.getCatalog({ type: 'phim-bo', limit: 2 })
+    ]);
+    const cinemaData = notificationFeeds[0].status === 'fulfilled' ? notificationFeeds[0].value : { items: [] };
+    const boData = notificationFeeds[1].status === 'fulfilled' ? notificationFeeds[1].value : { items: [] };
+
     // 2. Newly updated Cinema movies
-    try {
-      const cinemaData = await kkphimService.getCatalog({ type: 'chieu-rap', limit: 4 });
-      if (cinemaData && cinemaData.items && cinemaData.items.length > 0) {
-        cinemaData.items.slice(0, 3).forEach(item => {
-          notifications.push({
-            id: `notif_cinema_${item.slug}`,
-            type: 'movie',
-            badge: 'Chiếu Rạp',
-            title: item.name,
-            message: `${item.origin_name || item.name} - Đã có bản ${item.quality || 'FHD'} ${item.lang || 'Vietsub'}. Thưởng thức ngay!`,
-            time: 'Mới cập nhật',
-            icon: 'theaters',
-            thumb: item.thumb_url || item.poster_url,
-            url: `/phim/${item.slug}`
-          });
-        });
-      }
-    } catch (e) {
-      console.error('Error fetching cinema notifications:', e.message);
+    if (cinemaData.items?.length) {
+      cinemaData.items.slice(0, 3).forEach(item => notifications.push({
+        id: `notif_cinema_${item.slug}`, type: 'movie', badge: 'Chiếu Rạp', title: item.name,
+        message: `${item.origin_name || item.name} - Đã có bản ${item.quality || 'FHD'} ${item.lang || 'Vietsub'}. Thưởng thức ngay!`,
+        time: 'Mới cập nhật', icon: 'theaters', thumb: item.thumb_url || item.poster_url, url: `/phim/${item.slug}`
+      }));
     }
 
     // 3. New Series updates
-    try {
-      const boData = await kkphimService.getCatalog({ type: 'phim-bo', limit: 2 });
-      if (boData && boData.items && boData.items.length > 0) {
-        boData.items.slice(0, 2).forEach(item => {
-          notifications.push({
-            id: `notif_bo_${item.slug}`,
-            type: 'series',
-            badge: 'Phim Bộ',
-            title: item.name,
-            message: `Tập mới nhất đã được cập nhật bản nét căng Vietsub. Xem ngay!`,
-            time: 'Hôm qua',
-            icon: 'live_tv',
-            thumb: item.thumb_url || item.poster_url,
-            url: `/phim/${item.slug}`
-          });
-        });
-      }
-    } catch (e) {
-      console.error('Error fetching series notifications:', e.message);
+    if (boData.items?.length) {
+      boData.items.slice(0, 2).forEach(item => notifications.push({
+        id: `notif_bo_${item.slug}`, type: 'series', badge: 'Phim Bộ', title: item.name,
+        message: 'Tập mới nhất đã được cập nhật bản nét căng Vietsub. Xem ngay!',
+        time: 'Hôm qua', icon: 'live_tv', thumb: item.thumb_url || item.poster_url, url: `/phim/${item.slug}`
+      }));
     }
 
-    // 4. Feature highlight
     notifications.push({
       id: 'notif_feature_cinema_free',
       type: 'feature',
@@ -710,6 +691,33 @@ router.get('/notifications', async (req, res) => {
   }
 });
 
+router.get('/admin/advertising', async (req, res) => {
+  res.json({ status: true, data: bannerService.getAds(await dbService.getSettings()) });
+});
+router.post('/admin/advertising', async (req, res) => {
+  let config;
+  try { config = bannerService.normalizeAds(req.body); }
+  catch (error) { return res.status(400).json({ status: false, message: error.message }); }
+  try {
+    const data = await dbService.saveAdvertising(config, req.body.revision);
+    res.json({ status: true, data });
+  } catch (error) { res.status(error.status || 500).json({ status: false, message: error.status ? error.message : 'Không thể lưu quảng cáo' }); }
+});
+
+router.get('/admin/banners', async (req, res) => {
+  res.json({ status: true, data: bannerService.getConfig(await dbService.getSettings()) });
+});
+router.post('/admin/banners', async (req, res) => {
+  let config;
+  try { config = bannerService.normalize(req.body); }
+  catch (error) { return res.status(400).json({ status: false, message: error.message }); }
+  try {
+    const data = await dbService.saveBanners(config, req.body.revision);
+    kkphimService.clearHomeCache();
+    res.json({ status: true, data });
+  } catch (error) { res.status(error.status || 500).json({ status: false, message: error.status ? error.message : 'Không thể lưu banner' }); }
+});
+
 // Admin: Get Settings
 router.get('/admin/settings', async (req, res) => {
   try {
@@ -723,6 +731,7 @@ router.get('/admin/settings', async (req, res) => {
 // Admin: Update Settings
 router.post('/admin/settings', async (req, res) => {
   try {
+    if (Object.hasOwn(req.body, 'banner_config') || Object.hasOwn(req.body, 'advertising')) return res.status(400).json({ status: false, message: 'Dùng trình quản lý banner để lưu cấu hình banner' });
     const updated = await dbService.updateSettings(req.body);
     kkphimService.clearHomeCache();
     res.json({ status: true, message: 'Đã lưu cài đặt hệ thống thành công!', data: updated });
@@ -791,7 +800,7 @@ router.get('/admin/search-movie', async (req, res) => {
               return {
                 ...norm,
                 source: 'kkphim',
-                source_name: 'KKPhim Core',
+                source_name: 'KKPhim API',
                 source_badge: 'KKPhim'
               };
             });

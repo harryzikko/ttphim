@@ -17,12 +17,17 @@ const db = require('../src/services/dbService');
 const { addHomeData, serializeData, renderHomePage } = require('../src/services/homePageService');
 const originalFetchJson = service.fetchJson;
 const originalGetMovieDetail = service.getMovieDetail;
-
+const originalGetRankingMetadata = service.getRankingMetadata;
 beforeEach(() => {
   service.cache.flushAll();
   service.pendingRequests.clear();
   service.fetchJson = originalFetchJson;
   service.getMovieDetail = originalGetMovieDetail;
+  service.getRankingMetadata = originalGetRankingMetadata;
+  service.totalMovies = null;
+  service.totalPages = null;
+  service.totalFetchedAt = 0;
+  service.sourceStatus = 'unknown';
   db.getSettings = async () => ({ featured_slugs: [] });
 });
 
@@ -138,4 +143,59 @@ test('client reuses embedded home feed and falls back when it is absent or inval
   text = '{invalid';
   assert.equal((await vm.runInContext('API.getHome()', context)).latest[0].slug, 'remote');
   assert.equal(calls, 2);
+});
+
+test('KKPhim totals use upstream pagination, coalesce requests, cache and report stale data', async () => {
+  let calls = 0;
+  service.fetchJson = async endpoint => {
+    assert.equal(endpoint, '/danh-sach/phim-moi-cap-nhat?page=1');
+    calls++;
+    await new Promise(resolve => setTimeout(resolve, 5));
+    return { pagination: { totalItems: 30323, totalPages: 1264 } };
+  };
+  assert.deepEqual(await Promise.all([service.getTotalMovies(), service.getTotalMovies()]), [30323, 30323]);
+  assert.equal(calls, 1);
+  assert.equal(service.totalPages, 1264);
+  assert.equal(service.sourceStatus, 'online');
+  assert.equal(await service.getTotalMovies(), 30323);
+  assert.equal(calls, 1);
+  service.totalFetchedAt -= 600001;
+  service.fetchJson = async () => { throw new Error('offline'); };
+  assert.equal(await service.getTotalMovies(), 30323);
+  assert.equal(service.sourceStatus, 'stale');
+  service.totalMovies = null;
+  assert.equal(await service.getTotalMovies(), null);
+  assert.equal(service.sourceStatus, 'unavailable');
+});
+
+test('home starts ranking metadata before pinned detail requests finish', async () => {
+  db.getSettings = async () => ({ featured_slugs: ['pinned'] });
+  const movie = { slug: 'ranked', name: 'Ranked', view: 7 };
+  service.fetchJson = async () => ({ items: [movie], data: { items: [movie] } });
+  let resolvePin;
+  const pinPending = new Promise(resolve => { resolvePin = resolve; });
+  let rankingStarted = false;
+  service.getRankingMetadata = async () => { rankingStarted = true; return { view: 7 }; };
+  service.getMovieDetail = async () => { await pinPending; return { movie: { slug: 'pinned', name: 'Pinned' }, episodes: [] }; };
+  const pending = service.getHomeData();
+  try {
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(rankingStarted, true);
+  } finally { resolvePin(); }
+  const home = await pending;
+  assert.equal(home.spotlights[0].slug, 'pinned');
+  assert.equal(home.rankings[0].real_views, 7);
+});
+
+test('home pages use prebuilt local Tailwind CSS rather than a blocking runtime CDN', () => {
+  for (const [file, css] of [['index.html', 'home-tailwind.css'], ['mobile/index.html', 'mobile-home-tailwind.css']]) {
+    const html = fs.readFileSync(path.join(__dirname, '../public', file), 'utf8');
+    const stylesheet = fs.readFileSync(path.join(__dirname, '../public/css', css), 'utf8');
+    assert.ok(!html.includes('cdn.tailwindcss.com'));
+    assert.ok(html.includes(`/css/${css}?v=`));
+    assert.ok(stylesheet.includes('.bg-primary-container'));
+    assert.ok(stylesheet.includes('.flex'));
+  }
+  const script = fs.readFileSync(path.join(__dirname, '../public/js/header.js'), 'utf8');
+  assert.ok(script.includes("if (!popover.classList.contains('hidden')) loadNotifications()"));
 });

@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const config = require('../config');
 const templateService = require('./templateService');
+const banners = require('./bannerService');
 
 let cachedPage = null;
 
@@ -21,14 +22,20 @@ function addHomeData(html, data) {
     .replace('</body>', `<script id="home-data" type="application/json">${serializeData(data)}</script></body>`);
 }
 
-async function renderHomePage(data) {
+async function renderHomePage(data, settings = { featured_slugs: (data.spotlights || []).map(item => item.slug) }) {
   const file = path.join(config.PUBLIC_DIR, 'index.html');
   const stat = await fs.stat(file);
-  if (cachedPage?.data === data && cachedPage.modified === stat.mtimeMs) return cachedPage.html;
-  const raw = await fs.readFile(file, 'utf8');
-  const html = addHomeData(templateService.renderHome(raw, data), data);
-  cachedPage = { data, modified: stat.mtimeMs, html };
-  return html;
+  const display = banners.applyHome(data, settings);
+  const heroKey = JSON.stringify(display.spotlights);
+  if (!(cachedPage?.data === data && cachedPage.modified === stat.mtimeMs && cachedPage.heroKey === heroKey)) {
+    const raw = await fs.readFile(file, 'utf8');
+    const escape = value => String(value || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const safe = { ...display, spotlights: display.spotlights.map(item => ({ ...item, name: escape(item.banner_title || item.name), content: escape(item.banner_description || item.content) })) };
+    let html = addHomeData(templateService.renderHome(raw, safe), display);
+    if (!display.hero_enabled) html = html.replace('id="home-hero"', 'id="home-hero" hidden');
+    cachedPage = { data, modified: stat.mtimeMs, heroKey, html };
+  }
+  return banners.decorate(cachedPage.html, settings);
 }
 
 module.exports = { renderHomePage, addHomeData, serializeData };

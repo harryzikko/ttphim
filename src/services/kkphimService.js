@@ -105,8 +105,10 @@ class KKPhimService {
     this.cache = new MemoryCache();
     this.baseUrl = config.KKPHIM_API_BASE;
     this.cdnUrl = config.IMAGE_CDN;
-    this.totalMovies = 30275;
-    this.totalPages = 1262;
+    this.totalMovies = null;
+    this.totalPages = null;
+    this.totalFetchedAt = 0;
+    this.sourceStatus = 'unknown';
     this.pendingRequests = new Map();
     for (const name of ['getHomeData', 'getMovieDetail']) {
       const load = this[name].bind(this);
@@ -211,15 +213,23 @@ class KKPhimService {
   }
 
   async getTotalMovies() {
-    if (this.totalMovies && this.totalMovies > 0) return this.totalMovies;
-    try {
-      const res = await this.fetchJson('/danh-sach/phim-moi-cap-nhat?page=1');
-      if (res && res.pagination?.totalItems) {
-        this.totalMovies = res.pagination.totalItems;
-        this.totalPages = res.pagination.totalPages;
+    if (this.totalFetchedAt && Date.now() - this.totalFetchedAt < 600000) return this.totalMovies;
+    return this.singleFlight('kkphim_totals', async () => {
+      try {
+        const res = await this.fetchJson('/danh-sach/phim-moi-cap-nhat?page=1');
+        const total = Number(res.pagination?.totalItems);
+        const pages = Number(res.pagination?.totalPages);
+        if (res.status === false || res.pagination?.totalItems == null || res.pagination?.totalPages == null || !Number.isSafeInteger(total) || total < 0 || !Number.isSafeInteger(pages) || pages < 0) throw new Error('KKPhim không trả tổng danh mục hợp lệ');
+        this.totalMovies = total;
+        this.totalPages = pages;
+        this.totalFetchedAt = Date.now();
+        this.sourceStatus = 'online';
+      } catch (error) {
+        this.sourceStatus = this.totalMovies == null ? 'unavailable' : 'stale';
+        console.warn('[KKPhim] Không lấy được tổng danh mục:', error.message);
       }
-    } catch(e) {}
-    return this.totalMovies || 30275;
+      return this.totalMovies;
+    });
   }
 
   async getHomeData() {
@@ -266,7 +276,8 @@ class KKPhimService {
           });
         }
       } catch(e) {}
-
+      // Ranking metadata does not depend on spotlight details; start both groups together.
+      const rankingPromise = this.buildHomeRankings([latestItems, seriesItems, singleItems, animeItems]);
       // Create spotlight candidates:
       // Phim nổi bật BẮT BUỘC CHỈ lấy đúng những phim được ghim bởi Admin!
       // Tuyệt đối KHÔNG tự ý lấy phim chiếu rạp, phim bộ hay bất kỳ nguồn nào khác khi chưa ghim!
@@ -324,80 +335,7 @@ class KKPhimService {
         return null;
       }));
 
-      // Real Ranking leaderboard (Top 10 Thịnh Hành dựa trên lượt xem thực tế 100%)
-      let rankingItems = [];
-      try {
-        const candidatePool = [
-          ...latestItems,
-          ...seriesItems,
-          ...singleItems,
-          ...animeItems
-        ];
-        const uniqueCandidates = [];
-        const seenSlugs = new Set();
-        for (const item of candidatePool) {
-          if (item && item.slug && !seenSlugs.has(item.slug)) {
-            seenSlugs.add(item.slug);
-            uniqueCandidates.push(item);
-          }
-        }
-
-        // Fetch real details for top candidates in parallel to get actual movie.view
-        const detailMap = new Map();
-        const candidatesToFetch = uniqueCandidates.slice(0, 18);
-        await Promise.all(
-          candidatesToFetch.map(async (c) => {
-            try {
-              const movie = await this.getRankingMetadata(c.slug);
-              if (movie) {
-                detailMap.set(c.slug, movie);
-              }
-            } catch (e) {}
-          })
-        );
-
-        // Fetch local view count increments from dbService
-        let localViews = {};
-        try {
-          const dbService = require('./dbService');
-          localViews = await dbService.getMovieViews();
-        } catch (e) {}
-
-        const rankedList = candidatesToFetch.map(item => {
-          const detail = detailMap.get(item.slug);
-          const apiView = detail && typeof detail.view === 'number' ? detail.view : 0;
-          const localView = (localViews && localViews[item.slug]) ? localViews[item.slug] : 0;
-          const totalView = apiView + localView;
-          const hasSongNgu = Boolean(
-            item.has_song_ngu || 
-            detail?.has_song_ngu || 
-            (vicdnService && vicdnService.hasBilingualMatch(item))
-          );
-          return {
-            ...item,
-            has_song_ngu: hasSongNgu,
-            quality: detail?.quality || item.quality || 'FHD',
-            year: detail?.year || item.year || 2026,
-            real_views: totalView,
-            views: totalView.toLocaleString('vi-VN')
-          };
-        });
-
-        // Sort strictly by real view count descending!
-        rankedList.sort((a, b) => b.real_views - a.real_views);
-
-        rankingItems = rankedList.slice(0, 10).map((item, idx) => ({
-          ...item,
-          rank: idx + 1
-        }));
-      } catch (err) {
-        console.error('Error computing real rankings:', err);
-        rankingItems = latestItems.slice(0, 10).map((item, idx) => ({
-          ...item,
-          rank: idx + 1,
-          views: '0'
-        }));
-      }
+      const rankingItems = await rankingPromise;
 
       const homeData = {
         spotlights: spotlightList.filter(Boolean), // Only movies pinned by admin.
@@ -415,6 +353,48 @@ class KKPhimService {
     } catch (err) {
       console.error('Error in getHomeData:', err);
       throw err;
+    }
+  }
+
+  async buildHomeRankings([latestItems, seriesItems, singleItems, animeItems]) {
+    try {
+      const uniqueCandidates = [];
+      const seenSlugs = new Set();
+      for (const item of [...latestItems, ...seriesItems, ...singleItems, ...animeItems]) {
+        if (item && item.slug && !seenSlugs.has(item.slug)) {
+          seenSlugs.add(item.slug);
+          uniqueCandidates.push(item);
+        }
+      }
+      const detailMap = new Map();
+      const candidatesToFetch = uniqueCandidates.slice(0, 18);
+      await Promise.all(candidatesToFetch.map(async item => {
+        try {
+          const movie = await this.getRankingMetadata(item.slug);
+          if (movie) detailMap.set(item.slug, movie);
+        } catch (_) {}
+      }));
+      let localViews = {};
+      try { localViews = await require('./dbService').getMovieViews(); } catch (_) {}
+      const rankedList = candidatesToFetch.map(item => {
+        const detail = detailMap.get(item.slug);
+        const apiView = detail && typeof detail.view === 'number' ? detail.view : 0;
+        const localView = (localViews && localViews[item.slug]) ? localViews[item.slug] : 0;
+        const totalView = apiView + localView;
+        return {
+          ...item,
+          has_song_ngu: Boolean(item.has_song_ngu || detail?.has_song_ngu || (vicdnService && vicdnService.hasBilingualMatch(item))),
+          quality: detail?.quality || item.quality || 'FHD',
+          year: detail?.year || item.year || 2026,
+          real_views: totalView,
+          views: totalView.toLocaleString('vi-VN')
+        };
+      });
+      rankedList.sort((a, b) => b.real_views - a.real_views);
+      return rankedList.slice(0, 10).map((item, idx) => ({ ...item, rank: idx + 1 }));
+    } catch (err) {
+      console.error('Error computing real rankings:', err);
+      return latestItems.slice(0, 10).map((item, idx) => ({ ...item, rank: idx + 1, views: '0' }));
     }
   }
 

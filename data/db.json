@@ -1,20 +1,14 @@
 {
   "users": [
     {
-      "id": "usr_admin_01",
-      "email": "admin@kkphim.vn",
-      "password": "admin123",
+      "id": "usr_admin_1791687990157",
+      "email": "admin@ttphim.vn",
+      "password": "scrypt$3305c4c81f4db69f3668570c21df0041$48596c98eab9409f6ef94fcf84dc416a0e6e3d58dcf0086b89611ccf0467299833e1b860c97833b1a3a77ea20b53bf3b8129d712b0c1b4036a8aa4b5e9a09c63",
       "name": "Quản Trị Viên (Admin)",
       "role": "admin",
-      "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8",
-      "vip_level": "VIP 4K Cinema Master",
-      "vip_tier": "master",
-      "is_vip": true,
-      "vip_expire_date": "2028-10-07",
-      "days_left": 730,
-      "devices_used": 1,
-      "max_devices": 5,
-      "created_at": "2023-01-01T00:00:00.000Z"
+      "avatar": "",
+      "created_at": "2026-10-11T03:06:30.200Z",
+      "updated_at": "2026-10-11T03:07:52.581Z"
     }
   ],
   "watchlist": [],
@@ -174,7 +168,7 @@
   "ratings": [],
   "reports": [],
   "settings": {
-    "site_title": "KKPhim - Xem Phim Online Chuẩn Cinema 4K",
+    "site_title": "TTPhim - Xem Phim Online Chuẩn Cinema 4K",
     "announcement": "🔥 Chào mừng bạn đến với KKPhim! Trải nghiệm xem phim điện ảnh 4K không quảng cáo và âm thanh vòm sống động.",
     "announcement_active": false,
     "maintenance_mode": false,
@@ -314,12 +308,23 @@
     "chuyen-ma-giang-duong-4": 1,
     "truy-sat-gai-goi": 2,
     "co-lang-truyen": 1,
-    "truy-sat-salazar": 1,
+    "truy-sat-salazar": 4,
     "mai": 1,
     "lat-mat-7-mot-dieu-uoc": 1,
     "tro-choi-con-muc": 1,
     "sieu-dai-chien-thai-binh-duong": 1,
-    "nap-day-trai-tim": 4,
-    "oppenheimer": 3
+    "nap-day-trai-tim": 6,
+    "oppenheimer": 3,
+    "-": 4,
+    "50-": 2,
+    "thu-thach-than-tuong": 7,
+    "yeu-het-long-chang-fanboy": 4,
+    "co-ve-nhu-gap-lai-nguoi-xua": 2,
+    "yeu-mot-nguoi-khac-yeu-mot-nguoi-khac-khong-phai-em": 2,
+    "yeu-mot-nguoi-khac-khong-phai-em": 1,
+    "thon-phe-tinh-khong": 1,
+    "my-nhan-du": 1,
+    "giac-quan-thu-sau-mat-trai": 1,
+    "the-gioi-phep-thuat-phan-2": 1
   }
 }

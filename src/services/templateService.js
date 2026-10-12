@@ -1,4 +1,3 @@
-const kkphimService = require('./kkphimService');
 
 function formatEpBadge(epName) {
   if (!epName) return 'Tập 01';
@@ -1031,7 +1030,7 @@ class TemplateService {
     `;
 
     html = html.replace(
-      /(<div [^>]*id="player-viewport"[^>]*>)[\s\S]*?(<\/div>\s*<!-- Quick Interaction Bar Below Player -->)/,
+      /(<div [^>]*id="player-viewport"[^>]*>)[\s\S]*?(<\/div>\s*(?:<!-- banner:below_player -->\s*)?<!-- Quick Interaction Bar Below Player -->)/,
       `$1\n${playerInnerHtml}\n${partyOverlayHtml}\n$2`
     );
 

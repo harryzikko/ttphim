@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "test": "node --test tests/backend.test.js tests/frontend.test.js tests/performance.test.js tests/player.test.js",
+    "test": "node --test tests/backend.test.js tests/frontend.test.js tests/performance.test.js tests/player.test.js tests/banners.test.js",
+    "build:home-css": "tailwindcss -c scripts/home-tailwind.config.cjs -i scripts/home-tailwind.css -o public/css/home-tailwind.css --minify && node scripts/build-mobile-home-css.cjs",
     "cap:sync": "cap sync",
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios",
@@ -29,6 +30,7 @@
     "@capacitor/android": "^8.5.3",
     "@capacitor/cli": "^7.6.9",
     "@capacitor/core": "^8.5.3",
-    "@capacitor/ios": "^8.5.3"
+    "@capacitor/ios": "^8.5.3",
+    "tailwindcss": "^3.4.17"
   }
 }

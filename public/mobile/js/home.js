@@ -36,7 +36,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Spotlight Hero Controller with smooth auto-rotate
 function initMobileSpotlight(spotlights) {
-  if (!spotlights || spotlights.length === 0) return;
+  if (!spotlights || spotlights.length === 0) {
+    const section = document.getElementById('m-spotlight-section');
+    if (section) section.hidden = true;
+    return;
+  }
 
   const bg = document.getElementById('m-spotlight-bg');
   const title = document.getElementById('m-spotlight-title');
@@ -50,7 +54,7 @@ function initMobileSpotlight(spotlights) {
   const progress = document.getElementById('m-spotlight-progress');
 
   let currentIndex = 0;
-  const DURATION = 6500;
+  const DURATION = 8000;
   let timer = null;
 
   function setSlide(idx) {
@@ -58,21 +62,19 @@ function initMobileSpotlight(spotlights) {
     const movie = spotlights[idx];
     if (!movie) return;
 
-    const bgUrl = movie.thumb_url || movie.poster_url;
+    const bgUrl = movie.banner_mobile || movie.thumb_url || movie.poster_url;
     if (bg) {
       bg.style.opacity = '0.35';
       setTimeout(() => {
         bg.style.backgroundImage = `url('${bgUrl}')`;
+        bg.style.backgroundPosition = movie.banner_position || '50% 50%';
         bg.style.opacity = '1';
       }, 150);
     }
 
-    if (title) title.innerText = movie.name;
+    if (title) title.innerText = movie.banner_title || movie.name;
     if (rank) {
-      rank.innerHTML = `
-        <span class="w-2 h-2 rounded-full bg-primary-container animate-pulse shadow-[0_0_8px_rgba(229,9,20,0.8)]"></span>
-        <span class="font-label-badge text-[11px] text-primary-fixed tracking-wide uppercase font-bold">#${idx + 1} Phim Nổi Bật</span>
-      `;
+      rank.textContent = `Phim nổi bật · ${idx + 1}/${spotlights.length}`;
     }
 
     if (badges) {
@@ -84,7 +86,11 @@ function initMobileSpotlight(spotlights) {
       `;
     }
 
-    if (playBtn) playBtn.href = `/mobile/xem-phim/${movie.slug}/${movie.first_episode_slug || 'tap-1'}`;
+    if (playBtn) {
+      playBtn.href = `/mobile/xem-phim/${movie.slug}/${movie.first_episode_slug || 'tap-1'}`;
+      const label = playBtn.querySelector('span:last-child');
+      if (label) label.textContent = movie.cta_label || 'Xem ngay';
+    }
     if (infoBtn) infoBtn.href = `/mobile/phim/${movie.slug}`;
 
     if (watchlistBtn) {
@@ -97,6 +103,7 @@ function initMobileSpotlight(spotlights) {
           year: movie.year,
           quality: movie.quality
         });
+        if (!res?.status) { MobileApp.toast(res?.message || 'Không thể lưu phim', 'error'); return; }
         if (res?.data?.added) {
           watchlistIcon.innerText = 'check';
           watchlistText.innerText = 'Đã Lưu';
@@ -126,10 +133,13 @@ function initMobileSpotlight(spotlights) {
   if (spotlights.length > 1) {
     clearInterval(timer);
     timer = setInterval(() => {
+      const section = document.getElementById('m-spotlight-section');
+      if (document.hidden || section?.matches(':focus-within') || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
       currentIndex = (currentIndex + 1) % spotlights.length;
       setSlide(currentIndex);
     }, DURATION);
   }
+  window.addEventListener('pagehide', () => clearInterval(timer));
 }
 
 // 2:3 Vertical Poster Rail Renderer

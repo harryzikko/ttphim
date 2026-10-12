@@ -23,56 +23,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 
   <!-- Tailwind CSS & Custom Config -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "surface": "#11131c",
-            "surface-dim": "#11131c",
-            "surface-bright": "#373943",
-            "surface-container-lowest": "#0c0e17",
-            "surface-container-low": "#191b24",
-            "surface-container": "#1d1f29",
-            "surface-container-high": "#282933",
-            "surface-container-highest": "#32343e",
-            "on-surface": "#e1e1ef",
-            "on-surface-variant": "#e9bcb6",
-            "primary": "#ffb4aa",
-            "primary-container": "#e50914",
-            "on-primary-container": "#fff7f6",
-            "secondary": "#d3fbff",
-            "secondary-container": "#00eefc",
-            "on-secondary-container": "#00686f",
-            "secondary-fixed": "#7df4ff",
-            "secondary-fixed-dim": "#00dbe9",
-            "tertiary": "#dcb8ff",
-            "tertiary-container": "#9a40f2",
-            "tertiary-fixed": "#efdbff"
-          },
-          borderRadius: {
-            "DEFAULT": "0.5rem",
-            "lg": "0.75rem",
-            "xl": "1rem",
-            "2xl": "1.25rem",
-            "full": "9999px"
-          },
-          fontFamily: {
-            "display-hero-mobile": ["Montserrat", "sans-serif"],
-            "headline-lg-mobile": ["Montserrat", "sans-serif"],
-            "headline-sm": ["Montserrat", "sans-serif"],
-            "body-md": ["Inter", "sans-serif"],
-            "body-sm": ["Inter", "sans-serif"],
-            "label-lg": ["Inter", "sans-serif"],
-            "label-md": ["Inter", "sans-serif"],
-            "label-badge": ["Inter", "sans-serif"]
-          }
-        }
-      }
-    };
-  </script>
+  <link rel="stylesheet" href="/css/editorial.css?v=1.1.0">
+  <script defer src="/js/editorial.js?v=1.0.0"></script>
+  <link rel="stylesheet" href="/css/mobile-home-tailwind.css?v=1.0.0">
+  <script id="tailwind-mobile-config" type="application/json">{"darkMode":"class","theme":{"extend":{"colors":{"surface":"#11131c","surface-dim":"#11131c","surface-bright":"#373943","surface-container-lowest":"#0c0e17","surface-container-low":"#191b24","surface-container":"#1d1f29","surface-container-high":"#282933","surface-container-highest":"#32343e","on-surface":"#e1e1ef","on-surface-variant":"#e9bcb6","primary":"#ffb4aa","primary-container":"#e50914","on-primary-container":"#fff7f6","secondary":"#d3fbff","secondary-container":"#00eefc","on-secondary-container":"#00686f","secondary-fixed":"#7df4ff","secondary-fixed-dim":"#00dbe9","tertiary":"#dcb8ff","tertiary-container":"#9a40f2","tertiary-fixed":"#efdbff"},"borderRadius":{"DEFAULT":"0.5rem","lg":"0.75rem","xl":"1rem","2xl":"1.25rem","full":"9999px"},"fontFamily":{"display-hero-mobile":["Montserrat","sans-serif"],"headline-lg-mobile":["Montserrat","sans-serif"],"headline-sm":["Montserrat","sans-serif"],"body-md":["Inter","sans-serif"],"body-sm":["Inter","sans-serif"],"label-lg":["Inter","sans-serif"],"label-md":["Inter","sans-serif"],"label-badge":["Inter","sans-serif"]}}}}</script>
   <link rel="stylesheet" href="/mobile/css/mobile.css" />
 </head>
 
@@ -167,6 +121,7 @@
           <div id="m-spotlight-progress" class="h-full bg-gradient-to-r from-primary-container via-amber-400 to-secondary-container w-0 transition-all duration-300"></div>
         </div>
       </section>
+      <!-- banner:below_featured -->
 
       <!-- 2. QUICK CATEGORY FILTER PILLS -->
       <section class="w-full mt-3 mb-5">
@@ -348,7 +303,7 @@
   <!-- Mobile Scripts -->
   <script src="/js/api.js?v=2.7.2"></script>
   <script src="/mobile/js/mobile-app.js?v=1.0.0"></script>
-  <script src="/mobile/js/home.js?v=1.0.0"></script>
+  <script src="/mobile/js/home.js?v=1.2.0"></script>
 </body>
 </html>
 

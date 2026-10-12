@@ -416,6 +416,8 @@
     wrapper.appendChild(popover);
 
     let notifications = [];
+    let loaded = false;
+    let loading = null;
 
     const updateBadge = () => {
       const currentRead = getReadIds();
@@ -515,17 +517,25 @@
       });
     };
 
-    // Fetch live notifications
-    try {
-      if (window.API && API.getNotifications) {
-        notifications = await API.getNotifications();
-      }
-    } catch(e) {
-      console.warn('Could not load notifications:', e);
-    }
-
-    updateBadge();
-    renderList();
+    if (badgeDot) badgeDot.style.display = 'none';
+    // Notifications are not on the critical path; fetch on first open and retry failures.
+    const loadNotifications = async () => {
+      if (loaded || loading) return loading;
+      loading = (async () => {
+        try {
+          notifications = window.API?.getNotifications ? await API.getNotifications() : [];
+          loaded = true;
+        } catch (e) {
+          console.warn('Could not load notifications:', e);
+          const listEl = popover.querySelector('#notif-items-list');
+          if (listEl) listEl.textContent = 'Không tải được thông báo. Đóng và mở lại để thử lại.';
+          return;
+        } finally { loading = null; }
+        updateBadge();
+        renderList();
+      })();
+      return loading;
+    };
 
     // Mark all as read
     const markAllBtn = popover.querySelector('#notif-mark-all');
@@ -546,6 +556,7 @@
     notifBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       popover.classList.toggle('hidden');
+      if (!popover.classList.contains('hidden')) loadNotifications();
     });
 
     // Close when clicking outside

@@ -574,6 +574,41 @@ class DbService {
     return db.settings;
   }
 
+  async saveBanners(config, expectedRevision) {
+    const bannerService = require('./bannerService');
+    const db = await this.read();
+    const settings = db.settings || {};
+    if (expectedRevision !== bannerService.revision(settings)) {
+      const error = new Error('Banner đã được chỉnh sửa ở phiên khác. Tải lại trước khi lưu.');
+      error.status = 409;
+      throw error;
+    }
+    const pinned = settings.featured_slugs || [];
+    const bySlug = new Map(pinned.map(item => [typeof item === 'string' ? item : item.slug, item]));
+    if (config.slides.some(item => !bySlug.has(item.slug)) || bySlug.size !== config.slides.length) {
+      const error = new Error('Danh sách phim ghim đã thay đổi. Vui lòng tải lại.');
+      error.status = 409;
+      throw error;
+    }
+    db.settings = { ...settings, banner_config: config, featured_slugs: config.slides.map(item => bySlug.get(item.slug)) };
+    await this.write(db);
+    return bannerService.getConfig(db.settings);
+  }
+
+  async saveAdvertising(config, expectedRevision) {
+    const banners = require('./bannerService');
+    const db = await this.read();
+    const settings = db.settings || {};
+    if (expectedRevision !== banners.getAds(settings).revision) {
+      const error = new Error('Quảng cáo đã được chỉnh sửa ở phiên khác. Tải lại trước khi lưu.');
+      error.status = 409;
+      throw error;
+    }
+    db.settings = { ...settings, advertising: config };
+    await this.write(db);
+    return banners.getAds(db.settings);
+  }
+
   // Create User by Admin
   async createUserByAdmin({ name, email, password, role = 'user' }) {
     const db = await this.read();

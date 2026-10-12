@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/storage_service.dart';
@@ -230,7 +232,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     return null;
   }
 
-  /// Launch In-App Web Embed Player with sandboxed iframe & ad popup suppressors
+  /// Launch In-App Web Embed Player with full browser engine, CORS/cookie support, and ad popups suppression
   void _initWebPlayer(String embedUrl) {
     _videoPlayerController?.removeListener(_videoListener);
     _videoPlayerController?.dispose();
@@ -243,47 +245,17 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     });
 
     try {
-      final embedHtml = '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; background:#000; }
-    html, body { width:100%; height:100%; overflow:hidden; background:#000; }
-    iframe {
-      width:100%;
-      height:100%;
-      border:0;
-      position:absolute;
-      top:0;
-      left:0;
-      right:0;
-      bottom:0;
-    }
-  </style>
-</head>
-<body>
-  <iframe src="$embedUrl"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-          allowfullscreen="true"
-          webkitallowfullscreen="true"
-          mozallowfullscreen="true">
-  </iframe>
-  <script>
-    // Suppress intrusive popups, prompts, and top-level hijack
-    window.open = function() { return null; };
-    window.alert = function() {};
-    window.confirm = function() { return false; };
-    window.prompt = function() { return null; };
-  </script>
-</body>
-</html>
-''';
+      late final PlatformWebViewControllerCreationParams params;
+      if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+        params = WebKitWebViewControllerCreationParams(
+          allowsInlineMediaPlayback: true,
+          mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+        );
+      } else {
+        params = const PlatformWebViewControllerCreationParams();
+      }
 
-      final host = Uri.tryParse(embedUrl)?.host ?? '';
-      final controller = WebViewController()
+      final controller = WebViewController.fromPlatformCreationParams(params)
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.black)
         ..setUserAgent(
@@ -292,38 +264,57 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         ..setNavigationDelegate(
           NavigationDelegate(
             onNavigationRequest: (request) {
-              final reqUrl = request.url;
+              final reqUrl = request.url.toLowerCase();
+              // Prevent unwanted app switches, store launches, and rogue deep-links
               if (reqUrl.startsWith('intent:') ||
                   reqUrl.startsWith('market:') ||
                   reqUrl.startsWith('tel:') ||
-                  reqUrl.startsWith('mailto:')) {
+                  reqUrl.startsWith('mailto:') ||
+                  reqUrl.startsWith('whatsapp:') ||
+                  reqUrl.startsWith('tg:') ||
+                  reqUrl.startsWith('viber:')) {
                 return NavigationDecision.prevent;
               }
-              if (reqUrl.startsWith('data:') ||
-                  reqUrl.startsWith('about:blank') ||
-                  (host.isNotEmpty && reqUrl.contains(host)) ||
-                  reqUrl.contains('m3u8') ||
-                  reqUrl.contains('phimapi') ||
-                  reqUrl.contains('kkphim')) {
-                return NavigationDecision.navigate;
-              }
-              return NavigationDecision.prevent;
+              // Allow all web URLs, media streams, and vendor player scripts to execute freely
+              return NavigationDecision.navigate;
+            },
+            onPageFinished: (url) {
+              // Inject script to suppress popups, alerts, and ensure clean fullscreen canvas
+              controller.runJavaScript('''
+                try {
+                  window.open = function() { return null; };
+                  window.alert = function() {};
+                  window.confirm = function() { return false; };
+                  window.prompt = function() { return null; };
+                  document.body.style.backgroundColor = '#000000';
+                  document.documentElement.style.backgroundColor = '#000000';
+                } catch(e) {}
+              ''');
+            },
+            onWebResourceError: (error) {
+              debugPrint('Web embed resource error: ${error.description}');
             },
           ),
         );
 
-      controller.loadHtmlString(embedHtml, baseUrl: embedUrl);
+      if (controller.platform is AndroidWebViewController) {
+        AndroidWebViewController.enableDebugging(false);
+        final androidController = controller.platform as AndroidWebViewController;
+        androidController.setMediaPlaybackRequiresUserGesture(false);
+      }
+
+      controller.loadRequest(Uri.parse(embedUrl));
       _webViewController = controller;
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Không thể khởi tạo Web Embed Player: $e';
+          _errorMessage = 'Không thể khởi tạo Trình phát Web Embed: $e';
         });
       }
     }
   }
 
-  /// Initialize video playback with intelligent HLS -> Extracted M3U8 -> In-App Embed fallback
+  /// Initialize video playback with intelligent Direct HLS -> Web Embed fallback
   Future<void> _initPlayer({bool forceEmbed = false}) async {
     if (!mounted) return;
     final generation = ++_playerGeneration;
@@ -342,22 +333,18 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     await previous?.dispose();
     if (!isCurrent()) return;
 
-    // 1. Force Embed
+    // 1. Force Embed mode requested by user
     if (forceEmbed && episode.linkEmbed.isNotEmpty) {
       _initWebPlayer(episode.linkEmbed);
       return;
     }
 
-    // 2. Resolve stream URL: Direct HLS or automatically extract from embed link
-    String streamUrl = episode.linkM3u8.trim();
-    if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
-      final extracted = _extractM3u8FromEmbed(episode.linkEmbed);
-      if (extracted != null && extracted.isNotEmpty) {
-        streamUrl = extracted;
-      }
-    }
+    // 2. Direct HLS: Only use native VideoPlayerController when episode has a direct, explicit linkM3u8.
+    // If the episode only has linkEmbed, DO NOT force-extract .m3u8 with regex because embed CDNs
+    // protect the stream with session tokens, cookies, and Referer validation (causing ExoPlayer 403 Forbidden).
+    final streamUrl = episode.linkM3u8.trim();
 
-    // 3. Fallback to Web Embed if no direct HLS
+    // 3. Fallback directly to Web Embed if no explicit direct HLS stream
     if (streamUrl.isEmpty) {
       if (episode.linkEmbed.isNotEmpty) {
         _initWebPlayer(episode.linkEmbed);
@@ -371,7 +358,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       }
     }
 
-    // 4. Play with native high-performance video engine
+    // 4. Play with native high-performance video engine (when direct HLS is present)
     _isEmbedMode = false;
 
     VideoPlayerController? pendingController;
@@ -449,6 +436,15 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   void _videoListener() {
     if (!mounted || _videoPlayerController == null) return;
     final val = _videoPlayerController!.value;
+
+    // Gracefully fallback to Web Embed if native player fails mid-stream (e.g. 403 / CDN token expiry)
+    if (val.hasError && !_isEmbedMode) {
+      debugPrint('Video player runtime error: ${val.errorDescription}');
+      if (_currentEpisode.linkEmbed.isNotEmpty) {
+        _initWebPlayer(_currentEpisode.linkEmbed);
+        return;
+      }
+    }
 
     if (val.isInitialized && val.duration > Duration.zero) {
       if (val.position >= val.duration - const Duration(seconds: 1) && !_isShowingNextPrompt) {

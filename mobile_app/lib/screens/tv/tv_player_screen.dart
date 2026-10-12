@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../../models/movie.dart';
 import '../../models/movie_detail.dart';
 import '../../services/storage_service.dart';
@@ -119,15 +120,9 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       return;
     }
 
-    String streamUrl = episode.linkM3u8.trim();
-    if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
-      // Check if .m3u8 is embedded in URL parameter
-      final uri = Uri.tryParse(episode.linkEmbed);
-      final param = uri?.queryParameters['url'] ?? uri?.queryParameters['file'];
-      if (param != null && param.contains('.m3u8')) {
-        streamUrl = Uri.decodeFull(param);
-      }
-    }
+    // Direct HLS: Only use native player if linkM3u8 is directly available.
+    // Never extract raw .m3u8 from embed because CDN session tokens/Referer checks fail on ExoPlayer.
+    final streamUrl = episode.linkM3u8.trim();
 
     if (streamUrl.isEmpty) {
       if (episode.linkEmbed.isNotEmpty) {
@@ -177,7 +172,10 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       }
     } catch (e) {
       if (!isCurrent()) return;
-      if (episode.linkEmbed.isNotEmpty) { _initEmbedPlayer(episode.linkEmbed); return; }
+      if (episode.linkEmbed.isNotEmpty) {
+        _initEmbedPlayer(episode.linkEmbed);
+        return;
+      }
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -198,56 +196,56 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       _isLoading = false;
     });
 
-    final embedHtml = '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; background:#000; }
-    html, body { width:100%; height:100%; overflow:hidden; background:#000; }
-    iframe { width:100%; height:100%; border:none; position:absolute; top:0; left:0; right:0; bottom:0; }
-  </style>
-</head>
-<body>
-  <iframe src="$embedUrl"
-          allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-          allowfullscreen="true"
-          webkitallowfullscreen="true"
-          mozallowfullscreen="true">
-  </iframe>
-  <script>
-    window.open = function() { return null; };
-    window.alert = function() {};
-    window.confirm = function() { return false; };
-  </script>
-</body>
-</html>
-''';
-
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (request) {
-            final url = request.url;
-            if (url.startsWith('intent:') || url.startsWith('market:')) {
+            final url = request.url.toLowerCase();
+            if (url.startsWith('intent:') || url.startsWith('market:') || url.startsWith('tel:') || url.startsWith('mailto:')) {
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
           },
+          onPageFinished: (url) {
+            controller.runJavaScript('''
+              try {
+                window.open = function() { return null; };
+                window.alert = function() {};
+                window.confirm = function() { return false; };
+                document.body.style.backgroundColor = '#000';
+              } catch(e) {}
+            ''');
+          },
         ),
       );
 
-    controller.loadHtmlString(embedHtml, baseUrl: embedUrl);
+    if (controller.platform is AndroidWebViewController) {
+      AndroidWebViewController.enableDebugging(false);
+      final androidController = controller.platform as AndroidWebViewController;
+      androidController.setMediaPlaybackRequiresUserGesture(false);
+    }
+
+    controller.loadRequest(Uri.parse(embedUrl));
     _webViewController = controller;
   }
 
   void _videoListener() {
     if (!mounted || _controller == null) return;
     final val = _controller!.value;
+
+    // Gracefully fallback to Web Embed if native player fails during playback
+    if (val.hasError && !_isEmbedMode) {
+      debugPrint('TV Video error: ${val.errorDescription}');
+      if (_currentEpisode.linkEmbed.isNotEmpty) {
+        _initEmbedPlayer(_currentEpisode.linkEmbed);
+        return;
+      }
+    }
 
     // Check completion for auto next episode
     if (val.isInitialized && val.duration > Duration.zero) {

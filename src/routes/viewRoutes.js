@@ -7,6 +7,7 @@ const templateService = require('../services/templateService');
 const tmdbService = require('../services/tmdbService');
 const dbService = require('../services/dbService');
 const { renderHomePage } = require('../services/homePageService');
+const bannerService = require('../services/bannerService');
 const router = express.Router();
 
 const publicFile = (file) => path.join(config.PUBLIC_DIR, file);
@@ -54,11 +55,19 @@ router.use((req, res, next) => {
 // ==========================================
 // MOBILE APP ROUTES (Obsidian Cinema Mobile)
 // ==========================================
-router.get('/mobile', (req, res) => res.sendFile(mobileFile('index.html')));
+router.get(['/mobile', '/mobile/', '/mobile/index.html'], async (req, res) => {
+  const [html, settings] = await Promise.all([fs.readFile(mobileFile('index.html'), 'utf8'), dbService.getSettings()]);
+  res.set('Cache-Control', 'private, no-cache');
+  res.send(bannerService.decorate(html, settings, true));
+});
 router.get('/mobile/kham-pha', (req, res) => res.sendFile(mobileFile('kham-pha.html')));
 router.get('/mobile/phim/:slug', (req, res) => res.sendFile(mobileFile('chi-tiet.html')));
-router.get('/mobile/xem-phim/:slug', (req, res) => res.sendFile(mobileFile('xem-phim.html')));
-router.get('/mobile/xem-phim/:slug/:episode', (req, res) => res.sendFile(mobileFile('xem-phim.html')));
+async function mobileWatch(req, res) {
+  const [html, settings] = await Promise.all([fs.readFile(mobileFile('xem-phim.html'), 'utf8'), dbService.getSettings()]);
+  res.set('Cache-Control', 'private, no-cache');
+  res.send(bannerService.decorate(html, settings, true));
+}
+router.get(['/mobile/xem-phim.html', '/mobile/xem-phim/:slug', '/mobile/xem-phim/:slug/:episode'], mobileWatch);
 router.get('/mobile/danh-sach', (req, res) => res.sendFile(mobileFile('danh-sach.html')));
 router.get('/mobile/tai-khoan', (req, res) => res.sendFile(mobileFile('tai-khoan.html')));
 
@@ -78,8 +87,8 @@ router.get(['/tv/dang-nhap', '/tv/qr-login'], (req, res) => res.sendFile(tvFile(
 // Home Page with Server-Side Hydration of real KKPhim data
 router.get('/', async (req, res) => {
   try {
-    const homeData = await kkphimService.getHomeData();
-    const rendered = await renderHomePage(homeData);
+    const [homeData, settings] = await Promise.all([kkphimService.getHomeData(), dbService.getSettings()]);
+    const rendered = await renderHomePage(homeData, settings);
     res.set('Cache-Control', 'private, no-cache');
     res.send(rendered);
   } catch (err) {
@@ -129,10 +138,12 @@ router.get('/phim/:slug', async (req, res) => {
 
 // Watch Movie Player with Server-Side Hydration
 async function readWatchTemplate() {
-  return (await fs.readFile(publicFile('xem-phim.html'), 'utf8'))
-    .replace('<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>', '');
+  return fs.readFile(publicFile('xem-phim.html'), 'utf8').then(html => html.replace('<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>', ''));
 }
-router.get('/xem-phim.html', async (req, res) => res.send(await readWatchTemplate()));
+async function decorateWatch(html) {
+  return bannerService.decorate(html, await dbService.getSettings());
+}
+router.get('/xem-phim.html', async (req, res) => res.send(await decorateWatch(await readWatchTemplate())));
 async function handleWatchView(req, res) {
   try {
     const rawHtml = await readWatchTemplate();
@@ -147,13 +158,13 @@ async function handleWatchView(req, res) {
     ]);
 
     if (!movieData || !movieData.movie) {
-      return res.send(rawHtml);
+      return res.send(await decorateWatch(rawHtml));
     }
     const rendered = templateService.renderWatch(rawHtml, movieData, epSlug, comments, requestedServerIdx);
-    res.send(rendered);
+    res.send(await decorateWatch(rendered));
   } catch (err) {
     console.error('Error rendering watch view:', err);
-    res.send(await readWatchTemplate());
+    res.send(await decorateWatch(await readWatchTemplate()));
   }
 }
 

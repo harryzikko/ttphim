@@ -14,7 +14,7 @@ const { verifyPassword } = require('../src/services/passwordService');
 // These regression tests intentionally do not contact movie providers.
 for (const service of ['kkphimService', 'vicdnService', 'nguoncService', 'partyService', 'personService', 'tmdbService']) {
   const id = require.resolve(`../src/services/${service}`);
-  require.cache[id] = { id, filename: id, loaded: true, exports: {} };
+  require.cache[id] = { id, filename: id, loaded: true, exports: service === 'kkphimService' ? { clearHomeCache() {} } : {} };
 }
 const router = require('../src/routes/apiRoutes');
 const admin = { id: 'audit-admin', email: 'admin@example.test', name: 'Admin', role: 'admin', password: 'old-password' };
@@ -196,4 +196,43 @@ test('watch history preserves real progress and the selected server', async () =
   assert.equal(item.current_time, 120);
   assert.equal(item.duration, 600);
   assert.equal(item.progress_percent, 20);
+});
+
+test('banner management requires admin and persists order with conflict protection', async () => {
+  assert.equal((await request('/admin/banners')).status, 401);
+  assert.equal((await request('/admin/banners', { user: member })).status, 403);
+  await db.updateSettings({ featured_slugs: [{ slug: 'film-a', name: 'A' }, { slug: 'film-b', name: 'B' }] });
+  const original = (await request('/admin/banners', { user: admin })).body.data;
+  const config = { ...original, slides: [...original.slides].reverse(), ads: [{ slot: 'home_middle', enabled: true, title: 'Ad', image_desktop: 'https://image.test/ad.jpg', href: '/kham-pha' }] };
+  const saved = await request('/admin/banners', { method: 'POST', user: admin, body: config });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.body.data.slides[0].slug, 'film-b');
+  assert.equal((await savedDb()).settings.featured_slugs[0].slug, 'film-b');
+  assert.equal((await request('/admin/banners', { method: 'POST', user: admin, body: config })).status, 409);
+  const invalid = { ...saved.body.data, ads: [{ ...config.ads[0], href: 'javascript:alert(1)' }] };
+  assert.equal((await request('/admin/banners', { method: 'POST', user: admin, body: invalid })).status, 400);
+  assert.equal((await request('/admin/settings', { method: 'POST', user: admin, body: { banner_config: {} } })).status, 400);
+});
+
+test('advertising API requires admin, preserves pins and hero, and protects revisions', async () => {
+  for (const method of ['GET', 'POST']) {
+    assert.equal((await request('/admin/advertising', { method, body: method === 'POST' ? { ads: [] } : undefined })).status, 401);
+    assert.equal((await request('/admin/advertising', { method, user: member, body: method === 'POST' ? { ads: [] } : undefined })).status, 403);
+  }
+  const pins = [{ slug: 'film-a', name: 'A' }];
+  const hero = { slides: [{ slug: 'film-a', title: 'Featured' }], hero_enabled: true, ads: [] };
+  await db.updateSettings({ featured_slugs: pins, banner_config: hero });
+  const initial = (await request('/admin/advertising', { user: admin })).body.data;
+  assert.equal(initial.ads.length, 6);
+  assert.ok(initial.ads.every(item => !item.enabled));
+  const body = { revision: initial.revision, ads: [{ slot: 'header', enabled: true, title: 'Ad', image_desktop: 'https://image.test/ad.jpg', href: '/kham-pha' }] };
+  const saved = await request('/admin/advertising', { method: 'POST', user: admin, body });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.body.data.ads.find(item => item.slot === 'header').enabled, true);
+  const settings = (await savedDb()).settings;
+  assert.deepEqual(settings.featured_slugs, pins);
+  assert.deepEqual(settings.banner_config, hero);
+  assert.equal((await request('/admin/advertising', { method: 'POST', user: admin, body })).status, 409);
+  assert.equal((await request('/admin/advertising', { method: 'POST', user: admin, body: { ...saved.body.data, ads: [{ ...body.ads[0], href: 'javascript:alert(1)' }] } })).status, 400);
+  assert.equal((await request('/admin/settings', { method: 'POST', user: admin, body: { advertising: { ads: [] } } })).status, 400);
 });

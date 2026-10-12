@@ -76,12 +76,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   } catch (err) {
     console.error('[TTPhim] Failed to load home data:', err);
-    if (window.showToast) window.showToast('Lỗi tải dữ liệu phim từ TTPhim API', 'error');
+    if (window.showToast) window.showToast('Lỗi tải dữ liệu phim từ KKPhim API', 'error');
   }
 
   // --- 1. HERO SPOTLIGHT ---
   function renderHeroSpotlight(rawSpotlights) {
     const spotlights = (rawSpotlights || []).slice(0, 10);
+    if (!spotlights.length) { document.getElementById('home-hero')?.setAttribute('hidden', ''); return; }
     const heroSection = document.querySelectorAll('main section')[0];
     if (!heroSection) return;
 
@@ -167,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!movie) return;
 
         const newBgUrl = movie.thumb_url || movie.poster_url;
+        [layer1, layer2, heroBgFallback].filter(Boolean).forEach(layer => { layer.style.backgroundPosition = movie.banner_position || '50% 50%'; });
 
         // 1. Crossfade background layers with Ken Burns slow zoom
         if (layer1 && layer2) {
@@ -205,16 +207,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 4. Update texts and badges
         if (heroTitle) {
-          heroTitle.innerHTML = `${movie.name} <span class="text-primary-container block sm:inline">${movie.episode_current ? `(${movie.episode_current})` : ''}</span>`;
+          heroTitle.textContent = `${movie.banner_title || movie.name}${movie.episode_current ? ` (${movie.episode_current})` : ''}`;
         }
         if (heroSubTitle) {
           heroSubTitle.innerText = `${movie.origin_name || ''} (${movie.year || 2026})`;
         }
         if (heroExcerpt) {
-          heroExcerpt.innerText = movie.content || 'Nội dung bộ phim đặc sắc đang chờ bạn khám phá trên TTPhim...';
+          heroExcerpt.innerText = movie.banner_description || movie.content || '';
         }
         if (heroRating) {
-          heroRating.innerText = movie.rating || '9.2';
+          heroRating.parentElement.style.display = 'none';
         }
         if (heroMetaSpans && heroMetaSpans.length >= 3) {
           heroMetaSpans[0].innerText = movie.quality || '4K HDR';
@@ -239,7 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (playBtn) {
           playBtn.href = `/xem-phim/${movie.slug}/${movie.first_episode_slug || 'tap-1'}`;
           const playLabel = playBtn.querySelector('span:last-child');
-          if (playLabel) playLabel.innerText = 'Xem Phim';
+          if (playLabel) playLabel.innerText = movie.cta_label || 'Xem ngay';
         }
         if (trailerBtn) {
           trailerBtn.onclick = () => openSpotlightTrailer(movie);
@@ -343,11 +345,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function resumeCountdown() {
+      if (document.hidden || heroSection.matches(':focus-within') || heroSection.matches(':hover') || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
       isPaused = false;
       if (timerBar) {
         timerBar.classList.remove('paused');
       }
     }
+    heroSection.addEventListener('focusin', pauseCountdown);
+    heroSection.addEventListener('focusout', () => { if (!document.hidden && !heroSection.matches(':hover')) resumeCountdown(); });
+    document.addEventListener('visibilitychange', () => document.hidden ? pauseCountdown() : resumeCountdown());
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) pauseCountdown();
+    heroSection.addEventListener('mouseenter', pauseCountdown);
+    heroSection.addEventListener('mouseleave', resumeCountdown);
 
     // Automatically transition to next slide when countdown animation finishes
     if (timerBar) {

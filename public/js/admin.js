@@ -1,5 +1,6 @@
 ﻿// TTPhim - Admin Dashboard Controller
 document.addEventListener('DOMContentLoaded', async () => {
+  document.body.classList.add('editorial-admin');
   let currentUser = null;
   let allUsers = [];
   let allReports = [];
@@ -10,21 +11,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     currentUser = await API.getMe();
     if (!currentUser || currentUser.role !== 'admin') {
-      console.warn('[TTPhim Admin] Current user is not admin:', currentUser);
-      const switchAdmin = confirm('Bạn chưa đăng nhập với tài khoản Quản Trị Viên (Admin).\nBạn có muốn tự động đăng nhập với tài khoản admin (admin@TTPhim.vn / admin123) không?');
-      if (switchAdmin) {
-        const loginRes = await API.login('admin@TTPhim.vn', 'admin123');
-        if (loginRes.status) {
-          window.location.reload();
-          return;
-        }
-      } else {
-        window.location.href = '/dang-nhap';
-        return;
-      }
+      window.location.href = '/dang-nhap';
+      return;
     }
   } catch(e) {
     console.error('[TTPhim Admin] Auth check error:', e);
+    window.location.href = '/dang-nhap';
+    return;
   }
 
   // Update Admin Header
@@ -85,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const totalMoviesEl = document.getElementById('stat-total-movies');
       if (totalMoviesEl) {
-        totalMoviesEl.innerText = (stats.totalWebMovies || 30275).toLocaleString('vi-VN');
+        totalMoviesEl.innerText = stats.totalWebMovies == null ? 'Chưa xác minh' : Number(stats.totalWebMovies).toLocaleString('vi-VN');
       }
 
       document.getElementById('stat-total-users').innerText = stats.totalUsers || 0;
@@ -384,7 +377,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // --- 5. Tab: Tra Cứu & Ghim Phim Hot (Đa Nguồn: TTPhim, ViCDN, NguonC) ---
+  // --- 5. Tab: Tra Cứu & Ghim Phim Hot (Đa Nguồn: KKPhim, ViCDN, NguonC) ---
   async function loadFeaturedMovies() {
     try {
       currentSettings = await API.getAdminSettings();
@@ -408,7 +401,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const originName = typeof item === 'object' && item.origin_name ? item.origin_name : '';
         const poster = (typeof item === 'object' && (item.poster_url || item.thumb_url)) ? (item.poster_url || item.thumb_url) : 'https://phimimg.com/uploads/movies/thumb-default.jpg';
         
-        let sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">TTPhim</span>';
+        let sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">KKPhim</span>';
         if ((typeof item === 'object' && item.source === 'vicdn') || slug.startsWith('tv-') || slug.startsWith('movie-')) {
           sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">ViCDN Song Ngữ</span>';
         } else if (typeof item === 'object' && item.source === 'nguonc') {
@@ -483,7 +476,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!kw) return;
     const sourceFilter = searchSourceFilter?.value || 'all';
     const tbody = document.getElementById('movie-search-table-body');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-on-surface-variant"><span class="animate-spin inline-block mr-2">⏳</span> Đang tìm kiếm từ các nguồn phim (${sourceFilter === 'all' ? 'TTPhim, ViCDN Song Ngữ, NguonC' : sourceFilter.toUpperCase()})...</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Đang tìm kiếm từ các nguồn phim (${sourceFilter === 'all' ? 'KKPhim, ViCDN Song Ngữ, NguonC' : sourceFilter.toUpperCase()})...</td></tr>`;
 
     try {
       const items = await API.searchAdminMovies(kw, sourceFilter);
@@ -499,7 +492,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       tbody.innerHTML = items.map(m => {
         const isPinned = featuredSlugsList.includes(m.slug);
         
-        let sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>TTPhim Core</span>';
+        let sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">KKPhim API</span>';
         if (m.source === 'vicdn' || (m.slug && m.slug.startsWith('tv-'))) {
           sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>ViCDN Song Ngữ</span>';
         } else if (m.source === 'nguonc') {
@@ -567,8 +560,8 @@ document.addEventListener('DOMContentLoaded', async () => {
               year: targetMovie.year || new Date().getFullYear(),
               quality: targetMovie.quality || 'FHD',
               has_song_ngu: Boolean(targetMovie.has_song_ngu || targetMovie.source === 'vicdn'),
-              source: targetMovie.source || 'TTPhim',
-              source_name: targetMovie.source_name || (targetMovie.source === 'vicdn' ? 'ViCDN Song Ngữ' : (targetMovie.source === 'nguonc' ? 'NguonC Stream VIP' : 'TTPhim Core'))
+              source: targetMovie.source || 'kkphim',
+              source_name: targetMovie.source_name || (targetMovie.source === 'vicdn' ? 'ViCDN Song Ngữ' : (targetMovie.source === 'nguonc' ? 'NguonC Stream VIP' : 'KKPhim API'))
             } : { slug };
 
             featuredList = [pinItem, ...featuredList].slice(0, 8);
@@ -650,11 +643,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!stats) return;
 
       const totalMoviesEl = document.getElementById('analytics-total-movies');
-      if (totalMoviesEl) totalMoviesEl.innerText = (stats.totalWebMovies || 30275).toLocaleString('vi-VN');
+      if (totalMoviesEl) totalMoviesEl.innerText = stats.totalWebMovies == null ? 'Chưa xác minh' : Number(stats.totalWebMovies).toLocaleString('vi-VN');
 
       const totalSourcesSub = document.getElementById('analytics-total-sources-sub');
       if (totalSourcesSub) {
-        const allSources = (stats.totalAllSources || 64353).toLocaleString('vi-VN');
+        const allSources = stats.totalAllSources == null ? 'Chưa xác minh' : Number(stats.totalAllSources).toLocaleString('vi-VN');
         totalSourcesSub.innerText = `3 nguồn: ${allSources} bản ghi`;
       }
 
@@ -776,53 +769,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const sources = await API.getAdminSources();
       if (!sources) return;
 
-      // Telemetry 4 Cards
-      const totalWebEl = document.getElementById('sources-total-web');
-      if (totalWebEl) totalWebEl.innerText = (sources.total_web_movies || 30275).toLocaleString('vi-VN');
-
-      const totalAllSubEl = document.getElementById('sources-total-all-sub');
-      if (totalAllSubEl) totalAllSubEl.innerText = `Tổng 3 nguồn: ${(sources.total_all_sources || 64353).toLocaleString('vi-VN')} bản ghi`;
-
-      const statTTPhimEl = document.getElementById('sources-stat-TTPhim');
-      if (statTTPhimEl) statTTPhimEl.innerText = (sources.TTPhim?.total_movies || 30275).toLocaleString('vi-VN');
-
-      const statTTPhimSubEl = document.getElementById('sources-stat-TTPhim-sub');
-      if (statTTPhimSubEl) statTTPhimSubEl.innerText = `${(sources.TTPhim?.total_pages || 1262).toLocaleString('vi-VN')} trang (phimapi.com)`;
-
-      const statVicdnEl = document.getElementById('sources-stat-vicdn');
-      if (statVicdnEl) statVicdnEl.innerText = (sources.vicdn?.total_movies || 628).toLocaleString('vi-VN');
-
-      const statVicdnSubEl = document.getElementById('sources-stat-vicdn-sub');
-      if (statVicdnSubEl) statVicdnSubEl.innerText = `${(sources.vicdn?.total_pages || 63).toLocaleString('vi-VN')} trang (vicdn.cc)`;
-
-      const statNguoncEl = document.getElementById('sources-stat-nguonc');
-      if (statNguoncEl) statNguoncEl.innerText = (sources.nguonc?.total_movies || 33450).toLocaleString('vi-VN');
-
-      const statNguoncSubEl = document.getElementById('sources-stat-nguonc-sub');
-      if (statNguoncSubEl) statNguoncSubEl.innerText = `${(sources.nguonc?.total_pages || 3345).toLocaleString('vi-VN')} trang (nguonc.com)`;
-
-      // Detailed 3 Provider Cards
-      // 1. TTPhim
-      const TTPhimCountEl = document.getElementById('source-TTPhim-count');
-      if (TTPhimCountEl) TTPhimCountEl.innerText = `${(sources.TTPhim?.total_movies || 30275).toLocaleString('vi-VN')} phim`;
-      const TTPhimPagesEl = document.getElementById('source-TTPhim-pages');
-      if (TTPhimPagesEl) TTPhimPagesEl.innerText = `${(sources.TTPhim?.total_pages || 1262).toLocaleString('vi-VN')} trang`;
-
-      // 2. ViCDN
-      const vicdnTotalEl = document.getElementById('source-vicdn-total');
-      if (vicdnTotalEl) vicdnTotalEl.innerText = `${(sources.vicdn?.total_movies || 628).toLocaleString('vi-VN')} phim`;
-      const vicdnEl = document.getElementById('source-vicdn-count');
-      if (vicdnEl) vicdnEl.innerText = `${sources.vicdn?.indexed_movies || 0} phim`;
-      const vicdnPagesEl = document.getElementById('source-vicdn-pages');
-      if (vicdnPagesEl) vicdnPagesEl.innerText = `${(sources.vicdn?.total_pages || 63).toLocaleString('vi-VN')} trang`;
-
-      // 3. NguonC
-      const nguoncTotalEl = document.getElementById('source-nguonc-total');
-      if (nguoncTotalEl) nguoncTotalEl.innerText = `${(sources.nguonc?.total_movies || 33450).toLocaleString('vi-VN')} phim`;
-      const nguoncEl = document.getElementById('source-nguonc-count');
-      if (nguoncEl) nguoncEl.innerText = `${sources.nguonc?.indexed_movies || 0} phim`;
-      const nguoncPagesEl = document.getElementById('source-nguonc-pages');
-      if (nguoncPagesEl) nguoncPagesEl.innerText = `${(sources.nguonc?.total_pages || 3345).toLocaleString('vi-VN')} trang`;
+      window.renderAdminSources(sources);
     } catch(e) {
       console.error('[TTPhim Admin] Failed to load sources:', e);
     }
@@ -853,9 +800,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       pingBtn.disabled = true;
       const t0 = performance.now();
-      await API.getAdminSources();
+      const sources = await API.getAdminSources();
+      if (!sources) throw Error('Không tải được trạng thái nguồn');
+      window.renderAdminSources(sources);
       const latency = Math.round(performance.now() - t0);
-      window.showToast(`⚡ Kiểm tra kết nối thành công: TTPhim, ViCDN, NguonC hoạt động tốt (~${latency}ms)`);
+      window.showToast(`Đã kiểm tra nguồn (~${latency}ms). KKPhim: ${sources.kkphim?.status === 'online' ? 'kết nối thành công' : 'chưa xác minh / dữ liệu cũ'}.`);
     } catch(e) {
       window.showToast('Lỗi khi kiểm tra kết nối nguồn phim', 'error');
     } finally {
