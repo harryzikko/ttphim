@@ -196,7 +196,9 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       _isLoading = false;
     });
 
-    final controller = WebViewController()
+    late final WebViewController controller;
+    controller = WebViewController();
+    controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
       ..setUserAgent(

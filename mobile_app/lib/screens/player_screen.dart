@@ -211,27 +211,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     HapticFeedback.lightImpact();
   }
 
-  /// Helper: Extract direct .m3u8 playlist URL from embed wrapper URL if present
-  String? _extractM3u8FromEmbed(String embedUrl) {
-    if (embedUrl.isEmpty) return null;
-    try {
-      final uri = Uri.tryParse(embedUrl);
-      if (uri != null) {
-        final urlParam = uri.queryParameters['url'] ?? uri.queryParameters['file'];
-        if (urlParam != null && urlParam.contains('.m3u8')) {
-          return Uri.decodeFull(urlParam);
-        }
-      }
-    } catch (_) {}
-
-    final regex = RegExp(r'(https?://[^\s"&]+\.m3u8[^\s"&]*)', caseSensitive: false);
-    final match = regex.firstMatch(embedUrl);
-    if (match != null) {
-      return match.group(1);
-    }
-    return null;
-  }
-
   /// Launch In-App Web Embed Player with full browser engine, CORS/cookie support, and ad popups suppression
   void _initWebPlayer(String embedUrl) {
     _videoPlayerController?.removeListener(_videoListener);
@@ -255,7 +234,9 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         params = const PlatformWebViewControllerCreationParams();
       }
 
-      final controller = WebViewController.fromPlatformCreationParams(params)
+      late final WebViewController controller;
+      controller = WebViewController.fromPlatformCreationParams(params);
+      controller
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.black)
         ..setUserAgent(
