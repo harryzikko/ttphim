@@ -54,7 +54,7 @@ app.use((req, res) => {
 // Start Server
 app.listen(config.PORT, () => {
   console.log(`====================================================`);
-  console.log(`   🎬 TTPHIM - OBSIDIAN CINEMA BACKEND IS RUNNING  `);
+  console.log(`   🎬 CINEVIET - OBSIDIAN CINEMA BACKEND IS RUNNING  `);
   console.log(`   URL: http://localhost:${config.PORT}            `);
   console.log(`   API: http://localhost:${config.PORT}/api/home   `);
   console.log(`====================================================`);

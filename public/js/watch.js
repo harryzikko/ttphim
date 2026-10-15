@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function initPage({ movie, episodes, watchedHistory }) {
-    document.title = `Đang xem: ${movie.name} - TTPhim Cinema 4K`;
+    document.title = `Đang xem: ${movie.name} - CineViet Cinema 4K`;
 
     // Setup Header Strip Info
     const backBtn = document.querySelector('a[data-path="chi-tiet-phim"], a:has(.arrow_back)');

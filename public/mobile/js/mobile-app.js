@@ -1,4 +1,4 @@
-﻿// TTPhim Mobile App - Core Framework for iOS & Android
+﻿// CineViet Mobile App - Core Framework for iOS & Android
 const MobileApp = {
   activeTab: 'home',
 

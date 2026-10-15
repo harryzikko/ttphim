@@ -1,4 +1,4 @@
-name: Build TTPhim Native Mobile App (APK & IPA)
+name: Build CineViet Native Mobile App (APK & IPA)
 
 on:
   push:
@@ -20,11 +20,11 @@ jobs:
           - variant: Mobile
             organization: com.ttphim.cinema
             target: lib/main.dart
-            artifact: TTPhim-Mobile-release.apk
+            artifact: CineViet-Mobile-release.apk
           - variant: AndroidTV
             organization: com.ttphim.tv
             target: lib/main_tv.dart
-            artifact: TTPhim-AndroidTV-release.apk
+            artifact: CineViet-AndroidTV-release.apk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -71,7 +71,7 @@ jobs:
           cp mobile_app/build/app/outputs/flutter-apk/app-release.apk "output/${{ matrix.artifact }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: TTPhim-${{ matrix.variant }}-APK
+          name: CineViet-${{ matrix.variant }}-APK
           path: output/*.apk
           retention-days: 14
 
@@ -116,9 +116,9 @@ jobs:
           find Payload -type d -name _CodeSignature -prune -exec rm -rf {} +
           find Payload -name embedded.mobileprovision -delete
           find Payload -type f -exec sh -c 'file "$1" | grep -q "Mach-O" && codesign --remove-signature "$1" 2>/dev/null || true' sh {} \;
-          zip -r TTPhim-unsigned.ipa Payload
+          zip -r CineViet-unsigned.ipa Payload
       - uses: actions/upload-artifact@v4
         with:
-          name: TTPhim-iOS-IPA-Unsigned
-          path: TTPhim-unsigned.ipa
+          name: CineViet-iOS-IPA-Unsigned
+          path: CineViet-unsigned.ipa
           retention-days: 14

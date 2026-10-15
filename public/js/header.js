@@ -320,7 +320,7 @@
     } else {
       menu.innerHTML = `
         <div class="p-3 text-center">
-          <p class="font-label-md text-label-md text-on-surface">Chào mừng bạn đến với TTPhim</p>
+          <p class="font-label-md text-label-md text-on-surface">Chào mừng bạn đến với CineViet</p>
           <p class="font-body-sm text-[12px] text-on-surface-variant mt-1">Đăng nhập để lưu phim yêu thích & xem tiếp mọi lúc</p>
           <a href="/dang-nhap" class="mt-3 block w-full py-2 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold text-center hover:bg-inverse-primary transition-all">
             Đăng Nhập / Đăng Ký
@@ -645,8 +645,8 @@
       <!-- Top Header -->
       <div class="h-20 px-5 flex items-center justify-between border-b border-surface-container-highest shrink-0">
         <a class="flex items-center gap-2" href="/">
-          <img alt="TTPhim Logo" class="h-7 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WCgXJ9H-tWLwRPCqPCRlQ-WkeL0DmYMLoQLATG6zUC7m_mRaYXw9V8rpS6oCn2YpFNMV5eCJkqB40ASFcGmB8EVSm4JdhJUnQzRZXllyYk-iFplWk-2hiBgenIAwmXycja2wJQdrIssIaeW2L2chdDSOdkwurLh9W8lcpY9ruEewt7cu8DNtcO1SbJaqqUE7cZ-BOOT6tRM7uADBlkEb1d9ZnHdr5dL2LEJqSRybvk"/>
-          <span class="font-headline-sm tracking-wider uppercase text-on-surface font-extrabold text-[17px]">KK<span class="text-primary-container">PHIM</span></span>
+          <img alt="CineViet Logo" class="h-7 w-auto object-contain" src="/logo.svg"/>
+          <span class="font-headline-sm tracking-wider uppercase text-on-surface font-extrabold text-[17px]">CINE<span class="text-primary-container">VIET</span></span>
         </a>
         <button id="btn-close-mobile-menu" class="p-2 rounded-full hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer" type="button" aria-label="Đóng menu">
           <span class="material-symbols-outlined text-[22px]">close</span>

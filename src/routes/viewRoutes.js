@@ -203,6 +203,7 @@ router.get(['/tv-auth', '/tv-login', '/tv-dang-nhap'], (req, res) => {
 });
 
 // Favicon
-router.get(['/favicon.ico', '/favicon.svg'], (req, res) => res.type('image/svg+xml').sendFile(publicFile('favicon.svg')));
+router.get('/favicon.ico', (req, res) => res.type('image/x-icon').sendFile(publicFile('favicon.ico')));
+router.get('/favicon.svg', (req, res) => res.type('image/svg+xml').sendFile(publicFile('favicon.svg')));
 
 module.exports = router;

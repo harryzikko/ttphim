@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const heroPosterRank = document.getElementById('hero-poster-rank-badge');
       const heroPosterImg = document.getElementById('hero-poster-img');
 
-      if (heroTitle) heroTitle.innerHTML = 'TTPhim Cinema Experience';
+      if (heroTitle) heroTitle.innerHTML = 'CineViet Cinema Experience';
       if (heroSubTitle) heroSubTitle.innerText = 'Kho Phim Chuẩn Điện Ảnh 4K HDR Không Quảng Cáo';
       if (heroExcerpt) heroExcerpt.innerText = 'Hiện tại chưa có phim nào được ghim lên Banner nổi bật. Quản trị viên có thể vào trang Quản Trị (Admin) để ghim phim lên Banner trang chủ.';
       if (playBtn) {

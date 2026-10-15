@@ -1,6 +1,6 @@
 {
-  "name": "TTPhim - Rạp Chiếu Phim 4K HDR",
-  "short_name": "TTPhim",
+  "name": "CineViet - Rạp Chiếu Phim 4K HDR",
+  "short_name": "CineViet",
   "description": "Nền tảng xem phim trực tuyến miễn phí chuẩn điện ảnh 4K HDR, âm thanh Dolby Atmos trên iOS và Android",
   "start_url": "/mobile",
   "display": "standalone",

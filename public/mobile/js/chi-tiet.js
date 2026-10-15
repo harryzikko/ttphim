@@ -1,4 +1,4 @@
-// TTPhim Mobile - Movie Detail Controller
+// CineViet Mobile - Movie Detail Controller
 document.addEventListener('DOMContentLoaded', async () => {
   // Extract slug from URL path: /mobile/phim/:slug or query param ?slug=
   const pathParts = window.location.pathname.split('/').filter(Boolean);

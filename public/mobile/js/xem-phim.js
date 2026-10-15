@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const movie = movieData.movie;
     allServers = movieData.episodes || [];
 
-    document.title = `${movie.name} - Đang xem - TTPhim Mobile`;
+    document.title = `${movie.name} - Đang xem - CineViet Mobile`;
     if (movieNameEl) movieNameEl.textContent = movie.name;
     if (infoTitle) infoTitle.textContent = movie.name;
 

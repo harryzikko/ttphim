@@ -454,7 +454,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <h3 class="font-headline-sm text-on-surface font-bold">Chưa Có Phim Tải Về Ngoại Tuyến</h3>
         <p class="font-body-sm text-on-surface-variant max-w-md mx-auto mt-2 leading-relaxed">
-          Tính năng tải phim xem ngoại tuyến hiện được hỗ trợ độc quyền trên ứng dụng <strong>TTPhim Mobile (iOS / Android)</strong>.<br/>
+          Tính năng tải phim xem ngoại tuyến hiện được hỗ trợ độc quyền trên ứng dụng <strong>CineViet Mobile (iOS / Android)</strong>.<br/>
           Trên nền tảng Web, bạn có thể thưởng thức toàn bộ kho phim chuẩn 4K HDR trực tuyến với tốc độ cao không giới hạn.
         </p>
         <div class="mt-6 flex items-center justify-center gap-3">

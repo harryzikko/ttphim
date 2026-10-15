@@ -110,7 +110,7 @@ class TemplateService {
       // Empty state when admin has not pinned any movie yet
       html = html.replace(
         /<h1 class="font-display-hero[^>]*>.*?<\/h1>/s,
-        `<h1 class="font-display-hero text-display-hero text-on-surface tracking-tight leading-none drop-shadow-2xl">TTPhim Cinema Experience</h1>`
+        `<h1 class="font-display-hero text-display-hero text-on-surface tracking-tight leading-none drop-shadow-2xl">CineViet Cinema Experience</h1>`
       );
       html = html.replace(
         /<p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium tracking-wide">.*?<\/p>/s,
@@ -970,7 +970,7 @@ class TemplateService {
 
     // 1. Page Title
     const epDisplay = cleanEpName(currentEp.name);
-    const titleStr = `Đang xem: ${movie.name} - Tập ${epDisplay} | TTPhim Cinema 4K`;
+    const titleStr = `Đang xem: ${movie.name} - Tập ${epDisplay} | CineViet Cinema 4K`;
     html = html.replace(/<title>.*?<\/title>/i, `<title>${titleStr}</title>`);
     if (!html.includes('<title>')) {
       html = html.replace('<head>', `<head>\n  <title>${titleStr}</title>`);
