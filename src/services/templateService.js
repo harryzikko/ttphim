@@ -24,6 +24,17 @@ function formatLangBadge(lang) {
   return s;
 }
 
+function isMovieSongNgu(movie) {
+  if (!movie) return false;
+  if (movie.has_song_ngu) return true;
+  if (movie.source === 'vicdn') return true;
+  if (typeof movie.slug === 'string' && movie.slug.startsWith('tv-')) return true;
+  if (typeof movie.lang === 'string' && /song\s*ngữ/i.test(movie.lang)) return true;
+  if (typeof movie.quality === 'string' && /song\s*ngữ/i.test(movie.quality)) return true;
+  if (typeof movie.source_name === 'string' && /vicdn|song\s*ngữ/i.test(movie.source_name)) return true;
+  return false;
+}
+
 function cleanEpName(name) {
   if (!name) return '01';
   const str = String(name).trim();
@@ -135,16 +146,23 @@ class TemplateService {
 
     // Replace Section 2 (Mới Cập Nhật Hôm Nay) cards
     if (homeData.latest && homeData.latest.length > 0) {
-      const latestCardsHtml = homeData.latest.slice(0, 12).map(m => `
+      const latestCardsHtml = homeData.latest.slice(0, 12).map(m => {
+        const isSongNgu = isMovieSongNgu(m);
+        const songNguBadge = isSongNgu ? `
+          <span class="badge-song-ngu">
+            <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+          </span>` : '';
+        const langFormatted = formatLangBadge(m.lang);
+        const subBadge = (langFormatted && (!isSongNgu || !/song\s*ngữ/i.test(langFormatted)))
+          ? `<span class="badge-glass-sub">${langFormatted}</span>` : '';
+
+        return `
         <div class="movie-card group relative rounded-xl overflow-hidden bg-surface-container flex flex-col cursor-pointer border border-white/5" onclick="window.location.href='/phim/${m.slug}'">
           <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-high">
             <img src="${m.poster_url || m.thumb_url}" alt="${m.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" />
             <div class="absolute top-2 left-2 flex flex-col gap-1 z-10 items-start pointer-events-none">
-              ${m.has_song_ngu ? `
-                <span class="badge-song-ngu">
-                  <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-                </span>` : ''}
-              ${m.lang ? `<span class="badge-glass-sub">${formatLangBadge(m.lang)}</span>` : ''}
+              ${songNguBadge}
+              ${subBadge}
             </div>
             <div class="absolute top-2 right-2 z-10 pointer-events-none">
               <span class="badge-glass-quality">${m.quality || 'FHD'}</span>
@@ -168,9 +186,9 @@ class TemplateService {
               <span class="text-amber-400 font-semibold truncate max-w-[110px]">${m.episode_current || m.time || 'Trọn Bộ'}</span>
               <span class="text-on-surface-variant/80">${m.year}</span>
             </div>
-          </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
       html = html.replace(
         /(<h2 class="font-headline-lg text-headline-lg text-on-surface">Mới Cập Nhật Hôm Nay<\/h2>[\s\S]*?<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-space-md">)[\s\S]*?(<\/div>\s*<\/section>)/,
@@ -290,7 +308,7 @@ class TemplateService {
                 <span class="px-2 py-0.5 rounded-md ${badgeClass} font-label-badge text-[10px] font-black tracking-wider uppercase">
                   #${rank}
                 </span>
-                ${m.has_song_ngu ? `
+                ${isMovieSongNgu(m) ? `
                   <span class="badge-song-ngu">
                     <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
                   </span>` : ''}
@@ -339,6 +357,12 @@ class TemplateService {
   renderRailCards(items, badgeType = 'default') {
     if (!items || !items.length) return '';
     return items.slice(0, 16).map(m => {
+      const isSongNgu = isMovieSongNgu(m);
+      const songNguBadge = isSongNgu ? `
+        <span class="badge-song-ngu">
+          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+        </span>` : '';
+
       let badgeHtml = '';
       if (badgeType === 'chieurap') {
         badgeHtml = `<span class="badge-glass-cinema">Chiếu Rạp</span>`;
@@ -349,13 +373,11 @@ class TemplateService {
       } else if (badgeType === 'anime') {
         badgeHtml = `<span class="badge-glass-anime">Anime</span>`;
       } else if (m.lang) {
-        badgeHtml = `<span class="badge-glass-sub">${formatLangBadge(m.lang)}</span>`;
+        const langFmt = formatLangBadge(m.lang);
+        if (!isSongNgu || !/song\s*ngữ/i.test(langFmt)) {
+          badgeHtml = `<span class="badge-glass-sub">${langFmt}</span>`;
+        }
       }
-
-      const songNguBadge = m.has_song_ngu ? `
-        <span class="badge-song-ngu">
-          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-        </span>` : '';
 
       return `
         <div class="movie-card group relative rounded-xl overflow-hidden bg-surface-container flex flex-col cursor-pointer border border-white/5 w-[155px] sm:w-[175px] md:w-[195px] shrink-0" onclick="window.location.href='/phim/${m.slug}'">
@@ -433,16 +455,23 @@ class TemplateService {
       return 'Phim Lẻ';
     };
 
-    const cardsHtml = catalogData.items.map(m => `
+    const cardsHtml = catalogData.items.map(m => {
+      const isSongNgu = isMovieSongNgu(m);
+      const songNguBadge = isSongNgu ? `
+        <span class="badge-song-ngu">
+          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+        </span>` : '';
+      const langFormatted = formatLangBadge(m.lang);
+      const subBadge = (langFormatted && (!isSongNgu || !/song\s*ngữ/i.test(langFormatted)))
+        ? `<span class="badge-glass-sub">${langFormatted}</span>` : '';
+
+      return `
       <article class="group relative flex flex-col bg-surface-container rounded-xl overflow-hidden hover:bg-surface-container-high transition-all duration-300 hover:-translate-y-1.5 shadow-md hover:shadow-2xl cursor-pointer" onclick="window.location.href='/phim/${m.slug}'">
         <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
           <img src="${m.poster_url || m.thumb_url}" alt="${m.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
           <div class="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10 items-start pointer-events-none">
-            ${m.has_song_ngu ? `
-              <span class="badge-song-ngu">
-                <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-              </span>` : ''}
-            ${m.lang ? `<span class="badge-glass-sub">${formatLangBadge(m.lang)}</span>` : ''}
+            ${songNguBadge}
+            ${subBadge}
           </div>
           <div class="absolute top-2.5 right-2.5 z-10 pointer-events-none">
             <span class="badge-glass-quality">${m.quality || 'FHD'}</span>
@@ -464,11 +493,11 @@ class TemplateService {
           </div>
           <div class="flex items-center justify-between text-on-surface-variant font-label-badge text-[11px] pt-1 border-t border-surface-container-highest">
             <span>${getMovieTypeBadge(m)}</span>
-            <span class="text-secondary flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">star</span> 8.9</span>
           </div>
         </div>
       </article>
-    `).join('');
+    `;
+    }).join('');
 
     html = html.replace(
       /(<section aria-label="Danh sách phim tìm kiếm"[^>]*>)[\s\S]*?(<\/section>)/,

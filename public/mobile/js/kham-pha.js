@@ -1,4 +1,4 @@
-﻿// TTPhim Mobile - Explore & Filter Controller
+// TTPhim Mobile - Explore & Filter Controller
 document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   let currentParams = {
@@ -197,6 +197,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function renderMovieCard(m) {
+    const isSongNgu = Boolean(
+      m.has_song_ngu ||
+      m.source === 'vicdn' ||
+      (typeof m.slug === 'string' && m.slug.startsWith('tv-')) ||
+      (typeof m.lang === 'string' && /song\s*ngữ/i.test(m.lang)) ||
+      (typeof m.quality === 'string' && /song\s*ngữ/i.test(m.quality)) ||
+      (typeof m.source_name === 'string' && /vicdn|song\s*ngữ/i.test(m.source_name))
+    );
+    const songNguBadge = isSongNgu ? `
+      <span class="badge-song-ngu">
+        <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+      </span>` : '';
+    const showLang = !isSongNgu || !/song\s*ngữ/i.test(m.lang || '');
+
     return `
       <a href="/mobile/phim/${m.slug}" class="group relative flex flex-col rounded-xl overflow-hidden bg-surface-container-low shadow-md active:scale-[0.98] transition-all duration-200 cursor-pointer">
         <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container">
@@ -205,14 +219,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <!-- Top Status Tags -->
           <div class="absolute top-2 left-2 flex flex-col gap-1 items-start z-10">
+            ${songNguBadge}
             ${m.episode_current ? `
               <span class="px-1.5 py-0.5 rounded-sm bg-surface-container-lowest/80 backdrop-blur-md text-on-surface font-label-badge text-[9px] font-bold uppercase shadow-sm">
                 ${m.episode_current}
               </span>
             ` : ''}
-            <span class="px-1.5 py-0.5 rounded-sm bg-secondary-container/90 text-on-secondary-container font-label-badge text-[9px] font-bold uppercase shadow-[0_0_8px_rgba(0,238,252,0.4)]">
-              ${m.lang || 'Vietsub'}
-            </span>
+            ${showLang ? `
+              <span class="px-1.5 py-0.5 rounded-sm bg-secondary-container/90 text-on-secondary-container font-label-badge text-[9px] font-bold uppercase shadow-[0_0_8px_rgba(0,238,252,0.4)]">
+                ${m.lang || 'Vietsub'}
+              </span>
+            ` : ''}
           </div>
 
           <!-- Rating Badge -->

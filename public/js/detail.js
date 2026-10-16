@@ -988,16 +988,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       return clean;
     };
 
-    rail.innerHTML = related.slice(0, 16).map(m => `
+    rail.innerHTML = related.slice(0, 16).map(m => {
+      const isSongNgu = Boolean(
+        m.has_song_ngu ||
+        m.source === 'vicdn' ||
+        (typeof m.slug === 'string' && m.slug.startsWith('tv-')) ||
+        (typeof m.lang === 'string' && /song\s*ngữ/i.test(m.lang)) ||
+        (typeof m.quality === 'string' && /song\s*ngữ/i.test(m.quality)) ||
+        (typeof m.source_name === 'string' && /vicdn|song\s*ngữ/i.test(m.source_name))
+      );
+      const songNguBadge = isSongNgu ? `
+        <span class="badge-song-ngu">
+          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+        </span>` : '';
+      const langFmt = formatLangBadge(m.lang);
+      const subBadge = (langFmt && (!isSongNgu || !/song\s*ngữ/i.test(langFmt)))
+        ? `<span class="badge-glass-sub">${langFmt}</span>` : '';
+
+      return `
       <div class="movie-card group relative rounded-xl overflow-hidden bg-surface-container flex flex-col cursor-pointer border border-white/5 w-[155px] sm:w-[175px] md:w-[195px] shrink-0" onclick="window.location.href='/phim/${m.slug}'">
         <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-high">
           <img src="${m.poster_url || m.thumb_url}" alt="${m.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" />
           <div class="absolute top-2 left-2 flex flex-col gap-1 z-10 items-start pointer-events-none">
-            ${m.has_song_ngu ? `
-              <span class="badge-song-ngu">
-                <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-              </span>` : ''}
-            ${m.lang ? `<span class="badge-glass-sub">${formatLangBadge(m.lang)}</span>` : ''}
+            ${songNguBadge}
+            ${subBadge}
           </div>
           <div class="absolute top-2 right-2 z-10 pointer-events-none">
             <span class="badge-glass-quality">${m.quality || 'FHD'}</span>

@@ -163,19 +163,38 @@ class ViCDNService {
         movieMap.set(s.slug, s);
       }
 
-      // 1. Fetch update pages 1 to 7 in parallel
-      const updatePages = [1, 2, 3, 4, 5, 6, 7];
-      const updateResults = await Promise.allSettled(
-        updatePages.map(page => this.fetchJson(`${this.baseUrl}/update/${page}`))
-      );
-
-      for (const res of updateResults) {
-        if (res.status === 'fulfilled' && res.value) {
-          if (res.value.pagination?.total_records) {
-            this.totalMovies = res.value.pagination.total_records;
-            this.totalPages = res.value.pagination.total_pages;
+      // 1. Fetch page 1 first to get real total_pages
+      const page1Res = await this.fetchJson(`${this.baseUrl}/update/1`).catch(() => null);
+      if (page1Res) {
+        if (page1Res.pagination?.total_records) {
+          this.totalMovies = page1Res.pagination.total_records;
+          this.totalPages = page1Res.pagination.total_pages;
+        }
+        if (Array.isArray(page1Res.data)) {
+          for (const item of page1Res.data) {
+            if (item && item.slug) {
+              movieMap.set(item.slug, item);
+            }
           }
-          if (Array.isArray(res.value.data)) {
+        }
+      }
+
+      // 2. Fetch all remaining update pages in parallel batches
+      const maxPages = Math.min(this.totalPages || 65, 80);
+      const remainingPages = [];
+      for (let p = 2; p <= maxPages; p++) {
+        remainingPages.push(p);
+      }
+
+      const batchSize = 15;
+      for (let i = 0; i < remainingPages.length; i += batchSize) {
+        const batch = remainingPages.slice(i, i + batchSize);
+        const updateResults = await Promise.allSettled(
+          batch.map(page => this.fetchJson(`${this.baseUrl}/update/${page}`))
+        );
+
+        for (const res of updateResults) {
+          if (res.status === 'fulfilled' && res.value && Array.isArray(res.value.data)) {
             for (const item of res.value.data) {
               if (item && item.slug) {
                 movieMap.set(item.slug, item);
@@ -185,7 +204,7 @@ class ViCDNService {
         }
       }
 
-      // 2. Fetch specific popular genres to capture any extra titles
+      // 3. Fetch specific popular genres to capture any extra titles
       const types = ['hoat-hinh', 'vien-tuong', 'hinh-su', 'bi-an', 'hanh-dong'];
       const typeResults = await Promise.allSettled(
         types.map(t => this.fetchJson(`${this.baseUrl}/type/${t}/1`))
@@ -261,6 +280,11 @@ class ViCDNService {
   hasBilingualMatch(movie) {
     if (!movie) return false;
     if (movie.has_song_ngu) return true;
+    if (movie.source === 'vicdn') return true;
+    if (typeof movie.slug === 'string' && movie.slug.startsWith('tv-')) return true;
+    if (typeof movie.lang === 'string' && /song\s*ngữ/i.test(movie.lang)) return true;
+    if (typeof movie.quality === 'string' && /song\s*ngữ/i.test(movie.quality)) return true;
+    if (typeof movie.source_name === 'string' && /vicdn|song\s*ngữ/i.test(movie.source_name)) return true;
 
     // 1. Match by TMDB ID
     let tmdbId = null;

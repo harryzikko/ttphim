@@ -1,4 +1,4 @@
-﻿// TTPhim - Home Page Controller (Real API Data Binding)
+// TTPhim - Home Page Controller (Real API Data Binding)
 function formatEpBadge(epName) {
   if (!epName) return 'Tập 01';
   const str = String(epName).trim();
@@ -22,6 +22,17 @@ function formatLangBadge(lang) {
   if (/lồng tiếng/i.test(s)) return 'Lồng Tiếng';
   if (/song ngữ/i.test(s)) return 'Song Ngữ';
   return s;
+}
+
+function isMovieSongNgu(movie) {
+  if (!movie) return false;
+  if (movie.has_song_ngu) return true;
+  if (movie.source === 'vicdn') return true;
+  if (typeof movie.slug === 'string' && movie.slug.startsWith('tv-')) return true;
+  if (typeof movie.lang === 'string' && /song\s*ngữ/i.test(movie.lang)) return true;
+  if (typeof movie.quality === 'string' && /song\s*ngữ/i.test(movie.quality)) return true;
+  if (typeof movie.source_name === 'string' && /vicdn|song\s*ngữ/i.test(movie.source_name)) return true;
+  return false;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -621,18 +632,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Show 12 cards (2 rows of 6)
     const displayList = latestMovies.slice(0, 12);
 
-    grid.innerHTML = displayList.map(movie => `
+    grid.innerHTML = displayList.map(movie => {
+      const isSongNgu = isMovieSongNgu(movie);
+      const songNguBadge = isSongNgu ? `
+        <span class="badge-song-ngu">
+          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+        </span>` : '';
+      const langFormatted = formatLangBadge(movie.lang);
+      const subBadge = (langFormatted && (!isSongNgu || !/song\s*ngữ/i.test(langFormatted)))
+        ? `<span class="badge-glass-sub">${langFormatted}</span>` : '';
+
+      return `
       <div class="movie-card group relative rounded-xl overflow-hidden bg-surface-container flex flex-col cursor-pointer border border-white/5" onclick="window.location.href='/phim/${movie.slug}'">
         <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-high">
           <img src="${movie.poster_url || movie.thumb_url}" alt="${movie.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" />
           
           <!-- Badges -->
           <div class="absolute top-2 left-2 flex flex-col gap-1 z-10 items-start pointer-events-none">
-            ${movie.has_song_ngu ? `
-              <span class="badge-song-ngu">
-                <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-              </span>` : ''}
-            ${movie.lang ? `<span class="badge-glass-sub">${formatLangBadge(movie.lang)}</span>` : ''}
+            ${songNguBadge}
+            ${subBadge}
           </div>
           <div class="absolute top-2 right-2 z-10 pointer-events-none">
             <span class="badge-glass-quality">${movie.quality || 'FHD'}</span>
@@ -741,7 +759,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <span class="px-2 py-0.5 rounded-md ${badgeClass} font-label-badge text-[10px] font-black tracking-wider uppercase">
                 #${rank}
               </span>
-              ${movie.has_song_ngu ? `
+              ${isMovieSongNgu(movie) ? `
                 <span class="badge-song-ngu">
                   <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
                 </span>` : ''}
@@ -798,6 +816,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!items || items.length === 0) return;
 
     rail.innerHTML = items.slice(0, 16).map(movie => {
+      const isSongNgu = isMovieSongNgu(movie);
+      const songNguBadge = isSongNgu ? `
+        <span class="badge-song-ngu">
+          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+        </span>` : '';
+
       let badgeHtml = '';
       if (badgeType === 'chieurap') {
         badgeHtml = `<span class="badge-glass-cinema">Chiếu Rạp</span>`;
@@ -808,13 +832,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (badgeType === 'anime') {
         badgeHtml = `<span class="badge-glass-anime">Anime</span>`;
       } else if (movie.lang) {
-        badgeHtml = `<span class="badge-glass-sub">${formatLangBadge(movie.lang)}</span>`;
+        const langFmt = formatLangBadge(movie.lang);
+        if (!isSongNgu || !/song\s*ngữ/i.test(langFmt)) {
+          badgeHtml = `<span class="badge-glass-sub">${langFmt}</span>`;
+        }
       }
-
-      const songNguBadge = movie.has_song_ngu ? `
-        <span class="badge-song-ngu">
-          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-        </span>` : '';
 
       return `
         <div class="movie-card group relative rounded-xl overflow-hidden bg-surface-container flex flex-col cursor-pointer border border-white/5 w-[155px] sm:w-[175px] md:w-[195px] shrink-0" onclick="window.location.href='/phim/${movie.slug}'">

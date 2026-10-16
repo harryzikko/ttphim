@@ -1,4 +1,4 @@
-﻿// TTPhim - Explore & Filter Catalog Controller (Real API Data Binding)
+// TTPhim - Explore & Filter Catalog Controller (Real API Data Binding)
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('[TTPhim] Initializing Catalog Page with live API data...');
   const urlParams = new URLSearchParams(window.location.search);
@@ -352,7 +352,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       return clean;
     };
 
-    gridContainer.innerHTML = items.map(movie => `
+    gridContainer.innerHTML = items.map(movie => {
+      const isSongNgu = Boolean(
+        movie.has_song_ngu ||
+        movie.source === 'vicdn' ||
+        (typeof movie.slug === 'string' && movie.slug.startsWith('tv-')) ||
+        (typeof movie.lang === 'string' && /song\s*ngữ/i.test(movie.lang)) ||
+        (typeof movie.quality === 'string' && /song\s*ngữ/i.test(movie.quality)) ||
+        (typeof movie.source_name === 'string' && /vicdn|song\s*ngữ/i.test(movie.source_name))
+      );
+      const songNguBadge = isSongNgu ? `
+        <span class="badge-song-ngu">
+          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+        </span>` : '';
+      const langFmt = formatLangBadge(movie.lang);
+      const subBadge = (langFmt && (!isSongNgu || !/song\s*ngữ/i.test(langFmt)))
+        ? `<span class="badge-glass-sub">${langFmt}</span>` : '';
+
+      return `
       <article class="movie-card group relative flex flex-col bg-surface-container rounded-xl overflow-hidden cursor-pointer border border-white/5" onclick="window.location.href='/phim/${movie.slug}'">
         <!-- 2:3 Aspect ratio poster container -->
         <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
@@ -360,11 +377,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           
           <!-- Badges -->
           <div class="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10 items-start pointer-events-none">
-            ${movie.has_song_ngu ? `
-              <span class="badge-song-ngu">
-                <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-              </span>` : ''}
-            ${movie.lang ? `<span class="badge-glass-sub">${formatLangBadge(movie.lang)}</span>` : ''}
+            ${songNguBadge}
+            ${subBadge}
           </div>
           <div class="absolute top-2.5 right-2.5 z-10 pointer-events-none">
             <span class="badge-glass-quality">${movie.quality || 'FHD'}</span>

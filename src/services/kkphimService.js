@@ -162,6 +162,11 @@ class KKPhimService {
 
     const hasSongNgu = Boolean(
       item.has_song_ngu || 
+      (typeof item.lang === 'string' && /song\s*ngữ/i.test(item.lang)) ||
+      (typeof item.quality === 'string' && /song\s*ngữ/i.test(item.quality)) ||
+      item.source === 'vicdn' ||
+      (typeof item.slug === 'string' && item.slug.startsWith('tv-')) ||
+      (typeof item.source_name === 'string' && /vicdn|song\s*ngữ/i.test(item.source_name)) ||
       (vicdnService && vicdnService.hasBilingualMatch(item))
     );
 
@@ -383,7 +388,13 @@ class KKPhimService {
         const totalView = apiView + localView;
         return {
           ...item,
-          has_song_ngu: Boolean(item.has_song_ngu || detail?.has_song_ngu || (vicdnService && vicdnService.hasBilingualMatch(item))),
+          has_song_ngu: Boolean(
+            item.has_song_ngu || 
+            detail?.has_song_ngu || 
+            (typeof item.lang === 'string' && /song\s*ngữ/i.test(item.lang)) ||
+            (detail && typeof detail.lang === 'string' && /song\s*ngữ/i.test(detail.lang)) ||
+            (vicdnService && vicdnService.hasBilingualMatch(item))
+          ),
           quality: detail?.quality || item.quality || 'FHD',
           year: detail?.year || item.year || 2026,
           real_views: totalView,

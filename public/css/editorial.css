@@ -2,8 +2,7 @@
 body.editorial-home { --editorial-muted:#a3a6ae; }
 .editorial-home h1, .editorial-home h2, .editorial-home h3 { text-shadow:none!important; }
 .editorial-home .movie-card, .editorial-home [id^="rail-"] a, .editorial-home [id^="m-rail-"] a { box-shadow:none!important; border-radius:6px!important; }
-.editorial-home .badge-song-ngu, .editorial-home .badge-glass-sub, .editorial-home .badge-glass-quality { box-shadow:none!important; border-radius:3px!important; backdrop-filter:none!important; font-size:10px; }
-.editorial-home .badge-song-ngu .material-symbols-outlined { display:none; }
+.editorial-home .badge-glass-sub, .editorial-home .badge-glass-quality { box-shadow:none!important; border-radius:3px!important; backdrop-filter:none!important; font-size:10px; }
 .editorial-home #hero-poster-card, .editorial-home #hero-play-btn { box-shadow:none!important; border-radius:8px!important; }
 .editorial-home footer a[href="#"] { display:none; }
 .editorial-home h2 { font-size:clamp(20px,2vw,27px)!important; font-weight:650!important; letter-spacing:-.025em; }

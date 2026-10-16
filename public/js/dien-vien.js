@@ -105,6 +105,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       const quality = movie.quality || 'FHD';
       const episode = movie.episode_current || '';
 
+      const isSongNgu = Boolean(
+        movie.has_song_ngu ||
+        movie.source === 'vicdn' ||
+        (typeof movie.slug === 'string' && movie.slug.startsWith('tv-')) ||
+        (typeof movie.lang === 'string' && /song\s*ngữ/i.test(movie.lang)) ||
+        (typeof movie.quality === 'string' && /song\s*ngữ/i.test(movie.quality)) ||
+        (typeof movie.source_name === 'string' && /vicdn|song\s*ngữ/i.test(movie.source_name))
+      );
+
       return `
         <a href="/phim/${movie.slug}" class="group flex flex-col rounded-xl overflow-hidden bg-surface-container hover:bg-surface-container-high border border-white/5 hover:border-primary-container/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer">
           <div class="relative aspect-[2/3] w-full overflow-hidden bg-surface-container-highest">
@@ -112,7 +121,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none"></div>
             
             <!-- Quality & Year Badges -->
-            <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
+            <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none z-10">
+              ${isSongNgu ? `
+                <span class="badge-song-ngu">
+                  <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+                </span>` : ''}
               <span class="px-2 py-0.5 rounded bg-primary-container text-white text-[10px] font-bold uppercase shadow-md">${quality}</span>
               ${year ? `<span class="px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-white text-[10px] font-semibold">${year}</span>` : ''}
             </div>

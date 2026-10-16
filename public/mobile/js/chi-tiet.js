@@ -275,16 +275,34 @@ async function loadSimilarMovies(movie) {
       return;
     }
 
-    container.innerHTML = items.map(m => `
+    container.innerHTML = items.map(m => {
+      const isSongNgu = Boolean(
+        m.has_song_ngu ||
+        m.source === 'vicdn' ||
+        (typeof m.slug === 'string' && m.slug.startsWith('tv-')) ||
+        (typeof m.lang === 'string' && /song\s*ngữ/i.test(m.lang)) ||
+        (typeof m.quality === 'string' && /song\s*ngữ/i.test(m.quality)) ||
+        (typeof m.source_name === 'string' && /vicdn|song\s*ngữ/i.test(m.source_name))
+      );
+      const songNguBadge = isSongNgu ? `
+        <div class="absolute top-1.5 left-1.5 z-10">
+          <span class="badge-song-ngu">
+            <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+          </span>
+        </div>` : '';
+
+      return `
       <a href="/mobile/phim/${m.slug}" class="shrink-0 w-28 flex flex-col group touch-feedback cursor-pointer">
         <div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-surface-container shadow-md">
           <img src="${m.poster_url || m.thumb_url}" alt="${m.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
           <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+          ${songNguBadge}
           <span class="absolute bottom-1 left-1 px-1 rounded bg-black/60 font-label-badge text-[9px] text-secondary font-bold">${m.quality || 'HD'}</span>
         </div>
         <h4 class="text-[12px] font-bold text-on-surface truncate mt-1">${m.name}</h4>
       </a>
-    `).join('');
+    `;
+    }).join('');
 
   } catch (e) {}
 }

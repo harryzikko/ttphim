@@ -1,4 +1,4 @@
-﻿// CineViet Mobile - Home Page Controller
+// CineViet Mobile - Home Page Controller
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     const data = await API.getHome();
@@ -152,25 +152,42 @@ function renderMobilePosterRail(containerId, list) {
     return;
   }
 
-  container.innerHTML = list.slice(0, 15).map((m) => `
+  container.innerHTML = list.slice(0, 15).map((m) => {
+    const isSongNgu = Boolean(
+      m.has_song_ngu ||
+      m.source === 'vicdn' ||
+      (typeof m.slug === 'string' && m.slug.startsWith('tv-')) ||
+      (typeof m.lang === 'string' && /song\s*ngữ/i.test(m.lang)) ||
+      (typeof m.quality === 'string' && /song\s*ngữ/i.test(m.quality)) ||
+      (typeof m.source_name === 'string' && /vicdn|song\s*ngữ/i.test(m.source_name))
+    );
+    const songNguBadge = isSongNgu ? `
+      <span class="badge-song-ngu">
+        <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+      </span>` : '';
+
+    return `
     <a href="/mobile/phim/${m.slug}" class="shrink-0 w-28 sm:w-32 flex flex-col group touch-feedback cursor-pointer">
       <div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-surface-container shadow-md">
         <img src="${m.poster_url || m.thumb_url}" alt="${m.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
         <div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/80 via-transparent to-transparent"></div>
         
         <!-- Top Status Tags -->
-        ${m.episode_current ? `
-          <div class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-sm bg-primary-container text-white font-label-badge text-[9px] font-bold uppercase shadow-sm">
-            ${m.episode_current}
-          </div>
-        ` : ''}
+        <div class="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start z-10">
+          ${songNguBadge}
+          ${m.episode_current ? `
+            <div class="px-1.5 py-0.5 rounded-sm bg-primary-container text-white font-label-badge text-[9px] font-bold uppercase shadow-sm">
+              ${m.episode_current}
+            </div>
+          ` : ''}
+        </div>
 
-        <div class="absolute top-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm bg-black/70 backdrop-blur-sm text-amber-400 font-label-badge text-[10px] font-bold">
+        <div class="absolute top-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm bg-black/70 backdrop-blur-sm text-amber-400 font-label-badge text-[10px] font-bold z-10">
           <span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">star</span>
           <span>${m.rating || '9.0'}</span>
         </div>
 
-        <div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between">
+        <div class="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between z-10">
           <span class="px-1 py-0.5 rounded bg-black/60 backdrop-blur-sm font-label-badge text-[9px] text-white">${m.lang || 'Vietsub'}</span>
           <span class="px-1 py-0.5 rounded bg-black/60 backdrop-blur-sm font-label-badge text-[9px] text-secondary font-bold">${m.quality || 'HD'}</span>
         </div>
@@ -178,7 +195,8 @@ function renderMobilePosterRail(containerId, list) {
       <h3 class="font-label-md text-[12px] font-bold text-on-surface truncate mt-1.5 leading-snug">${m.name}</h3>
       <p class="font-body-sm text-[11px] text-on-surface-variant truncate">${m.origin_name || m.year || ''}</p>
     </a>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // Top 10 Ranked Reel Renderer
@@ -191,7 +209,17 @@ function renderMobileTop10Reel(list) {
     return;
   }
 
-  container.innerHTML = list.slice(0, 10).map((m, idx) => `
+  container.innerHTML = list.slice(0, 10).map((m, idx) => {
+    const isSongNgu = Boolean(
+      m.has_song_ngu ||
+      m.source === 'vicdn' ||
+      (typeof m.slug === 'string' && m.slug.startsWith('tv-')) ||
+      (typeof m.lang === 'string' && /song\s*ngữ/i.test(m.lang)) ||
+      (typeof m.quality === 'string' && /song\s*ngữ/i.test(m.quality)) ||
+      (typeof m.source_name === 'string' && /vicdn|song\s*ngữ/i.test(m.source_name))
+    );
+
+    return `
     <a href="/mobile/phim/${m.slug}" class="shrink-0 flex items-end relative group touch-feedback cursor-pointer pr-3">
       <!-- Outsized Typography Rank Number -->
       <span class="font-display-hero-mobile text-[88px] font-black leading-none text-surface-container-highest/60 -mr-4 z-0 tracking-tighter select-none font-headline-lg">
@@ -200,10 +228,18 @@ function renderMobileTop10Reel(list) {
       <div class="relative w-28 aspect-[2/3] rounded-xl overflow-hidden bg-surface-container shadow-xl z-10 border border-white/10">
         <img src="${m.poster_url || m.thumb_url}" alt="${m.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
         <div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/80 via-transparent to-transparent"></div>
+        ${isSongNgu ? `
+          <div class="absolute top-1.5 left-1.5 z-20">
+            <span class="badge-song-ngu">
+              <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+            </span>
+          </div>
+        ` : ''}
         <span class="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-primary-container text-white font-label-badge text-[10px] font-bold">TOP ${idx + 1}</span>
       </div>
     </a>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // Continue Watching Rail from localStorage

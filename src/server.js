@@ -60,8 +60,14 @@ const server = app.listen(config.PORT, config.HOST, () => {
   console.log(`   API:   http://localhost:${config.PORT}/api/home `);
   console.log(`====================================================`);
 
-  // Pre-warm home cache in background for instantaneous first load
+  // Pre-warm home cache after ViCDN initial sync for instantaneous first load & accurate bilingual flags
+  const vicdnService = require('./services/vicdnService');
   const kkphimService = require('./services/kkphimService');
-  kkphimService.getHomeData().catch(() => {});
+  vicdnService.init().then(() => {
+    kkphimService.cache.delete('home_data_payload');
+    return kkphimService.getHomeData();
+  }).catch(() => {
+    kkphimService.getHomeData().catch(() => {});
+  });
 });
 
