@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               ${directorsList.map(d => {
                 const imgUrl = d.avatar || (d.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${d.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`);
                 return `
-                <a href="/dao-dien/${slugifyPerson(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
+                <a href="/dao-dien/${slugifyPerson(d.name)}?id=${d.id || ''}&name=${encodeURIComponent(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
                   <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
                     <img src="${imgUrl}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
                   </div>
@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               ${actorsList.map(a => {
                 const imgUrl = a.avatar || (a.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${a.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`);
                 return `
-                <a href="/dien-vien/${slugifyPerson(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
+                <a href="/dien-vien/${slugifyPerson(a.name)}?id=${a.id || ''}&name=${encodeURIComponent(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
                   <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
                     <img src="${imgUrl}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
                   </div>

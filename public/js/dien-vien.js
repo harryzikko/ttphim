@@ -1,23 +1,21 @@
-// TTPhim - Actor & Director Profile Controller
+// CineViet - Actor & Director Profile Controller
 document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const pathParts = window.location.pathname.split('/').filter(Boolean);
 
-  let personName = '';
   let personType = 'actor';
-
-  // Support /dien-vien/:name or /dao-dien/:name or ?name=...&type=...
   if (pathParts[0] === 'dao-dien' || urlParams.get('type') === 'director') {
     personType = 'director';
   }
 
-  if (pathParts[1]) {
-    personName = decodeURIComponent(pathParts[1].replace(/-/g, ' '));
-  } else if (urlParams.get('name')) {
-    personName = urlParams.get('name');
-  }
+  const personId = urlParams.get('id') || '';
+  let personName = urlParams.get('name') || '';
+  const slugParam = pathParts[1] || '';
 
-  if (!personName) {
+  if (!personName && slugParam) {
+    personName = decodeURIComponent(slugParam.replace(/-/g, ' '));
+  }
+  if (!personName && !personId) {
     personName = 'Chân Tử Đan'; // Fallback default example
   }
 
@@ -36,7 +34,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let allMovies = [];
 
   try {
-    const res = await fetch(`/api/person/${encodeURIComponent(personName)}?type=${personType}`);
+    const querySlug = slugParam || personName;
+    const apiEndpoint = `/api/person/${encodeURIComponent(querySlug)}?id=${encodeURIComponent(personId)}&name=${encodeURIComponent(personName)}&type=${encodeURIComponent(personType)}`;
+    const res = await fetch(apiEndpoint);
     const json = await res.json();
 
     if (!json.status || !json.data) {
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ${person.type === 'director' ? 'Đạo diễn' : 'Diễn viên'}
       `;
     }
-    if (bioEl) bioEl.textContent = person.bio;
+    if (bioEl) bioEl.textContent = person.biography || person.bio || '';
     if (countEl) countEl.textContent = (movies || []).length;
     if (genreListEl && person.genres) {
       genreListEl.textContent = person.genres.length ? person.genres.join(', ') : 'Điện ảnh toàn cầu';
@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               ${movie.name}
             </h3>
             <p class="text-[11px] text-on-surface-variant truncate" title="${movie.origin_name || ''}">
-              ${movie.origin_name || movie.year || 'TTPHIM'}
+              ${movie.origin_name || movie.year || 'CineViet'}
             </p>
           </div>
         </a>

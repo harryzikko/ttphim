@@ -216,38 +216,68 @@ class TmdbService {
   /**
    * Get accurate person biography, details, and filmography from TMDb
    */
-  async getPersonDetail(name) {
-    if (!name || !name.trim()) return null;
-    const cleanName = name.trim();
-    const cacheKey = `person_${cleanName}`;
+  async getPersonDetail(nameOrId, options = {}) {
+    const rawInput = (nameOrId != null ? String(nameOrId) : '').trim();
+    const explicitId = options.id ? String(options.id).trim() : (/^\d+$/.test(rawInput) ? rawInput : null);
+    const cleanName = explicitId ? (options.name || rawInput) : rawInput;
+    if (!cleanName && !explicitId) return null;
+
+    const cacheKey = `person_${explicitId || cleanName}_${options.type || ''}`;
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
-    // 1. Search person on TMDb
-    let searchRes = await this.fetchTmdb('/search/person', { query: cleanName, language: 'vi-VN' });
-    if (!searchRes?.results?.length) {
-      searchRes = await this.fetchTmdb('/search/person', { query: cleanName, language: 'en-US' });
+    const toSlug = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+    let personId = explicitId;
+    let personMatch = null;
+
+    // 1. If no numeric ID provided, search person on TMDb with intelligent candidate scoring
+    if (!personId) {
+      let searchRes = await this.fetchTmdb('/search/person', { query: cleanName, language: 'vi-VN' });
+      if (!searchRes?.results?.length) {
+        searchRes = await this.fetchTmdb('/search/person', { query: cleanName, language: 'en-US' });
+      }
+
+      const results = searchRes?.results || [];
+      if (!results.length) return null;
+
+      const targetSlug = toSlug(cleanName);
+      const scored = results.map(c => {
+        const cSlug = toSlug(c.name);
+        const aliases = (c.also_known_as || []).map(toSlug);
+        let score = c.popularity || 0;
+        if (cSlug === targetSlug || aliases.includes(targetSlug)) {
+          score += 1000;
+        } else if (cSlug.includes(targetSlug) || targetSlug.includes(cSlug)) {
+          score += 500;
+        }
+        return { candidate: c, score };
+      });
+
+      scored.sort((a, b) => b.score - a.score);
+      personMatch = scored[0].candidate;
+      personId = personMatch.id;
     }
 
-    const personMatch = searchRes?.results?.[0];
-    if (!personMatch) return null;
-
     // 2. Fetch full person details + movie & tv credits
-    const personId = personMatch.id;
     let detail = await this.fetchTmdb(`/person/${personId}`, {
       append_to_response: 'movie_credits,tv_credits,images',
       language: 'vi-VN'
     });
 
+    if (!detail || !detail.name) return null;
+
     // If biography in Vietnamese is empty, get English biography
-    if (!detail?.biography) {
+    if (!detail?.biography || detail.biography.trim().length < 20) {
       const enDetail = await this.fetchTmdb(`/person/${personId}`, { language: 'en-US' });
       if (enDetail?.biography) {
         detail.biography = enDetail.biography;
       }
     }
 
-    const isDirector = personMatch.known_for_department === 'Directing' || detail.known_for_department === 'Directing';
+    const isDirector = options.type === 'director' ||
+      personMatch?.known_for_department === 'Directing' ||
+      detail.known_for_department === 'Directing';
     const roleTitle = isDirector ? 'Đạo diễn điện ảnh' : 'Diễn viên điện ảnh';
 
     // High resolution profile picture
@@ -256,18 +286,30 @@ class TmdbService {
       : `https://ui-avatars.com/api/?name=${encodeURIComponent(detail.name)}&background=e50914&color=fff&size=512&bold=true`;
 
     // Process movie & tv credits
-    const allCredits = [
-      ...(detail.movie_credits?.cast || []),
-      ...(detail.movie_credits?.crew?.filter(c => c.job === 'Director') || []),
-      ...(detail.tv_credits?.cast || []),
-      ...(detail.tv_credits?.crew?.filter(c => c.job === 'Director') || [])
-    ];
+    const rawCreditsList = isDirector
+      ? [
+          ...(detail.movie_credits?.crew?.filter(c => c.job === 'Director') || []),
+          ...(detail.tv_credits?.crew?.filter(c => c.job === 'Director') || [])
+        ]
+      : [
+          ...(detail.movie_credits?.cast || []),
+          ...(detail.tv_credits?.cast || [])
+        ];
 
-    // Deduplicate and sort by popularity / release date
+    // Filter out talk shows, award shows, and self-appearances
+    const talkShowKeywords = ['talk show', 'jimmy fallon', 'academy awards', 'golden globe', 'grammy', 'oscars', 'self - guest', 'self'];
+    const filteredCredits = rawCreditsList.filter(m => {
+      const char = (m.character || '').toLowerCase();
+      const title = (m.title || m.name || '').toLowerCase();
+      const isSelf = talkShowKeywords.some(kw => char.includes(kw) || title.includes(kw));
+      return !isSelf;
+    });
+
+    // Deduplicate and sort by popularity
     const seenMovies = new Set();
     const filmography = [];
 
-    allCredits
+    filteredCredits
       .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
       .forEach(m => {
         const title = m.title || m.name;
@@ -283,13 +325,13 @@ class TmdbService {
           tmdb_id: m.id,
           name: title,
           origin_name: m.original_title || m.original_name || title,
-          character: m.character || (m.job === 'Director' ? 'Đạo diễn' : ''),
+          character: m.character || (isDirector ? 'Đạo diễn' : 'Diễn viên'),
           poster_url: posterUrl,
           thumb_url: posterUrl,
           year: year || 2024,
           vote_average: m.vote_average ? Number(m.vote_average.toFixed(1)) : 8.5,
           quality: 'FHD',
-          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          slug: toSlug(title)
         });
       });
 
@@ -297,7 +339,7 @@ class TmdbService {
       person: {
         id: detail.id,
         name: detail.name,
-        slug: detail.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: toSlug(detail.name),
         role: roleTitle,
         type: isDirector ? 'director' : 'actor',
         avatar,
@@ -307,6 +349,7 @@ class TmdbService {
         biography: detail.biography || `${detail.name} là một nghệ sĩ điện ảnh nổi tiếng, được khán giả toàn cầu yêu mến qua nhiều tác phẩm đỉnh cao đạt doanh thu và đánh giá xuất sắc tại TMDb và IMDb.`,
         movies_count: filmography.length
       },
+      rawCredits: filteredCredits,
       movies: filmography
     };
 

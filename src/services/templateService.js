@@ -761,7 +761,7 @@ class TemplateService {
         
         <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
           ${directorsList.map(d => `
-            <a href="/dao-dien/${toPersonSlug(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
+            <a href="/dao-dien/${toPersonSlug(d.name)}?id=${d.id || ''}&name=${encodeURIComponent(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
               <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
                 <img src="${d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
               </div>
@@ -771,7 +771,7 @@ class TemplateService {
           `).join('')}
 
           ${actorsList.map(a => `
-            <a href="/dien-vien/${toPersonSlug(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
+            <a href="/dien-vien/${toPersonSlug(a.name)}?id=${a.id || ''}&name=${encodeURIComponent(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
               <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
                 <img src="${a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
               </div>
@@ -1152,7 +1152,7 @@ class TemplateService {
         
         <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
           ${watchDirectorsList.map(d => `
-            <a href="/dao-dien/${toWatchPersonSlug(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
+            <a href="/dao-dien/${toWatchPersonSlug(d.name)}?id=${d.id || ''}&name=${encodeURIComponent(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
               <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
                 <img src="${d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
               </div>
@@ -1162,7 +1162,7 @@ class TemplateService {
           `).join('')}
 
           ${watchActorsList.map(a => `
-            <a href="/dien-vien/${toWatchPersonSlug(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
+            <a href="/dien-vien/${toWatchPersonSlug(a.name)}?id=${a.id || ''}&name=${encodeURIComponent(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
               <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
                 <img src="${a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
               </div>

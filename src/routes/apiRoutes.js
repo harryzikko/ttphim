@@ -965,7 +965,9 @@ router.get('/person/:name', async (req, res) => {
   try {
     const { name } = req.params;
     const type = req.query.type || 'actor';
-    const data = await personService.getPersonDetail(name, type);
+    const id = req.query.id || '';
+    const realName = req.query.name || '';
+    const data = await personService.getPersonDetail({ slug: name, id, name: realName, type });
     res.json({ status: true, data });
   } catch (err) {
     res.status(404).json({ status: false, message: 'Không tìm thấy thông tin nhân vật', error: err.message });
