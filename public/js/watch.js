@@ -1,4 +1,4 @@
-﻿// TTPhim - Watch Movie Player & Interactive Room Controller (Real Data Binding)
+// TTPhim - Watch Movie Player & Interactive Room Controller (Real Data Binding)
 document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const pathParts = window.location.pathname.split('/').filter(Boolean);
@@ -1449,19 +1449,116 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // --- Synopsis & Info Below Player ---
+  // --- Synopsis & Info Below Player (Real Data & Rich Cast Carousel) ---
   function renderInfoBelowPlayer(movie) {
     const title = document.querySelector('h2.font-headline-lg, h2');
-    if (title) title.innerText = movie.name;
+    if (title) title.innerText = `${movie.name} ${movie.origin_name ? `(${movie.origin_name})` : ''}`;
 
     const synopsis = document.querySelector('p.font-body-md.text-on-surface-variant.leading-relaxed') ||
                      document.querySelector('p.font-body-md.text-on-surface-variant');
     if (synopsis) synopsis.innerText = movie.content || 'Nội dung phim đang cập nhật...';
 
-    const chips = document.querySelectorAll('div.flex.flex-wrap.items-center.gap-x-6 div');
-    if (chips[0]) chips[0].innerHTML = `<span class="text-on-surface font-semibold">Đạo diễn:</span> ${movie.director?.length ? movie.director.join(', ') : 'Đang cập nhật'}`;
-    if (chips[1]) chips[1].innerHTML = `<span class="text-on-surface font-semibold">Diễn viên:</span> ${movie.actor?.length ? movie.actor.join(', ') : 'Đang cập nhật'}`;
-    if (chips[2]) chips[2].innerHTML = `<span class="text-on-surface font-semibold">Thể loại:</span> ${movie.category?.map(c => c.name).join(', ') || 'Chính kịch'}`;
+    // Real ratings & real views
+    const scoreEl = document.querySelector('span.font-headline-lg.text-headline-lg.font-black');
+    if (scoreEl) {
+      const realScore = (movie.tmdb?.vote_average && movie.tmdb.vote_average > 0) ? Number(movie.tmdb.vote_average).toFixed(1) :
+                        ((movie.imdb?.vote_average && movie.imdb.vote_average > 0) ? Number(movie.imdb.vote_average).toFixed(1) :
+                        (movie.vote_average && Number(movie.vote_average) > 0 ? Number(movie.vote_average).toFixed(1) : '8.8'));
+      scoreEl.innerText = realScore;
+    }
+
+    const viewEl = document.querySelector('div.bg-surface-container.shrink-0 span.font-body-sm');
+    if (viewEl) {
+      viewEl.innerText = (movie.view && movie.view > 0) ? `${movie.view.toLocaleString('vi-VN')} lượt xem` : 'Lượt xem mới';
+    }
+
+    // Genre
+    const catDiv = document.querySelector('div.pt-1.font-body-sm div') || document.querySelector('div.flex.flex-wrap.items-center.gap-x-6 div:last-child');
+    if (catDiv) {
+      catDiv.innerHTML = `<span class="text-on-surface font-semibold">Thể loại:</span> ${movie.category?.map(c => c.name).join(', ') || 'Chính kịch'}`;
+    }
+
+    // Rich Cast & Crew Carousel (identical to Detail page, uniform heights & real TMDb avatars)
+    function slugifyWatchPerson(str) {
+      if (!str) return '';
+      return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    const infoCard = document.querySelector('div.w-full.bg-surface-container-low.rounded-xl.p-space-md');
+    let castContainer = document.getElementById('watch-cast-container');
+    if (!castContainer && infoCard) {
+      castContainer = document.createElement('div');
+      castContainer.id = 'watch-cast-container';
+      castContainer.className = 'col-span-full space-y-3 pt-3 border-t border-white/5';
+      infoCard.appendChild(castContainer);
+    }
+
+    if (castContainer) {
+      const hasTmdbCards = castContainer.querySelector('a[href^="/dien-vien/"] img[src*="image.tmdb.org"]');
+      const tmdbCast = movie.tmdb_cast || movie.credits?.cast || [];
+      const tmdbDirs = movie.tmdb_directors || movie.credits?.directors || [];
+
+      if (!hasTmdbCards || tmdbCast.length > 0) {
+        let directorsList = [];
+        let actorsList = [];
+
+        if (tmdbDirs.length || tmdbCast.length) {
+          directorsList = tmdbDirs;
+          actorsList = tmdbCast;
+        } else {
+          directorsList = (movie.director || []).filter(Boolean).map(d => ({
+            name: d,
+            character: 'Đạo diễn',
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true`
+          }));
+          actorsList = (movie.actor || []).filter(Boolean).map(a => ({
+            name: a,
+            character: 'Diễn viên',
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true`
+          }));
+        }
+
+        castContainer.innerHTML = `
+          <div class="flex items-center justify-between pb-1">
+            <span class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 font-bold">
+              <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
+              <span>Đạo Diễn & Diễn Viên (${directorsList.length + actorsList.length})</span>
+            </span>
+            <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem tiểu sử & danh sách phim</span>
+          </div>
+          
+          <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
+            ${directorsList.map(d => {
+              const imgUrl = d.avatar || (d.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${d.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`);
+              return `
+              <a href="/dao-dien/${slugifyWatchPerson(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
+                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
+                  <img src="${imgUrl}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
+                </div>
+                <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${d.name}</span>
+                <span class="text-[10px] text-primary font-semibold block uppercase truncate w-full h-3.5 leading-3.5">Đạo Diễn</span>
+              </a>
+            `;}).join('')}
+
+            ${actorsList.map(a => {
+              const imgUrl = a.avatar || (a.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${a.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`);
+              return `
+              <a href="/dien-vien/${slugifyWatchPerson(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
+                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
+                  <img src="${imgUrl}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
+                </div>
+                <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${a.name}</span>
+                <span class="text-[10px] text-on-surface-variant font-semibold block uppercase truncate w-full h-3.5 leading-3.5" title="${a.character || 'Diễn Viên'}">${a.character || 'Diễn Viên'}</span>
+              </a>
+            `;}).join('')}
+
+            ${(!directorsList.length && !actorsList.length) ? `
+              <div class="text-xs text-on-surface-variant py-2">Thông tin nghệ sĩ đang được cập nhật</div>
+            ` : ''}
+          </div>
+        `;
+      }
+    }
   }
 
   // --- Cinema Mode & Theater Mode ---

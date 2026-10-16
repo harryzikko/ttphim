@@ -1,4 +1,4 @@
-﻿// CineViet Mobile App - Core Framework for iOS & Android
+// CineViet Mobile App - Core Framework for iOS & Android
 const MobileApp = {
   activeTab: 'home',
 
@@ -114,7 +114,7 @@ const MobileApp = {
           <span class="material-symbols-outlined text-white text-[22px]">play_arrow</span>
         </div>
         <div class="min-w-0">
-          <p class="font-bold text-[13px] leading-tight truncate">Cài đặt App TTPhim</p>
+          <p class="font-bold text-[13px] leading-tight truncate">Cài đặt App CineViet</p>
           <p class="text-[11px] text-on-surface-variant truncate mt-0.5">${isIOS ? 'Bấm Chia sẻ rồi chọn "Thêm vào MH chính"' : 'Xem phim mượt hơn, toàn màn hình'}</p>
         </div>
       </div>
@@ -185,7 +185,7 @@ const MobileApp = {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: title || 'TTPhim',
+          title: title || 'CineViet',
           url: url || window.location.href
         });
       } catch (e) {}

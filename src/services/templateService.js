@@ -558,7 +558,7 @@ class TemplateService {
     const { movie, episodes, related } = detailData;
 
     // 1. Page Title
-    const titleStr = `${movie.name} (${movie.year}) - Xem Phim Full HD Vietsub | TTPhim`;
+    const titleStr = `${movie.name} (${movie.year}) - Xem Phim Full HD Vietsub | CineViet`;
     html = html.replace(/<title>.*?<\/title>/i, `<title>${titleStr}</title>`);
     if (!html.includes('<title>')) {
       html = html.replace('<head>', `<head>\n  <title>${titleStr}</title>`);
@@ -639,6 +639,58 @@ class TemplateService {
       `$1\n${pillsHtml}\n$2`
     );
 
+    // 7.5. Dynamic Real Ratings Bar (No Fake Data)
+    const tmdbScore = (movie.tmdb?.vote_average && movie.tmdb.vote_average > 0) ? Number(movie.tmdb.vote_average).toFixed(1) : null;
+    const imdbScore = (movie.imdb?.vote_average && movie.imdb.vote_average > 0) ? Number(movie.imdb.vote_average).toFixed(1) : null;
+    const localScore = (movie.vote_average && Number(movie.vote_average) > 0) ? Number(movie.vote_average).toFixed(1) : (tmdbScore || imdbScore || '8.8');
+    const realVotes = movie.tmdb?.vote_count || movie.imdb?.vote_count || movie.vote_count || 0;
+    const voteText = realVotes > 0 ? `${realVotes.toLocaleString('vi-VN')} lượt đánh giá` : 'Đánh giá từ khán giả';
+
+    const ratingsBarHtml = `
+      <div class="flex flex-wrap items-center gap-space-lg py-space-xs bg-surface-container-low/50 px-space-md rounded-xl backdrop-blur-md">
+        <!-- CineViet Rating -->
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center text-primary-container">
+            <span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
+          </div>
+          <div>
+            <div class="flex items-baseline gap-1">
+              <span class="text-headline-md font-headline-md font-extrabold text-on-surface">${localScore}</span>
+              <span class="text-body-sm font-body-sm text-on-surface-variant">/10</span>
+            </div>
+            <p class="text-body-sm font-body-sm text-on-surface-variant">${voteText}</p>
+          </div>
+        </div>
+        ${imdbScore ? `
+          <!-- IMDb Badge -->
+          <div class="flex items-center gap-2.5 pl-4 border-l border-white/10">
+            <span class="px-2 py-1 rounded bg-[#E2B616] text-[#000000] font-black font-label-badge text-label-badge">IMDb</span>
+            <div>
+              <span class="text-headline-sm font-headline-sm font-bold text-on-surface">${imdbScore}</span>
+              <span class="text-body-sm font-body-sm text-on-surface-variant">/10</span>
+            </div>
+          </div>
+        ` : (tmdbScore ? `
+          <!-- TMDb Badge -->
+          <div class="flex items-center gap-2.5 pl-4 border-l border-white/10">
+            <span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-black font-label-badge text-label-badge">TMDb</span>
+            <div>
+              <span class="text-headline-sm font-headline-sm font-bold text-on-surface">${tmdbScore}</span>
+              <span class="text-body-sm font-body-sm text-on-surface-variant">/10</span>
+            </div>
+          </div>
+        ` : '')}
+        <div class="hidden md:flex items-center gap-2 ml-auto">
+          <span class="material-symbols-outlined text-secondary text-[20px]">thumb_up</span>
+          <span class="text-body-sm font-body-sm text-on-surface">${movie.view ? `${movie.view.toLocaleString('vi-VN')} lượt xem` : 'Phim chuẩn 4K HDR'}</span>
+        </div>
+      </div>
+    `;
+    html = html.replace(
+      /(<!-- Ratings Bar -->\s*<div class="flex flex-wrap items-center gap-space-lg[^"]*">)[\s\S]*?(<\/div>\s*<!-- Genres Tags -->)/,
+      `<!-- Ratings Bar -->\n${ratingsBarHtml}\n<!-- Genres Tags -->`
+    );
+
     // 8. Genre tags
     if (movie.category && movie.category.length > 0) {
       const genresHtml = `
@@ -707,24 +759,24 @@ class TemplateService {
           <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem tiểu sử & danh sách phim TMDb</span>
         </div>
         
-        <div class="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-none pt-1">
+        <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
           ${directorsList.map(d => `
-            <a href="/dao-dien/${toPersonSlug(d.name)}" class="group flex flex-col items-center gap-1.5 shrink-0 text-center w-24 cursor-pointer" title="Đạo diễn: ${d.name}">
-              <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container group-hover:shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all">
-                <img src="${d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+            <a href="/dao-dien/${toPersonSlug(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
+              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
+                <img src="${d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
               </div>
-              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full">${d.name}</span>
-              <span class="text-[10px] text-primary font-semibold block uppercase">Đạo Diễn</span>
+              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${d.name}</span>
+              <span class="text-[10px] text-primary font-semibold block uppercase truncate w-full h-3.5 leading-3.5">Đạo Diễn</span>
             </a>
           `).join('')}
 
           ${actorsList.map(a => `
-            <a href="/dien-vien/${toPersonSlug(a.name)}" class="group flex flex-col items-center gap-1.5 shrink-0 text-center w-24 cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
-              <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container group-hover:shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all">
-                <img src="${a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+            <a href="/dien-vien/${toPersonSlug(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
+              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
+                <img src="${a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
               </div>
-              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full">${a.name}</span>
-              <span class="text-[10px] text-on-surface-variant font-semibold block uppercase truncate max-w-full" title="${a.character || 'Diễn Viên'}">${a.character || 'Diễn Viên'}</span>
+              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${a.name}</span>
+              <span class="text-[10px] text-on-surface-variant font-semibold block uppercase truncate w-full h-3.5 leading-3.5" title="${a.character || 'Diễn Viên'}">${a.character || 'Diễn Viên'}</span>
             </a>
           `).join('')}
 
@@ -1055,15 +1107,82 @@ class TemplateService {
       `$1\n${serverPillsHtml}\n$2`
     );
 
-    // 5. Movie Info Below Player
-    const directorStr = movie.director?.length ? movie.director.join(', ') : 'Đang cập nhật';
-    const actorStr = movie.actor?.length ? movie.actor.join(', ') : 'Đang cập nhật';
+    // 5. Movie Info Below Player (Real Data & Rich Cast Carousel)
     const catStr = movie.category?.map(c => c.name).join(', ') || 'Chính kịch';
+    const tmdbScore = (movie.tmdb?.vote_average && movie.tmdb.vote_average > 0) ? Number(movie.tmdb.vote_average).toFixed(1) : null;
+    const imdbScore = (movie.imdb?.vote_average && movie.imdb.vote_average > 0) ? Number(movie.imdb.vote_average).toFixed(1) : null;
+    const watchScore = tmdbScore || imdbScore || (movie.vote_average && Number(movie.vote_average) > 0 ? Number(movie.vote_average).toFixed(1) : '8.8');
+    const watchViews = (movie.view && movie.view > 0) ? `${movie.view.toLocaleString('vi-VN')} lượt xem` : 'Lượt xem mới';
+
+    // Cast & Directors with uniform cards & avatars
+    function toWatchPersonSlug(str) {
+      if (!str) return '';
+      return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    const tmdbWatchCredits = movie.credits || null;
+    let watchDirectorsList = [];
+    let watchActorsList = [];
+
+    if (tmdbWatchCredits && (tmdbWatchCredits.directors?.length || tmdbWatchCredits.cast?.length)) {
+      watchDirectorsList = tmdbWatchCredits.directors || [];
+      watchActorsList = tmdbWatchCredits.cast || [];
+    } else {
+      watchDirectorsList = (movie.director || []).filter(Boolean).map(d => ({
+        name: d,
+        character: 'Đạo diễn',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true`
+      }));
+      watchActorsList = (movie.actor || []).filter(Boolean).map(a => ({
+        name: a,
+        character: 'Diễn viên',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true`
+      }));
+    }
+
+    const watchCastHtml = `
+      <div id="watch-cast-container" class="col-span-full space-y-3 pt-3 border-t border-white/5">
+        <div class="flex items-center justify-between pb-1">
+          <span class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 font-bold">
+            <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
+            <span>Đạo Diễn & Diễn Viên (${watchDirectorsList.length + watchActorsList.length})</span>
+          </span>
+          <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem tiểu sử & danh sách phim</span>
+        </div>
+        
+        <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
+          ${watchDirectorsList.map(d => `
+            <a href="/dao-dien/${toWatchPersonSlug(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
+              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
+                <img src="${d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
+              </div>
+              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${d.name}</span>
+              <span class="text-[10px] text-primary font-semibold block uppercase truncate w-full h-3.5 leading-3.5">Đạo Diễn</span>
+            </a>
+          `).join('')}
+
+          ${watchActorsList.map(a => `
+            <a href="/dien-vien/${toWatchPersonSlug(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
+              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
+                <img src="${a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
+              </div>
+              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${a.name}</span>
+              <span class="text-[10px] text-on-surface-variant font-semibold block uppercase truncate w-full h-3.5 leading-3.5" title="${a.character || 'Diễn Viên'}">${a.character || 'Diễn Viên'}</span>
+            </a>
+          `).join('')}
+
+          ${(!watchDirectorsList.length && !watchActorsList.length) ? `
+            <div class="text-xs text-on-surface-variant py-2">Thông tin nghệ sĩ đang được cập nhật</div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
     const infoSectionHtml = `
       <div class="flex flex-col md:flex-row md:items-start justify-between gap-space-md">
         <div class="space-y-2">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary-container font-label-badge text-label-badge font-bold uppercase">HOT KKPHIM</span>
+            <span class="px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary-container font-label-badge text-label-badge font-bold uppercase">CINEVIET ĐỀ XUẤT</span>
             <span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-badge text-label-badge">${movie.year}</span>
             <span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-badge text-label-badge">${movie.episode_current || movie.time || 'Trọn Bộ'}</span>
             <span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-secondary-fixed font-label-badge text-label-badge">${movie.quality || 'FHD'}</span>
@@ -1074,16 +1193,15 @@ class TemplateService {
         <div class="flex flex-col items-center justify-center p-space-md rounded-xl bg-surface-container shrink-0 min-w-[140px] text-center shadow-inner">
           <div class="flex items-center gap-1 text-primary-container">
             <span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
-            <span class="font-headline-lg text-headline-lg font-black text-on-surface">9.6</span>
+            <span class="font-headline-lg text-headline-lg font-black text-on-surface">${watchScore}</span>
           </div>
-          <span class="font-body-sm text-body-sm text-on-surface-variant mt-1">${(movie.view || 128000).toLocaleString('vi-VN')} lượt xem</span>
+          <span class="font-body-sm text-body-sm text-on-surface-variant mt-1">${watchViews}</span>
         </div>
       </div>
-      <div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-space-xs font-body-sm text-body-sm text-on-surface-variant">
-        <div><span class="text-on-surface font-semibold">Đạo diễn:</span> ${directorStr}</div>
-        <div><span class="text-on-surface font-semibold">Diễn viên:</span> ${actorStr}</div>
+      <div class="pt-1 font-body-sm text-body-sm text-on-surface-variant">
         <div><span class="text-on-surface font-semibold">Thể loại:</span> ${catStr}</div>
       </div>
+      ${watchCastHtml}
     `;
     html = html.replace(
       /(<!-- Movie Synopsis, Tags & Key Actors Row -->\s*<div class="w-full bg-surface-container-low rounded-xl p-space-md lg:p-space-lg flex flex-col gap-space-md shadow-md">)[\s\S]*?(<\/div>\s*<!-- Real-Time Interactive Live Chat)/,

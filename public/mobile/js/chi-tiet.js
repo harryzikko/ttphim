@@ -93,35 +93,58 @@ function renderMovieDetail(movie, episodes = []) {
   // Cast & Crew Rail with Avatars
   const castRail = document.getElementById('m-cast-rail');
   const castSection = document.getElementById('m-cast-section');
-  if (castRail && (movie.director?.length || movie.actor?.length)) {
+  if (castRail && (movie.director?.length || movie.actor?.length || movie.credits || movie.tmdb_cast)) {
     function toSlug(str) {
       if (!str) return '';
       return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     }
 
-    const directors = (movie.director || []).filter(Boolean);
-    const actors = (movie.actor || []).filter(Boolean);
+    const tmdbCast = movie.tmdb_cast || movie.credits?.cast || [];
+    const tmdbDirs = movie.tmdb_directors || movie.credits?.directors || [];
+
+    let directors = [];
+    let actors = [];
+
+    if (tmdbDirs.length || tmdbCast.length) {
+      directors = tmdbDirs;
+      actors = tmdbCast;
+    } else {
+      directors = (movie.director || []).filter(Boolean).map(d => ({
+        name: d,
+        character: 'Đạo diễn',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true`
+      }));
+      actors = (movie.actor || []).filter(Boolean).map(a => ({
+        name: a,
+        character: 'Diễn viên',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true`
+      }));
+    }
 
     castRail.innerHTML = `
-      ${directors.map(d => `
-        <a href="/dien-vien/${toSlug(d)}?type=director" class="flex flex-col items-center gap-1 shrink-0 text-center w-16 cursor-pointer">
-          <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container p-0.5 bg-surface-container shadow-md">
-            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true" alt="${d}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+      ${directors.map(d => {
+        const imgUrl = d.avatar || (d.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${d.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`);
+        return `
+        <a href="/dien-vien/${toSlug(d.name)}?type=director" class="flex flex-col items-center justify-start shrink-0 text-center w-20 h-[108px] cursor-pointer">
+          <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container p-0.5 bg-surface-container shadow-md shrink-0">
+            <img src="${imgUrl}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
           </div>
-          <span class="text-[11px] font-bold text-white line-clamp-1 block w-full">${d}</span>
-          <span class="text-[9px] text-primary font-semibold block uppercase">Đạo Diễn</span>
+          <span class="text-[11px] font-bold text-white line-clamp-1 block w-full mt-1 h-3.5 leading-3.5">${d.name}</span>
+          <span class="text-[9px] text-primary font-semibold block uppercase truncate w-full h-3 leading-3">Đạo Diễn</span>
         </a>
-      `).join('')}
+      `;}).join('')}
 
-      ${actors.map(a => `
-        <a href="/dien-vien/${toSlug(a)}" class="flex flex-col items-center gap-1 shrink-0 text-center w-16 cursor-pointer">
-          <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md">
-            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true" alt="${a}" class="w-full h-full object-cover rounded-full" loading="lazy" />
+      ${actors.map(a => {
+        const imgUrl = a.avatar || (a.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${a.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`);
+        return `
+        <a href="/dien-vien/${toSlug(a.name)}" class="flex flex-col items-center justify-start shrink-0 text-center w-20 h-[108px] cursor-pointer">
+          <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md shrink-0">
+            <img src="${imgUrl}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
           </div>
-          <span class="text-[11px] font-bold text-white line-clamp-1 block w-full">${a}</span>
-          <span class="text-[9px] text-on-surface-variant font-semibold block uppercase">Diễn Viên</span>
+          <span class="text-[11px] font-bold text-white line-clamp-1 block w-full mt-1 h-3.5 leading-3.5">${a.name}</span>
+          <span class="text-[9px] text-on-surface-variant font-semibold block uppercase truncate w-full h-3 leading-3">${a.character || 'Diễn Viên'}</span>
         </a>
-      `).join('')}
+      `;}).join('')}
     `;
   } else if (castSection) {
     castSection.classList.add('hidden');
@@ -164,7 +187,7 @@ function renderMovieDetail(movie, episodes = []) {
 
   // Share actions
   const doShare = () => {
-    MobileApp.share(`Xem phim ${movie.name} chất lượng 4K trên TTPhim`, window.location.href);
+    MobileApp.share(`Xem phim ${movie.name} chất lượng 4K trên CineViet`, window.location.href);
   };
   if (shareBtn) shareBtn.onclick = doShare;
   if (actionShareBtn) actionShareBtn.onclick = doShare;

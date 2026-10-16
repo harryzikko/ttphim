@@ -114,7 +114,7 @@ class PersonService {
       nationality,
       genres: Array.from(prominentGenres).slice(0, 4),
       movies_count: movies.length,
-      biography: `${displayName} là một ${roleTitle.toLowerCase()} nổi tiếng, được khán giả yêu thích qua nhiều tác phẩm điện ảnh và truyền hình xuất sắc chất lượng cao tại TTPHIM.`
+      biography: `${displayName} là một ${roleTitle.toLowerCase()} nổi tiếng, được khán giả yêu thích qua nhiều tác phẩm điện ảnh và truyền hình xuất sắc chất lượng cao tại CineViet.`
     };
 
     return {

@@ -1,4 +1,4 @@
-﻿// TTPhim - Mobile Profile & Settings Controller
+// TTPhim - Mobile Profile & Settings Controller
 document.addEventListener('DOMContentLoaded', () => {
   // Edit Profile
   const editProfileBtn = document.getElementById('editProfileBtn');
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     reportBtn.addEventListener('click', () => {
       const reason = prompt('Vui lòng nhập mô tả lỗi gặp phải (giật lag, lỗi phụ đề, server...):');
       if (reason) {
-        if (window.MobileApp) MobileApp.showToast('Cảm ơn bạn! Báo cáo lỗi đã gửi đến đội kỹ thuật TTPhim 24/7.');
+        if (window.MobileApp) MobileApp.showToast('Cảm ơn bạn! Báo cáo lỗi đã gửi đến đội kỹ thuật CineViet 24/7.');
       }
     });
   }

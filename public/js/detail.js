@@ -198,50 +198,77 @@ document.addEventListener('DOMContentLoaded', async () => {
       synopsis.innerText = movie.content || 'Nội dung phim đang được cập nhật...';
     }
 
-    // Cast & Crew Rail with Avatars
+    // Cast & Crew Rail with Avatars (Prioritizes TMDb photos & uniform card heights)
     const castContainer = document.querySelector('div.border-t.border-transparent.bg-surface-container-lowest\\/60');
-    if (castContainer && (movie.director?.length || movie.actor?.length)) {
+    if (castContainer && (movie.director?.length || movie.actor?.length || movie.credits || movie.tmdb_cast)) {
       function slugifyPerson(str) {
         if (!str) return '';
         return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       }
 
-      const directors = (movie.director || []).filter(Boolean);
-      const actors = (movie.actor || []).filter(Boolean);
+      const tmdbCast = movie.tmdb_cast || movie.credits?.cast || [];
+      const tmdbDirs = movie.tmdb_directors || movie.credits?.directors || [];
 
-      castContainer.innerHTML = `
-        <div class="col-span-full space-y-3">
-          <div class="flex items-center justify-between border-b border-white/5 pb-2">
-            <span class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 font-bold">
-              <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
-              <span>Đạo Diễn & Diễn Viên (${directors.length + actors.length})</span>
-            </span>
-            <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem phim đã đóng</span>
-          </div>
-          
-          <div class="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-none pt-1">
-            ${directors.map(d => `
-              <a href="/dao-dien/${slugifyPerson(d)}" class="group flex flex-col items-center gap-1.5 shrink-0 text-center w-20 cursor-pointer" title="Đạo diễn: ${d}">
-                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container group-hover:shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all">
-                  <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true" alt="${d}" class="w-full h-full object-cover rounded-full" loading="lazy" />
-                </div>
-                <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full">${d}</span>
-                <span class="text-[10px] text-primary font-semibold block uppercase">Đạo Diễn</span>
-              </a>
-            `).join('')}
+      let directorsList = [];
+      let actorsList = [];
 
-            ${actors.map(a => `
-              <a href="/dien-vien/${slugifyPerson(a)}" class="group flex flex-col items-center gap-1.5 shrink-0 text-center w-20 cursor-pointer" title="Diễn viên: ${a}">
-                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container group-hover:shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all">
-                  <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true" alt="${a}" class="w-full h-full object-cover rounded-full" loading="lazy" />
-                </div>
-                <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full">${a}</span>
-                <span class="text-[10px] text-on-surface-variant font-semibold block uppercase">Diễn Viên</span>
-              </a>
-            `).join('')}
+      if (tmdbDirs.length || tmdbCast.length) {
+        directorsList = tmdbDirs;
+        actorsList = tmdbCast;
+      } else {
+        directorsList = (movie.director || []).filter(Boolean).map(d => ({
+          name: d,
+          character: 'Đạo diễn',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true`
+        }));
+        actorsList = (movie.actor || []).filter(Boolean).map(a => ({
+          name: a,
+          character: 'Diễn viên',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true`
+        }));
+      }
+
+      // If server already rendered rich TMDb cards and client doesn't have newer credits, keep server rendered HTML
+      const hasServerRenderedCards = castContainer.querySelector('a[href^="/dien-vien/"] img[src*="image.tmdb.org"]');
+      if (!hasServerRenderedCards || tmdbCast.length > 0) {
+        castContainer.innerHTML = `
+          <div class="col-span-full space-y-3">
+            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+              <span class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 font-bold">
+                <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
+                <span>Đạo Diễn & Diễn Viên (${directorsList.length + actorsList.length})</span>
+              </span>
+              <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem phim đã đóng</span>
+            </div>
+            
+            <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
+              ${directorsList.map(d => {
+                const imgUrl = d.avatar || (d.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${d.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`);
+                return `
+                <a href="/dao-dien/${slugifyPerson(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
+                  <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
+                    <img src="${imgUrl}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
+                  </div>
+                  <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${d.name}</span>
+                  <span class="text-[10px] text-primary font-semibold block uppercase truncate w-full h-3.5 leading-3.5">Đạo Diễn</span>
+                </a>
+              `;}).join('')}
+
+              ${actorsList.map(a => {
+                const imgUrl = a.avatar || (a.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${a.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`);
+                return `
+                <a href="/dien-vien/${slugifyPerson(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
+                  <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
+                    <img src="${imgUrl}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
+                  </div>
+                  <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${a.name}</span>
+                  <span class="text-[10px] text-on-surface-variant font-semibold block uppercase truncate w-full h-3.5 leading-3.5" title="${a.character || 'Diễn Viên'}">${a.character || 'Diễn Viên'}</span>
+                </a>
+              `;}).join('')}
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
     }
 
     // Episodes & Servers Section

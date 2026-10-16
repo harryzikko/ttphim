@@ -160,6 +160,13 @@ async function handleWatchView(req, res) {
     if (!movieData || !movieData.movie) {
       return res.send(await decorateWatch(rawHtml));
     }
+
+    // Enrich with accurate TMDb / IMDb credits
+    try {
+      const credits = await tmdbService.getMovieCredits(movieData.movie);
+      movieData.movie.credits = credits;
+    } catch (_) {}
+
     const rendered = templateService.renderWatch(rawHtml, movieData, epSlug, comments, requestedServerIdx);
     res.send(await decorateWatch(rendered));
   } catch (err) {

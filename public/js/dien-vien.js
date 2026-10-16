@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     allMovies = movies || [];
 
     // Update document title
-    document.title = `${person.name} (${person.role}) - TTPHIM Cinema`;
+    document.title = `${person.name} (${person.role}) - CineViet Cinema`;
 
     // Render Person Meta
     if (nameEl) nameEl.textContent = person.name;
