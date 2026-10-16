@@ -3,6 +3,7 @@ require('dotenv').config();
 
 module.exports = {
   PORT: process.env.PORT || 3001,
+  HOST: process.env.HOST || '0.0.0.0',
   KKPHIM_API_BASE: process.env.KKPHIM_API_BASE || 'https://phimapi.com',
   IMAGE_CDN: process.env.IMAGE_CDN || 'https://phimimg.com',
   JWT_SECRET: process.env.JWT_SECRET || 'obsidian_cinema_kkphim_secret_2026',

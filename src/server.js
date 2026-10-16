@@ -52,10 +52,16 @@ app.use((req, res) => {
 });
 
 // Start Server
-app.listen(config.PORT, () => {
+const server = app.listen(config.PORT, config.HOST, () => {
   console.log(`====================================================`);
   console.log(`   🎬 CINEVIET - OBSIDIAN CINEMA BACKEND IS RUNNING  `);
-  console.log(`   URL: http://localhost:${config.PORT}            `);
-  console.log(`   API: http://localhost:${config.PORT}/api/home   `);
+  console.log(`   Local: http://localhost:${config.PORT}          `);
+  console.log(`   IPv4:  http://127.0.0.1:${config.PORT}          `);
+  console.log(`   API:   http://localhost:${config.PORT}/api/home `);
   console.log(`====================================================`);
+
+  // Pre-warm home cache in background for instantaneous first load
+  const kkphimService = require('./services/kkphimService');
+  kkphimService.getHomeData().catch(() => {});
 });
+
