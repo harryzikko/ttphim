@@ -48,13 +48,16 @@ function normTitle(s) {
 }
 
 function isMovieMatch(tmdbCredit, item) {
-  if (!item || !item.name) return false;
-  const normTmdbV = normTitle(tmdbCredit.title);
+  if (!item || !item.name || !tmdbCredit) return false;
+  const creditTitle = tmdbCredit.title || tmdbCredit.name || '';
+  const creditOrig = tmdbCredit.original_title || tmdbCredit.original_name || '';
+  const normTmdbV = normTitle(creditTitle);
   const normKkV = normTitle(item.name);
-  const normTmdbE = normTitle(tmdbCredit.original_title);
+  const normTmdbE = normTitle(creditOrig);
   const normKkE = normTitle(item.origin_name);
 
-  const tmdbYear = tmdbCredit.release_date ? parseInt(tmdbCredit.release_date.split('-')[0], 10) : 0;
+  const creditDate = tmdbCredit.release_date || tmdbCredit.first_air_date || '';
+  const tmdbYear = creditDate ? parseInt(creditDate.split('-')[0], 10) : 0;
   const itemYear = parseInt(item.year, 10) || 0;
   const yearDiff = (tmdbYear && itemYear) ? Math.abs(tmdbYear - itemYear) : 0;
 
@@ -70,9 +73,9 @@ function isMovieMatch(tmdbCredit, item) {
     if (!tmdbYear || !itemYear || yearDiff <= 2) return true;
   }
 
-  // 3. Jaccard word similarity (handling slight numbering or subtitle variants, e.g. "Lật Mặt 5: 48h")
-  const vSim = jaccard(tmdbCredit.title, item.name);
-  const eSim = jaccard(tmdbCredit.original_title, item.origin_name);
+  // 3. Jaccard word similarity (handling slight numbering or subtitle variants)
+  const vSim = jaccard(creditTitle, item.name);
+  const eSim = jaccard(creditOrig, item.origin_name);
   if (vSim >= 0.7 || eSim >= 0.7) {
     if (!tmdbYear || !itemYear || yearDiff <= 2) return true;
   }
@@ -152,12 +155,16 @@ class PersonService {
           ? slug.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
           : slug;
       }
+      if (!slug && name) {
+        slug = slugify(name);
+      }
     }
 
     const searchKey = id || name || slug;
     if (!searchKey) throw new Error('Tên diễn viên / đạo diễn không hợp lệ');
 
-    const cacheKey = `person_service_${id}_${slug}_${type}`;
+    const personSlugKey = slug || slugify(name) || id;
+    const cacheKey = `person_service_${id || 'noid'}_${personSlugKey}_${type}`;
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() < cached.expires) {
       return cached.data;
@@ -185,41 +192,107 @@ class PersonService {
         type: isDirector ? 'director' : 'actor'
       };
 
-      // Match TMDb credits against CineViet / KKPhim / NguonC
+      // Match TMDb credits against CineViet / KKPhim / ViCDN / NguonC
       const rawCredits = tmdbData.rawCredits || [];
-      const candidates = rawCredits.slice(0, 25);
+      const candidates = rawCredits.slice(0, 30);
       const seenSlugs = new Set();
 
       const searchTasks = candidates.map(async (m) => {
-        const q = m.title || m.original_title;
-        if (!q) return null;
-        try {
-          const res = await kkphimService.fetchJson(`/v1/api/tim-kiem?keyword=${encodeURIComponent(q)}&limit=3`);
-          const items = res?.data?.items || [];
-          const hit = items.find(item => isMovieMatch(m, item));
-          if (hit && !seenSlugs.has(hit.slug)) {
-            seenSlugs.add(hit.slug);
+        const creditTitle = m.title || m.name || '';
+        const creditOrig = m.original_title || m.original_name || '';
+        const creditDate = m.release_date || m.first_air_date || '';
+        const year = creditDate ? parseInt(creditDate.split('-')[0], 10) : 2024;
+
+        // 1. Direct match with ViCDN memory index by TMDb ID (zero network latency)
+        if (m.id) {
+          const vicdnHit = vicdnService.moviesByTmdb.get(String(m.id));
+          if (vicdnHit && !seenSlugs.has(vicdnHit.slug)) {
+            seenSlugs.add(vicdnHit.slug);
             return {
-              id: String(hit._id || hit.id || m.id),
+              id: vicdnHit.slug,
               tmdb_id: m.id,
-              name: hit.name,
-              origin_name: hit.origin_name || m.original_title || hit.name,
+              name: vicdnHit.vname || vicdnHit.ename,
+              origin_name: vicdnHit.ename || vicdnHit.vname,
               character: m.character || (isDirector ? 'Đạo diễn' : 'Diễn viên'),
-              poster_url: kkphimService.resolveImageUrl(hit.poster_url || hit.thumb_url) || (m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : ''),
-              thumb_url: kkphimService.resolveImageUrl(hit.thumb_url || hit.poster_url) || (m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : ''),
-              year: hit.year || (m.release_date ? parseInt(m.release_date.split('-')[0], 10) : 2024),
+              poster_url: vicdnHit.poster ? `https://image.tmdb.org/t/p/w342/${vicdnHit.poster}.jpg` : (m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : ''),
+              thumb_url: vicdnHit.banner ? `https://image.tmdb.org/t/p/w780/${vicdnHit.banner}.jpg` : (m.backdrop_path ? `https://image.tmdb.org/t/p/w780${m.backdrop_path}` : ''),
+              year: vicdnHit.year || year,
               vote_average: m.vote_average ? Number(m.vote_average.toFixed(1)) : 8.5,
-              quality: hit.quality || 'FHD',
-              episode_current: hit.episode_current || 'Trọn Bộ',
-              slug: hit.slug,
+              quality: 'FHD Song Ngữ',
+              has_song_ngu: true,
+              episode_current: vicdnHit.stt ? `Tập ${vicdnHit.stt}` : 'Trọn Bộ',
+              slug: vicdnHit.slug,
               is_playable: true
             };
           }
-        } catch (_) {}
+        }
+
+        // 2. Search KKPhim with Vietnamese or Original Title
+        const searchTerms = [creditTitle, creditOrig].filter(Boolean);
+        for (const q of searchTerms) {
+          try {
+            const res = await kkphimService.fetchJson(`/v1/api/tim-kiem?keyword=${encodeURIComponent(q)}&limit=4`);
+            const items = res?.data?.items || [];
+            const hit = items.find(item => isMovieMatch(m, item));
+            if (hit && !seenSlugs.has(hit.slug)) {
+              seenSlugs.add(hit.slug);
+              return {
+                id: String(hit._id || hit.id || m.id),
+                tmdb_id: m.id,
+                name: hit.name,
+                origin_name: hit.origin_name || creditOrig || hit.name,
+                character: m.character || (isDirector ? 'Đạo diễn' : 'Diễn viên'),
+                poster_url: kkphimService.resolveImageUrl(hit.poster_url || hit.thumb_url) || (m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : ''),
+                thumb_url: kkphimService.resolveImageUrl(hit.thumb_url || hit.poster_url) || (m.poster_path ? `https://image.tmdb.org/t/p/w780${m.poster_path}` : ''),
+                year: hit.year || year,
+                vote_average: m.vote_average ? Number(m.vote_average.toFixed(1)) : 8.5,
+                quality: hit.quality || 'FHD',
+                has_song_ngu: Boolean(hit.has_song_ngu || vicdnService.hasBilingualMatch(hit)),
+                episode_current: hit.episode_current || 'Trọn Bộ',
+                slug: hit.slug,
+                is_playable: true
+              };
+            }
+          } catch (_) {}
+        }
+
         return null;
       });
 
       const matchedList = (await Promise.all(searchTasks)).filter(Boolean);
+
+      // 3. Enrich with any matching ViCDN titles by person name directly
+      const nameLower = (name || slug).toLowerCase();
+      const normSearch = normTitle(name || slug);
+      for (const item of (vicdnService.allMovies || [])) {
+        if (seenSlugs.has(item.slug)) continue;
+        const castList = item.cast || [];
+        const isCastMatch = castList.some(c => {
+          const cLow = (c || '').toLowerCase();
+          const cNorm = normTitle(c);
+          return cLow.includes(nameLower) || (normSearch && cNorm.includes(normSearch));
+        });
+        if (isCastMatch) {
+          seenSlugs.add(item.slug);
+          matchedList.push({
+            id: item.slug,
+            tmdb_id: item.tmdb || null,
+            name: item.vname || item.ename,
+            origin_name: item.ename || item.vname,
+            character: isDirector ? 'Đạo diễn' : 'Diễn viên',
+            poster_url: item.poster ? `https://image.tmdb.org/t/p/w342/${item.poster}.jpg` : '',
+            thumb_url: item.banner ? `https://image.tmdb.org/t/p/w780/${item.banner}.jpg` : '',
+            year: item.year || 2024,
+            vote_average: 8.8,
+            quality: 'FHD Song Ngữ',
+            has_song_ngu: true,
+            episode_current: item.stt ? `Tập ${item.stt}` : 'Trọn Bộ',
+            slug: item.slug,
+            is_playable: true
+          });
+        }
+      }
+
       movies = matchedList;
     }
 

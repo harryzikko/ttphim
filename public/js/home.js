@@ -679,7 +679,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   // --- 4. SECTION 3: KHÁM PHÁ THEO KHU VỰC & THỂ LOẠI ---

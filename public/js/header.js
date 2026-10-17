@@ -1,4 +1,4 @@
-﻿// TTPhim - Header & Global UI Controller
+// TTPhim - Header & Global UI Controller
 (function() {
   // Toast Helper
   window.showToast = function(message, type = 'success') {
@@ -645,7 +645,6 @@
       <!-- Top Header -->
       <div class="h-20 px-5 flex items-center justify-between border-b border-surface-container-highest shrink-0">
         <a class="flex items-center gap-2" href="/">
-          <img alt="CineViet Logo" class="h-7 w-auto object-contain" src="/logo.svg"/>
           <span class="font-headline-sm tracking-wider uppercase text-on-surface font-extrabold text-[17px]">CINE<span class="text-primary-container">VIET</span></span>
         </a>
         <button id="btn-close-mobile-menu" class="p-2 rounded-full hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer" type="button" aria-label="Đóng menu">

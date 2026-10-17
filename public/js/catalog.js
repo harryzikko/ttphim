@@ -410,7 +410,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
       </article>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function renderPagination(pagination) {

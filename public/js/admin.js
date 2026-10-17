@@ -1,4 +1,4 @@
-﻿// TTPhim - Admin Dashboard Controller
+// TTPhim - Admin Dashboard Controller
 document.addEventListener('DOMContentLoaded', async () => {
   document.body.classList.add('editorial-admin');
   let currentUser = null;
@@ -602,7 +602,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (annEl) annEl.value = currentSettings.announcement || '';
       if (annActiveEl) annActiveEl.checked = Boolean(currentSettings.announcement_active);
-      if (titleEl) titleEl.value = currentSettings.site_title || 'TTPhim - Xem Phim Online Chuẩn Cinema 4K';
+      if (titleEl) titleEl.value = currentSettings.site_title || 'CineViet - Xem Phim Online Chuẩn Cinema 4K';
     } catch(e) {
       console.error('[TTPhim Admin] Failed to load settings:', e);
     }

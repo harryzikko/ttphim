@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function renderDetail({ movie, episodes, related, inWatchlist }) {
-    document.title = `${movie.name} (${movie.year}) - Xem Phim Full HD Vietsub | TTPhim`;
+    document.title = `${movie.name} (${movie.year}) - Xem Phim Full HD Vietsub | CineViet`;
 
     // Ambient backdrop
     const backdrop = document.querySelector('section.relative div[style*="background-image"]');
@@ -896,7 +896,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
 
           btn.disabled = true;
-          const res = await API.postReply(id, content, currentUser?.name || 'Khán giả TTPhim');
+          const res = await API.postReply(id, content, currentUser?.name || 'Khán giả CineViet');
           btn.disabled = false;
 
           if (res.status) {
@@ -931,7 +931,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         content,
         rating: selectedFormRating,
         is_spoil: spoilCheck ? spoilCheck.checked : false,
-        user_name: currentUser?.name || 'Khán giả TTPhim'
+        user_name: currentUser?.name || 'Khán giả CineViet'
       };
 
       const res = await API.postComment(movie.slug, commentPayload);
@@ -1037,7 +1037,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     initSimilarRailButtons();
   }

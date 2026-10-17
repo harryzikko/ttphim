@@ -1823,7 +1823,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         await API.reportError(movieData.movie.slug, currentEpisode.slug, reason, details);
         closeFn();
-        window.showToast('✅ Đã tiếp nhận báo lỗi! Đội ngũ TTPhim sẽ kiểm tra xử lý ngay.');
+        window.showToast('✅ Đã tiếp nhận báo lỗi! Đội ngũ CineViet sẽ kiểm tra xử lý ngay.');
       } catch (e) {
         closeFn();
         window.showToast('Đã ghi nhận phản hồi của bạn. Cảm ơn bạn!');
@@ -2236,7 +2236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
 
           b.disabled = true;
-          const res = await API.postReply(cid, content, currentUser?.name || 'Khán giả TTPhim');
+          const res = await API.postReply(cid, content, currentUser?.name || 'Khán giả CineViet');
           b.disabled = false;
 
           if (res.status) {
@@ -2285,7 +2285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const commentPayload = {
           content: text,
           timestamp_tag: attachedTimeTag,
-          user_name: currentUser?.name || 'Khán giả TTPhim'
+          user_name: currentUser?.name || 'Khán giả CineViet'
         };
 
         const res = await API.postComment(movieSlug, commentPayload);
@@ -2354,7 +2354,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const titleText = document.title ? document.title.replace(/^Đang xem:\s*/i, '').replace(/\s*-.*$/, '').trim() : '';
       return {
         slug: slug || (movieData?.movie?.slug || ''),
-        name: titleText || slug || 'Phim TTPhim',
+        name: titleText || slug || 'Phim CineViet',
         poster_url: '',
         thumb_url: ''
       };
