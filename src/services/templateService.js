@@ -186,6 +186,7 @@ class TemplateService {
               <span class="text-amber-400 font-semibold truncate max-w-[110px]">${m.episode_current || m.time || 'Trọn Bộ'}</span>
               <span class="text-on-surface-variant/80">${m.year}</span>
             </div>
+          </div>
         </div>
       `;
       }).join('');
