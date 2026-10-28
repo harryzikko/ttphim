@@ -1,6 +1,6 @@
 const https = require('https');
 
-const runId = process.argv[2] || '40702920109';
+const runId = '40703847460';
 https.get(`https://github.com/harryzikko/ttphim/actions/runs/${runId}`, {
   headers: {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
@@ -11,10 +11,7 @@ https.get(`https://github.com/harryzikko/ttphim/actions/runs/${runId}`, {
   res.on('end', () => {
     const idx = d.indexOf('Matrix: build-android');
     if (idx !== -1) {
-      console.log('Matrix block:');
-      console.log(d.slice(idx, idx + 800).replace(/\s+/g, ' '));
-    } else {
-      console.log('Matrix: build-android not found');
+      console.log(d.slice(idx, idx + 1800).replace(/\s+/g, ' '));
     }
   });
 }).on('error', console.error);

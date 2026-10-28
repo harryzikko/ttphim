@@ -26,6 +26,7 @@ class Movie {
   final String name;
   final String slug;
   final String originName;
+  final String type;
   final String posterUrl;
   final String thumbUrl;
   final int? year;
@@ -46,6 +47,7 @@ class Movie {
     required this.name,
     required this.slug,
     required this.originName,
+    this.type = 'single',
     required this.posterUrl,
     required this.thumbUrl,
     this.year,
@@ -156,6 +158,7 @@ class Movie {
       name: json['name'] ?? '',
       slug: json['slug'] ?? '',
       originName: json['origin_name'] ?? '',
+      type: (json['type']?.toString().toLowerCase().trim() ?? 'single'),
       posterUrl: json['poster_url'] ?? '',
       thumbUrl: json['thumb_url'] ?? '',
       year: parsedYear,
@@ -179,6 +182,7 @@ class Movie {
       'name': name,
       'slug': slug,
       'origin_name': originName,
+      'type': type,
       'poster_url': posterUrl,
       'thumb_url': thumbUrl,
       'year': year,
