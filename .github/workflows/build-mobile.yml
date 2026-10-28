@@ -141,7 +141,7 @@ jobs:
 
   build-ios:
     name: Build iOS IPA (Unsigned)
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -187,10 +187,12 @@ jobs:
         working-directory: mobile_app/ios
         run: |
           set -o pipefail
-          if ! pod install --repo-update 2>&1 | tee /tmp/pod.log; then
-            echo "::error title=Pod Install Failed::$(tail -n 20 /tmp/pod.log | tr '\r\n' '  ')"
-            tail -n 200 /tmp/pod.log
-            exit 1
+          if [ -f Podfile ]; then
+            if ! pod install --repo-update 2>&1 | tee /tmp/pod.log; then
+              echo "::error title=Pod Install Failed::$(tail -n 20 /tmp/pod.log | tr '\r\n' '  ')"
+              tail -n 200 /tmp/pod.log
+              exit 1
+            fi
           fi
       - name: Build iOS bundle
         working-directory: mobile_app
