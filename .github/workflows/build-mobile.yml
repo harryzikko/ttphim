@@ -103,14 +103,14 @@ jobs:
         working-directory: mobile_app
         run: |
           set -o pipefail
-          if ! flutter build apk --release -v -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/apk-build.log; then
+          if ! flutter build apk --release --no-tree-shake-icons -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/apk-build.log; then
             python3 -c "
             with open('/tmp/apk-build.log', 'r', errors='ignore') as f:
                 lines = f.readlines()
             err_idx = -1
             for i in range(len(lines) - 1, -1, -1):
                 l = lines[i]
-                if any(k in l for k in ['FAILURE: Build failed', 'What went wrong:', 'compileFlutterBuildRelease', 'Execution failed for task', 'Error: ', 'Exception: ', '#0 ']):
+                if any(k in l for k in ['FontSubset', 'Tree shake', 'Target ', 'FAILURE:', 'What went wrong:', 'Execution failed for task', 'Error:', 'Exception:']):
                     err_idx = i
                     break
             if err_idx != -1:
@@ -196,7 +196,7 @@ jobs:
         working-directory: mobile_app
         run: |
           set -o pipefail
-          if ! flutter build ios --release --no-codesign --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/ios-build.log; then
+          if ! flutter build ios --release --no-codesign --no-tree-shake-icons --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/ios-build.log; then
             echo "::error title=iOS Build Failed::$(tail -n 20 /tmp/ios-build.log | tr '\r\n' '  ')"
             tail -n 200 /tmp/ios-build.log
             exit 1
