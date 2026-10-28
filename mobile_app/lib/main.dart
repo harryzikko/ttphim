@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import 'screens/main_navigation_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/api_service.dart';
+import 'services/app_config.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.init();
 
   // Set immersive dark status bar & navigation bar
   SystemChrome.setSystemUIOverlayStyle(

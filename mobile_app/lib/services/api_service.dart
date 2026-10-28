@@ -502,17 +502,23 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> login(String email, String password, {String? challengeId, String? code}) async {
-    if (!AppConfig.hasBackend) return {'status': false, 'message': 'Chưa cấu hình BACKEND_URL khi build ứng dụng'};
+    if (!AppConfig.hasBackend) return {'status': false, 'message': 'Chưa cấu hình BACKEND_URL cho ứng dụng'};
     try {
       final response = await _backend('/api/auth/login', body: challengeId == null
           ? {'email': email, 'password': password}
           : {'challengeId': challengeId, 'code': code});
-      final data = response?['data'];
-      if (response?['status'] == true && data is Map<String, dynamic> && data['token'] is String && data['user'] is Map<String, dynamic>) {
+      if (response == null) {
+        final host = Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
+        return {'status': false, 'message': 'Không thể kết nối đến máy chủ ($host)'};
+      }
+      final data = response['data'];
+      if (response['status'] == true && data is Map<String, dynamic> && data['token'] is String && data['user'] is Map<String, dynamic>) {
         await StorageService.saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
       }
-      return response ?? {'status': false, 'message': 'Không thể đăng nhập'};
-    } catch (_) { return {'status': false, 'message': 'Không thể kết nối máy chủ'}; }
+      return response;
+    } catch (e) {
+      final host = Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
+      return {'status': false, 'message': 'Không thể kết nối máy chủ ($host): ' + e.toString().replaceAll('Exception:', '').trim()};
+    }
   }
 }
-
