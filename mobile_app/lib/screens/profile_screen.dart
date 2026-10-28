@@ -259,11 +259,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppTheme.border),
                       ),
-                      child: const Center(
-                        child: Text(
-                          'Chưa có phim nào trong danh sách yêu thích.\nThêm phim từ trang chi tiết để xem lại nhanh.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: AppTheme.textMuted, fontSize: 12, height: 1.4),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _user == null
+                                  ? 'Đăng nhập tài khoản CineViet để lưu & đồng bộ danh sách yêu thích của bạn.'
+                                  : 'Chưa có phim nào trong danh sách yêu thích.\nThêm phim từ trang chi tiết để xem lại nhanh.',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: AppTheme.textMuted, fontSize: 12, height: 1.4),
+                            ),
+                            if (_user == null) ...[
+                              const SizedBox(height: 10),
+                              ElevatedButton(
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const AccountScreen()),
+                                  );
+                                  _loadUser();
+                                  _loadLibraryData();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                ),
+                                child: const Text('Đăng nhập ngay', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     )

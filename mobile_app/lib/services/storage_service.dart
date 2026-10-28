@@ -64,8 +64,11 @@ class StorageService {
   }
 
   static Future<bool> toggleFavorite(Movie movie) async {
-    final scope = await _scope();
     final token = await getToken();
+    if (token == null) {
+      throw StateError('Vui lòng đăng nhập để lưu phim yêu thích');
+    }
+    final scope = await _scope();
     final prefs = await SharedPreferences.getInstance();
     final key = _key('favorites', scope);
     final items = _read(prefs, key);
@@ -87,6 +90,8 @@ class StorageService {
 
   static Future<bool> isFavorite(String slug) async => (await getFavorites()).any((movie) => movie.slug == slug);
   static Future<List<Movie>> getFavorites() async {
+    final token = await getToken();
+    if (token == null) return [];
     final scope = await _scope();
     // Re-check account after the network request, not just before it.
     final prefs = await SharedPreferences.getInstance();

@@ -7,6 +7,7 @@ import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../person_screen.dart';
 import 'tv_player_screen.dart';
+import 'tv_qr_login_screen.dart';
 
 class TvDetailScreen extends StatefulWidget {
   final Movie movie;
@@ -280,6 +281,45 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                                 const SizedBox(width: 16),
                                 OutlinedButton.icon(
                                   onPressed: () async {
+                                    final token = await StorageService.getToken();
+                                    if (token == null) {
+                                      if (!mounted) return;
+                                      final shouldLogin = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          backgroundColor: const Color(0xFF1B1E2B),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                          title: const Row(
+                                            children: [
+                                              Icon(Icons.qr_code_2_rounded, color: AppTheme.primary, size: 24),
+                                              SizedBox(width: 10),
+                                              Text('Yêu Cầu Đăng Nhập', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                          content: const Text(
+                                            'Tính năng lưu phim yêu thích yêu cầu đăng nhập tài khoản CineViet để đồng bộ danh sách của bạn.',
+                                            style: TextStyle(color: Colors.white70, fontSize: 14),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx, false),
+                                              child: const Text('Để sau', style: TextStyle(color: Colors.white60)),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () => Navigator.pop(ctx, true),
+                                              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+                                              child: const Text('Quét mã QR đăng nhập', style: TextStyle(color: Colors.white)),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (shouldLogin == true && mounted) {
+                                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const TvQrLoginScreen()));
+                                        final fav = await StorageService.isFavorite(widget.movie.slug);
+                                        if (mounted) setState(() => _isFavorite = fav);
+                                      }
+                                      return;
+                                    }
                                     try {
                                       final newState = await StorageService.toggleFavorite(movie);
                                       if (mounted) setState(() => _isFavorite = newState);

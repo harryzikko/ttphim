@@ -7,6 +7,7 @@ import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'player_screen.dart';
 import 'person_screen.dart';
+import 'login_screen.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final String slug;
@@ -54,18 +55,61 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   Future<void> _toggleFavorite() async {
     final movieToSave = _detail?.movie ?? widget.initialMovie;
-    if (movieToSave != null) {
-      try {
-        final newState = await StorageService.toggleFavorite(movieToSave);
-        if (!mounted) return;
-        setState(() => _isFavorite = newState);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(newState ? 'Đã thêm vào danh sách yêu thích' : 'Đã xóa khỏi danh sách yêu thích'),
-          backgroundColor: AppTheme.surface, duration: const Duration(seconds: 2),
-        ));
-      } catch (error) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+    if (movieToSave == null) return;
+
+    final token = await StorageService.getToken();
+    if (token == null) {
+      if (!mounted) return;
+      final shouldLogin = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Row(
+            children: [
+              Icon(Icons.lock_outline_rounded, color: AppTheme.primary, size: 22),
+              SizedBox(width: 8),
+              Text('Yêu Cầu Đăng Nhập', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            'Tính năng lưu phim yêu thích yêu cầu đăng nhập tài khoản CineViet để đồng bộ danh sách của bạn.',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Để sau', style: TextStyle(color: AppTheme.textMuted)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Đăng nhập ngay'),
+            ),
+          ],
+        ),
+      );
+      if (shouldLogin == true && mounted) {
+        await Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+        _checkFavorite();
       }
+      return;
+    }
+
+    try {
+      final newState = await StorageService.toggleFavorite(movieToSave);
+      if (!mounted) return;
+      setState(() => _isFavorite = newState);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(newState ? 'Đã thêm vào danh sách yêu thích' : 'Đã xóa khỏi danh sách yêu thích'),
+        backgroundColor: AppTheme.surface, duration: const Duration(seconds: 2),
+      ));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 

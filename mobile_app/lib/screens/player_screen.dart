@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../services/embed_policy.dart';
 import '../theme/app_theme.dart';
+import 'login_screen.dart';
 
 enum VideoFitMode {
   original, // 16:9 or native aspect ratio
@@ -1564,6 +1565,26 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 label: _isFavorite ? 'Đã Lưu' : 'Lưu Phim',
                 color: _isFavorite ? AppTheme.gold : Colors.white70,
                 onTap: () async {
+                  final token = await StorageService.getToken();
+                  if (token == null) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Vui lòng đăng nhập để lưu phim vào danh sách yêu thích.'),
+                        backgroundColor: AppTheme.surface,
+                        action: SnackBarAction(
+                          label: 'Đăng nhập',
+                          textColor: AppTheme.primaryLight,
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                          },
+                        ),
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                    return;
+                  }
                   try {
                     final newState = await StorageService.toggleFavorite(_activeMovie);
                     if (mounted) setState(() => _isFavorite = newState);
