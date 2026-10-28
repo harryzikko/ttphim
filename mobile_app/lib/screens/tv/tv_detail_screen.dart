@@ -38,7 +38,7 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
     setState(() => _isLoading = true);
 
     final res = await ApiService.getMovieDetail(widget.movie.slug);
-    final seasons = await ApiService.getMovieSeasons(widget.movie.slug);
+    final seasons = await ApiService.getMovieSeasons(widget.movie.slug, knownMovie: res?.movie ?? widget.movie);
     final hist = await StorageService.getHistoryForMovie(widget.movie.slug);
     final fav = await StorageService.isFavorite(widget.movie.slug);
 

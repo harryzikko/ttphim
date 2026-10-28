@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../../models/movie.dart';
 import '../../theme/app_theme.dart';
 
-/// Reusable D-pad focusable movie card for Android TV 10-foot Leanback UI
+/// Reusable D-pad focusable movie card for Android TV 10-foot Leanback UI (Netflix-Style)
 class TvMovieCard extends StatefulWidget {
   final Movie movie;
   final VoidCallback onSelect;
@@ -18,7 +18,7 @@ class TvMovieCard extends StatefulWidget {
     required this.movie,
     required this.onSelect,
     this.width = 170,
-    this.height = 250,
+    this.height = 255,
     this.showProgress = false,
     this.progress = 0.0,
   });
@@ -57,17 +57,17 @@ class _TvMovieCardState extends State<TvMovieCard> {
             width: widget.width,
             height: widget.height,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: _isFocused ? AppTheme.primary : Colors.white.withOpacity(0.08),
-                width: _isFocused ? 2.5 : 1.0,
+                width: _isFocused ? 2.8 : 1.0,
               ),
               boxShadow: _isFocused
                   ? [
                       BoxShadow(
-                        color: AppTheme.primary.withOpacity(0.55),
-                        blurRadius: 20,
-                        spreadRadius: 2,
+                        color: AppTheme.primary.withOpacity(0.7),
+                        blurRadius: 22,
+                        spreadRadius: 3,
                         offset: const Offset(0, 6),
                       ),
                     ]
@@ -80,7 +80,7 @@ class _TvMovieCardState extends State<TvMovieCard> {
                     ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8.5),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -90,42 +90,42 @@ class _TvMovieCardState extends State<TvMovieCard> {
                     fit: BoxFit.cover,
                     placeholder: (_, __) => Container(color: AppTheme.card),
                     errorWidget: (_, __, ___) => Container(
-                      color: AppTheme.card,
+                      color: AppTheme.cardElevated,
                       child: const Center(
                         child: Icon(Icons.movie_creation_rounded, color: Colors.white24, size: 40),
                       ),
                     ),
                   ),
 
-                  // Gradient Scrim for Readability
+                  // Rich Gradient Scrim for 10-foot Readability
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
                             Colors.transparent,
-                            Colors.black.withOpacity(0.1),
-                            Colors.black.withOpacity(0.85),
+                            Colors.black.withOpacity(0.2),
+                            Colors.black.withOpacity(0.92),
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          stops: const [0.4, 0.65, 1.0],
+                          stops: const [0.45, 0.7, 1.0],
                         ),
                       ),
                     ),
                   ),
 
-                  // Quality & Episode Badges
+                  // Quality Badge Top-Left (Netflix Signature)
                   Positioned(
                     top: 8,
                     left: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       decoration: BoxDecoration(
                         color: AppTheme.primary,
                         borderRadius: BorderRadius.circular(4),
                         boxShadow: const [
-                          BoxShadow(color: Colors.black45, blurRadius: 4),
+                          BoxShadow(color: Colors.black54, blurRadius: 4),
                         ],
                       ),
                       child: Text(
@@ -134,38 +134,58 @@ class _TvMovieCardState extends State<TvMovieCard> {
                           color: Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
+                          letterSpacing: 0.3,
                         ),
                       ),
                     ),
                   ),
 
-                  if (widget.movie.year != null)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '${widget.movie.year}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  // Rating / Year Badge Top-Right
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.75),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.white12, width: 0.5),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.movie.voteAverage > 0) ...[
+                            const Icon(Icons.star_rounded, color: AppTheme.gold, size: 12),
+                            const SizedBox(width: 2),
+                            Text(
+                              widget.movie.voteAverage.toStringAsFixed(1),
+                              style: const TextStyle(
+                                color: AppTheme.gold,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ] else if (widget.movie.year != null) ...[
+                            Text(
+                              '${widget.movie.year}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
+                  ),
 
                   // Watch Progress Bar if applicable
                   if (widget.showProgress)
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: 46,
+                      bottom: 54,
                       child: Container(
                         height: 3.5,
                         color: Colors.white24,
@@ -179,8 +199,8 @@ class _TvMovieCardState extends State<TvMovieCard> {
 
                   // Movie Title & Episode Metadata
                   Positioned(
-                    left: 8,
-                    right: 8,
+                    left: 9,
+                    right: 9,
                     bottom: 8,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,18 +208,19 @@ class _TvMovieCardState extends State<TvMovieCard> {
                       children: [
                         Text(
                           widget.movie.name,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: _isFocused ? Colors.white : Colors.white.withOpacity(0.9),
+                            color: _isFocused ? Colors.white : Colors.white.withOpacity(0.92),
                             fontSize: 12.5,
+                            height: 1.25,
                             fontWeight: FontWeight.bold,
                             shadows: const [
                               Shadow(color: Colors.black, blurRadius: 4),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
                           widget.movie.episodeCurrent.isNotEmpty
                               ? widget.movie.episodeCurrent

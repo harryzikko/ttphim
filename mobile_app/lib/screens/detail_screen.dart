@@ -71,7 +71,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   Future<void> _fetchDetail() async {
     final res = await ApiService.getMovieDetail(widget.slug);
-    final seasons = await ApiService.getMovieSeasons(widget.slug);
+    final seasons = await ApiService.getMovieSeasons(widget.slug, knownMovie: res?.movie ?? widget.initialMovie);
     if (mounted) {
       setState(() {
         _detail = res;

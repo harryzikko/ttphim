@@ -351,8 +351,9 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
 
   Widget _buildMovieRail(List<Movie> movies, {bool showProgress = false}) {
     return SizedBox(
-      height: 250,
+      height: 290,
       child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 16),
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: movies.length,

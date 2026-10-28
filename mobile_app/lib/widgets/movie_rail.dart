@@ -108,7 +108,6 @@ class MovieRail extends StatelessWidget {
                 return MovieCard(
                   movie: movies[index],
                   width: cardWidth,
-                  height: cardHeight,
                 );
               },
             ),

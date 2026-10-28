@@ -166,16 +166,16 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
       physics: const BouncingScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: MediaQuery.of(context).size.width >= 1000 ? 6 : (MediaQuery.of(context).size.width >= 600 ? 4 : 3),
-        childAspectRatio: 0.55,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        childAspectRatio: MediaQuery.of(context).size.width >= 600 ? 0.58 : 0.54,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 14,
       ),
       itemCount: _favorites.length,
       itemBuilder: (context, idx) {
         return MovieCard(
           movie: _favorites[idx],
-          width: double.infinity,
-          height: 155,
+          width: null,
+          margin: EdgeInsets.zero,
         );
       },
     );

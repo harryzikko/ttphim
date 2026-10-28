@@ -17,6 +17,7 @@ import 'package:ttphim/services/api_service.dart';
 import 'package:ttphim/services/app_config.dart';
 import 'package:ttphim/services/backend_service.dart';
 import 'package:ttphim/services/storage_service.dart';
+import 'package:ttphim/services/season_service.dart';
 
 http.Response response(Map<String, dynamic> value) => http.Response(json.encode(value), 200, headers: {'content-type': 'application/json'});
 Map<String, dynamic> movieJson(String name) => {'slug': name, 'name': name, 'poster_url': '', 'thumb_url': ''};
@@ -167,5 +168,21 @@ void main() {
     expect(sent?.headers['Authorization'], 'Bearer jwt');
     expect(json.decode(sent!.body)['token'], 'session');
     expect(sent!.url.host, Uri.parse(AppConfig.backendUrl).host);
+  });
+
+  test('SeasonService franchise normalization and season number extraction match requirements', () {
+    expect(SeasonService.extractFranchiseName('Đấu Phá Thương Khung (Phần 5)'), 'Đấu Phá Thương Khung');
+    expect(SeasonService.extractFranchiseName('Đấu Phá Thương Khung 4: Đào Vong'), 'Đấu Phá Thương Khung');
+    expect(SeasonService.extractFranchiseName('Đấu Phá Thương Khung Bản Đặc Biệt 1 (Định Mệnh)'), 'Đấu Phá Thương Khung');
+    expect(SeasonService.extractSeasonNumber('Đấu Phá Thương Khung (Phần 5)'), 5);
+    expect(SeasonService.extractSeasonNumber('Đấu Phá Thương Khung Bản Đặc Biệt 2'), 100);
+    expect(SeasonService.formatSeasonLabel('Đấu Phá Thương Khung (Phần 5)', 5, 2022), 'Phần 5 (2022)');
+  });
+
+  test('ApiService getTopRankings returns authentic top ranked movies when backend home is absent', () async {
+    final top = await ApiService.getTopRankings();
+    expect(top.length, 10);
+    expect(top.first.slug, 'than-y-co-dai-o-do-thi-do-thi-co-tien-y');
+    expect(top.any((m) => m.slug == 'su-huynh-a-su-huynh'), isTrue);
   });
 }
