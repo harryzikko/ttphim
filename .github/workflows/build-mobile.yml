@@ -15,6 +15,7 @@ jobs:
     name: Build Android ${{ matrix.variant }} APK
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - variant: Mobile
@@ -56,12 +57,25 @@ jobs:
           fi
           # Keep SDK levels compatible with the pinned plugin versions.
           sed -i 's/flutter.compileSdkVersion/34/g; s/flutter.minSdkVersion/21/g; s/flutter.targetSdkVersion/34/g' android/app/build.gradle
-      - name: Resolve and verify
+      - name: Resolve dependencies
+        working-directory: mobile_app
+        run: flutter pub get --enforce-lockfile
+      - name: Static analysis
         working-directory: mobile_app
         run: |
-          flutter pub get --enforce-lockfile
-          flutter analyze --no-fatal-infos
-          flutter test --dart-define=BACKEND_URL=https://backend.test
+          if ! flutter analyze --no-fatal-infos 2>&1 | tee /tmp/analyze.log; then
+            echo "::error title=Flutter Analyze Failed::Static analysis reported issues"
+            cat /tmp/analyze.log
+            exit 1
+          fi
+      - name: Unit and widget tests
+        working-directory: mobile_app
+        run: |
+          if ! flutter test --dart-define=BACKEND_URL=https://backend.test 2>&1 | tee /tmp/test.log; then
+            echo "::error title=Flutter Test Failed::Unit tests failed"
+            cat /tmp/test.log
+            exit 1
+          fi
       - name: Build sideload APK (default debug signature, no release keystore)
         working-directory: mobile_app
         run: flutter build apk --release -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL"
@@ -98,14 +112,28 @@ jobs:
           cp /tmp/ttphim-pubspec.lock pubspec.lock
           rm -f test/widget_test.dart
           cp config/Info.plist ios/Runner/Info.plist
-      - name: Resolve and verify
+      - name: Resolve dependencies
+        working-directory: mobile_app
+        run: flutter pub get --enforce-lockfile
+      - name: Static analysis
         working-directory: mobile_app
         run: |
-          flutter pub get --enforce-lockfile
-          flutter analyze --no-fatal-infos
-          flutter test --dart-define=BACKEND_URL=https://backend.test
-          cd ios
-          pod install --repo-update
+          if ! flutter analyze --no-fatal-infos 2>&1 | tee /tmp/analyze.log; then
+            echo "::error title=Flutter Analyze Failed::Static analysis reported issues"
+            cat /tmp/analyze.log
+            exit 1
+          fi
+      - name: Unit and widget tests
+        working-directory: mobile_app
+        run: |
+          if ! flutter test --dart-define=BACKEND_URL=https://backend.test 2>&1 | tee /tmp/test.log; then
+            echo "::error title=Flutter Test Failed::Unit tests failed"
+            cat /tmp/test.log
+            exit 1
+          fi
+      - name: Install iOS Pods
+        working-directory: mobile_app/ios
+        run: pod install --repo-update
       - name: Build iOS bundle
         working-directory: mobile_app
         run: flutter build ios --release --no-codesign --dart-define="BACKEND_URL=$BACKEND_URL"
