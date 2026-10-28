@@ -21,6 +21,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _autoNextEpisode = true;
+  Map<String, dynamic>? _user;
   List<Movie> _favorites = [];
   List<WatchHistoryItem> _history = [];
   bool _isLoadingLibrary = true;
@@ -31,14 +32,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     StorageService.getAutoNext().then((enabled) {
       if (mounted) setState(() => _autoNextEpisode = enabled);
     });
+    _loadUser();
     _loadLibraryData();
-    SessionService.changes.addListener(_loadLibraryData);
+    SessionService.changes.addListener(_onSessionChanged);
   }
 
   @override
   void dispose() {
-    SessionService.changes.removeListener(_loadLibraryData);
+    SessionService.changes.removeListener(_onSessionChanged);
     super.dispose();
+  }
+
+  void _onSessionChanged() {
+    _loadUser();
+    _loadLibraryData();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final u = await StorageService.getUser();
+      if (mounted) setState(() => _user = u);
+    } catch (_) {}
   }
 
   Future<void> _loadLibraryData() async {
@@ -89,8 +103,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = SessionService.currentUser;
     final platformName = _getDetectedPlatform(context);
+    final username = _user?['username']?.toString() ?? _user?['email']?.toString() ?? 'Khách xem phim';
+    final userSubtitle = _user != null
+        ? (_user?['email']?.toString() ?? 'Đã đăng nhập tài khoản CineViet')
+        : 'Chạm để đăng nhập & đồng bộ dữ liệu';
+    final avatarInitial = username.isNotEmpty ? username[0].toUpperCase() : 'C';
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -111,6 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 context,
                 MaterialPageRoute(builder: (_) => const AccountScreen()),
               );
+              _loadUser();
               _loadLibraryData();
             },
             child: Container(
@@ -138,9 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        (user?.username.isNotEmpty == true)
-                            ? user!.username[0].toUpperCase()
-                            : 'C',
+                        avatarInitial,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -155,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user?.username ?? 'Khách xem phim',
+                          username,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -164,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          user?.email ?? 'Chạm để đăng nhập & đồng bộ dữ liệu',
+                          userSubtitle,
                           style: const TextStyle(
                             color: AppTheme.textMuted,
                             fontSize: 12,
@@ -369,16 +386,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 itemCount: _history.length,
                 itemBuilder: (context, idx) {
                   final item = _history[idx];
-                  final progress = (item.duration > 0)
-                      ? (item.position / item.duration).clamp(0.0, 1.0)
-                      : 0.0;
+                  final progress = item.progressPercentage;
 
                   return GestureDetector(
                     onTap: () async {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => MovieDetailScreen(slug: item.slug, initialMovie: item.movie),
+                          builder: (_) => MovieDetailScreen(slug: item.movieSlug),
                         ),
                       );
                       _loadLibraryData();
@@ -401,9 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fit: StackFit.expand,
                                 children: [
                                   CachedNetworkImage(
-                                    imageUrl: item.movie?.fullThumbUrl.isNotEmpty == true
-                                        ? item.movie!.fullThumbUrl
-                                        : (item.movie?.fullPosterUrl ?? ''),
+                                    imageUrl: item.posterUrl,
                                     fit: BoxFit.cover,
                                     placeholder: (_, __) => Container(color: AppTheme.card),
                                     errorWidget: (_, __, ___) => const Icon(Icons.movie, color: AppTheme.textMuted),
@@ -436,7 +449,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Padding(
                               padding: const EdgeInsets.all(6.0),
                               child: Text(
-                                item.movie?.name ?? item.slug,
+                                item.movieName.isNotEmpty ? item.movieName : item.movieSlug,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
