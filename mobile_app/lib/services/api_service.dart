@@ -271,8 +271,9 @@ class ApiService {
   /// Get Top 10 Ranking Movies (Synchronized 100% with Website Real Rankings)
   static Future<List<Movie>> getTopRankings() async {
     final home = await _getHome();
-    if (home?['rankings'] is List && (home!['rankings'] as List).isNotEmpty) {
-      return (home!['rankings'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+    final rankings = home?['rankings'];
+    if (rankings is List && rankings.isNotEmpty) {
+      return rankings.whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
     }
     return _defaultTopRankings;
   }

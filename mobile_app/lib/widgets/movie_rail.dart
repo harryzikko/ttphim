@@ -95,7 +95,6 @@ class MovieRail extends StatelessWidget {
           final isTablet = MediaQuery.of(context).size.width >= 600;
           final railHeight = isTablet ? 305.0 : 245.0;
           final cardWidth = isTablet ? 165.0 : 125.0;
-          final cardHeight = isTablet ? 235.0 : 185.0;
 
           return SizedBox(
             height: railHeight,

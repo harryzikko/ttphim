@@ -43,7 +43,7 @@
   .player-status, .player-status button { transition: none; }
 }
 
-.player-embed-notice, #embed-player-help, #m-embed-player-help { display: none !important; }
+.player-embed-notice, #embed-player-help[hidden], #m-embed-player-help[hidden] { display: none !important; }
 .player-status.player-status-outside {
   position: static; inset: auto; z-index: auto; width: 100%; max-width: none;
   box-sizing: border-box; padding: 10px 12px; gap: 8px;
