@@ -37,30 +37,41 @@ class _HeroBannerState extends State<HeroBanner> {
             },
             itemBuilder: (context, index) {
               final movie = displayList[index];
+              // Mobile phones use vertical poster, iPad / Tablet use horizontal thumb
+              final primaryImage = isTablet
+                  ? (movie.fullThumbUrl.isNotEmpty ? movie.fullThumbUrl : movie.fullPosterUrl)
+                  : (movie.fullPosterUrl.isNotEmpty ? movie.fullPosterUrl : movie.fullThumbUrl);
+              final fallbackImage = isTablet
+                  ? movie.fullPosterUrl
+                  : movie.fullThumbUrl;
+
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Backdrop Image
+                  // Hero Featured Image (Poster for Mobile, Thumb for iPad)
                   CachedNetworkImage(
-                    imageUrl: movie.fullThumbUrl,
+                    imageUrl: primaryImage,
                     fit: BoxFit.cover,
+                    alignment: isTablet ? Alignment.center : Alignment.topCenter,
                     placeholder: (context, url) => Container(color: AppTheme.card),
                     errorWidget: (context, url, error) => CachedNetworkImage(
-                      imageUrl: movie.fullPosterUrl,
+                      imageUrl: fallbackImage,
                       fit: BoxFit.cover,
+                      alignment: isTablet ? Alignment.center : Alignment.topCenter,
                     ),
                   ),
 
-                  // Gradient Dark Overlay
+                  // Gradient Dark Overlay (Netflix Cinematic Scrim)
                   Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,
-                          Color(0x990B0D13),
-                          Color(0xFF0B0D13),
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.4),
+                          const Color(0xFF0B0D13),
                         ],
-                        stops: [0.3, 0.7, 1.0],
+                        stops: isTablet ? const [0.0, 0.4, 0.75, 1.0] : const [0.0, 0.35, 0.7, 1.0],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),

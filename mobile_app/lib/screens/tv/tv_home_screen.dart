@@ -136,7 +136,7 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
   }
 
   Widget _buildHeroBillboard(Movie m) {
-    final backdrop = m.fullThumbUrl;
+    final backdrop = m.fullThumbUrl.isNotEmpty ? m.fullThumbUrl : m.fullPosterUrl;
 
     return Container(
       height: 440,

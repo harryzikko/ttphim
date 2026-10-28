@@ -91,61 +91,34 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         titleSpacing: 16,
-        title: Row(
-          children: [
-            // TTPhim Logo
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Text(
-                'CINE',
+        title: RichText(
+          text: TextSpan(
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+            ),
+            children: [
+              const TextSpan(
+                text: 'CINE',
                 style: TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  letterSpacing: 1,
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'VIET',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(width: 8),
-            // VIP Pass 100% Free Tag
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppTheme.gold.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: AppTheme.gold, width: 0.8),
-              ),
-              child: const Text(
-                '4K HDR',
+              TextSpan(
+                text: 'VIET',
                 style: TextStyle(
-                  color: AppTheme.gold,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                  shadows: [
+                    Shadow(
+                      color: AppTheme.primary.withOpacity(0.5),
+                      blurRadius: 8,
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           IconButton(

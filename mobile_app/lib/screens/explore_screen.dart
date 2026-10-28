@@ -23,7 +23,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   ];
 
   final List<Map<String, String>> _categoryFilters = [
-    {'title': 'Tất Cả', 'slug': ''},
+    {'title': 'Tất Cả Thể Loại', 'slug': ''},
     {'title': 'Hành Động', 'slug': 'hanh-dong'},
     {'title': 'Viễn Tưởng', 'slug': 'vien-tuong'},
     {'title': 'Kinh Dị', 'slug': 'kinh-di'},
@@ -33,10 +33,28 @@ class _ExploreScreenState extends State<ExploreScreen> {
     {'title': 'Tâm Lý', 'slug': 'tam-ly'},
     {'title': 'Võ Thuật', 'slug': 'vo-thuat'},
     {'title': 'Phiêu Lưu', 'slug': 'phieu-luu'},
+    {'title': 'Chiếu Rạp', 'slug': 'chieu-rap'},
+    {'title': 'Bí Ẩn', 'slug': 'bi-an'},
+    {'title': 'Chiến Tranh', 'slug': 'chien-tranh'},
+    {'title': 'Âm Nhạc', 'slug': 'am-nhac'},
+  ];
+
+  final List<Map<String, String>> _countryFilters = [
+    {'title': 'Tất Cả Quốc Gia', 'slug': ''},
+    {'title': 'Việt Nam', 'slug': 'viet-nam'},
+    {'title': 'Trung Quốc', 'slug': 'trung-quoc'},
+    {'title': 'Hàn Quốc', 'slug': 'han-quoc'},
+    {'title': 'Nhật Bản', 'slug': 'nhat-ban'},
+    {'title': 'Âu Mỹ', 'slug': 'au-my'},
+    {'title': 'Thái Lan', 'slug': 'thai-lan'},
+    {'title': 'Đài Loan', 'slug': 'dai-loan'},
+    {'title': 'Ấn Độ', 'slug': 'an-do'},
+    {'title': 'Hồng Kông', 'slug': 'hong-kong'},
   ];
 
   int _selectedTypeIndex = 0;
   int _selectedCategoryIndex = 0;
+  int _selectedCountryIndex = 0;
 
   List<Movie> _movies = [];
   int _currentPage = 1;
@@ -67,6 +85,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
+  Future<List<Movie>> _fetchByCurrentFilters(int page) async {
+    final countrySlug = _countryFilters[_selectedCountryIndex]['slug']!;
+    final catSlug = _categoryFilters[_selectedCategoryIndex]['slug']!;
+    final typeSlug = _typeFilters[_selectedTypeIndex]['slug']!;
+
+    if (countrySlug.isNotEmpty) {
+      return await ApiService.getMoviesByCountry(countrySlug, page: page);
+    } else if (catSlug.isNotEmpty) {
+      return await ApiService.getMoviesByCategory(catSlug, page: page);
+    } else {
+      switch (typeSlug) {
+        case 'phim-le':
+          return await ApiService.getSingleMovies(page: page);
+        case 'phim-bo':
+          return await ApiService.getSeriesMovies(page: page);
+        case 'hoat-hinh':
+          return await ApiService.getAnimeMovies(page: page);
+        case 'tv-shows':
+          return await ApiService.getTvShows(page: page);
+        default:
+          return await ApiService.getNewMovies(page: page);
+      }
+    }
+  }
+
   Future<void> _loadMovies({bool isRefresh = false}) async {
     final generation = ++_loadGeneration;
     _isLoadingMore = false;
@@ -77,31 +120,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     setState(() => _isLoading = true);
 
-    List<Movie> results = [];
-    final catSlug = _categoryFilters[_selectedCategoryIndex]['slug']!;
-    final typeSlug = _typeFilters[_selectedTypeIndex]['slug']!;
-
-    if (catSlug.isNotEmpty) {
-      results = await ApiService.getMoviesByCategory(catSlug, page: _currentPage);
-    } else {
-      switch (typeSlug) {
-        case 'phim-le':
-          results = await ApiService.getSingleMovies(page: _currentPage);
-          break;
-        case 'phim-bo':
-          results = await ApiService.getSeriesMovies(page: _currentPage);
-          break;
-        case 'hoat-hinh':
-          results = await ApiService.getAnimeMovies(page: _currentPage);
-          break;
-        case 'tv-shows':
-          results = await ApiService.getTvShows(page: _currentPage);
-          break;
-        default:
-          results = await ApiService.getNewMovies(page: _currentPage);
-          break;
-      }
-    }
+    final results = await _fetchByCurrentFilters(_currentPage);
 
     if (mounted && generation == _loadGeneration) {
       setState(() {
@@ -118,31 +137,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final page = _currentPage + 1;
     setState(() => _isLoadingMore = true);
 
-    List<Movie> results = [];
-    final catSlug = _categoryFilters[_selectedCategoryIndex]['slug']!;
-    final typeSlug = _typeFilters[_selectedTypeIndex]['slug']!;
-
-    if (catSlug.isNotEmpty) {
-      results = await ApiService.getMoviesByCategory(catSlug, page: page);
-    } else {
-      switch (typeSlug) {
-        case 'phim-le':
-          results = await ApiService.getSingleMovies(page: page);
-          break;
-        case 'phim-bo':
-          results = await ApiService.getSeriesMovies(page: page);
-          break;
-        case 'hoat-hinh':
-          results = await ApiService.getAnimeMovies(page: page);
-          break;
-        case 'tv-shows':
-          results = await ApiService.getTvShows(page: page);
-          break;
-        default:
-          results = await ApiService.getNewMovies(page: page);
-          break;
-      }
-    }
+    final results = await _fetchByCurrentFilters(page);
 
     if (mounted && generation == _loadGeneration) {
       setState(() {
@@ -160,22 +155,47 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final activeCat = _categoryFilters[_selectedCategoryIndex]['slug']!.isNotEmpty;
+    final activeCountry = _countryFilters[_selectedCountryIndex]['slug']!.isNotEmpty;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Khám Phá Phim'),
+        title: const Text(
+          'Khám Phá Phim',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        actions: [
+          if (activeCat || activeCountry || _selectedTypeIndex != 0)
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedTypeIndex = 0;
+                  _selectedCategoryIndex = 0;
+                  _selectedCountryIndex = 0;
+                });
+                _loadMovies(isRefresh: true);
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 16, color: AppTheme.primaryLight),
+              label: const Text(
+                'Đặt lại',
+                style: TextStyle(color: AppTheme.primaryLight, fontSize: 12),
+              ),
+            ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
-          // Type Filter Chips Row
+          // 1. Định Dạng Phim (Type Filter Chips)
           SizedBox(
-            height: 44,
+            height: 42,
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               itemCount: _typeFilters.length,
               itemBuilder: (context, idx) {
-                final isSel = idx == _selectedTypeIndex && _selectedCategoryIndex == 0;
+                final isSel = idx == _selectedTypeIndex && !activeCat && !activeCountry;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
@@ -191,7 +211,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     onSelected: (_) {
                       setState(() {
                         _selectedTypeIndex = idx;
-                        _selectedCategoryIndex = 0; // Reset category filter
+                        _selectedCategoryIndex = 0;
+                        _selectedCountryIndex = 0;
                       });
                       _loadMovies(isRefresh: true);
                     },
@@ -203,9 +224,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
           const SizedBox(height: 6),
 
-          // Categories Filter Row
+          // 2. Lọc Thể Loại (Category / Genre Filter Row)
           SizedBox(
-            height: 38,
+            height: 36,
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
@@ -217,21 +238,63 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   child: FilterChip(
                     label: Text(_categoryFilters[idx]['title']!),
                     selected: isSel,
-                    selectedColor: AppTheme.primaryLight.withOpacity(0.3),
+                    selectedColor: AppTheme.primary.withOpacity(0.25),
                     backgroundColor: AppTheme.cardElevated,
-                    checkmarkColor: AppTheme.primaryLight,
+                    checkmarkColor: AppTheme.primary,
                     side: BorderSide(
                       color: isSel ? AppTheme.primary : AppTheme.border,
                       width: 0.8,
                     ),
                     labelStyle: TextStyle(
-                      color: isSel ? AppTheme.primaryLight : AppTheme.textMuted,
+                      color: isSel ? Colors.white : AppTheme.textMuted,
                       fontSize: 11,
                       fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                     ),
                     onSelected: (_) {
                       setState(() {
                         _selectedCategoryIndex = idx;
+                        if (idx > 0) _selectedCountryIndex = 0;
+                      });
+                      _loadMovies(isRefresh: true);
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          // 3. Lọc Quốc Gia (Country Filter Row)
+          SizedBox(
+            height: 36,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: _countryFilters.length,
+              itemBuilder: (context, idx) {
+                final isSel = idx == _selectedCountryIndex;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: Text(_countryFilters[idx]['title']!),
+                    selected: isSel,
+                    selectedColor: AppTheme.gold.withOpacity(0.2),
+                    backgroundColor: AppTheme.cardElevated,
+                    checkmarkColor: AppTheme.gold,
+                    side: BorderSide(
+                      color: isSel ? AppTheme.gold : AppTheme.border,
+                      width: 0.8,
+                    ),
+                    labelStyle: TextStyle(
+                      color: isSel ? AppTheme.gold : AppTheme.textMuted,
+                      fontSize: 11,
+                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedCountryIndex = idx;
+                        if (idx > 0) _selectedCategoryIndex = 0;
                       });
                       _loadMovies(isRefresh: true);
                     },
@@ -282,7 +345,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             }
                             return MovieCard(
                               movie: _movies[index],
-                              width: null,
                               margin: EdgeInsets.zero,
                             );
                           },

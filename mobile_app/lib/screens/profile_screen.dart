@@ -1,10 +1,16 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
-import '../theme/app_theme.dart';
-import 'tv/tv_main_screen.dart';
-import 'account_screen.dart';
-import '../services/storage_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import '../models/movie.dart';
+import '../services/api_service.dart';
+import '../services/session_service.dart';
+import '../services/storage_service.dart';
+import '../theme/app_theme.dart';
+import 'account_screen.dart';
+import 'detail_screen.dart';
+import 'watchlist_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,6 +21,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _autoNextEpisode = true;
+  List<Movie> _favorites = [];
+  List<WatchHistoryItem> _history = [];
+  bool _isLoadingLibrary = true;
 
   @override
   void initState() {
@@ -22,6 +31,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     StorageService.getAutoNext().then((enabled) {
       if (mounted) setState(() => _autoNextEpisode = enabled);
     });
+    _loadLibraryData();
+    SessionService.changes.addListener(_loadLibraryData);
+  }
+
+  @override
+  void dispose() {
+    SessionService.changes.removeListener(_loadLibraryData);
+    super.dispose();
+  }
+
+  Future<void> _loadLibraryData() async {
+    if (!mounted) return;
+    final favs = await StorageService.getFavorites();
+    final hist = await StorageService.getHistory();
+    if (mounted) {
+      setState(() {
+        _favorites = favs;
+        _history = hist;
+        _isLoadingLibrary = false;
+      });
+    }
   }
 
   Future<void> _clearCache() async {
@@ -38,129 +68,392 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  String _getDetectedPlatform(BuildContext context) {
+    if (kIsWeb) return 'Web';
+    final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+    try {
+      if (Platform.isIOS) {
+        return isTablet ? 'iPadOS' : 'iOS';
+      } else if (Platform.isAndroid) {
+        return isTablet ? 'Android Tablet' : 'Android';
+      } else if (Platform.isMacOS) {
+        return 'macOS';
+      } else if (Platform.isWindows) {
+        return 'Windows';
+      } else if (Platform.isLinux) {
+        return 'Linux';
+      }
+    } catch (_) {}
+    return isTablet ? 'Tablet' : 'Mobile';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = SessionService.currentUser;
+    final platformName = _getDetectedPlatform(context);
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Cá Nhân & Cài Đặt'),
+        title: const Text(
+          'Cá Nhân',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         physics: const BouncingScrollPhysics(),
         children: [
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Tài khoản & đồng bộ'),
-            subtitle: const Text('Đăng nhập, đăng xuất và đồng bộ với website'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountScreen())),
-          ),
-          // 100% Free VIP Pass Card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2E1C0C), Color(0xFF1F150B), Color(0xFF141722)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // 1. Account Profile Card
+          GestureDetector(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AccountScreen()),
+              );
+              _loadLibraryData();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.card,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.gold.withOpacity(0.5), width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.gold.withOpacity(0.15),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.gold.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.workspace_premium_rounded, color: AppTheme.gold, size: 28),
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        (user?.username.isNotEmpty == true)
+                            ? user!.username[0].toUpperCase()
+                            : 'C',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(width: 12),
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'TTPHIM VIP PASS',
-                              style: TextStyle(
-                                color: AppTheme.gold,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                            Text(
-                              'Đã Kích Hoạt Miễn Phí',
-                              style: TextStyle(color: Colors.white70, fontSize: 12),
-                            ),
-                          ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.username ?? 'Khách xem phim',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          user?.email ?? 'Chạm để đăng nhập & đồng bộ dữ liệu',
+                          style: const TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.gold,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        '100% FREE',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Divider(color: Colors.white12),
-                const SizedBox(height: 8),
-                const Row(
-                  children: [
-                    Icon(Icons.check_circle_rounded, color: AppTheme.gold, size: 16),
-                    SizedBox(width: 8),
-                    Text('Xem không giới hạn mọi bộ phim', style: TextStyle(color: Colors.white, fontSize: 13)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                const Row(
-                  children: [
-                    Icon(Icons.check_circle_rounded, color: AppTheme.gold, size: 16),
-                    SizedBox(width: 8),
-                    Text('Không quảng cáo gây phiền toái', style: TextStyle(color: Colors.white, fontSize: 13)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                const Row(
-                  children: [
-                    Icon(Icons.check_circle_rounded, color: AppTheme.gold, size: 16),
-                    SizedBox(width: 8),
-                    Text('Chất lượng cao Full HD / 4K siêu nét', style: TextStyle(color: Colors.white, fontSize: 13)),
-                  ],
-                ),
-              ],
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: AppTheme.textMuted,
+                    size: 15,
+                  ),
+                ],
+              ),
             ),
           ),
 
           const SizedBox(height: 24),
 
-          // Player Settings
+          // 2. Thư Viện Của Tôi (Danh Sách Yêu Thích)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 3.5,
+                    height: 15,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Text(
+                    'Danh Sách Của Tôi (${_favorites.length})',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton(
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WatchlistScreen()),
+                  );
+                  _loadLibraryData();
+                },
+                child: const Text(
+                  'Xem tất cả',
+                  style: TextStyle(color: AppTheme.primaryLight, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          _isLoadingLibrary
+              ? const SizedBox(
+                  height: 140,
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary)),
+                )
+              : _favorites.isEmpty
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.card,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Chưa có phim nào trong danh sách yêu thích.\nThêm phim từ trang chi tiết để xem lại nhanh.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppTheme.textMuted, fontSize: 12, height: 1.4),
+                        ),
+                      ),
+                    )
+                  : SizedBox(
+                      height: 160,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: _favorites.length,
+                        itemBuilder: (context, idx) {
+                          final movie = _favorites[idx];
+                          return GestureDetector(
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MovieDetailScreen(slug: movie.slug, initialMovie: movie),
+                                ),
+                              );
+                              _loadLibraryData();
+                            },
+                            child: Container(
+                              width: 105,
+                              margin: const EdgeInsets.only(right: 10),
+                              decoration: BoxDecoration(
+                                color: AppTheme.cardElevated,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(7.2),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    CachedNetworkImage(
+                                      imageUrl: movie.fullPosterUrl,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) => Container(color: AppTheme.card),
+                                      errorWidget: (_, __, ___) => const Icon(Icons.movie, color: AppTheme.textMuted),
+                                    ),
+                                    Positioned(
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          movie.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+          const SizedBox(height: 20),
+
+          // 3. Lịch Sử Xem (Watch History)
+          if (_history.isNotEmpty) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 3.5,
+                      height: 15,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gold,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Text(
+                      'Đang Xem Dở & Lịch Sử (${_history.length})',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WatchlistScreen()),
+                    );
+                    _loadLibraryData();
+                  },
+                  child: const Text(
+                    'Xem tất cả',
+                    style: TextStyle(color: AppTheme.primaryLight, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _history.length,
+                itemBuilder: (context, idx) {
+                  final item = _history[idx];
+                  final progress = (item.duration > 0)
+                      ? (item.position / item.duration).clamp(0.0, 1.0)
+                      : 0.0;
+
+                  return GestureDetector(
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MovieDetailScreen(slug: item.slug, initialMovie: item.movie),
+                        ),
+                      );
+                      _loadLibraryData();
+                    },
+                    child: Container(
+                      width: 140,
+                      margin: const EdgeInsets.only(right: 10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardElevated,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7.2),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  CachedNetworkImage(
+                                    imageUrl: item.movie?.fullThumbUrl.isNotEmpty == true
+                                        ? item.movie!.fullThumbUrl
+                                        : (item.movie?.fullPosterUrl ?? ''),
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(color: AppTheme.card),
+                                    errorWidget: (_, __, ___) => const Icon(Icons.movie, color: AppTheme.textMuted),
+                                  ),
+                                  Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.6),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                                    ),
+                                  ),
+                                  if (progress > 0)
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 0,
+                                      child: LinearProgressIndicator(
+                                        value: progress,
+                                        backgroundColor: Colors.white24,
+                                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                                        minHeight: 3,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: Text(
+                                item.movie?.name ?? item.slug,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // 4. Player Settings
           const Text(
             'Cài Đặt Trình Phát',
             style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
@@ -188,8 +481,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Divider(color: AppTheme.border, height: 1),
                 const ListTile(
                   title: Text('Chất lượng tự thích ứng', style: TextStyle(color: Colors.white, fontSize: 14)),
-                  subtitle: Text('Player tự chọn chất lượng theo nguồn và tốc độ mạng. App không ép 1080p/4K khi nguồn không có.',
-                    style: TextStyle(color: AppTheme.primaryLight, fontSize: 12)),
+                  subtitle: Text(
+                    'Player tự chọn chất lượng mượt mà theo nguồn phát và tốc độ mạng.',
+                    style: TextStyle(color: AppTheme.primaryLight, fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -197,7 +492,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           const SizedBox(height: 24),
 
-          // Android TV Connection
+          // 5. Kết Nối Thiết Bị (Chỉ giữ Đăng nhập Android TV qua QR/mã)
           const Text(
             'Kết Nối Thiết Bị',
             style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
@@ -210,49 +505,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.border),
             ),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primaryLight, size: 22),
-                  ),
-                  title: const Text('Đăng nhập Android TV', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Quét QR hoặc nhập mã 6 số hiển thị trên TV', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.primary, size: 14),
-                  onTap: _showTvLoginDialog,
+            child: ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.15),
+                  shape: BoxShape.circle,
                 ),
-                const Divider(color: AppTheme.border, height: 1),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.gold.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.tv_rounded, color: AppTheme.gold, size: 22),
-                  ),
-                  title: const Text('Mở giao diện Android TV', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Trải nghiệm giao diện 10-foot chuẩn TV Box & Leanback', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.gold, size: 14),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const TvMainScreen()),
-                    );
-                  },
-                ),
-              ],
+                child: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primaryLight, size: 22),
+              ),
+              title: const Text('Đăng nhập Android TV', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: const Text('Quét QR hoặc nhập mã 6 số hiển thị trên TV', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.primary, size: 14),
+              onTap: _showTvLoginDialog,
             ),
           ),
 
           const SizedBox(height: 24),
 
-          // App Storage & Cache
+          // 6. Hệ Thống & Bộ Nhớ
           const Text(
             'Hệ Thống & Bộ Nhớ',
             style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
@@ -265,21 +536,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.border),
             ),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.cleaning_services_rounded, color: AppTheme.primaryLight),
-                  title: const Text('Xóa bộ nhớ đệm cache', style: TextStyle(color: Colors.white, fontSize: 14)),
-                  subtitle: const Text('Giải phóng dung lượng hình ảnh đã tải', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                  onTap: _clearCache,
-                ),
-              ],
+            child: ListTile(
+              leading: const Icon(Icons.cleaning_services_rounded, color: AppTheme.primaryLight),
+              title: const Text('Xóa bộ nhớ đệm cache', style: TextStyle(color: Colors.white, fontSize: 14)),
+              subtitle: const Text('Giải phóng dung lượng hình ảnh đã tải tạm', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+              onTap: _clearCache,
             ),
           ),
 
           const SizedBox(height: 24),
 
-          // About App
+          // 7. Thông Tin Ứng Dụng (CineViet, Đúng nền tảng, Phiên bản chỉ hiện số)
           const Text(
             'Thông Tin Ứng Dụng',
             style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
@@ -293,33 +560,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.border),
             ),
-            child: const Column(
+            child: Column(
               children: [
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Tên ứng dụng', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                    Text('TTPhim', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text('CineViet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                   ],
                 ),
-                SizedBox(height: 10),
-                Row(
+                const SizedBox(height: 10),
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Phiên bản', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                    Text('1.0.0 (Native Flutter)', style: TextStyle(color: AppTheme.primaryLight, fontSize: 13)),
+                    Text('1.0.0', style: TextStyle(color: AppTheme.primaryLight, fontWeight: FontWeight.w600, fontSize: 13)),
                   ],
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Nền tảng', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                    Text('Android APK & iOS IPA', style: TextStyle(color: Colors.white, fontSize: 13)),
+                    const Text('Nền tảng', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                    Text(platformName, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
                   ],
                 ),
-                SizedBox(height: 10),
-                Row(
+                const SizedBox(height: 10),
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Bản quyền nội dung', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
@@ -394,7 +661,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Mở ứng dụng TTPhim trên Android TV, chọn Đăng Nhập QR và nhập mã kích hoạt 6 chữ số hiển thị trên TV:',
+                'Mở ứng dụng CineViet trên Android TV, chọn Đăng Nhập QR và nhập mã kích hoạt 6 chữ số hiển thị trên TV:',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
               ),

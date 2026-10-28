@@ -155,7 +155,7 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
                                 Icon(Icons.tv_rounded, color: Colors.white, size: 16),
                                 SizedBox(width: 6),
                                 Text(
-                                  'TTPHIM ANDROID TV',
+                                  'CINEVIET ANDROID TV',
                                   style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
                                 ),
                               ],
@@ -256,7 +256,7 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
                                           style: TextStyle(color: AppTheme.primaryLight, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1),
                                         ),
                                         Text(
-                                          'Dùng Camera hoặc App TTPhim',
+                                          'Dùng Camera hoặc App CineViet',
                                           style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                                         ),
                                       ],
@@ -350,7 +350,7 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
                               const SizedBox(height: 20),
 
                               // Steps
-                              _buildStepRow('1', 'Mở ứng dụng TTPhim trên điện thoại hoặc truy cập $_authUrl'),
+                              _buildStepRow('1', 'Mở ứng dụng CineViet trên điện thoại hoặc truy cập $_authUrl'),
                               const SizedBox(height: 10),
                               _buildStepRow('2', 'Chọn tính năng "Quét mã QR Android TV" hoặc nhập mã kích hoạt trên'),
                               const SizedBox(height: 10),
@@ -453,7 +453,7 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Chào mừng $_userName đến với rạp phim TTPHIM TV Edition!',
+              'Chào mừng $_userName đến với rạp phim CineViet TV Edition!',
               style: const TextStyle(color: Colors.white70, fontSize: 15),
             ),
           ],

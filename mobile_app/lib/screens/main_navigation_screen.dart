@@ -3,7 +3,6 @@ import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'explore_screen.dart';
 import 'search_screen.dart';
-import 'watchlist_screen.dart';
 import 'profile_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -15,14 +14,14 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
-  int _libraryRefresh = 0;
+  int _profileRefresh = 0;
   int _homeRefresh = 0;
 
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
       if (index == 0) _homeRefresh++;
-      if (index == 3) _libraryRefresh++;
+      if (index == 3) _profileRefresh++;
     });
   }
 
@@ -32,8 +31,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomeScreen(onNavigateTab: _onTabTapped, refreshVersion: _homeRefresh),
       const ExploreScreen(),
       const SearchScreen(),
-      WatchlistScreen(onNavigateTab: _onTabTapped, refreshVersion: _libraryRefresh),
-      const ProfileScreen(),
+      ProfileScreen(key: ValueKey(_profileRefresh)),
     ];
 
     return Scaffold(
@@ -64,11 +62,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               icon: Icon(Icons.search_outlined),
               activeIcon: Icon(Icons.search_rounded),
               label: 'Tìm Kiếm',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bookmark_border_rounded),
-              activeIcon: Icon(Icons.bookmark_rounded),
-              label: 'Thư Viện',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline_rounded),

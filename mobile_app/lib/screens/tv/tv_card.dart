@@ -224,7 +224,7 @@ class _TvMovieCardState extends State<TvMovieCard> {
                         Text(
                           widget.movie.episodeCurrent.isNotEmpty
                               ? widget.movie.episodeCurrent
-                              : (widget.movie.originName.isNotEmpty ? widget.movie.originName : 'TTPHIM'),
+                              : (widget.movie.originName.isNotEmpty ? widget.movie.originName : 'CineViet'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

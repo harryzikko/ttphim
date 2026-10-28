@@ -34,7 +34,7 @@ class Top10Reel extends StatelessWidget {
                 height: 16,
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
-                  color: AppTheme.gold,
+                  color: AppTheme.primary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -62,6 +62,10 @@ class Top10Reel extends StatelessWidget {
             itemBuilder: (context, index) {
               final movie = topList[index];
               final rank = index + 1;
+              final isTwoDigits = rank >= 10;
+              final itemWidth = isTwoDigits
+                  ? (containerWidth + (isTablet ? 42.0 : 34.0))
+                  : containerWidth;
 
               return GestureDetector(
                 onTap: () {
@@ -72,51 +76,12 @@ class Top10Reel extends StatelessWidget {
                   );
                 },
                 child: Container(
-                  width: containerWidth,
+                  width: itemWidth,
                   margin: const EdgeInsets.only(right: 12),
                   child: Stack(
+                    clipBehavior: Clip.none,
                     alignment: Alignment.bottomLeft,
                     children: [
-                      // Iconic Netflix Giant Rank Number (Stroke + Dark Core)
-                      Positioned(
-                        left: -6,
-                        bottom: -18,
-                        child: Stack(
-                          children: [
-                            // Metallic Border Outline
-                            Text(
-                              '$rank',
-                              style: TextStyle(
-                                fontSize: numberFontSize,
-                                fontWeight: FontWeight.w900,
-                                foreground: Paint()
-                                  ..style = PaintingStyle.stroke
-                                  ..strokeWidth = isTablet ? 4.5 : 3.5
-                                  ..color = const Color(0xFF636A7E),
-                                letterSpacing: -6,
-                              ),
-                            ),
-                            // Dark Charcoal Core Fill with Drop Shadow
-                            Text(
-                              '$rank',
-                              style: TextStyle(
-                                fontSize: numberFontSize,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFF11141D),
-                                letterSpacing: -6,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.9),
-                                    offset: const Offset(3, 3),
-                                    blurRadius: 6,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
                       // Movie Poster Card (Shifted right)
                       Positioned(
                         right: 0,
@@ -174,38 +139,11 @@ class Top10Reel extends StatelessWidget {
                                         colors: [
                                           Colors.transparent,
                                           Colors.black.withOpacity(0.15),
-                                          Colors.black.withOpacity(0.8),
+                                          Colors.black.withOpacity(0.85),
                                         ],
                                         stops: const [0.55, 0.78, 1.0],
                                         begin: Alignment.topCenter,
                                         end: Alignment.bottomCenter,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                // Top-Left Rank Tag
-                                Positioned(
-                                  top: 6,
-                                  left: 6,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      gradient: rank <= 3 ? AppTheme.primaryGradient : null,
-                                      color: rank > 3 ? Colors.black.withOpacity(0.8) : null,
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                        color: rank <= 3 ? AppTheme.gold : Colors.white24,
-                                        width: 0.6,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'TOP $rank',
-                                      style: TextStyle(
-                                        color: rank <= 3 ? Colors.white : AppTheme.primaryLight,
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.3,
                                       ),
                                     ),
                                   ),
@@ -254,6 +192,46 @@ class Top10Reel extends StatelessWidget {
                               ],
                             ),
                           ),
+                        ),
+                      ),
+
+                      // Iconic Netflix Giant Rank Number (Layered in front of poster edge)
+                      Positioned(
+                        left: isTwoDigits ? (isTablet ? -14.0 : -10.0) : (isTablet ? -8.0 : -6.0),
+                        bottom: isTablet ? -22.0 : -18.0,
+                        child: Stack(
+                          children: [
+                            // Metallic / Silver Border Outline
+                            Text(
+                              '$rank',
+                              style: TextStyle(
+                                fontSize: numberFontSize,
+                                fontWeight: FontWeight.w900,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = isTablet ? 5.0 : 4.0
+                                  ..color = const Color(0xFF70778B),
+                                letterSpacing: isTwoDigits ? (isTablet ? -10.0 : -8.0) : -5.0,
+                              ),
+                            ),
+                            // Dark Charcoal Core Fill with Drop Shadow
+                            Text(
+                              '$rank',
+                              style: TextStyle(
+                                fontSize: numberFontSize,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFF141722),
+                                letterSpacing: isTwoDigits ? (isTablet ? -10.0 : -8.0) : -5.0,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.95),
+                                    offset: const Offset(3, 3),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
