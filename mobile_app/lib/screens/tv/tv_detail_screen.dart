@@ -26,6 +26,7 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
   int _selectedServerIndex = 0;
   WatchHistoryItem? _history;
   bool _isFavorite = false;
+  List<Map<String, dynamic>> _seasons = [];
 
   @override
   void initState() {
@@ -37,12 +38,14 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
     setState(() => _isLoading = true);
 
     final res = await ApiService.getMovieDetail(widget.movie.slug);
+    final seasons = await ApiService.getMovieSeasons(widget.movie.slug);
     final hist = await StorageService.getHistoryForMovie(widget.movie.slug);
     final fav = await StorageService.isFavorite(widget.movie.slug);
 
     if (mounted) {
       setState(() {
         _detail = res;
+        _seasons = seasons;
         _history = hist;
         if (res != null && hist != null) {
           final index = res.servers.indexWhere((server) => server.serverName == hist.serverName);
@@ -241,7 +244,7 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                             Text(
                               movie.content.isNotEmpty
                                   ? movie.content.replaceAll(RegExp(r'<[^>]*>'), '').trim()
-                                  : 'Khám phá thế giới điện ảnh sắc nét với độ phân giải cao và âm thanh vòm sống động trên TTPhim Android TV.',
+                                  : 'Khám phá thế giới điện ảnh sắc nét với độ phân giải cao và âm thanh vòm sống động trên CineViet Android TV.',
                               maxLines: 4,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
@@ -371,6 +374,94 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                       child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
                     )
                   else if (_detail != null && _detail!.servers.isNotEmpty) ...[
+                    // Multi-Season Selector for TV
+                    if (_seasons.length > 1)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.layers_rounded, color: AppTheme.primary, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'CHỌN MÙA / PHẦN PHIM (NETFLIX STYLE)',
+                                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 46,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: _seasons.length,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                  itemBuilder: (context, sIdx) {
+                                    final item = _seasons[sIdx];
+                                    final isCurrent = item['slug'] == widget.movie.slug || item['is_current'] == true;
+                                    final label = item['label']?.toString() ?? item['name']?.toString() ?? 'Phần ${sIdx + 1}';
+                                    return Focus(
+                                      child: Builder(
+                                        builder: (ctx) {
+                                          final isFocused = Focus.of(ctx).hasFocus;
+                                          return AnimatedScale(
+                                            scale: isFocused ? 1.08 : 1.0,
+                                            duration: const Duration(milliseconds: 140),
+                                            child: OutlinedButton(
+                                              onPressed: () {
+                                                if (!isCurrent) {
+                                                  Navigator.pushReplacement(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => TvDetailScreen(
+                                                        movie: Movie(
+                                                          id: item['slug'].toString(),
+                                                          name: item['name']?.toString() ?? label,
+                                                          slug: item['slug'].toString(),
+                                                          originName: '',
+                                                          posterUrl: '',
+                                                          thumbUrl: '',
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              style: OutlinedButton.styleFrom(
+                                                backgroundColor: isFocused
+                                                    ? AppTheme.primary
+                                                    : (isCurrent ? AppTheme.primary.withOpacity(0.25) : const Color(0xFF191B24)),
+                                                foregroundColor: Colors.white,
+                                                side: BorderSide(
+                                                  color: isFocused ? AppTheme.gold : (isCurrent ? AppTheme.primary : Colors.white12),
+                                                  width: isFocused ? 2 : 1.2,
+                                                ),
+                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                              ),
+                                              child: Text(
+                                                label,
+                                                style: TextStyle(
+                                                  color: isCurrent || isFocused ? Colors.white : Colors.white70,
+                                                  fontWeight: isCurrent || isFocused ? FontWeight.bold : FontWeight.normal,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     SliverToBoxAdapter(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

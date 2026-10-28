@@ -82,7 +82,7 @@ class _TvMainScreenState extends State<TvMainScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'TTPHIM',
+                              'CINEVIET',
                               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
                             ),
                             Text(

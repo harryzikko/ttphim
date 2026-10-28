@@ -22,8 +22,10 @@ class _HeroBannerState extends State<HeroBanner> {
     if (widget.movies.isEmpty) return const SizedBox.shrink();
     final displayList = widget.movies.take(8).toList();
 
+    final isTablet = MediaQuery.of(context).size.width >= 600;
+    final bannerHeight = isTablet ? 540.0 : 420.0;
     return SizedBox(
-      height: 420,
+      height: bannerHeight,
       child: Stack(
         children: [
           // Page View
@@ -129,9 +131,9 @@ class _HeroBannerState extends State<HeroBanner> {
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 22,
+                            fontSize: isTablet ? 30 : 22,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.3,
                           ),
@@ -163,23 +165,26 @@ class _HeroBannerState extends State<HeroBanner> {
                                   ),
                                 );
                               },
-                              icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                              icon: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 22),
                               label: const Text(
-                                'XEM NGAY',
+                                'PHÁT',
                                 style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.8,
+                                  fontSize: 14,
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                elevation: 4,
                               ),
                             ),
                             const SizedBox(width: 12),
-                            OutlinedButton.icon(
+                            ElevatedButton.icon(
                               onPressed: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
@@ -187,12 +192,21 @@ class _HeroBannerState extends State<HeroBanner> {
                                   ),
                                 );
                               },
-                              icon: const Icon(Icons.info_outline, color: Colors.white, size: 18),
-                              label: const Text('Chi Tiết', style: TextStyle(color: Colors.white)),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.white38),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              icon: const Icon(Icons.info_outline, color: Colors.white, size: 20),
+                              label: const Text(
+                                'Chi Tiết',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white.withOpacity(0.22),
+                                foregroundColor: Colors.white,
+                                shadowColor: Colors.transparent,
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                               ),
                             ),
                           ],

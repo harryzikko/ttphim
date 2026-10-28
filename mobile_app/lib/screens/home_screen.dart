@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               child: const Text(
-                'TT',
+                'CINE',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 8),
             const Text(
-              'Phim',
+              'VIET',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: Border.all(color: AppTheme.gold, width: 0.8),
               ),
               child: const Text(
-                'VIP MIỄN PHÍ',
+                '4K HDR',
                 style: TextStyle(
                   color: AppTheme.gold,
                   fontSize: 9,

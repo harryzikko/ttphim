@@ -192,7 +192,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         slivers: [
           // App Bar with Backdrop Image
           SliverAppBar(
-            expandedHeight: 320,
+            expandedHeight: MediaQuery.of(context).size.width >= 600 ? 420 : 320,
             pinned: true,
             backgroundColor: AppTheme.surface,
             leading: Padding(
@@ -584,9 +584,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                             return GridView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
-                                childAspectRatio: 2.2,
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: MediaQuery.of(context).size.width >= 600 ? 8 : 4,
+                                childAspectRatio: MediaQuery.of(context).size.width >= 600 ? 2.5 : 2.2,
                                 crossAxisSpacing: 8,
                                 mainAxisSpacing: 8,
                               ),

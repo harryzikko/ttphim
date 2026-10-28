@@ -91,18 +91,29 @@ class MovieRail extends StatelessWidget {
         ),
 
         // Horizontal List
-        SizedBox(
-          height: 245,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: movies.length,
-            itemBuilder: (context, index) {
-              return MovieCard(movie: movies[index]);
-            },
-          ),
-        ),
+        () {
+          final isTablet = MediaQuery.of(context).size.width >= 600;
+          final railHeight = isTablet ? 305.0 : 245.0;
+          final cardWidth = isTablet ? 165.0 : 125.0;
+          final cardHeight = isTablet ? 235.0 : 185.0;
+
+          return SizedBox(
+            height: railHeight,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: movies.length,
+              itemBuilder: (context, index) {
+                return MovieCard(
+                  movie: movies[index],
+                  width: cardWidth,
+                  height: cardHeight,
+                );
+              },
+            ),
+          );
+        }(),
       ],
     );
   }

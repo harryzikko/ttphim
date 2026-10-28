@@ -257,7 +257,7 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                   Text(
                     m.content.isNotEmpty
                         ? m.content.replaceAll(RegExp(r'<[^>]*>'), '').trim()
-                        : 'Thưởng thức siêu phẩm điện ảnh chuẩn rạp chất lượng cao tại TTPhim.',
+                        : 'Thưởng thức siêu phẩm điện ảnh chuẩn rạp chất lượng cao tại CineViet.',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
