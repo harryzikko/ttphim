@@ -107,19 +107,22 @@ jobs:
             python3 -c "
             with open('/tmp/apk-build.log', 'r', errors='ignore') as f:
                 lines = f.readlines()
-            selected_lines = []
-            for i, line in enumerate(lines):
-                if any(k in line for k in ['Target ', 'Exception:', 'Error:', 'Caused by:', '* What went wrong:', '#0 ']):
-                    start = max(0, i - 10)
-                    end = min(len(lines), i + 10)
-                    for l in lines[start:end]:
-                        clean_l = l.strip()
-                        if clean_l and clean_l not in selected_lines:
-                            selected_lines.append(clean_l)
-            if not selected_lines:
-                selected_lines = [l.strip() for l in lines[-30:] if l.strip()]
-            msg = ' || '.join(selected_lines[:25])[:800]
-            print(f'::error title=Detailed Build Failure::{msg}')
+            err_idx = -1
+            for i in range(len(lines) - 1, -1, -1):
+                l = lines[i]
+                if any(k in l for k in ['FAILURE: Build failed', 'What went wrong:', 'compileFlutterBuildRelease', 'Execution failed for task', 'Error: ', 'Exception: ', '#0 ']):
+                    err_idx = i
+                    break
+            if err_idx != -1:
+                start = max(0, err_idx - 15)
+                end = min(len(lines), err_idx + 25)
+                selected = [lines[j].strip() for j in range(start, end) if lines[j].strip() and not lines[j].strip().startswith('[   +')]
+                if not selected:
+                    selected = [lines[j].strip() for j in range(start, end) if lines[j].strip()]
+                msg = ' || '.join(selected[:25])[:850]
+            else:
+                msg = ' || '.join([l.strip() for l in lines[-25:] if l.strip()])[:850]
+            print(f'::error title=Exact Root Cause::{msg}')
             "
             echo "::group::Full APK Build Failure Log"
             tail -n 400 /tmp/apk-build.log
