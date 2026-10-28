@@ -10,8 +10,14 @@ import '../services/session_service.dart';
 class WatchlistScreen extends StatefulWidget {
   final Function(int tabIndex)? onNavigateTab;
   final int refreshVersion;
+  final int initialTabIndex;
 
-  const WatchlistScreen({super.key, this.onNavigateTab, this.refreshVersion = 0});
+  const WatchlistScreen({
+    super.key,
+    this.onNavigateTab,
+    this.refreshVersion = 0,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<WatchlistScreen> createState() => _WatchlistScreenState();
@@ -27,7 +33,11 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 1),
+    );
     SessionService.changes.addListener(_loadData);
     _loadData();
   }

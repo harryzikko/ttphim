@@ -361,7 +361,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                     CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 3.5),
                     SizedBox(height: 16),
                     Text(
-                      'Đang kết nối luồng phát Android TV 4K HDR...',
+                      'Đang kết nối luồng phát Android TV...',
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],

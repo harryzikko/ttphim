@@ -784,7 +784,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                     CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 3),
                     SizedBox(height: 12),
                     Text(
-                      'Đang nạp luồng phát phim 4K HDR...',
+                      'Đang tải luồng phát...',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],

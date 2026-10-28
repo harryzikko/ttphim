@@ -233,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: () async {
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const WatchlistScreen()),
+                    MaterialPageRoute(builder: (_) => const WatchlistScreen(initialTabIndex: 0)),
                   );
                   _loadLibraryData();
                 },
@@ -366,7 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () async {
                     await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const WatchlistScreen()),
+                      MaterialPageRoute(builder: (_) => const WatchlistScreen(initialTabIndex: 1)),
                     );
                     _loadLibraryData();
                   },
