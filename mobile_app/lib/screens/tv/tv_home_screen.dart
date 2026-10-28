@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/movie.dart';
 import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
+import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
 import 'tv_card.dart';
 
@@ -30,7 +31,14 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
   @override
   void initState() {
     super.initState();
+    SessionService.changes.addListener(_loadAllRails);
     _loadAllRails();
+  }
+
+  @override
+  void dispose() {
+    SessionService.changes.removeListener(_loadAllRails);
+    super.dispose();
   }
 
   Future<void> _loadAllRails() async {

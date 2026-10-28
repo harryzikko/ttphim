@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/movie.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
+import '../services/session_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/continue_watching_rail.dart';
 import '../widgets/hero_banner.dart';
@@ -32,7 +33,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    SessionService.changes.addListener(_onSessionChanged);
     _loadAllContent();
+    _loadContinueWatching();
+  }
+
+  @override
+  void dispose() {
+    SessionService.changes.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
+  void _onSessionChanged() {
     _loadContinueWatching();
   }
 
