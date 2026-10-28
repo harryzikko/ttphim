@@ -56,6 +56,8 @@ jobs:
             sed -i '/android.intent.category.LEANBACK_LAUNCHER/d' android/app/src/main/AndroidManifest.xml
             sed -i '/android:banner="@drawable\/tv_banner"/d' android/app/src/main/AndroidManifest.xml
           fi
+          # Upgrade Kotlin version in settings.gradle to 1.9.24 for wakelock_plus compatibility
+          sed -i -E 's/id "org.jetbrains.kotlin.android" version "[^"]+"/id "org.jetbrains.kotlin.android" version "1.9.24"/g' android/settings.gradle
           # Keep SDK levels compatible with the pinned plugin versions.
           sed -i 's/flutter.compileSdkVersion/34/g; s/flutter.minSdkVersion/21/g; s/flutter.targetSdkVersion/34/g' android/app/build.gradle
           sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' android/app/build.gradle
@@ -63,16 +65,16 @@ jobs:
           sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' android/app/build.gradle
           # Configure gradle properties for compatibility with AGP 8
           mkdir -p android
-          cat >> android/gradle.properties << 'EOF'
-          android.useAndroidX=true
-          android.enableJetifier=true
-          android.defaults.buildfeatures.buildconfig=true
-          android.nonTransitiveRClass=false
-          org.gradle.jvmargs=-Xmx3072M -Dfile.encoding=UTF-8
-          EOF
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "android.defaults.buildfeatures.buildconfig=true" >> android/gradle.properties
+          echo "android.nonTransitiveRClass=false" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx3072M -Dfile.encoding=UTF-8" >> android/gradle.properties
       - name: Inspect generated Android configs
         working-directory: mobile_app
         run: |
+          echo "=== android/settings.gradle ==="
+          cat android/settings.gradle
           echo "=== android/app/build.gradle ==="
           cat android/app/build.gradle
       - name: Resolve dependencies
@@ -98,8 +100,12 @@ jobs:
         working-directory: mobile_app
         run: |
           set -o pipefail
-          if ! flutter build apk --release -v -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/apk-build.log; then
-            echo "::error title=APK Build Failed::$(tail -n 25 /tmp/apk-build.log | tr '\r\n' '  ')"
+          if ! flutter build apk --release -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/apk-build.log; then
+            ERR_MSG=$(grep -E "(FAILURE:|What went wrong:|Caused by:|e: |Execution failed)" /tmp/apk-build.log | head -n 6 | tr '\r\n' '  ')
+            if [ -z "$ERR_MSG" ]; then
+              ERR_MSG=$(tail -n 25 /tmp/apk-build.log | tr '\r\n' '  ')
+            fi
+            echo "::error title=APK Build Error::$ERR_MSG"
             echo "::group::Gradle Build Failure Log"
             tail -n 350 /tmp/apk-build.log
             echo "::endgroup::"
