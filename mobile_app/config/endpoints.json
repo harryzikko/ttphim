@@ -1,9 +1,10 @@
 {
   "version": 1,
-  "comment": "Dynamic Backend Discovery for CineViet App. Update this file whenever the domain changes to auto-sync all mobile and TV apps without rebuilds.",
-  "active": "https://cineviet.live",
+  "comment": "Dynamic Backend Discovery for CineViet App. Automatically discovered on startup.",
+  "active": "http://192.168.100.77:3001",
   "mirrors": [
-    "https://cineviet.live",
-    "http://10.0.2.2:3001"
+    "http://192.168.100.77:3001",
+    "http://10.0.2.2:3001",
+    "https://cineviet.live"
   ]
 }

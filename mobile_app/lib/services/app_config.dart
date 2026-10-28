@@ -11,8 +11,9 @@ class AppConfig {
       'https://raw.githubusercontent.com/harryzikko/ttphim/main/mobile_app/config/endpoints.json';
 
   static const List<String> defaultMirrors = [
-    'https://cineviet.live',
+    'http://192.168.100.77:3001',
     'http://10.0.2.2:3001',
+    'https://cineviet.live',
   ];
 
   static void setCustomUrl(String? url) {
