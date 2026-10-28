@@ -227,6 +227,7 @@ class ContinueWatchingRail extends StatelessWidget {
                               child: CachedNetworkImage(
                                 imageUrl: imageUrl,
                                 fit: BoxFit.cover,
+                                memCacheWidth: 400,
                                 errorWidget: (_, __, ___) => Container(
                                   color: AppTheme.card,
                                   child: const Icon(Icons.movie_rounded, color: AppTheme.textMuted),

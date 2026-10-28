@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/movie.dart';
 import '../theme/app_theme.dart';
@@ -69,6 +70,7 @@ class Top10Reel extends StatelessWidget {
 
               return GestureDetector(
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => MovieDetailScreen(slug: movie.slug, initialMovie: movie),
@@ -112,6 +114,7 @@ class Top10Reel extends StatelessWidget {
                                 CachedNetworkImage(
                                   imageUrl: movie.fullPosterUrl,
                                   fit: BoxFit.cover,
+                                  memCacheWidth: 360,
                                   placeholder: (context, url) => Container(
                                     color: AppTheme.card,
                                     child: const Center(

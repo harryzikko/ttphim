@@ -88,6 +88,7 @@ class _TvMovieCardState extends State<TvMovieCard> {
                   CachedNetworkImage(
                     imageUrl: poster,
                     fit: BoxFit.cover,
+                    memCacheWidth: 420,
                     placeholder: (_, __) => Container(color: AppTheme.card),
                     errorWidget: (_, __, ___) => Container(
                       color: AppTheme.cardElevated,
