@@ -63,6 +63,7 @@ jobs:
           sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' android/app/build.gradle
           sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" android/app/build.gradle
           sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' android/app/build.gradle
+          sed -i 's/targetSdk = 34/targetSdk = 34\n        multiDexEnabled = true/g' android/app/build.gradle || true
           # Configure gradle properties for compatibility with AGP 8
           mkdir -p android
           echo "android.useAndroidX=true" >> android/gradle.properties
@@ -79,7 +80,9 @@ jobs:
           cat android/app/build.gradle
       - name: Resolve dependencies
         working-directory: mobile_app
-        run: flutter pub get --enforce-lockfile
+        run: |
+          flutter clean
+          flutter pub get --enforce-lockfile
       - name: Static analysis
         working-directory: mobile_app
         run: |
@@ -101,13 +104,25 @@ jobs:
         run: |
           set -o pipefail
           if ! flutter build apk --release -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/apk-build.log; then
-            ERR_MSG=$(grep -E "(FAILURE:|What went wrong:|Caused by:|e: |Execution failed)" /tmp/apk-build.log | head -n 6 | tr '\r\n' '  ')
-            if [ -z "$ERR_MSG" ]; then
-              ERR_MSG=$(tail -n 25 /tmp/apk-build.log | tr '\r\n' '  ')
-            fi
-            echo "::error title=APK Build Error::$ERR_MSG"
-            echo "::group::Gradle Build Failure Log"
-            tail -n 350 /tmp/apk-build.log
+            python3 -c "
+            with open('/tmp/apk-build.log', 'r', errors='ignore') as f:
+                content = f.read()
+            lines = content.splitlines()
+            target_idx = -1
+            for i, line in enumerate(lines):
+                if 'compileFlutterBuildRelease' in line or ('Target ' in line and 'failed:' in line):
+                    target_idx = i
+                    break
+            if target_idx != -1:
+                start = max(0, target_idx - 35)
+                end = min(len(lines), target_idx + 15)
+                msg = ' | '.join([l.strip() for l in lines[start:end] if l.strip()])[:750]
+            else:
+                msg = ' | '.join([l.strip() for l in lines[-35:] if l.strip()])[:750]
+            print(f'::error title=APK Error Detail::{msg}')
+            "
+            echo "::group::Full APK Build Failure Log"
+            cat /tmp/apk-build.log
             echo "::endgroup::"
             exit 1
           fi
@@ -146,7 +161,9 @@ jobs:
           cp config/Info.plist ios/Runner/Info.plist
       - name: Resolve dependencies
         working-directory: mobile_app
-        run: flutter pub get --enforce-lockfile
+        run: |
+          flutter clean
+          flutter pub get --enforce-lockfile
       - name: Static analysis
         working-directory: mobile_app
         run: |
