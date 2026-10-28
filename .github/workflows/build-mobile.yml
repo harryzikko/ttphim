@@ -54,9 +54,27 @@ jobs:
           cp config/tv_banner.xml android/app/src/main/res/drawable/tv_banner.xml
           if [ "${{ matrix.variant }}" = "Mobile" ]; then
             sed -i '/android.intent.category.LEANBACK_LAUNCHER/d' android/app/src/main/AndroidManifest.xml
+            sed -i '/android:banner="@drawable\/tv_banner"/d' android/app/src/main/AndroidManifest.xml
           fi
           # Keep SDK levels compatible with the pinned plugin versions.
           sed -i 's/flutter.compileSdkVersion/34/g; s/flutter.minSdkVersion/21/g; s/flutter.targetSdkVersion/34/g' android/app/build.gradle
+          sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' android/app/build.gradle
+          sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" android/app/build.gradle
+          sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' android/app/build.gradle
+          # Configure gradle properties for compatibility with AGP 8
+          mkdir -p android
+          cat >> android/gradle.properties << 'EOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          android.defaults.buildfeatures.buildconfig=true
+          android.nonTransitiveRClass=false
+          org.gradle.jvmargs=-Xmx3072M -Dfile.encoding=UTF-8
+          EOF
+      - name: Inspect generated Android configs
+        working-directory: mobile_app
+        run: |
+          echo "=== android/app/build.gradle ==="
+          cat android/app/build.gradle
       - name: Resolve dependencies
         working-directory: mobile_app
         run: flutter pub get --enforce-lockfile
@@ -78,7 +96,15 @@ jobs:
           fi
       - name: Build sideload APK (default debug signature, no release keystore)
         working-directory: mobile_app
-        run: flutter build apk --release -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL"
+        run: |
+          set -o pipefail
+          if ! flutter build apk --release -v -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/apk-build.log; then
+            echo "::error title=APK Build Failed::$(tail -n 25 /tmp/apk-build.log | tr '\r\n' '  ')"
+            echo "::group::Gradle Build Failure Log"
+            tail -n 350 /tmp/apk-build.log
+            echo "::endgroup::"
+            exit 1
+          fi
       - name: Organize APK
         run: |
           mkdir -p output
@@ -91,7 +117,7 @@ jobs:
 
   build-ios:
     name: Build iOS IPA (Unsigned)
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -133,10 +159,22 @@ jobs:
           fi
       - name: Install iOS Pods
         working-directory: mobile_app/ios
-        run: pod install --repo-update
+        run: |
+          set -o pipefail
+          if ! pod install --repo-update 2>&1 | tee /tmp/pod.log; then
+            echo "::error title=Pod Install Failed::$(tail -n 20 /tmp/pod.log | tr '\r\n' '  ')"
+            tail -n 200 /tmp/pod.log
+            exit 1
+          fi
       - name: Build iOS bundle
         working-directory: mobile_app
-        run: flutter build ios --release --no-codesign --dart-define="BACKEND_URL=$BACKEND_URL"
+        run: |
+          set -o pipefail
+          if ! flutter build ios --release --no-codesign --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/ios-build.log; then
+            echo "::error title=iOS Build Failed::$(tail -n 20 /tmp/ios-build.log | tr '\r\n' '  ')"
+            tail -n 200 /tmp/ios-build.log
+            exit 1
+          fi
       - name: Package unsigned IPA
         run: |
           mkdir -p Payload
