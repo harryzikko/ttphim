@@ -72,7 +72,7 @@ class ApiService {
       slug: 'truy-sat-salazar',
       originName: 'Killing Salazar',
       posterUrl: 'https://phimimg.com/upload/vod/20240102-1/db187d4de77346ccf1e48e7d3672d4e1.jpg',
-      thumbUrl: 'https://phimimg.com/upload/vod/20240102-1/db187d4de77346ccf1e48e7d3672d4e1.jpg',
+      thumbUrl: 'https://image.tmdb.org/t/p/original/J3plZPrHc2OlUMZLNnuQ1rroo9.jpg',
       year: 2017,
       quality: 'HD',
       voteAverage: 8.8,
