@@ -24,8 +24,10 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
   Movie? _spotlight;
   List<Movie> _historyMovies = [];
   List<Movie> _trendingMovies = [];
+  List<Movie> _cinemaMovies = [];
   List<Movie> _singleMovies = [];
   List<Movie> _seriesMovies = [];
+  List<Movie> _tvshowsMovies = [];
   List<Movie> _animeMovies = [];
 
   @override
@@ -62,17 +64,21 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
 
     // Load feeds
     final featured = await ApiService.getFeaturedMovies();
+    final cinema = await ApiService.getCinemaMovies();
     final singles = await ApiService.getSingleMovies();
     final series = await ApiService.getSeriesMovies();
+    final tvshows = await ApiService.getTvShows();
     final anime = await ApiService.getAnimeMovies();
 
     if (mounted) {
       setState(() {
         _historyMovies = histMovies;
         _trendingMovies = featured;
-        _spotlight = featured.isNotEmpty ? featured.first : (singles.isNotEmpty ? singles.first : null);
+        _spotlight = featured.isNotEmpty ? featured.first : (cinema.isNotEmpty ? cinema.first : (singles.isNotEmpty ? singles.first : null));
+        _cinemaMovies = cinema;
         _singleMovies = singles;
         _seriesMovies = series;
+        _tvshowsMovies = tvshows;
         _animeMovies = anime;
         _isLoading = false;
       });
@@ -118,21 +124,35 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
             const SizedBox(height: 24),
           ],
 
-          // 4. RAIL: PHIM CHIẾU RẠP & PHIM LẺ
-          if (_singleMovies.isNotEmpty) ...[
+          // 4. RAIL: PHIM CHIẾU RẠP BOM TẤN
+          if (_cinemaMovies.isNotEmpty) ...[
             _buildRailHeader('Phim Chiếu Rạp Bom Tấn', Icons.movie_filter_rounded),
+            _buildMovieRail(_cinemaMovies),
+            const SizedBox(height: 24),
+          ],
+
+          // 5. RAIL: PHIM LẺ TUYỂN CHỌN
+          if (_singleMovies.isNotEmpty) ...[
+            _buildRailHeader('Phim Lẻ Tuyển Chọn', Icons.theaters_rounded),
             _buildMovieRail(_singleMovies),
             const SizedBox(height: 24),
           ],
 
-          // 5. RAIL: PHIM BỘ ĐẶC SẮC
+          // 6. RAIL: PHIM BỘ ĐẶC SẮC
           if (_seriesMovies.isNotEmpty) ...[
             _buildRailHeader('Phim Bộ Đặc Sắc', Icons.tv_rounded),
             _buildMovieRail(_seriesMovies),
             const SizedBox(height: 24),
           ],
 
-          // 6. RAIL: HOẠT HÌNH & ANIME
+          // 7. RAIL: TV SHOWS & GAMESHOW
+          if (_tvshowsMovies.isNotEmpty) ...[
+            _buildRailHeader('TV Shows & Gameshow', Icons.live_tv_rounded),
+            _buildMovieRail(_tvshowsMovies),
+            const SizedBox(height: 24),
+          ],
+
+          // 8. RAIL: HOẠT HÌNH & ANIME
           if (_animeMovies.isNotEmpty) ...[
             _buildRailHeader('Hoạt Hình & Anime Nhật Bản', Icons.animation_rounded),
             _buildMovieRail(_animeMovies),

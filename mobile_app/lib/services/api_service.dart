@@ -349,8 +349,33 @@ class ApiService {
     return [];
   }
 
-  /// Get TV Shows
+  /// Get Theatrical / Cinema Movies (Phim Chiếu Rạp)
+  static Future<List<Movie>> getCinemaMovies({int page = 1}) async {
+    if (page == 1) {
+      final home = await _getHome();
+      if (home?['cinema'] is List && (home!['cinema'] as List).isNotEmpty) {
+        return (home['cinema'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+      }
+    }
+    try {
+      final uri = Uri.parse('$baseUrl/v1/api/danh-sach/phim-chieu-rap?page=$page');
+      final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final data = json.decode(utf8.decode(res.bodyBytes));
+        return _parseMovieList(data);
+      }
+    } catch (e) {}
+    return [];
+  }
+
+  /// Get TV Shows & Gameshow
   static Future<List<Movie>> getTvShows({int page = 1}) async {
+    if (page == 1) {
+      final home = await _getHome();
+      if (home?['tvshows'] is List && (home!['tvshows'] as List).isNotEmpty) {
+        return (home['tvshows'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+      }
+    }
     try {
       final uri = Uri.parse('$baseUrl/v1/api/danh-sach/tv-shows?page=$page');
       final res = await _client.get(uri).timeout(const Duration(seconds: 15));

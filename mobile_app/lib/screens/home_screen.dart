@@ -24,9 +24,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<Movie> _featuredMovies = [];
   List<Movie> _rankingMovies = [];
+  List<Movie> _cinemaMovies = [];
   List<Movie> _newMovies = [];
   List<Movie> _singleMovies = [];
   List<Movie> _seriesMovies = [];
+  List<Movie> _tvShowsMovies = [];
   List<Movie> _animeMovies = [];
   List<WatchHistoryItem> _continueWatching = [];
 
@@ -73,22 +75,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final results = await Future.wait([
-        ApiService.getFeaturedMovies(), // Phim nổi bật ghim đồng bộ với website
-        ApiService.getTopRankings(),    // Bảng xếp hạng thịnh hành đồng bộ với website
-        ApiService.getNewMovies(page: 1),
-        ApiService.getSingleMovies(page: 1),
-        ApiService.getSeriesMovies(page: 1),
-        ApiService.getAnimeMovies(page: 1),
+        ApiService.getFeaturedMovies(), // 0: Phim nổi bật ghim đồng bộ với website
+        ApiService.getTopRankings(),    // 1: Bảng xếp hạng thịnh hành đồng bộ với website
+        ApiService.getCinemaMovies(page: 1), // 2: Phim Chiếu Rạp Bom Tấn
+        ApiService.getNewMovies(page: 1),    // 3: Phim Mới Cập Nhật
+        ApiService.getSeriesMovies(page: 1), // 4: Phim Bộ Đặc Sắc
+        ApiService.getTvShows(page: 1),      // 5: TV Shows & Gameshow
+        ApiService.getSingleMovies(page: 1), // 6: Phim Lẻ Tuyển Chọn
+        ApiService.getAnimeMovies(page: 1),  // 7: Hoạt Hình & Anime
       ]);
 
       if (mounted) {
         setState(() {
           _featuredMovies = results[0];
           _rankingMovies = results[1];
-          _newMovies = results[2];
-          _singleMovies = results[3];
+          _cinemaMovies = results[2];
+          _newMovies = results[3];
           _seriesMovies = results[4];
-          _animeMovies = results[5];
+          _tvShowsMovies = results[5];
+          _singleMovies = results[6];
+          _animeMovies = results[7];
           _isLoading = false;
         });
       }
@@ -182,7 +188,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Rail 1: Phim Mới Cập Nhật
+                  // Rail 1: Phim Chiếu Rạp Bom Tấn
+                  if (_cinemaMovies.isNotEmpty) ...[
+                    MovieRail(
+                      title: 'Phim Chiếu Rạp Bom Tấn',
+                      subtitle: 'Siêu phẩm điện ảnh phòng vé',
+                      movies: _cinemaMovies,
+                      onSeeAll: () => widget.onNavigateTab?.call(1),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Rail 2: Phim Mới Cập Nhật
                   MovieRail(
                     title: 'Phim Mới Cập Nhật',
                     subtitle: 'Kho phim mới nhất hôm nay',
@@ -192,17 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 12),
 
-                  // Rail 2: Phim Chiếu Rạp & Phim Lẻ
-                  MovieRail(
-                    title: 'Phim Lẻ Tuyển Chọn',
-                    subtitle: 'Bom tấn điện ảnh đỉnh cao',
-                    movies: _singleMovies,
-                    onSeeAll: () => widget.onNavigateTab?.call(1),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Rail 3: Phim Bộ Đang Hot
+                  // Rail 3: Phim Bộ Đặc Sắc
                   MovieRail(
                     title: 'Phim Bộ Đặc Sắc',
                     subtitle: 'Cập nhật từng tập liên tục',
@@ -212,7 +219,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 12),
 
-                  // Rail 4: Anime & Hoạt Hình
+                  // Rail 4: TV Shows & Gameshow
+                  if (_tvShowsMovies.isNotEmpty) ...[
+                    MovieRail(
+                      title: 'TV Shows & Gameshow',
+                      subtitle: 'Chương trình truyền hình đặc sắc',
+                      movies: _tvShowsMovies,
+                      onSeeAll: () => widget.onNavigateTab?.call(1),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Rail 5: Phim Lẻ Tuyển Chọn
+                  MovieRail(
+                    title: 'Phim Lẻ Tuyển Chọn',
+                    subtitle: 'Bom tấn điện ảnh đỉnh cao',
+                    movies: _singleMovies,
+                    onSeeAll: () => widget.onNavigateTab?.call(1),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Rail 6: Anime & Hoạt Hình
                   MovieRail(
                     title: 'Anime & Hoạt Hình',
                     subtitle: 'Thế giới hoạt họa muôn màu',

@@ -16,10 +16,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   final List<Map<String, String>> _typeFilters = [
     {'title': 'Phim Mới', 'slug': 'phim-moi'},
+    {'title': 'Chiếu Rạp', 'slug': 'phim-chieu-rap'},
     {'title': 'Phim Lẻ', 'slug': 'phim-le'},
     {'title': 'Phim Bộ', 'slug': 'phim-bo'},
-    {'title': 'Hoạt Hình', 'slug': 'hoat-hinh'},
     {'title': 'TV Shows', 'slug': 'tv-shows'},
+    {'title': 'Hoạt Hình', 'slug': 'hoat-hinh'},
   ];
 
   final List<Map<String, String>> _categoryFilters = [
@@ -96,6 +97,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
       return await ApiService.getMoviesByCategory(catSlug, page: page);
     } else {
       switch (typeSlug) {
+        case 'phim-chieu-rap':
+        case 'chieu-rap':
+          return await ApiService.getCinemaMovies(page: page);
         case 'phim-le':
           return await ApiService.getSingleMovies(page: page);
         case 'phim-bo':
