@@ -103,26 +103,26 @@ jobs:
         working-directory: mobile_app
         run: |
           set -o pipefail
-          if ! flutter build apk --release -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/apk-build.log; then
+          if ! flutter build apk --release -v -t "${{ matrix.target }}" --dart-define="BACKEND_URL=$BACKEND_URL" 2>&1 | tee /tmp/apk-build.log; then
             python3 -c "
             with open('/tmp/apk-build.log', 'r', errors='ignore') as f:
-                content = f.read()
-            lines = content.splitlines()
-            target_idx = -1
+                lines = f.readlines()
+            selected_lines = []
             for i, line in enumerate(lines):
-                if 'compileFlutterBuildRelease' in line or ('Target ' in line and 'failed:' in line):
-                    target_idx = i
-                    break
-            if target_idx != -1:
-                start = max(0, target_idx - 35)
-                end = min(len(lines), target_idx + 15)
-                msg = ' | '.join([l.strip() for l in lines[start:end] if l.strip()])[:750]
-            else:
-                msg = ' | '.join([l.strip() for l in lines[-35:] if l.strip()])[:750]
-            print(f'::error title=APK Error Detail::{msg}')
+                if any(k in line for k in ['Target ', 'Exception:', 'Error:', 'Caused by:', '* What went wrong:', '#0 ']):
+                    start = max(0, i - 10)
+                    end = min(len(lines), i + 10)
+                    for l in lines[start:end]:
+                        clean_l = l.strip()
+                        if clean_l and clean_l not in selected_lines:
+                            selected_lines.append(clean_l)
+            if not selected_lines:
+                selected_lines = [l.strip() for l in lines[-30:] if l.strip()]
+            msg = ' || '.join(selected_lines[:25])[:800]
+            print(f'::error title=Detailed Build Failure::{msg}')
             "
             echo "::group::Full APK Build Failure Log"
-            cat /tmp/apk-build.log
+            tail -n 400 /tmp/apk-build.log
             echo "::endgroup::"
             exit 1
           fi
