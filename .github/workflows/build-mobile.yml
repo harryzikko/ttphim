@@ -1,4 +1,4 @@
-name: Build CineViet Native Mobile App (APK & IPA)
+name: Build TTPhim Native Mobile App (APK & IPA)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  BACKEND_URL: ${{ vars.BACKEND_URL || 'http://localhost:3001' }}
+  BACKEND_URL: ${{ vars.BACKEND_URL || 'https://cineviet.live' }}
 
 jobs:
   build-android:
@@ -20,11 +20,11 @@ jobs:
           - variant: Mobile
             organization: com.ttphim.cinema
             target: lib/main.dart
-            artifact: CineViet-Mobile-release.apk
+            artifact: TTPhim-Mobile-release.apk
           - variant: AndroidTV
             organization: com.ttphim.tv
             target: lib/main_tv.dart
-            artifact: CineViet-AndroidTV-release.apk
+            artifact: TTPhim-AndroidTV-release.apk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -38,7 +38,7 @@ jobs:
           cache: true
       - name: Validate backend build configuration
         run: |
-          python3 -c 'import os, urllib.parse; u=urllib.parse.urlparse(os.environ.get("BACKEND_URL", "")); assert u.scheme in ("http", "https") and u.hostname, "BACKEND_URL must be a valid HTTP(S) URL"; print("App backend:", u.geturl()); print("Localhost builds require port forwarding on physical devices.") if u.hostname in ("localhost", "127.0.0.1") else None'
+          python3 scripts/validate-backend-url.py
       - name: Prepare native platform
         working-directory: mobile_app
         run: |
@@ -71,7 +71,7 @@ jobs:
           cp mobile_app/build/app/outputs/flutter-apk/app-release.apk "output/${{ matrix.artifact }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: CineViet-${{ matrix.variant }}-APK
+          name: TTPhim-${{ matrix.variant }}-APK
           path: output/*.apk
           retention-days: 14
 
@@ -87,7 +87,7 @@ jobs:
           cache: true
       - name: Validate backend build configuration
         run: |
-          python3 -c 'import os, urllib.parse; u=urllib.parse.urlparse(os.environ.get("BACKEND_URL", "")); assert u.scheme in ("http", "https") and u.hostname, "BACKEND_URL must be a valid HTTP(S) URL"; print("App backend:", u.geturl()); print("Localhost builds require port forwarding on physical devices.") if u.hostname in ("localhost", "127.0.0.1") else None'
+          python3 scripts/validate-backend-url.py
       - name: Prepare native platform
         working-directory: mobile_app
         run: |
@@ -116,9 +116,9 @@ jobs:
           find Payload -type d -name _CodeSignature -prune -exec rm -rf {} +
           find Payload -name embedded.mobileprovision -delete
           find Payload -type f -exec sh -c 'file "$1" | grep -q "Mach-O" && codesign --remove-signature "$1" 2>/dev/null || true' sh {} \;
-          zip -r CineViet-unsigned.ipa Payload
+          zip -r TTPhim-unsigned.ipa Payload
       - uses: actions/upload-artifact@v4
         with:
-          name: CineViet-iOS-IPA-Unsigned
-          path: CineViet-unsigned.ipa
+          name: TTPhim-iOS-IPA-Unsigned
+          path: TTPhim-unsigned.ipa
           retention-days: 14

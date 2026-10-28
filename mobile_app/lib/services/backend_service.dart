@@ -13,7 +13,7 @@ class BackendService {
   }) async {
     if (!AppConfig.hasBackend) return null;
     final credential = token ?? await SessionService.getToken();
-    final headers = <String, String>{'Content-Type': 'application/json',
+    final headers = <String, String>{'Content-Type': 'application/json', 'X-Client-Type': 'native',
       if (credential != null) 'Authorization': 'Bearer $credential'};
     final uri = AppConfig.backendUri(path, query);
     final response = body == null

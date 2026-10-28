@@ -4,25 +4,38 @@
  * live chat, and floating emoji reactions via Server-Sent Events (SSE).
  */
 
+const crypto = require('crypto');
+const sessionEvents = require('./sessionEvents');
+
+const MAX_ROOMS = 500;
+const MAX_HOST_ROOMS = 3;
+const MAX_CODE_ATTEMPTS = 32;
+
+function allocationError(message, status, code) {
+  return Object.assign(new Error(message), { status, statusCode: status, code });
+}
+
 class PartyService {
   constructor() {
     // Map of roomCode -> room object
     this.rooms = new Map();
 
     // Auto-cleanup idle rooms every 10 minutes
-    setInterval(() => this.cleanupIdleRooms(), 10 * 60 * 1000);
+    this.cleanupTimer = setInterval(() => this.cleanupIdleRooms(), 10 * 60 * 1000);
+    this.cleanupTimer.unref();
+    this.onSessionRevoked = userId => this.closeUserStreams(userId);
+    sessionEvents.on('revoked', this.onSessionRevoked);
   }
 
   /**
-   * Generate an easy-to-share 6-character room code (e.g. KP-8492)
+   * Generate a cryptographic code that fits the existing 10-character join input.
    */
   generateRoomCode() {
-    let code = '';
-    do {
-      const num = Math.floor(1000 + Math.random() * 9000);
-      code = `KP-${num}`;
-    } while (this.rooms.has(code));
-    return code;
+    for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
+      const code = `KP-${crypto.randomInt(36 ** 7).toString(36).padStart(7, '0').toUpperCase()}`;
+      if (!this.rooms.has(code)) return code;
+    }
+    throw allocationError('Room code allocation unavailable; please retry', 503, 'PARTY_CODE_UNAVAILABLE');
   }
 
   formatTime(date = new Date()) {
@@ -63,8 +76,16 @@ class PartyService {
    * Create a new Watch Party Room
    */
   createRoom({ movieSlug, movieName, moviePoster, episodeSlug, episodeName, user, roomName, controlMode }) {
-    const code = this.generateRoomCode();
+    this.cleanupIdleRooms();
     const userId = user?.id || `user_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const hostedRooms = [...this.rooms.values()].filter(room => room.hostId === userId).length;
+    if (hostedRooms >= MAX_HOST_ROOMS) {
+      throw allocationError('Active room limit reached for this host', 429, 'PARTY_HOST_LIMIT');
+    }
+    if (this.rooms.size >= MAX_ROOMS) {
+      throw allocationError('Room capacity reached; please retry later', 503, 'PARTY_CAPACITY');
+    }
+    const code = this.generateRoomCode();
     const userName = user?.name || 'Chủ Phòng';
     const userAvatar = user?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8';
 
@@ -183,6 +204,7 @@ class PartyService {
     room.members.splice(memberIdx, 1);
 
     // Remove user streams
+    for (const stream of room.streams.get(userId) || []) stream.end();
     room.streams.delete(userId);
 
     const leaveMsg = {
@@ -235,9 +257,16 @@ class PartyService {
     }
 
     const member = room.members.find(m => m.id === userId);
-    const isHost = member ? member.isHost : (room.hostId === userId);
-
-    if (room.controlMode === 'host_only' && !isHost && action !== 'heartbeat') {
+    if (!member) throw new Error('Bạn chưa tham gia phòng xem');
+    const isHost = member.isHost;
+    if (!['play', 'pause', 'seek', 'change_episode', 'heartbeat'].includes(action)) {
+      throw new Error('Hành động phát phim không hợp lệ');
+    }
+    if (currentTime != null && (!Number.isFinite(currentTime) || currentTime < 0 || currentTime > 604800)) {
+      throw new Error('Mốc thời gian không hợp lệ');
+    }
+    if (action === 'heartbeat' && !isHost) return { success: true, room: this.getSafeRoom(room) };
+    if (room.controlMode === 'host_only' && !isHost) {
       throw new Error('Chỉ Chủ Phòng mới có quyền điều khiển phát phim');
     }
 
@@ -312,6 +341,8 @@ class PartyService {
     if (!content || !content.trim()) throw new Error('Nội dung tin nhắn không được để trống');
 
     const member = room.members.find(m => m.id === userId);
+    if (!member) throw new Error('Bạn chưa tham gia phòng xem');
+    if (typeof content !== 'string' || content.length > 5000) throw new Error('Tin nhắn quá dài');
     const senderName = userName || member?.name || 'Khách';
     const senderAvatar = avatar || member?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8';
     const isHost = member ? member.isHost : (room.hostId === userId);
@@ -347,6 +378,8 @@ class PartyService {
     if (!room) throw new Error('Phòng xem không tồn tại');
 
     const member = room.members.find(m => m.id === userId);
+    if (!member) throw new Error('Bạn chưa tham gia phòng xem');
+    if (typeof emoji !== 'string' || emoji.length > 16) throw new Error('Biểu cảm không hợp lệ');
     const senderName = userName || member?.name || 'Bạn';
 
     const reactionPayload = {
@@ -371,6 +404,14 @@ class PartyService {
       res.status(404).json({ status: false, message: 'Phòng không tồn tại' });
       return;
     }
+    if (!room.members.some(member => member.id === userId)) {
+      res.status(403).json({ status: false, message: 'Bạn chưa tham gia phòng xem' });
+      return;
+    }
+    if ((room.streams.get(userId)?.size || 0) >= 3) {
+      res.status(429).json({ status: false, message: 'Quá nhiều kết nối phòng xem' });
+      return;
+    }
 
     // Configure SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
@@ -386,6 +427,7 @@ class PartyService {
       room.streams.set(userId, new Set());
     }
     room.streams.get(userId).add(res);
+    res.partyExpiresAt = req.authExpiresAt;
 
     // Send initial connection snapshot
     const initEvent = {
@@ -395,8 +437,16 @@ class PartyService {
     res.write(`data: ${JSON.stringify(initEvent)}\n\n`);
 
     // Keep-alive heartbeat every 20 seconds
-    const heartbeatTimer = setInterval(() => {
+    const heartbeatTimer = setInterval(async () => {
       try {
+        if (Number.isFinite(res.partyExpiresAt) && Date.now() >= res.partyExpiresAt) {
+          clearInterval(heartbeatTimer);
+          res.end();
+          return;
+        }
+        const probe = { headers: req.headers, cookies: req.cookies };
+        await require('./authService').authMiddleware(probe, {}, () => {});
+        if (!probe.user || probe.user.id !== userId) { res.end(); return; }
         res.write(`: ping\n\n`);
       } catch (err) {
         clearInterval(heartbeatTimer);
@@ -432,6 +482,11 @@ class PartyService {
     room.streams.forEach((streams, userId) => {
       streams.forEach((res) => {
         try {
+          if (Number.isFinite(res.partyExpiresAt) && Date.now() >= res.partyExpiresAt) {
+            res.end();
+            streams.delete(res);
+            return;
+          }
           res.write(payload);
         } catch (err) {
           console.warn(`[WatchParty] Error writing to stream for user ${userId}:`, err.message);
@@ -439,6 +494,26 @@ class PartyService {
         }
       });
     });
+  }
+
+  closeUserStreams(userId) {
+    for (const room of this.rooms.values()) {
+      const streams = room.streams.get(userId);
+      if (!streams) continue;
+      for (const stream of streams) stream.end();
+      room.streams.delete(userId);
+    }
+  }
+
+  close() {
+    clearInterval(this.cleanupTimer);
+    sessionEvents.off('revoked', this.onSessionRevoked);
+    for (const room of this.rooms.values()) {
+      for (const streams of room.streams.values()) {
+        for (const stream of streams) stream.end();
+      }
+    }
+    this.rooms.clear();
   }
 
   /**
@@ -459,4 +534,7 @@ class PartyService {
   }
 }
 
-module.exports = new PartyService();
+const local = new PartyService();
+const store = require('./dbService').store;
+module.exports = store ? new (require('./sharedPartyService').SharedPartyService)(local, store) : local;
+module.exports.LocalPartyService = PartyService;

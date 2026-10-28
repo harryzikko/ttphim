@@ -1,5 +1,10 @@
-// TTPhim - Admin Dashboard Controller
+// CineViet - Admin Dashboard Controller
 document.addEventListener('DOMContentLoaded', async () => {
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const safeUrl = value => {
+    try { const url = new URL(value, window.location.href); return /^https?:$/.test(url.protocol) ? url.href : '/favicon.svg'; } catch (_) { return '/favicon.svg'; }
+  };
+  const pathSegment = value => encodeURIComponent(String(value ?? '')).replace(/'/g, '%27');
   document.body.classList.add('editorial-admin');
   let currentUser = null;
   let allUsers = [];
@@ -25,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nameEl = document.getElementById('admin-header-name');
     const avatarEl = document.getElementById('admin-header-avatar');
     if (nameEl) nameEl.innerText = currentUser.name || 'Admin';
-    if (avatarEl && currentUser.avatar) avatarEl.src = currentUser.avatar;
+    if (avatarEl && currentUser.avatar) avatarEl.src = safeUrl(currentUser.avatar);
   }
 
   // Logout
@@ -158,13 +163,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     tbody.innerHTML = users.map(u => `
       <tr class="hover:bg-surface-container-high/40 transition-colors">
         <td class="p-4 flex items-center gap-3">
-          <img src="${u.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8'}" class="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-white/10" />
+          <img src="${escapeHtml(safeUrl(u.avatar || '/favicon.svg'))}" class="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-white/10" />
           <div class="min-w-0">
-            <div class="font-bold text-on-surface truncate">${u.name}</div>
-            <div class="text-xs text-on-surface-variant font-mono">${u.id}</div>
+            <div class="font-bold text-on-surface truncate">${escapeHtml(u.name)}</div>
+            <div class="text-xs text-on-surface-variant font-mono">${escapeHtml(u.id)}</div>
           </div>
         </td>
-        <td class="p-4 font-mono text-on-surface">${u.email}</td>
+        <td class="p-4 font-mono text-on-surface">${escapeHtml(u.email)}</td>
         <td class="p-4">
           <span class="px-2.5 py-1 rounded-full text-xs font-bold ${u.role === 'admin' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-surface-container-highest text-on-surface-variant'}">
             ${u.role === 'admin' ? 'Quản Trị Viên' : 'Khán Giả'}
@@ -172,11 +177,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         </td>
         <td class="p-4 text-xs text-on-surface-variant">${new Date(u.created_at || '2023-01-15').toLocaleDateString('vi-VN')}</td>
         <td class="p-4 text-right space-x-1.5 whitespace-nowrap">
-          <button class="btn-toggle-role px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-primary/20 text-on-surface hover:text-primary text-xs font-semibold transition-colors cursor-pointer" data-id="${u.id}" data-role="${u.role}">
+          <button class="btn-toggle-role px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-primary/20 text-on-surface hover:text-primary text-xs font-semibold transition-colors cursor-pointer" data-id="${escapeHtml(u.id)}" data-role="${escapeHtml(u.role)}">
             ${u.role === 'admin' ? 'Hạ Quyền' : 'Lên Admin'}
           </button>
           ${u.id !== 'usr_admin_01' ? `
-            <button class="btn-delete-user px-2 py-1 rounded-lg hover:bg-error/20 text-on-surface-variant hover:text-error text-xs transition-colors cursor-pointer" title="Xóa tài khoản" data-id="${u.id}" data-name="${u.name}">
+            <button class="btn-delete-user px-2 py-1 rounded-lg hover:bg-error/20 text-on-surface-variant hover:text-error text-xs transition-colors cursor-pointer" title="Xóa tài khoản" data-id="${escapeHtml(u.id)}" data-name="${escapeHtml(u.name)}">
               <span class="material-symbols-outlined text-[16px]">delete</span>
             </button>
           ` : ''}
@@ -288,11 +293,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     tbody.innerHTML = reports.map(r => `
       <tr class="hover:bg-surface-container-high/40 transition-colors">
         <td class="p-4">
-          <div class="font-bold text-on-surface">${r.movie_slug}</div>
-          <span class="text-xs text-primary font-semibold">Tập: ${r.episode_slug || 'Full'}</span>
+          <div class="font-bold text-on-surface">${escapeHtml(r.movie_slug)}</div>
+          <span class="text-xs text-primary font-semibold">Tập: ${escapeHtml(r.episode_slug || 'Full')}</span>
         </td>
-        <td class="p-4 text-on-surface">${r.reason}</td>
-        <td class="p-4 font-mono text-xs text-on-surface-variant">${r.user_email || 'guest'}</td>
+        <td class="p-4 text-on-surface">${escapeHtml(r.reason)}</td>
+        <td class="p-4 font-mono text-xs text-on-surface-variant">${escapeHtml(r.user_email || 'guest')}</td>
         <td class="p-4 text-xs text-on-surface-variant">${new Date(r.created_at).toLocaleString('vi-VN')}</td>
         <td class="p-4">
           <span class="px-2.5 py-1 rounded-full text-xs font-bold ${r.status === 'resolved' ? 'bg-success/20 text-success border border-success/30' : 'bg-error/20 text-error border border-error/30'}">
@@ -300,10 +305,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           </span>
         </td>
         <td class="p-4 text-right whitespace-nowrap space-x-1.5">
-          <a href="/xem-phim/${r.movie_slug}/${r.episode_slug || 'tap-1'}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-container text-on-surface text-xs font-semibold inline-flex items-center gap-1 transition-colors" title="Xem thử tập phim">
+          <a href="/xem-phim/${pathSegment(r.movie_slug)}/${pathSegment(r.episode_slug || 'tap-1')}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-container text-on-surface text-xs font-semibold inline-flex items-center gap-1 transition-colors" title="Xem thử tập phim">
             <span class="material-symbols-outlined text-[14px] text-primary">play_circle</span> Xem Thử
           </a>
-          <button class="btn-toggle-report px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${r.status === 'resolved' ? 'bg-surface-container-highest text-on-surface-variant hover:text-on-surface' : 'bg-success text-white hover:brightness-110'}" data-id="${r.id}" data-status="${r.status}">
+          <button class="btn-toggle-report px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${r.status === 'resolved' ? 'bg-surface-container-highest text-on-surface-variant hover:text-on-surface' : 'bg-success text-white hover:brightness-110'}" data-id="${escapeHtml(r.id)}" data-status="${escapeHtml(r.status)}">
             ${r.status === 'resolved' ? 'Mở lại' : 'Đánh dấu đã sửa'}
           </button>
         </td>
@@ -348,15 +353,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     tbody.innerHTML = comments.map(c => `
       <tr class="hover:bg-surface-container-high/40 transition-colors">
         <td class="p-4 flex items-center gap-2">
-          <img src="${c.user_avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8'}" class="w-7 h-7 rounded-full object-cover shrink-0" />
-          <span class="font-bold text-on-surface truncate max-w-[140px]">${c.user_name}</span>
+          <img src="${escapeHtml(safeUrl(c.user_avatar || '/favicon.svg'))}" class="w-7 h-7 rounded-full object-cover shrink-0" />
+          <span class="font-bold text-on-surface truncate max-w-[140px]">${escapeHtml(c.user_name)}</span>
         </td>
-        <td class="p-4 text-xs font-semibold text-secondary-container truncate max-w-[160px]">${c.movie_slug}</td>
-        <td class="p-4 max-w-xs truncate text-on-surface">${c.content}</td>
-        <td class="p-4 text-xs text-on-surface-variant">${c.created_at || 'Vừa xong'}</td>
-        <td class="p-4 font-bold text-xs">${c.likes || 0} ❤️</td>
+        <td class="p-4 text-xs font-semibold text-secondary-container truncate max-w-[160px]">${escapeHtml(c.movie_slug)}</td>
+        <td class="p-4 max-w-xs truncate text-on-surface">${escapeHtml(c.content)}</td>
+        <td class="p-4 text-xs text-on-surface-variant">${escapeHtml(c.created_at || 'Vừa xong')}</td>
+        <td class="p-4 font-bold text-xs">${Number(c.likes) || 0} ❤️</td>
         <td class="p-4 text-right">
-          <button class="btn-delete-comment px-3 py-1.5 rounded-lg bg-error/20 hover:bg-error text-error hover:text-white text-xs font-bold transition-all cursor-pointer" data-id="${c.id}">
+          <button class="btn-delete-comment px-3 py-1.5 rounded-lg bg-error/20 hover:bg-error text-error hover:text-white text-xs font-bold transition-all cursor-pointer" data-id="${escapeHtml(c.id)}">
             Xóa Vi Phạm
           </button>
         </td>
@@ -377,7 +382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // --- 5. Tab: Tra Cứu & Ghim Phim Hot (Đa Nguồn: KKPhim, ViCDN, NguonC) ---
+  // --- 5. Tab: Tra Cứu & Ghim Phim Hot (Đa Nguồn: KKPhim, ViCDN) ---
   async function loadFeaturedMovies() {
     try {
       currentSettings = await API.getAdminSettings();
@@ -404,8 +409,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         let sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">KKPhim</span>';
         if ((typeof item === 'object' && item.source === 'vicdn') || slug.startsWith('tv-') || slug.startsWith('movie-')) {
           sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">ViCDN Song Ngữ</span>';
-        } else if (typeof item === 'object' && item.source === 'nguonc') {
-          sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">NguonC Stream</span>';
+        } else if ((typeof item === 'object' && item.source === 'nguonc') || slug.startsWith('nc-')) {
+          sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">NguonC</span>';
         }
 
         const isBilingual = (typeof item === 'object' && item.has_song_ngu) || (typeof item === 'object' && item.source === 'vicdn') || slug.startsWith('tv-');
@@ -413,20 +418,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         return `
           <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-container-high border border-secondary/30 hover:border-secondary/60 transition-all shadow-sm">
-            <img src="${poster}" class="w-10 h-14 object-cover rounded-lg bg-surface-container shrink-0 border border-white/5" onerror="this.src='/favicon.ico'" />
+            <img src="${escapeHtml(safeUrl(poster))}" class="w-10 h-14 object-cover rounded-lg bg-surface-container shrink-0 border border-white/5" onerror="this.onerror=null;this.src='/favicon.ico'" />
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap">
                 ${sourceBadge}
                 ${songNguBadge}
               </div>
-              <div class="font-bold text-on-surface text-xs truncate mt-1" title="${name}">${name}</div>
-              <div class="text-[11px] text-on-surface-variant font-mono truncate">${slug}</div>
+              <div class="font-bold text-on-surface text-xs truncate mt-1" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+              <div class="text-[11px] text-on-surface-variant font-mono truncate">${escapeHtml(slug)}</div>
             </div>
             <div class="flex flex-col gap-1 shrink-0">
-              <a href="/phim/${slug}" target="_blank" class="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface text-center transition-colors" title="Xem thử">
+              <a href="/phim/${pathSegment(slug)}" target="_blank" rel="noopener noreferrer" class="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface text-center transition-colors" title="Xem thử">
                 <span class="material-symbols-outlined text-[16px]">visibility</span>
               </a>
-              <button class="btn-unpin-slug p-1.5 rounded-lg hover:bg-error/20 text-on-surface-variant hover:text-error transition-colors cursor-pointer" data-slug="${slug}" title="Bỏ ghim">
+              <button class="btn-unpin-slug p-1.5 rounded-lg hover:bg-error/20 text-on-surface-variant hover:text-error transition-colors cursor-pointer" data-slug="${escapeHtml(slug)}" title="Bỏ ghim">
                 <span class="material-symbols-outlined text-[16px]">close</span>
               </button>
             </div>
@@ -476,12 +481,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!kw) return;
     const sourceFilter = searchSourceFilter?.value || 'all';
     const tbody = document.getElementById('movie-search-table-body');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Đang tìm kiếm từ các nguồn phim (${sourceFilter === 'all' ? 'KKPhim, ViCDN Song Ngữ, NguonC' : sourceFilter.toUpperCase()})...</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Đang tìm kiếm từ các nguồn phim (${sourceFilter === 'all' ? 'KKPhim, ViCDN Song Ngữ, NguonC' : escapeHtml(sourceFilter.toUpperCase())})...</td></tr>`;
 
     try {
       const items = await API.searchAdminMovies(kw, sourceFilter);
       if (!items || items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Không tìm thấy phim phù hợp với từ khóa "${kw}"</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Không tìm thấy phim phù hợp với từ khóa "${escapeHtml(kw)}"</td></tr>`;
         return;
       }
 
@@ -495,46 +500,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         let sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">KKPhim API</span>';
         if (m.source === 'vicdn' || (m.slug && m.slug.startsWith('tv-'))) {
           sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>ViCDN Song Ngữ</span>';
-        } else if (m.source === 'nguonc') {
-          sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>NguonC Stream VIP</span>';
+        } else if (m.source === 'nguonc' || (m.slug && m.slug.startsWith('nc-'))) {
+          sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>NguonC API</span>';
         }
 
         const songNguTag = (m.has_song_ngu || m.source === 'vicdn' || (m.slug && m.slug.startsWith('tv-')))
           ? '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">Song Ngữ</span>'
-          : (m.lang ? `<span class="px-2 py-0.5 rounded text-[11px] bg-surface-container-highest text-on-surface-variant">${m.lang}</span>` : '');
+          : (m.lang ? `<span class="px-2 py-0.5 rounded text-[11px] bg-surface-container-highest text-on-surface-variant">${escapeHtml(m.lang)}</span>` : '');
 
         return `
           <tr class="hover:bg-surface-container-high/40 transition-colors">
             <td class="p-3">
               <div class="flex items-center gap-3">
-                <img src="${m.poster_url || m.thumb_url || '/favicon.ico'}" class="w-9 h-13 object-cover rounded bg-surface-container shrink-0 border border-white/5" onerror="this.src='/favicon.ico'" />
+                <img src="${escapeHtml(safeUrl(m.poster_url || m.thumb_url || '/favicon.ico'))}" class="w-9 h-13 object-cover rounded bg-surface-container shrink-0 border border-white/5" onerror="this.onerror=null;this.src='/favicon.ico'" />
                 <div class="min-w-0">
-                  <div class="font-bold text-on-surface text-xs sm:text-sm truncate max-w-[200px]" title="${m.name}">${m.name}</div>
-                  <div class="text-[11px] text-on-surface-variant font-mono truncate max-w-[200px]">${m.slug}</div>
+                  <div class="font-bold text-on-surface text-xs sm:text-sm truncate max-w-[200px]" title="${escapeHtml(m.name)}">${escapeHtml(m.name)}</div>
+                  <div class="text-[11px] text-on-surface-variant font-mono truncate max-w-[200px]">${escapeHtml(m.slug)}</div>
                 </div>
               </div>
             </td>
             <td class="p-3 whitespace-nowrap">
               ${sourceBadgeHtml}
             </td>
-            <td class="p-3 text-xs text-on-surface-variant truncate max-w-[150px] font-medium" title="${m.origin_name || ''}">
-              ${m.origin_name || '--'}
+            <td class="p-3 text-xs text-on-surface-variant truncate max-w-[150px] font-medium" title="${escapeHtml(m.origin_name || '')}">
+              ${escapeHtml(m.origin_name || '--')}
             </td>
             <td class="p-3 text-xs whitespace-nowrap">
-              <span class="font-semibold text-on-surface">${m.year || '--'}</span>
-              ${m.episode_current ? `<span class="text-on-surface-variant text-[11px] block">${m.episode_current}</span>` : ''}
+              <span class="font-semibold text-on-surface">${escapeHtml(m.year || '--')}</span>
+              ${m.episode_current ? `<span class="text-on-surface-variant text-[11px] block">${escapeHtml(m.episode_current)}</span>` : ''}
             </td>
             <td class="p-3">
               <div class="flex flex-wrap gap-1 items-center">
-                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/20 text-primary">${m.quality || 'FHD'}</span>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/20 text-primary">${escapeHtml(m.quality || 'FHD')}</span>
                 ${songNguTag}
               </div>
             </td>
             <td class="p-3 text-right space-x-2 whitespace-nowrap">
-              <a href="/phim/${m.slug}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-container text-on-surface text-xs font-semibold inline-flex items-center gap-1 transition-colors">
+              <a href="/phim/${pathSegment(m.slug)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-container text-on-surface text-xs font-semibold inline-flex items-center gap-1 transition-colors">
                 <span class="material-symbols-outlined text-[14px]">visibility</span> Xem
               </a>
-              <button class="btn-pin-movie px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isPinned ? 'bg-secondary text-black shadow-md shadow-secondary/30' : 'bg-surface-container-highest hover:bg-secondary/20 hover:text-secondary text-on-surface'}" data-slug="${m.slug}">
+              <button class="btn-pin-movie px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isPinned ? 'bg-secondary text-black shadow-md shadow-secondary/30' : 'bg-surface-container-highest hover:bg-secondary/20 hover:text-secondary text-on-surface'}" data-slug="${escapeHtml(m.slug)}">
                 ${isPinned ? '✓ Đang Ghim' : '+ Ghim Trang Chủ'}
               </button>
             </td>
@@ -561,7 +566,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               quality: targetMovie.quality || 'FHD',
               has_song_ngu: Boolean(targetMovie.has_song_ngu || targetMovie.source === 'vicdn'),
               source: targetMovie.source || 'kkphim',
-              source_name: targetMovie.source_name || (targetMovie.source === 'vicdn' ? 'ViCDN Song Ngữ' : (targetMovie.source === 'nguonc' ? 'NguonC Stream VIP' : 'KKPhim API'))
+              source_name: targetMovie.source_name || (targetMovie.source === 'vicdn' ? 'ViCDN Song Ngữ' : targetMovie.source === 'nguonc' ? 'NguonC API' : 'KKPhim API')
             } : { slug };
 
             featuredList = [pinItem, ...featuredList].slice(0, 8);
@@ -591,22 +596,178 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // --- 6. Tab: Cấu Hình Website & Banner Thông Báo ---
+  let advertisingConfig = null;
   async function loadSettingsTab() {
     try {
       currentSettings = await API.getAdminSettings();
-      if (!currentSettings) return;
+      if (currentSettings) {
+        const annEl = document.getElementById('setting-announcement');
+        const annActiveEl = document.getElementById('setting-announcement-active');
+        const titleEl = document.getElementById('setting-site-title');
 
-      const annEl = document.getElementById('setting-announcement');
-      const annActiveEl = document.getElementById('setting-announcement-active');
-      const titleEl = document.getElementById('setting-site-title');
+        if (annEl) annEl.value = currentSettings.announcement || '';
+        if (annActiveEl) annActiveEl.checked = Boolean(currentSettings.announcement_active);
+        if (titleEl) titleEl.value = currentSettings.site_title || 'CineViet - Xem Phim Online Chuẩn Cinema 4K';
+      }
 
-      if (annEl) annEl.value = currentSettings.announcement || '';
-      if (annActiveEl) annActiveEl.checked = Boolean(currentSettings.announcement_active);
-      if (titleEl) titleEl.value = currentSettings.site_title || 'CineViet - Xem Phim Online Chuẩn Cinema 4K';
+      // Load Advertising footer slot
+      try {
+        const adRes = await API.request('/api/admin/advertising');
+        if (adRes?.status && adRes.data) {
+          advertisingConfig = adRes.data;
+          const footerAd = advertisingConfig.ads?.find(a => a.slot === 'footer') || {};
+          
+          const enabledEl = document.getElementById('setting-footer-ad-enabled');
+          const titleAdEl = document.getElementById('setting-footer-ad-title');
+          const descAdEl = document.getElementById('setting-footer-ad-desc');
+          const hrefAdEl = document.getElementById('setting-footer-ad-href');
+          const ctaAdEl = document.getElementById('setting-footer-ad-cta');
+          const imgDeskEl = document.getElementById('setting-footer-ad-image-desktop');
+          const imgMobEl = document.getElementById('setting-footer-ad-image-mobile');
+          const newTabEl = document.getElementById('setting-footer-ad-newtab');
+
+          if (enabledEl) enabledEl.checked = Boolean(footerAd.enabled);
+          if (titleAdEl) titleAdEl.value = footerAd.title || '';
+          if (descAdEl) descAdEl.value = footerAd.description || '';
+          if (hrefAdEl) hrefAdEl.value = footerAd.href || '';
+          if (ctaAdEl) ctaAdEl.value = footerAd.cta_label || '';
+          if (imgDeskEl) imgDeskEl.value = footerAd.image_desktop || '';
+          if (imgMobEl) imgMobEl.value = footerAd.image_mobile || '';
+          if (newTabEl) newTabEl.checked = Boolean(footerAd.new_tab);
+        }
+      } catch (adErr) {
+        console.warn('[TTPhim Admin] Failed to load advertising:', adErr);
+      }
+
+      // Load Popup Banner config
+      try {
+        const popup = currentSettings.popup_banner || (await API.getAdminPopupBanner()) || {};
+        const pEnabledEl = document.getElementById('setting-popup-ad-enabled');
+        const pTitleEl = document.getElementById('setting-popup-ad-title');
+        const pDescEl = document.getElementById('setting-popup-ad-desc');
+        const pHrefEl = document.getElementById('setting-popup-ad-href');
+        const pImageEl = document.getElementById('setting-popup-ad-image');
+        const pCooldownEl = document.getElementById('setting-popup-ad-cooldown');
+        const pNewTabEl = document.getElementById('setting-popup-ad-newtab');
+
+        if (pEnabledEl) pEnabledEl.checked = Boolean(popup.enabled);
+        if (pTitleEl) pTitleEl.value = popup.title || 'ĐẠI TIỆC SĂN DEAL SHOPEE MALL';
+        if (pDescEl) pDescEl.value = popup.description || '';
+        if (pHrefEl) pHrefEl.value = popup.href || 'https://sandeal.dealpulse.vn/';
+        if (pImageEl) pImageEl.value = popup.image || '/images/banners/dealpulse-popup.png';
+        if (pCooldownEl) pCooldownEl.value = popup.cooldown_hours != null ? popup.cooldown_hours : 12;
+        if (pNewTabEl) pNewTabEl.checked = popup.new_tab !== false;
+      } catch (pErr) {
+        console.warn('[TTPhim Admin] Failed to load popup banner config:', pErr);
+      }
     } catch(e) {
       console.error('[TTPhim Admin] Failed to load settings:', e);
     }
   }
+
+  document.getElementById('btn-save-footer-ad')?.addEventListener('click', async () => {
+    const saveBtn = document.getElementById('btn-save-footer-ad');
+    try {
+      saveBtn.disabled = true;
+      if (!advertisingConfig) {
+        const adRes = await API.request('/api/admin/advertising');
+        if (adRes?.status && adRes.data) advertisingConfig = adRes.data;
+        else throw new Error('Không thể tải cấu hình quảng cáo');
+      }
+
+      const footerIdx = advertisingConfig.ads.findIndex(a => a.slot === 'footer');
+      if (footerIdx === -1) throw new Error('Không tìm thấy vị trí quảng cáo footer');
+
+      advertisingConfig.ads[footerIdx] = {
+        ...advertisingConfig.ads[footerIdx],
+        enabled: document.getElementById('setting-footer-ad-enabled')?.checked || false,
+        title: document.getElementById('setting-footer-ad-title')?.value.trim() || '',
+        description: document.getElementById('setting-footer-ad-desc')?.value.trim() || '',
+        href: document.getElementById('setting-footer-ad-href')?.value.trim() || '',
+        cta_label: document.getElementById('setting-footer-ad-cta')?.value.trim() || '',
+        image_desktop: document.getElementById('setting-footer-ad-image-desktop')?.value.trim() || '',
+        image_mobile: document.getElementById('setting-footer-ad-image-mobile')?.value.trim() || '',
+        new_tab: document.getElementById('setting-footer-ad-newtab')?.checked || false
+      };
+
+      const res = await API.request('/api/admin/advertising', {
+        method: 'POST',
+        body: JSON.stringify(advertisingConfig)
+      });
+      if (!res.status) throw new Error(res.message || 'Lỗi lưu banner quảng cáo chân trang');
+      advertisingConfig = res.data;
+      if (window.showToast) window.showToast('Đã lưu banner quảng cáo chân trang thành công!');
+      else alert('Đã lưu banner quảng cáo chân trang thành công!');
+    } catch(err) {
+      console.error(err);
+      if (window.showToast) window.showToast(err.message || 'Lỗi lưu banner quảng cáo chân trang', 'error');
+      else alert(err.message || 'Lỗi lưu banner quảng cáo chân trang');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('btn-goto-banners')?.addEventListener('click', () => {
+    document.querySelector('[data-tab="tab-banners"]')?.click();
+  });
+
+  document.getElementById('btn-save-popup-ad')?.addEventListener('click', async () => {
+    const saveBtn = document.getElementById('btn-save-popup-ad');
+    try {
+      saveBtn.disabled = true;
+      const payload = {
+        enabled: document.getElementById('setting-popup-ad-enabled')?.checked,
+        title: document.getElementById('setting-popup-ad-title')?.value.trim(),
+        description: document.getElementById('setting-popup-ad-desc')?.value.trim(),
+        href: document.getElementById('setting-popup-ad-href')?.value.trim(),
+        image: document.getElementById('setting-popup-ad-image')?.value.trim(),
+        cooldown_hours: Number(document.getElementById('setting-popup-ad-cooldown')?.value) || 12,
+        new_tab: document.getElementById('setting-popup-ad-newtab')?.checked
+      };
+      const res = await API.updateAdminPopupBanner(payload);
+      if (res?.status) {
+        if (window.showToast) window.showToast('Đã lưu cấu hình banner popup thành công!');
+        else alert('Đã lưu cấu hình banner popup thành công!');
+      } else {
+        throw new Error(res?.message || 'Lỗi lưu cấu hình banner popup');
+      }
+    } catch (err) {
+      if (window.showToast) window.showToast(err.message || 'Lỗi lưu banner popup', 'error');
+      else alert(err.message || 'Lỗi lưu banner popup');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('btn-preview-popup-ad')?.addEventListener('click', () => {
+    const image = document.getElementById('setting-popup-ad-image')?.value.trim() || '/images/banners/dealpulse-popup.png';
+    const href = document.getElementById('setting-popup-ad-href')?.value.trim() || 'https://sandeal.dealpulse.vn/';
+    const title = document.getElementById('setting-popup-ad-title')?.value.trim() || 'ĐẠI TIỆC SĂN DEAL SHOPEE MALL';
+
+    document.querySelector('.ad-popup-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'ad-popup-overlay is-active';
+    overlay.innerHTML = `
+      <div class="ad-popup-modal">
+        <button type="button" class="ad-popup-close" aria-label="Đóng">✕</button>
+        <a href="${href}" target="_blank" rel="noopener noreferrer" class="ad-popup-link">
+          <img src="${image}" alt="${title}" class="ad-popup-img" />
+        </a>
+      </div>
+    `;
+    overlay.querySelector('.ad-popup-close').onclick = (e) => { e.stopPropagation(); overlay.remove(); };
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+  });
+
+  document.getElementById('btn-reset-popup-cooldown')?.addEventListener('click', () => {
+    try {
+      localStorage.removeItem('cineviet_popup_ad_last_shown');
+      if (window.showToast) window.showToast('Đã xóa bộ đếm 12 giờ! Khi tải lại trang chủ, popup sẽ xuất hiện ngay.');
+      else alert('Đã xóa bộ đếm 12 giờ!');
+    } catch (_) {}
+  });
 
   document.getElementById('btn-save-settings')?.addEventListener('click', async () => {
     const ann = document.getElementById('setting-announcement')?.value.trim();
@@ -648,7 +809,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const totalSourcesSub = document.getElementById('analytics-total-sources-sub');
       if (totalSourcesSub) {
         const allSources = stats.totalAllSources == null ? 'Chưa xác minh' : Number(stats.totalAllSources).toLocaleString('vi-VN');
-        totalSourcesSub.innerText = `3 nguồn: ${allSources} bản ghi`;
+        totalSourcesSub.innerText = `2 nguồn: ${allSources} bản ghi`;
       }
 
       const viewsEl = document.getElementById('analytics-total-views');
@@ -694,10 +855,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                   <span class="w-7 h-7 rounded-full inline-flex items-center justify-center text-xs ${rankColor}">${rank}</span>
                 </td>
                 <td class="p-3">
-                  <div class="font-bold text-on-surface">${item.slug}</div>
-                  <span class="text-xs text-on-surface-variant font-mono">ID: ${item.slug}</span>
+                  <div class="font-bold text-on-surface">${escapeHtml(item.slug)}</div>
+                  <span class="text-xs text-on-surface-variant font-mono">ID: ${escapeHtml(item.slug)}</span>
                 </td>
-                <td class="p-3 text-right font-display font-bold text-primary text-base">${(item.views || 0).toLocaleString('vi-VN')}</td>
+                <td class="p-3 text-right font-display font-bold text-primary text-base">${(Number(item.views) || 0).toLocaleString('vi-VN')}</td>
                 <td class="p-3">
                   <div class="flex items-center gap-3">
                     <div class="flex-1 bg-surface-container-highest rounded-full h-2.5 overflow-hidden">
@@ -707,7 +868,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   </div>
                 </td>
                 <td class="p-3 text-right">
-                  <a href="/phim/${item.slug}" target="_blank" class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-container text-on-surface text-xs font-semibold inline-flex items-center gap-1 transition-colors">
+                  <a href="/phim/${pathSegment(item.slug)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-container text-on-surface text-xs font-semibold inline-flex items-center gap-1 transition-colors">
                     <span class="material-symbols-outlined text-[14px]">visibility</span> Mở
                   </a>
                 </td>
@@ -733,18 +894,18 @@ document.addEventListener('DOMContentLoaded', async () => {
               <tr class="hover:bg-surface-container-high/40 transition-colors">
                 <td class="p-3 text-xs text-on-surface-variant font-mono">${timeStr}</td>
                 <td class="p-3">
-                  <div class="font-bold text-on-surface">${act.movie_name || act.movie_slug}</div>
-                  <span class="text-xs text-on-surface-variant font-mono">${act.movie_slug}</span>
+                  <div class="font-bold text-on-surface">${escapeHtml(act.movie_name || act.movie_slug)}</div>
+                  <span class="text-xs text-on-surface-variant font-mono">${escapeHtml(act.movie_slug)}</span>
                 </td>
                 <td class="p-3">
-                  <span class="px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary">${act.episode_name || act.episode_slug || 'Tập 01'}</span>
+                  <span class="px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary">${escapeHtml(act.episode_name || act.episode_slug || 'Tập 01')}</span>
                 </td>
                 <td class="p-3 text-right">
                   <span class="text-xs font-mono font-semibold text-on-surface">${progPct}%</span>
                   <div class="text-[11px] text-on-surface-variant">${progSec}s / ${durSec}s</div>
                 </td>
                 <td class="p-3 text-right">
-                  <a href="/xem-phim/${act.movie_slug}/${act.episode_slug || 'tap-1'}" target="_blank" class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-container text-on-surface text-xs font-semibold inline-flex items-center gap-1 transition-colors">
+                  <a href="/xem-phim/${pathSegment(act.movie_slug)}/${pathSegment(act.episode_slug || 'tap-1')}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-container text-on-surface text-xs font-semibold inline-flex items-center gap-1 transition-colors">
                     <span class="material-symbols-outlined text-[14px]">play_arrow</span> Xem
                   </a>
                 </td>
@@ -764,6 +925,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // --- 8. Tab: Quản Lý Đa Nguồn Phim & Đồng Bộ ---
+  window.renderAdminSources = function(sources) {
+    if (!sources) return;
+    const totalWeb = document.getElementById('sources-total-web');
+    if (totalWeb) totalWeb.innerText = sources.total_web_movies == null ? 'Chưa xác minh' : Number(sources.total_web_movies).toLocaleString('vi-VN');
+
+    const totalSub = document.getElementById('sources-total-all-sub');
+    if (totalSub) {
+      const all = sources.total_all_sources == null ? 'Chưa xác minh' : Number(sources.total_all_sources).toLocaleString('vi-VN');
+      totalSub.innerText = `Tổng 3 nguồn: ${all} bản ghi`;
+    }
+
+    // KKPhim
+    const kkStat = document.getElementById('sources-stat-kkphim');
+    if (kkStat) kkStat.innerText = sources.kkphim?.total_movies ? Number(sources.kkphim.total_movies).toLocaleString('vi-VN') : '--';
+    const kkCount = document.getElementById('source-kkphim-count');
+    if (kkCount) kkCount.innerText = sources.kkphim?.total_movies ? `${Number(sources.kkphim.total_movies).toLocaleString('vi-VN')} phim` : '-- phim';
+    const kkPages = document.getElementById('source-kkphim-pages');
+    if (kkPages) kkPages.innerText = sources.kkphim?.total_pages ? `${Number(sources.kkphim.total_pages).toLocaleString('vi-VN')} trang` : '-- trang';
+    const kkStatus = document.getElementById('source-kkphim-status');
+    if (kkStatus) kkStatus.innerText = sources.kkphim?.status === 'online' ? 'Đã Kết Nối' : 'Chưa kết nối';
+
+    // ViCDN
+    const viStat = document.getElementById('sources-stat-vicdn');
+    if (viStat) viStat.innerText = sources.vicdn?.total_movies ? Number(sources.vicdn.total_movies).toLocaleString('vi-VN') : '--';
+    const viTotal = document.getElementById('source-vicdn-total');
+    if (viTotal) viTotal.innerText = sources.vicdn?.total_movies ? `${Number(sources.vicdn.total_movies).toLocaleString('vi-VN')} phim` : '-- phim';
+    const viCount = document.getElementById('source-vicdn-count');
+    if (viCount) viCount.innerText = sources.vicdn?.indexed_movies ? `${Number(sources.vicdn.indexed_movies).toLocaleString('vi-VN')} phim` : '-- phim';
+    const viPages = document.getElementById('source-vicdn-pages');
+    if (viPages) viPages.innerText = sources.vicdn?.total_pages ? `${Number(sources.vicdn.total_pages).toLocaleString('vi-VN')} trang` : '-- trang';
+
+    // NguonC
+    const ncStat = document.getElementById('sources-stat-nguonc');
+    if (ncStat) ncStat.innerText = sources.nguonc?.total_movies ? Number(sources.nguonc.total_movies).toLocaleString('vi-VN') : '--';
+    const ncTotal = document.getElementById('source-nguonc-total');
+    if (ncTotal) ncTotal.innerText = sources.nguonc?.total_movies ? `${Number(sources.nguonc.total_movies).toLocaleString('vi-VN')} phim` : '-- phim';
+    const ncCount = document.getElementById('source-nguonc-count');
+    if (ncCount) ncCount.innerText = sources.nguonc?.indexed_movies ? `${Number(sources.nguonc.indexed_movies).toLocaleString('vi-VN')} phim` : '-- phim';
+    const ncPages = document.getElementById('source-nguonc-pages');
+    if (ncPages) ncPages.innerText = sources.nguonc?.total_pages ? `${Number(sources.nguonc.total_pages).toLocaleString('vi-VN')} trang` : '-- trang';
+    const ncStatus = document.getElementById('source-nguonc-status');
+    if (ncStatus) ncStatus.innerText = sources.nguonc?.status === 'online' ? 'Đã Kết Nối' : 'Chưa kết nối';
+  };
+
   async function loadSourcesTab() {
     try {
       const sources = await API.getAdminSources();

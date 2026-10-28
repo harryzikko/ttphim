@@ -95,7 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'CINEVIET VIP PASS',
+                              'TTPHIM VIP PASS',
                               style: TextStyle(
                                 color: AppTheme.gold,
                                 fontSize: 16,
@@ -299,7 +299,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Tên ứng dụng', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                    Text('CineViet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text('TTPhim', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                   ],
                 ),
                 SizedBox(height: 10),
@@ -394,7 +394,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Mở ứng dụng CineViet trên Android TV, chọn Đăng Nhập QR và nhập mã kích hoạt 6 chữ số hiển thị trên TV:',
+                'Mở ứng dụng TTPhim trên Android TV, chọn Đăng Nhập QR và nhập mã kích hoạt 6 chữ số hiển thị trên TV:',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
               ),

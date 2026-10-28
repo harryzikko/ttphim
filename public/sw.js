@@ -1,5 +1,5 @@
 // KKPhim - Mobile PWA Service Worker
-const CACHE_NAME = 'kkphim-mobile-v1.0';
+const CACHE_NAME = 'kkphim-mobile-v1.1';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/favicon.svg',
@@ -30,13 +30,17 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass API and streaming video requests straight to network
   const url = new URL(event.request.url);
-  if (url.pathname.startsWith('/api') || url.pathname.includes('.m3u8') || url.pathname.includes('.ts')) {
-    return;
-  }
+  // External images/embeds and private or streaming requests are browser-owned.
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin ||
+      url.pathname.startsWith('/api') || /\.(?:m3u8|ts|m4s|mp4|webm)(?:$|\/)/i.test(url.pathname)) return;
 
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request).catch(async () => {
+      if (!STATIC_ASSETS.includes(url.pathname)) return Response.error();
+      const cache = await caches.open(CACHE_NAME);
+      return (await cache.match(event.request)) || Response.error();
+    })
   );
+
 });

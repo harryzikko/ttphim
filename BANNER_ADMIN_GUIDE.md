@@ -14,7 +14,18 @@ Mở `/admin` → **Banner quảng cáo**. Phim nổi bật vẫn được quả
 
 Các vị trí mặc định **tắt**. Mỗi vị trí có bật/tắt, tiêu đề, mô tả, URL ảnh desktop/mobile, liên kết, chữ nút, trọng tâm ảnh và lịch bắt đầu/kết thúc. Quảng cáo bật cần tiêu đề, ảnh desktop và liên kết HTTP(S) hoặc đường dẫn nội bộ. Ảnh mobile là tùy chọn. Lịch nhập giờ địa phương và lưu UTC; website kiểm tra lịch khi trả trang mới. Banner tắt/ngoài lịch không để lại khoảng trống.
 
-Preview desktop/mobile không mở liên kết. Bấm **Lưu quảng cáo** để áp dụng; nếu quản trị viên khác đã thay đổi cấu hình, API trả 409 và giữ nguyên bản nháp để cân nhắc trước khi tải lại. URL và ngày giờ không hợp lệ trả 400. Dữ liệu lưu riêng trong `settings.advertising` qua `/api/admin/advertising`; các vị trí `home_middle`/`home_footer` cũ được đọc thành `below_featured`/`footer`. API cũ cho phim nổi bật vẫn được giữ để tương thích.
+Preview desktop/mobile không mở liên kết. Chế độ preview quyết định tỷ lệ khung, không phụ thuộc chiều rộng trình duyệt đang mở admin; ảnh được thu gọn theo vùng preview, không phải mô phỏng toàn trang.
+
+| Vị trí | Preview desktop (rộng:cao) | Preview mobile (rộng:cao) |
+| --- | --- | --- |
+| Header / Footer | 6:1 | 3:1 |
+| Dưới phim nổi bật | 4:1 | 3:2 |
+| Dưới video player | 5:1 | 3:1 |
+| Bên trái / bên phải | 160:600 | Ẩn khung và ảnh; hiện giải thích chỉ có trên desktop từ 1600 px |
+
+Preview mobile dùng ảnh mobile nếu có, nếu không dùng ảnh desktop; giữ nguyên trọng tâm ảnh. Mô tả được ẩn ở header/footer/dưới player như trang mobile thật (tiêu đề 16 px); dưới phim nổi bật vẫn hiện mô tả 12 px và tiêu đề 22 px. Chuyển chế độ hoặc vị trí preview không đổi cấu hình đã lưu. Preview desktop của banner hông là mẫu tham khảo ngay cả khi cửa sổ admin hẹp; quảng cáo thật vẫn chỉ hiện từ 1600 px.
+
+Bấm **Lưu quảng cáo** để áp dụng; nếu quản trị viên khác đã thay đổi cấu hình, API trả 409 và giữ nguyên bản nháp để cân nhắc trước khi tải lại. URL và ngày giờ không hợp lệ trả 400. Dữ liệu lưu riêng trong `settings.advertising` qua `/api/admin/advertising`; các vị trí `home_middle`/`home_footer` cũ được đọc thành `below_featured`/`footer`. API cũ cho phim nổi bật vẫn được giữ để tương thích.
 
 ## Nguồn KKPhim
 
@@ -23,5 +34,7 @@ Dashboard hiển thị tên **KKPhim API**, lấy tổng phim/trang từ `https:
 ## Kiểm tra và giới hạn
 
 - Test tự động dùng DB tạm và API giả lập, không ghi quảng cáo mẫu vào DB thật.
+- `node --test tests/banners.test.js` kiểm tra tỷ lệ từng vị trí/chế độ, kiểu chữ mobile, ẩn banner hông, khôi phục preview, ảnh dự phòng và cấu hình lưu không bị đổi bởi preview.
+- Đã kiểm tra headless Microsoft Edge ở viewport 1440 px và 390 px: 24 tổ hợp vị trí/chế độ, cả CSS computed và kích thước khung thực tế; đối chiếu markup quảng cáo thật bằng dữ liệu giả lập, không ghi DB. Đây không phải kiểm tra đăng nhập/admin trên production.
 - Banner hông không hiện dưới 1600 px; không chồng lên vùng nội dung tối đa 1200 px. Trên màn hình đang mở cần tải lại để nhận thay đổi.
 - Hiện nhập ảnh bằng URL, chưa có chức năng tải ảnh lên. Chưa đo CLS/Lighthouse hoặc kiểm tra Safari/iPhone thật.

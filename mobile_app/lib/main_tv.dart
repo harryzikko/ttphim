@@ -16,16 +16,16 @@ void main() {
   ]);
 
   unawaited(ApiService.restoreSession());
-  runApp(const CineVietTvApp());
+  runApp(const TTPhimTvApp());
 }
 
-class CineVietTvApp extends StatelessWidget {
-  const CineVietTvApp({super.key});
+class TTPhimTvApp extends StatelessWidget {
+  const TTPhimTvApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CineViet Android TV',
+      title: 'TTPhim Android TV',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme.copyWith(
         scaffoldBackgroundColor: const Color(0xFF0C0E17),

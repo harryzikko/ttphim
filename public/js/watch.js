@@ -1,5 +1,10 @@
 // TTPhim - Watch Movie Player & Interactive Room Controller (Real Data Binding)
 document.addEventListener('DOMContentLoaded', async () => {
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const safeUrl = (value, fallback = '/favicon.svg') => {
+    try { const url = new URL(value, window.location.href); return /^https?:$/.test(url.protocol) ? url.href : fallback; } catch (_) { return fallback; }
+  };
+  const pathSegment = value => encodeURIComponent(String(value ?? '')).replace(/'/g, '%27');
   const urlParams = new URLSearchParams(window.location.search);
   const pathParts = window.location.pathname.split('/').filter(Boolean);
   let slug = pathParts[1];
@@ -30,13 +35,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   let drawerEpisodesList = [];
   let watchPartyController = null;
   let playerSession = null, cleanupControls = null, saveCurrentProgress = null, progressStore = null, user = null;
-  let embedTimer = null;
+  let playbackPreferences = null;
+  let recoveryPrompt = null;
+  const failedSources = new Set();
+  function offerRecovery(ep, time, engine, message) {
+    if (!window.PlayerRecovery || currentEpisode !== ep) return;
+    recoveryPrompt?.destroy();
+    const index = activeServerIndex;
+    const key = PlayerRecovery.sourceKey(engine, engine === 'hls' ? ep.link_m3u8 : ep.link_embed);
+    failedSources.add(key);
+    recoveryPrompt = PlayerRecovery.offer({
+      container: viewport.firstElementChild || viewport, servers: movieData.episodes, episode: ep, serverIndex: index,
+      time, failed: failedSources, message,
+      retry: () => { if (currentEpisode !== ep || activeServerIndex !== index) return; failedSources.delete(key); useEmbed = engine === 'embed'; loadEpisode(ep, time); },
+      choose: (option, resume) => {
+        if (currentEpisode !== ep || activeServerIndex !== index) return;
+        activeServerIndex = option.serverIndex; useEmbed = option.engine === 'embed';
+        renderServerPills(movieData.episodes); renderEpisodeDrawer(movieData.episodes[activeServerIndex].server_data);
+        loadEpisode(option.episode, resume);
+      }
+    });
+  }
   function cleanupPlayback() {
+    recoveryPrompt?.destroy(); recoveryPrompt = null;
     saveCurrentProgress?.(true);
     saveCurrentProgress = null;
     cleanupControls?.();
     cleanupControls = null;
-    clearTimeout(embedTimer);
     clearInterval(window._watchHistoryInterval);
     window.removeEventListener('keydown', window._playerKeydownHandler);
     playerSession?.destroy();
@@ -49,12 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // DOM Elements
   const viewport = document.getElementById('player-viewport');
-  const lightScrim = document.getElementById('cinema-backdrop-scrim');
-  const lightBtn = document.getElementById('btn-cinema-mode');
-  const lightIcon = document.getElementById('light-icon');
-  const lightLabel = document.getElementById('light-label');
-  const theaterBtn = document.getElementById('btn-theater-toggle');
-  const primaryPlayerCol = document.getElementById('primary-player-column');
+  setupCinemaAndTheaterModes();
 
   // Helper: Extract m3u8 from embed URL
   function extractM3u8FromEmbed(embedUrl) {
@@ -79,7 +99,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load Movie Details
   try {
     console.log('[TTPhim] Fetching movie for watch player, slug:', slug);
-    [movieData, user] = await Promise.all([API.getMovieDetail(slug), API.getMe().catch(() => null)]);
+    [movieData, user] = await Promise.all([API.getMovieDetail(slug), API.getMe()]);
+    if (movieData && window.EpisodeSources) movieData.episodes = (movieData.episodes || []).map(server => ({ ...server, server_data: EpisodeSources.playable(server) }));
+    if (window.PlayerPreferences) {
+      playbackPreferences = PlayerPreferences.create({ user, api: API });
+      await playbackPreferences.load();
+    }
     if (!movieData || !movieData.movie) {
       if (window.showToast) window.showToast('Không tìm thấy tập phim', 'error');
       return;
@@ -97,7 +122,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function initPage({ movie, episodes, watchedHistory }) {
-    document.title = `Đang xem: ${movie.name} - CineViet Cinema 4K`;
+    document.title = `Đang xem: ${movie.name} - CineViet`;
 
     // Setup Header Strip Info
     const backBtn = document.querySelector('a[data-path="chi-tiet-phim"], a:has(.arrow_back)');
@@ -128,6 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Render Episode Drawer Sidebar
     renderEpisodeDrawer(allServers[activeServerIndex]?.server_data || []);
+    loadWatchSeasons(movie.slug);
 
     // Render Movie Info below player
     renderInfoBelowPlayer(movie);
@@ -135,8 +161,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup Comments section
     initComments(movie.slug);
 
-    // Setup Cinema & Theater Mode Toggles
-    setupCinemaAndTheaterModes();
 
     // Setup Utility Buttons (Download, Report, Like, Share)
     setupUtilityButtons(movie.slug);
@@ -179,8 +203,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- Video Player Engine (HLS.js + Iframe Fallback) ---
   function loadEpisode(ep, initialTime = 0) {
     if (!ep) return;
+    if (!PlayerUX.episodeMatches(currentEpisode?.slug, ep.slug)) failedSources.clear();
     cleanupPlayback();
     currentEpisode = ep;
+    window.dispatchEvent(new CustomEvent('cineviet:episode-change', { detail: { slug: ep.slug } }));
 
     // Update ep label in top bar
     const epLabelEl = document.querySelector('span.font-body-md.text-body-md.text-on-surface-variant') ||
@@ -217,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!useEmbed && ep.link_m3u8) {
       renderM3u8Player(ep, initialTime);
     } else if (ep.link_embed) {
-      renderEmbedPlayer(ep);
+      renderEmbedPlayer(ep, initialTime);
     } else if (ep.link_m3u8) {
       renderM3u8Player(ep, initialTime);
     } else {
@@ -262,7 +288,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Restore saved settings
     const savedVol = localStorage.getItem('TTPhim_player_volume');
     const savedMuted = localStorage.getItem('TTPhim_player_muted');
-    const savedSpeed = localStorage.getItem('TTPhim_player_speed');
+    const savedSpeed = playbackPreferences ? playbackPreferences.get().playback_speed : localStorage.getItem('TTPhim_player_speed');
     if (savedVol !== null) video.volume = Math.max(0, Math.min(1, parseFloat(savedVol)));
     if (savedMuted === 'true') video.muted = true;
     if (savedSpeed !== null) video.playbackRate = parseFloat(savedSpeed);
@@ -345,8 +371,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     topBar.className = 'absolute top-0 inset-x-0 z-30 px-4 py-3 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between transition-opacity duration-300 pointer-events-auto';
     topBar.innerHTML = `
       <div class="flex items-center gap-2 min-w-0 pr-4">
-        <span class="font-bold text-white text-sm lg:text-base truncate drop-shadow">${movieData.movie.name}</span>
-        <span class="text-white/70 text-xs lg:text-sm drop-shadow whitespace-nowrap">· Tập ${cleanEpName(ep.name)}</span>
+        <span class="font-bold text-white text-sm lg:text-base truncate drop-shadow">${escapeHtml(movieData.movie.name)}</span>
+        <span class="text-white/70 text-xs lg:text-sm drop-shadow whitespace-nowrap">· Tập ${escapeHtml(cleanEpName(ep.name))}</span>
       </div>
       <div class="flex items-center gap-2 shrink-0">
         <button id="btn-toggle-engine" class="px-3 py-1.5 rounded-full bg-black/75 hover:bg-primary-container text-white hover:text-on-primary-container font-label-md text-xs backdrop-blur-md shadow-lg transition-all flex items-center gap-1 cursor-pointer border border-white/10" type="button" title="Đổi sang server nhúng Iframe">
@@ -371,7 +397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const speedMenu = document.createElement('div');
     speedMenu.id = 'player-speed-menu';
     speedMenu.className = 'absolute bottom-16 right-12 sm:right-16 z-40 bg-surface-container-high/95 backdrop-blur-xl border border-white/15 rounded-xl p-1.5 shadow-2xl flex flex-col gap-0.5 min-w-[110px] hidden text-on-surface';
-    const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
+    const speedOptions = window.PlayerPreferences?.SPEEDS || [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
     speedMenu.innerHTML = `
       <div class="px-2 py-1 text-[11px] text-on-surface-variant font-bold uppercase tracking-wider border-b border-white/10 mb-1">Tốc độ phát</div>
       ${speedOptions.map(spd => `
@@ -519,12 +545,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isDraggingScrubber = false;
     let autoHideTimer = null;
     let countdownTimer = null;
+    function cancelPendingNext() {
+      clearInterval(countdownTimer); countdownTimer = null;
+      countdownOverlay.classList.add('hidden');
+    }
     const controlEvents = new AbortController();
     function globalListen(target, event, callback) {
       target.addEventListener(event, callback, { signal: controlEvents.signal });
     }
+    const stopPreferenceControls = playbackPreferences?.subscribe(value => {
+      speedLabel.textContent = `${value.playback_speed}x`;
+      speedMenu.querySelectorAll('.player-speed-item').forEach(button => {
+        const selected = Number(button.dataset.speed) === value.playback_speed;
+        button.classList.toggle('text-primary', selected);
+        button.setAttribute('aria-pressed', String(selected));
+        button.textContent = `${button.dataset.speed}x${selected ? ' ✓' : ''}`;
+      });
+      if (!value.auto_next) cancelPendingNext();
+    });
     cleanupControls = () => {
       controlEvents.abort();
+      stopPreferenceControls?.();
       clearTimeout(autoHideTimer);
       clearTimeout(centerClickTimer);
       clearInterval(countdownTimer);
@@ -825,11 +866,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     speedMenu.querySelectorAll('.player-speed-item').forEach(item => {
-      item.onclick = (e) => {
+      item.onclick = async (e) => {
         e.stopPropagation();
         const spd = parseFloat(item.dataset.speed);
-        video.playbackRate = spd;
-        localStorage.setItem('TTPhim_player_speed', spd);
+        if (playbackPreferences) {
+          if (!await playbackPreferences.update({ playback_speed: spd })) { window.showToast?.('Chưa lưu được tốc độ phát. Vui lòng thử lại.', 'error'); return; }
+        } else { video.playbackRate = spd; localStorage.setItem('TTPhim_player_speed', spd); }
         speedLabel.innerText = spd === 1 ? '1x' : `${spd}x`;
         speedMenu.querySelectorAll('.player-speed-item').forEach(b => {
           const isCur = parseFloat(b.dataset.speed) === spd;
@@ -869,6 +911,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Video Playback Events
     video.addEventListener('play', () => {
+      cancelPendingNext();
       playIcon.innerText = 'pause';
       bufferingEl.classList.add('opacity-0');
       resetAutoHideTimer();
@@ -887,6 +930,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     video.addEventListener('seeked', () => {
+      if (!video.ended) cancelPendingNext();
       if (watchPartyController && watchPartyController.isInRoom() && !watchPartyController.isRemoteSync) {
         watchPartyController.emitPlayerAction('seek', video.currentTime);
       }
@@ -914,6 +958,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     video.addEventListener('seeking', () => {
+      if (!video.ended) cancelPendingNext();
       bufferingEl.classList.remove('opacity-0');
     });
 
@@ -929,7 +974,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     video.addEventListener('ended', () => {
       saveCurrentProgress?.(true);
       playIcon.innerText = 'play_arrow';
-      const isAutoNext = localStorage.getItem('TTPhim_auto_next') !== 'false';
+      const isAutoNext = playbackPreferences ? playbackPreferences.get().auto_next : localStorage.getItem('TTPhim_auto_next') !== 'false';
       const nextEpisode = getNextEpisode();
       if (!isAutoNext || !nextEpisode) return;
 
@@ -946,10 +991,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       secText.innerText = secondsLeft;
       circle.style.strokeDasharray = '100, 100';
 
-      function cancelAutoNext() {
-        if (countdownTimer) clearInterval(countdownTimer);
-        countdownOverlay.classList.add('hidden');
-      }
+      const cancelAutoNext = cancelPendingNext;
 
       cancelBtn.onclick = cancelAutoNext;
       nowBtn.onclick = () => {
@@ -982,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     window._playerKeydownHandler = (e) => {
       const tag = document.activeElement?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || document.activeElement?.isContentEditable) return;
+      if (['input', 'textarea', 'select', 'button', 'summary'].includes(tag) || document.activeElement?.isContentEditable) return;
 
       switch (e.key) {
         case ' ':
@@ -1075,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const resLabel = lvl.height ? `${lvl.height}p` : `Mức #${idx + 1}`;
         menuHtml += `
           <button class="player-quality-item px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-white/10 transition-colors flex items-center justify-between cursor-pointer ${isCurrent ? 'text-primary font-bold bg-white/5' : 'text-white/80'}" data-level="${idx}">
-            <span>${resLabel}</span>
+            <span>${escapeHtml(resLabel)}</span>
             ${isCurrent ? '<span class="material-symbols-outlined text-[14px]">check</span>' : ''}
           </button>
         `;
@@ -1116,47 +1158,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     playerSession = PlayerUX.createSession({
       video, Hls: window.Hls, url: ep.link_m3u8, embedUrl: ep.link_embed, initialTime,
+      preferences: playbackPreferences, tracksContainer: container,
       onState: (state, message) => { bufferingEl.classList.add('opacity-0'); updateStatus(state, message); },
       onBeforeStop: () => saveCurrentProgress?.(true),
       onHls: hls => {
         hlsInstance = hls;
-        hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
+        const levelEvent = window.Hls?.Events?.LEVEL_SWITCHED || 'hlsLevelSwitched';
+        hls.on(levelEvent, (_, data) => {
           if (playerSession?.isActive() && hls.autoLevelEnabled) {
-            const height = hls.levels[data.level]?.height;
+            const height = hls.levels?.[data.level]?.height;
             if (height) qualityLabel.innerText = `Auto (${height}p)`;
           }
         });
       },
       onManifest: (data, hls) => populateQualityMenu(data.levels, hls.currentLevel),
-      onFallback: time => {
-        useEmbed = true;
-        window.showToast?.('Nguồn HLS gặp lỗi, đang chuyển sang server nhúng. Server nhúng có thể không tua tiếp đúng thời điểm.', 'info');
-        loadEpisode(ep, time);
+      onFailure: (time, message) => {
+        updateStatus('error', message || 'Nguồn phát gặp lỗi. Hãy thử lại hoặc chọn nguồn dự phòng.');
+        offerRecovery(ep, time, 'hls', message);
       }
     });
-    if (!window.Hls || !Hls.isSupported()) qualityBtn.classList.add('hidden');
+    if (!window.Hls || !window.Hls.isSupported?.()) qualityBtn.classList.add('hidden');
   }
 
-  function renderEmbedPlayer(ep) {
+  function renderEmbedPlayer(ep, initialTime = 0) {
+    const savedTime = Math.max(0, Number(initialTime) || PlayerUX.selectInitial(movieData.episodes, ep.slug, activeServerIndex, progressStore?.get()).resume);
     viewport.innerHTML = '';
     const container = document.createElement('div');
     container.className = 'relative w-full h-full bg-black rounded-xl overflow-hidden';
 
     const iframe = document.createElement('iframe');
-    iframe.src = ep.link_embed;
     iframe.className = 'w-full h-full border-0 rounded-xl';
+    iframe.referrerPolicy = 'no-referrer-when-downgrade';
+    iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
     iframe.allowFullscreen = true;
     container.appendChild(iframe);
     const updateEmbedStatus = PlayerUX.createStatus(container, {
+      embedHelpContainer: document.getElementById('embed-player-help'),
       retry: () => loadEpisode(ep),
       changeServer: () => document.getElementById('server-pills-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     });
-    updateEmbedStatus('embed', 'Đang mở server nhúng; tua tiếp đúng thời điểm có thể không được hỗ trợ.');
     iframe.title = `Trình phát ${movieData.movie.name}`;
-    iframe.onload = () => { clearTimeout(embedTimer); updateEmbedStatus('ready'); };
-    embedTimer = setTimeout(() => updateEmbedStatus('error', 'Server nhúng phản hồi chậm. Hãy thử lại hoặc đổi server.'), 20000);
-    cleanupControls = () => { iframe.onload = null; iframe.src = 'about:blank'; };
+    const embedSession = PlayerUX.createEmbedSession({
+      iframe, url: safeUrl(ep.link_embed, 'about:blank'), onState: updateEmbedStatus,
+      onFailure: message => offerRecovery(ep, savedTime, 'embed', message)
+    });
+    cleanupControls = () => { embedSession.destroy(); updateEmbedStatus('ready'); };
 
     // Switch back to HLS pill (if link_m3u8 is present or extractable)
     const canHls = ep.link_m3u8 || extractM3u8FromEmbed(ep.link_embed);
@@ -1174,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       quickBar.querySelector('#btn-toggle-engine').onclick = () => {
         useEmbed = false;
         window.showToast('Đang chuyển sang Trình phát HLS tốc độ cao...');
-        loadEpisode(ep);
+        loadEpisode(ep, savedTime);
       };
     }
 
@@ -1194,45 +1241,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.appendChild(syncToast);
 
     // Watch Party Sync Bar for Embed Player
-    renderEmbedPartyBar(container, ep, iframe);
+    renderEmbedPartyBar(container, ep, iframe, savedTime);
 
     viewport.appendChild(container);
   }
 
-  function renderEmbedPartyBar(container, ep, iframe) {
+  function renderEmbedPartyBar(container, ep, iframe, savedTime = 0) {
     let bar = container.querySelector('#embed-party-sync-bar');
     if (bar) bar.remove();
+
+    const inRoom = watchPartyController && watchPartyController.isInRoom();
+    // Khi không ở trong phòng xem chung, không hiển thị nút đè lên trình phát
+    if (!inRoom) {
+      return;
+    }
+
+    const isHost = watchPartyController && watchPartyController.isHost();
+    const roomCode = watchPartyController ? watchPartyController.getRoomCode() : '';
 
     bar = document.createElement('div');
     bar.id = 'embed-party-sync-bar';
     bar.className = 'absolute bottom-3 left-1/2 -translate-x-1/2 z-30 bg-surface-container/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-white/15 shadow-2xl flex items-center gap-2.5 text-white text-xs pointer-events-auto transition-all max-w-[95%] overflow-x-auto';
 
-    const inRoom = watchPartyController && watchPartyController.isInRoom();
-    const isHost = watchPartyController && watchPartyController.isHost();
-    const roomCode = watchPartyController ? watchPartyController.getRoomCode() : '';
-
-    if (!inRoom) {
-      bar.innerHTML = `
-        <button id="btn-embed-open-party" class="px-2.5 py-1 rounded-lg bg-secondary-fixed/20 hover:bg-secondary-fixed/30 text-secondary-fixed font-bold flex items-center gap-1 cursor-pointer transition-colors" type="button">
-          <span class="material-symbols-outlined text-[15px]">group</span>
-          <span>Xem chung (Watch Party)</span>
-        </button>
-      `;
-      bar.querySelector('#btn-embed-open-party').onclick = () => {
-        const btnHeader = document.getElementById('btn-watch-party');
-        if (btnHeader) btnHeader.click();
-      };
-    } else {
-      bar.innerHTML = `
-        <div class="flex items-center gap-1.5 font-bold text-secondary-fixed shrink-0">
-          <span class="w-2 h-2 rounded-full bg-secondary-fixed animate-ping"></span>
-          <span class="font-mono">${roomCode}</span>
-        </div>
-        <div class="h-3.5 w-px bg-white/20 shrink-0"></div>
-        <button id="btn-embed-party-play" class="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/80 font-bold flex items-center gap-1 cursor-pointer text-white shadow-sm shrink-0" type="button" title="Đồng bộ Phát video cho phòng">
-          <span class="material-symbols-outlined text-[15px]">play_arrow</span>
-          <span>Phát chung</span>
-        </button>
+    bar.innerHTML = `
+      <div class="flex items-center gap-1.5 font-bold text-secondary-fixed shrink-0">
+        <span class="w-2 h-2 rounded-full bg-secondary-fixed animate-ping"></span>
+        <span class="font-mono">${escapeHtml(roomCode)}</span>
+      </div>
+      <div class="h-3.5 w-px bg-white/20 shrink-0"></div>
+      <button id="btn-embed-party-play" class="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/80 font-bold flex items-center gap-1 cursor-pointer text-white shadow-sm shrink-0" type="button" title="Đồng bộ Phát video cho phòng">
+        <span class="material-symbols-outlined text-[15px]">play_arrow</span>
+        <span>Phát chung</span>
+      </button>
         <button id="btn-embed-party-pause" class="px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest font-bold flex items-center gap-1 cursor-pointer text-white shrink-0" type="button" title="Đồng bộ Tạm dừng cho phòng">
           <span class="material-symbols-outlined text-[15px]">pause</span>
           <span>Tạm dừng</span>
@@ -1272,20 +1312,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         hlsBtn.onclick = () => {
           useEmbed = false;
           window.showToast?.('Đang chuyển sang Trình phát HLS để đồng bộ tự động...');
-          loadEpisode(ep);
+          loadEpisode(ep, savedTime);
         };
       }
-    }
 
     container.appendChild(bar);
   }
 
   // --- Server Pills Switcher ---
   function renderServerPills(servers) {
-    const container = document.querySelector('div.flex.items-center.flex-wrap.gap-2:has(.pl-1)') ||
+    const container = document.getElementById('server-pills-container') || document.querySelector('div.flex.items-center.flex-wrap.gap-2:has(.pl-1)') ||
                       document.querySelector('div.flex.items-center.flex-wrap.gap-2');
     if (!container) return;
     container.id = 'server-pills-container';
+    if (window.EpisodeSources) {
+      EpisodeSources.render(container, servers, activeServerIndex, nextIndex => {
+        const previous = currentEpisode;
+        const time = viewport.querySelector('video')?.currentTime || PlayerUX.selectInitial(movieData.episodes, previous?.slug, activeServerIndex, progressStore?.get()).resume;
+        const newServerEps = servers[nextIndex]?.server_data || [];
+        const target = newServerEps.find(ep => PlayerUX.episodeMatches(ep.slug, previous?.slug) || PlayerUX.episodeMatches(ep.name, previous?.name)) || newServerEps[0];
+        if (!target) return;
+        activeServerIndex = nextIndex; useEmbed = false;
+        renderServerPills(servers); renderEpisodeDrawer(newServerEps);
+        const same = PlayerUX.episodeMatches(target.slug, previous?.slug) || PlayerUX.episodeMatches(target.name, previous?.name);
+        loadEpisode(target, same ? time : 0);
+      });
+      return;
+    }
 
     container.innerHTML = `
       <span class="text-on-surface-variant font-label-badge text-label-badge uppercase tracking-wider pl-1">Server:</span>
@@ -1295,7 +1348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `
         <button class="server-pill-btn px-3 py-1.5 rounded-lg font-label-md text-label-md transition-all flex items-center gap-1.5 cursor-pointer ${idx === activeServerIndex ? 'bg-primary-container text-on-primary-container font-bold shadow-sm' : 'bg-surface-container-high text-on-surface hover:bg-surface-container-highest'}" data-index="${idx}">
           <span class="material-symbols-outlined text-[16px]">${icon}</span>
-          <span>${sName}</span>
+          <span>${escapeHtml(sName)}</span>
         </button>
       `;
       }).join('')}
@@ -1305,19 +1358,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const time = viewport.querySelector('video')?.currentTime || 0;
         const previous = currentEpisode;
-        cleanupPlayback();
-        activeServerIndex = parseInt(btn.dataset.index, 10);
+        const time = viewport.querySelector('video')?.currentTime || PlayerUX.selectInitial(movieData.episodes, previous?.slug, activeServerIndex, progressStore?.get()).resume;
+        const nextIndex = parseInt(btn.dataset.index, 10);
+        const newServerEps = servers[nextIndex]?.server_data || [];
+        if (!newServerEps.length) { window.showToast?.('Server này chưa có tập phim. Hãy chọn server khác.', 'error'); return; }
+        const targetEp = newServerEps.find(ep => PlayerUX.episodeMatches(ep.slug, previous?.slug)) ||
+          newServerEps.find(ep => PlayerUX.episodeMatches(ep.name, previous?.name)) || newServerEps[0];
+        activeServerIndex = nextIndex;
         useEmbed = false;
         renderServerPills(servers);
-        const newServerEps = servers[activeServerIndex]?.server_data || [];
         renderEpisodeDrawer(newServerEps);
-        const curNum = (currentEpisode?.name || '').toString().match(/\d+/)?.[0];
-        const targetEp = newServerEps.find(ep => 
-          cleanEpName(ep.name) === cleanEpName(currentEpisode?.name) ||
-          (curNum && (ep.name || '').toString().match(/\d+/)?.[0] === curNum)
-        ) || newServerEps[0];
         if (targetEp) {
           const sameEpisode = PlayerUX.episodeMatches(targetEp.slug, previous?.slug) || PlayerUX.episodeMatches(targetEp.name, previous?.name);
           loadEpisode(targetEp, sameEpisode ? time : 0);
@@ -1341,6 +1392,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEpisodeSearch();
   }
 
+  async function loadWatchSeasons(movieSlug) {
+    const wrapper = document.getElementById('watch-seasons-wrapper');
+    const select = document.getElementById('watch-seasons-select');
+    if (!wrapper || !select || !movieSlug) return;
+    try {
+      const seasons = await API.getMovieSeasons(movieSlug);
+      if (Array.isArray(seasons) && seasons.length > 1) {
+        select.innerHTML = seasons.map(s => {
+          return `<option value="${escapeHtml(s.slug)}" ${s.is_current ? 'selected' : ''}>${escapeHtml(s.label || s.name)}</option>`;
+        }).join('');
+        wrapper.classList.remove('hidden');
+        wrapper.classList.add('flex');
+        select.onchange = e => {
+          const nextSlug = e.target.value;
+          if (nextSlug && nextSlug !== movieSlug) {
+            window.location.href = `/xem-phim/${encodeURIComponent(nextSlug)}`;
+          }
+        };
+      } else {
+        wrapper.classList.add('hidden');
+        wrapper.classList.remove('flex');
+      }
+    } catch (_) {
+      wrapper.classList.add('hidden');
+    }
+  }
+
   function renderDrawerItems(filteredEps) {
     const listContainer = document.querySelector('div.p-2.space-y-2.overflow-y-auto') ||
                           document.querySelector('aside div.space-y-2');
@@ -1359,41 +1437,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     listContainer.innerHTML = filteredEps.map(ep => {
       const isCurrent = currentEpisode && currentEpisode.slug === ep.slug;
       return `
-        <div class="ep-item w-full rounded-xl p-2 flex gap-3 relative shadow-md group cursor-pointer transition-colors ${isCurrent ? 'bg-surface-container-high border-l-4 border-l-primary-container' : 'bg-surface-container hover:bg-surface-container-high'}" data-slug="${ep.slug}" data-name="${ep.name}">
-          <div class="relative w-28 aspect-video rounded-lg overflow-hidden shrink-0 bg-surface-container-highest">
-            <img src="${movieData.movie.thumb_url || movieData.movie.poster_url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            ${isCurrent ? `
-              <div class="absolute inset-0 bg-surface-container-lowest/50 flex items-center justify-center">
-                <div class="flex items-center gap-0.5">
-                  <span class="w-1 h-3 bg-primary-container animate-pulse"></span>
-                  <span class="w-1 h-4 bg-primary-container animate-pulse delay-75"></span>
-                  <span class="w-1 h-2 bg-primary-container animate-pulse delay-150"></span>
-                </div>
-              </div>
-            ` : ''}
-            <span class="absolute bottom-1 right-1 px-1 rounded bg-surface-container-lowest/90 font-label-badge text-[10px] text-on-surface">4K</span>
-          </div>
-          <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-            <div>
-              <span class="font-label-md text-label-md font-bold ${isCurrent ? 'text-primary' : 'text-on-surface group-hover:text-primary'} truncate block">
-                ${/full/i.test(ep.name) ? 'Bản Full' : `Tập ${cleanEpName(ep.name)}`}
-              </span>
-              <p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-1 mt-0.5">
-                ${movieData.movie.name}
-              </p>
-            </div>
-            <div class="flex items-center justify-between text-on-surface-variant font-label-badge text-[11px] pt-1">
-              ${isCurrent ? `
-                <span class="text-primary font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span> Đang phát</span>
-              ` : `
-                <span>Full HD Vietsub</span>
-                <span class="material-symbols-outlined text-[16px] group-hover:text-primary">play_circle</span>
-              `}
-            </div>
-          </div>
-        </div>
+        <button type="button" data-episode-thumb class="ep-item episode-drawer-choice ${isCurrent ? 'is-current' : ''}" data-slug="${escapeHtml(ep.slug)}" data-name="${escapeHtml(ep.name)}" ${isCurrent ? 'aria-current="true"' : ''}>
+          <span class="episode-drawer-icon material-symbols-outlined" aria-hidden="true">${isCurrent ? 'equalizer' : 'play_arrow'}</span>
+          <span class="episode-drawer-copy"><span class="episode-drawer-label">${escapeHtml(/full/i.test(ep.name) ? 'Bản Full' : `Tập ${cleanEpName(ep.name)}`)}</span><span class="episode-choice-subtitle">${escapeHtml(movieData.movie.name)}</span>${isCurrent ? '<span class="episode-drawer-status">Đang xem</span>' : ''}</span>
+          <span class="episode-choice-play material-symbols-outlined" aria-hidden="true">${isCurrent ? 'equalizer' : 'play_arrow'}</span>
+        </button>
       `;
     }).join('');
+    window.EpisodeSources?.decorateThumbnails(listContainer, filteredEps, movieData.movie);
 
     listContainer.querySelectorAll('.ep-item').forEach(item => {
       item.addEventListener('click', (e) => {
@@ -1438,213 +1489,189 @@ document.addEventListener('DOMContentLoaded', async () => {
   function highlightActiveEpisodeInDrawer(activeSlug) {
     const items = document.querySelectorAll('.ep-item');
     items.forEach(it => {
-      if (it.dataset.slug === activeSlug) {
-        it.classList.add('bg-surface-container-high', 'border-l-4', 'border-l-primary-container');
-        it.classList.remove('bg-surface-container');
-        it.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      } else {
-        it.classList.remove('bg-surface-container-high', 'border-l-4', 'border-l-primary-container');
-        it.classList.add('bg-surface-container');
+      const selected = it.dataset.slug === activeSlug;
+      it.classList.toggle('is-current', selected);
+      if (selected) it.setAttribute('aria-current', 'true'); else it.removeAttribute('aria-current');
+      const icon = it.querySelector('.episode-drawer-icon');
+      if (icon) icon.textContent = selected ? 'equalizer' : 'play_arrow';
+      it.querySelector('.episode-drawer-status')?.remove();
+      const play = it.querySelector('.episode-choice-play');
+      if (play) play.textContent = selected ? 'equalizer' : 'play_arrow';
+      if (selected) {
+        const status = document.createElement('span'); status.className = 'episode-drawer-status'; status.textContent = 'Đang xem'; (it.querySelector('.episode-drawer-copy') || it).append(status);
       }
     });
   }
 
-  // --- Synopsis & Info Below Player (Real Data & Rich Cast Carousel) ---
+  // --- Synopsis & Info Below Player ---
   function renderInfoBelowPlayer(movie) {
     const title = document.querySelector('h2.font-headline-lg, h2');
-    if (title) title.innerText = `${movie.name} ${movie.origin_name ? `(${movie.origin_name})` : ''}`;
+    if (title) title.innerText = movie.name;
 
     const synopsis = document.querySelector('p.font-body-md.text-on-surface-variant.leading-relaxed') ||
                      document.querySelector('p.font-body-md.text-on-surface-variant');
     if (synopsis) synopsis.innerText = movie.content || 'Nội dung phim đang cập nhật...';
 
-    // Real ratings & real views
-    const scoreEl = document.querySelector('span.font-headline-lg.text-headline-lg.font-black');
-    if (scoreEl) {
-      const realScore = (movie.tmdb?.vote_average && movie.tmdb.vote_average > 0) ? Number(movie.tmdb.vote_average).toFixed(1) :
-                        ((movie.imdb?.vote_average && movie.imdb.vote_average > 0) ? Number(movie.imdb.vote_average).toFixed(1) :
-                        (movie.vote_average && Number(movie.vote_average) > 0 ? Number(movie.vote_average).toFixed(1) : '8.8'));
-      scoreEl.innerText = realScore;
+    const chips = document.querySelectorAll('div.flex.flex-wrap.items-center.gap-x-6 div');
+    if (chips[0]) chips[0].innerHTML = `<span class="text-on-surface font-semibold">Đạo diễn:</span> ${escapeHtml(movie.director?.length ? movie.director.join(', ') : 'Đang cập nhật')}`;
+    if (chips[1]) chips[1].innerHTML = `<span class="text-on-surface font-semibold">Diễn viên:</span> ${escapeHtml(movie.actor?.length ? movie.actor.join(', ') : 'Đang cập nhật')}`;
+    if (chips[2]) chips[2].innerHTML = `<span class="text-on-surface font-semibold">Thể loại:</span> ${escapeHtml(movie.category?.map(c => c.name).join(', ') || 'Chính kịch')}`;
+
+    renderWatchCastAndCrew(movie);
+  }
+
+  function renderWatchCastAndCrew(movie) {
+    const castContainer = document.getElementById('watch-cast-crew-section');
+    if (!castContainer || !movie) return;
+
+    function getPersonUrl(name, isDirector = false) {
+      if (!name || !name.trim()) return '/kham-pha';
+      const cleanName = name.trim();
+      const base = isDirector ? 'dao-dien' : 'dien-vien';
+      const slug = cleanName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      if (slug && slug.length > 0) {
+        return `/${base}/${slug}?name=${encodeURIComponent(cleanName)}`;
+      }
+      return `/${base}?name=${encodeURIComponent(cleanName)}`;
     }
 
-    const viewEl = document.querySelector('div.bg-surface-container.shrink-0 span.font-body-sm');
-    if (viewEl) {
-      viewEl.innerText = (movie.view && movie.view > 0) ? `${movie.view.toLocaleString('vi-VN')} lượt xem` : 'Lượt xem mới';
+    function attachCastScroll(wrapper) {
+      const carousel = wrapper.querySelector('.cast-carousel');
+      const prevBtn = wrapper.querySelector('.cast-scroll-prev');
+      const nextBtn = wrapper.querySelector('.cast-scroll-next');
+      if (!carousel) return;
+      if (prevBtn) {
+        prevBtn.onclick = (e) => {
+          e.preventDefault();
+          carousel.scrollBy({ left: -300, behavior: 'smooth' });
+        };
+      }
+      if (nextBtn) {
+        nextBtn.onclick = (e) => {
+          e.preventDefault();
+          carousel.scrollBy({ left: 300, behavior: 'smooth' });
+        };
+      }
     }
 
-    // Genre
-    const catDiv = document.querySelector('div.pt-1.font-body-sm div') || document.querySelector('div.flex.flex-wrap.items-center.gap-x-6 div:last-child');
-    if (catDiv) {
-      catDiv.innerHTML = `<span class="text-on-surface font-semibold">Thể loại:</span> ${movie.category?.map(c => c.name).join(', ') || 'Chính kịch'}`;
+    // If SSR already rendered the full cast-crew-wrapper, preserve it and just attach scroll events
+    const existingWrapper = castContainer.querySelector('.cast-crew-wrapper');
+    if (existingWrapper && existingWrapper.querySelector('.cast-carousel img')) {
+      attachCastScroll(castContainer);
+      return;
     }
 
-    // Rich Cast & Crew Carousel (identical to Detail page, uniform heights & real TMDb avatars)
-    function slugifyWatchPerson(str) {
-      if (!str) return '';
-      return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    }
+    const credits = movie.credits || {};
+    let directorsList = [...(credits.directors || movie.tmdb_directors || [])];
+    let actorsList = [...(credits.cast || movie.tmdb_cast || [])];
 
-    const infoCard = document.querySelector('div.w-full.bg-surface-container-low.rounded-xl.p-space-md');
-    let castContainer = document.getElementById('watch-cast-container');
-    if (!castContainer && infoCard) {
-      castContainer = document.createElement('div');
-      castContainer.id = 'watch-cast-container';
-      castContainer.className = 'col-span-full space-y-3 pt-3 border-t border-white/5';
-      infoCard.appendChild(castContainer);
-    }
+    const seenDirs = new Set(directorsList.map(d => (d.name || '').toLowerCase().trim()));
+    const seenActors = new Set(actorsList.map(a => (a.name || '').toLowerCase().trim()));
 
-    if (castContainer) {
-      const hasTmdbCards = castContainer.querySelector('a[href^="/dien-vien/"] img[src*="image.tmdb.org"]');
-      const tmdbCast = movie.tmdb_cast || movie.credits?.cast || [];
-      const tmdbDirs = movie.tmdb_directors || movie.credits?.directors || [];
-
-      if (!hasTmdbCards || tmdbCast.length > 0) {
-        let directorsList = [];
-        let actorsList = [];
-
-        if (tmdbDirs.length || tmdbCast.length) {
-          directorsList = tmdbDirs;
-          actorsList = tmdbCast;
-        } else {
-          directorsList = (movie.director || []).filter(Boolean).map(d => ({
-            name: d,
+    if (Array.isArray(movie.director)) {
+      movie.director.filter(Boolean).forEach(d => {
+        const clean = d.trim();
+        if (clean && !seenDirs.has(clean.toLowerCase())) {
+          seenDirs.add(clean.toLowerCase());
+          directorsList.push({
+            name: clean,
             character: 'Đạo diễn',
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true`
-          }));
-          actorsList = (movie.actor || []).filter(Boolean).map(a => ({
-            name: a,
-            character: 'Diễn viên',
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true`
-          }));
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=1d1f29&color=f59e0b&size=256&bold=true`,
+            isDirector: true
+          });
         }
+      });
+    }
 
-        castContainer.innerHTML = `
-          <div class="flex items-center justify-between pb-1">
-            <span class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 font-bold">
-              <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
-              <span>Đạo Diễn & Diễn Viên (${directorsList.length + actorsList.length})</span>
-            </span>
-            <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem tiểu sử & danh sách phim</span>
+    if (Array.isArray(movie.actor)) {
+      movie.actor.filter(Boolean).forEach(a => {
+        const clean = a.trim();
+        if (clean && !seenActors.has(clean.toLowerCase())) {
+          seenActors.add(clean.toLowerCase());
+          actorsList.push({
+            name: clean,
+            character: 'Diễn viên',
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=e50914&color=fff&size=256&bold=true`,
+            isDirector: false
+          });
+        }
+      });
+    }
+
+    const totalCount = directorsList.length + actorsList.length;
+    if (totalCount > 0) {
+      castContainer.innerHTML = `
+        <div class="cast-crew-wrapper col-span-full w-full bg-surface-container-low rounded-xl p-space-md lg:p-space-lg flex flex-col gap-space-sm shadow-md border border-white/5">
+          <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-5 rounded-full bg-primary-container inline-block"></span>
+              <span class="font-headline-sm text-headline-sm font-bold text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary-container text-[20px]">recent_actors</span>
+                <span>Đạo Diễn & Diễn Viên</span>
+                <span class="px-2 py-0.5 rounded-full bg-surface-container text-primary font-label-badge text-label-badge font-bold">${totalCount}</span>
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] text-on-surface-variant/70 hidden md:inline mr-1">Chạm vào nghệ sĩ để xem tiểu sử & danh sách phim TMDb</span>
+              <button type="button" class="cast-scroll-prev p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer" title="Cuộn sang trái">
+                <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+              </button>
+              <button type="button" class="cast-scroll-next p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer" title="Cuộn sang phải">
+                <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+              </button>
+            </div>
           </div>
-          
-          <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
+
+          <div class="cast-carousel flex items-start gap-3 sm:gap-4 overflow-x-auto pb-2 pt-2 scrollbar-none scroll-smooth">
             ${directorsList.map(d => {
-              const imgUrl = d.avatar || (d.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${d.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`);
+              const fallback = `https://ui-avatars.com/api/?name=${pathSegment(d.name)}&background=1d1f29&color=f59e0b&size=256&bold=true`;
+              const avatarUrl = d.avatar || fallback;
               return `
-              <a href="/dao-dien/${slugifyWatchPerson(d.name)}?id=${d.id || ''}&name=${encodeURIComponent(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
-                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
-                  <img src="${imgUrl}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
-                </div>
-                <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${d.name}</span>
-                <span class="text-[10px] text-primary font-semibold block uppercase truncate w-full h-3.5 leading-3.5">Đạo Diễn</span>
-              </a>
-            `;}).join('')}
+                <a href="${escapeHtml(getPersonUrl(d.name, true))}" class="group flex flex-col items-center gap-2 shrink-0 text-center w-24 sm:w-28 p-2 rounded-xl hover:bg-surface-container/60 transition-all cursor-pointer" title="Đạo diễn: ${escapeHtml(d.name)}">
+                  <div class="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden p-0.5 ring-2 ring-amber-500/80 bg-surface-container shadow-lg group-hover:scale-105 group-hover:ring-amber-400 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all duration-300">
+                    <img src="${escapeHtml(safeUrl(avatarUrl))}" alt="${escapeHtml(d.name)}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='${fallback}';" />
+                    <span class="absolute bottom-0 inset-x-0 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider py-0.5 text-center">Đạo Diễn</span>
+                  </div>
+                  <div class="w-full">
+                    <span class="text-xs sm:text-[13px] font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block">${escapeHtml(d.name)}</span>
+                    <span class="text-[11px] text-amber-400/90 font-medium line-clamp-1 mt-0.5">Đạo diễn</span>
+                  </div>
+                </a>
+              `;
+            }).join('')}
 
             ${actorsList.map(a => {
-              const imgUrl = a.avatar || (a.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${a.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=256&bold=true`);
+              const fallback = `https://ui-avatars.com/api/?name=${pathSegment(a.name)}&background=1d1f29&color=e50914&size=256&bold=true`;
+              const avatarUrl = a.avatar || fallback;
               return `
-              <a href="/dien-vien/${slugifyWatchPerson(a.name)}?id=${a.id || ''}&name=${encodeURIComponent(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
-                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
-                  <img src="${imgUrl}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
-                </div>
-                <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${a.name}</span>
-                <span class="text-[10px] text-on-surface-variant font-semibold block uppercase truncate w-full h-3.5 leading-3.5" title="${a.character || 'Diễn Viên'}">${a.character || 'Diễn Viên'}</span>
-              </a>
-            `;}).join('')}
-
-            ${(!directorsList.length && !actorsList.length) ? `
-              <div class="text-xs text-on-surface-variant py-2">Thông tin nghệ sĩ đang được cập nhật</div>
-            ` : ''}
+                <a href="${escapeHtml(getPersonUrl(a.name, false))}" class="group flex flex-col items-center gap-2 shrink-0 text-center w-24 sm:w-28 p-2 rounded-xl hover:bg-surface-container/60 transition-all cursor-pointer" title="Diễn viên: ${escapeHtml(a.name)} (${escapeHtml(a.character || 'Diễn viên')})">
+                  <div class="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden p-0.5 ring-2 ring-white/20 bg-surface-container shadow-lg group-hover:scale-105 group-hover:ring-primary-container group-hover:shadow-[0_0_20px_rgba(229,9,20,0.5)] transition-all duration-300">
+                    <img src="${escapeHtml(safeUrl(avatarUrl))}" alt="${escapeHtml(a.name)}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='${fallback}';" />
+                  </div>
+                  <div class="w-full">
+                    <span class="text-xs sm:text-[13px] font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block">${escapeHtml(a.name)}</span>
+                    <span class="text-[11px] text-on-surface-variant line-clamp-1 mt-0.5" title="${escapeHtml(a.character || 'Diễn viên')}">${escapeHtml(a.character || 'Diễn viên')}</span>
+                  </div>
+                </a>
+              `;
+            }).join('')}
           </div>
-        `;
-      }
+        </div>
+      `;
+      attachCastScroll(castContainer);
     }
   }
 
-  // --- Cinema Mode & Theater Mode ---
+  // Presentation modes never recreate or reparent the active player.
   function setupCinemaAndTheaterModes() {
-    let cinemaLightsOff = false;
-    const floatingLightBtn = document.getElementById('btn-floating-light');
-
-    function setCinemaState(turnOff) {
-      cinemaLightsOff = turnOff;
-      document.body.classList.toggle('cinema-lights-active', cinemaLightsOff);
-
-      if (cinemaLightsOff) {
-        if (lightIcon) {
-          lightIcon.innerText = 'lightbulb';
-          lightIcon.style.fontVariationSettings = "'FILL' 1";
-        }
-        if (lightLabel) lightLabel.innerText = 'Bật đèn rạp';
-        if (lightBtn) {
-          lightBtn.classList.add('bg-amber-500/25', 'text-amber-300', 'border', 'border-amber-400/50', 'shadow-[0_0_15px_rgba(245,158,11,0.3)]');
-        }
-
-        // Smoothly center the movie player in the user's viewport
-        if (viewport) {
-          viewport.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-
-        window.showToast('🎬 Đã tắt đèn rạp chiếu. Nhấp vào vùng tối hoặc phím Esc để bật lại đèn!');
-      } else {
-        if (lightIcon) {
-          lightIcon.innerText = 'lightbulb';
-          lightIcon.style.fontVariationSettings = "'FILL' 0";
-        }
-        if (lightLabel) lightLabel.innerText = 'Tắt đèn rạp';
-        if (lightBtn) {
-          lightBtn.classList.remove('bg-amber-500/25', 'text-amber-300', 'border', 'border-amber-400/50', 'shadow-[0_0_15px_rgba(245,158,11,0.3)]');
-        }
-
-        window.showToast('💡 Đã bật lại ánh sáng rạp');
-      }
-    }
-
-    if (lightBtn) {
-      lightBtn.onclick = (e) => {
-        e.stopPropagation();
-        setCinemaState(!cinemaLightsOff);
-      };
-    }
-
-    if (floatingLightBtn) {
-      floatingLightBtn.onclick = (e) => {
-        e.stopPropagation();
-        setCinemaState(false);
-      };
-    }
-
-    if (lightScrim) {
-      lightScrim.onclick = (e) => {
-        e.stopPropagation();
-        setCinemaState(false);
-      };
-    }
-
-    // Keyboard shortcut Escape to exit cinema lights off
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && cinemaLightsOff) {
-        setCinemaState(false);
-      }
-    });
-
-    let isTheater = false;
-    if (theaterBtn && primaryPlayerCol) {
-      theaterBtn.onclick = () => {
-        isTheater = !isTheater;
-        if (isTheater) {
-          primaryPlayerCol.classList.remove('xl:col-span-8', '2xl:col-span-9');
-          primaryPlayerCol.classList.add('xl:col-span-12', '2xl:col-span-12');
-          theaterBtn.classList.add('text-primary-container');
-          window.showToast('Chế độ rạp hát: Mở rộng khung xem tối đa');
-        } else {
-          primaryPlayerCol.classList.remove('xl:col-span-12', '2xl:col-span-12');
-          primaryPlayerCol.classList.add('xl:col-span-8', '2xl:col-span-9');
-          theaterBtn.classList.remove('text-primary-container');
-          window.showToast('Thu nhỏ khung xem chuẩn');
-        }
-      };
-    }
+    window.WatchViewModes?.init();
   }
 
   // --- Utility Action Cluster (Download, Report, Like/Rate, Share) ---
@@ -1689,13 +1716,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="space-y-3">
           <div>
             <span class="text-on-surface-variant font-label-badge text-label-badge uppercase">Tập hiện tại</span>
-            <p class="font-body-md text-on-surface font-bold">${movieData.movie.name} - ${epName}</p>
+            <p class="font-body-md text-on-surface font-bold">${escapeHtml(movieData.movie.name)} - ${escapeHtml(epName)}</p>
           </div>
 
           <div>
             <span class="text-on-surface-variant font-label-badge text-label-badge uppercase">Đường dẫn Stream (m3u8)</span>
             <div class="flex items-center gap-2 mt-1">
-              <input type="text" readonly value="${streamLink}" id="download-stream-url" class="flex-1 px-3 py-2 rounded-lg bg-surface-container-high text-on-surface text-body-sm font-mono border border-surface-container-highest focus:outline-none select-all truncate" />
+              <input type="text" readonly value="${escapeHtml(streamLink)}" id="download-stream-url" class="flex-1 px-3 py-2 rounded-lg bg-surface-container-high text-on-surface text-body-sm font-mono border border-surface-container-highest focus:outline-none select-all truncate" />
               <button id="btn-copy-stream-url" class="px-3 py-2 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md font-bold hover:brightness-110 transition-all flex items-center gap-1 cursor-pointer shrink-0">
                 <span class="material-symbols-outlined text-[16px]">content_copy</span>
                 <span>Sao chép</span>
@@ -1709,7 +1736,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               Hướng dẫn tải chất lượng cao:
             </p>
             <ul class="list-disc list-inside space-y-1 text-[13px] text-on-surface-variant">
-              <li>Dán link trên vào phần mềm <b>IDM (Internet Download Manager)</b> hoặc <b>VLC Player</b> để tải bản Full HD trực tiếp.</li>
+              <li>Dán link trên vào phần mềm <b>IDM (Internet Download Manager)</b> hoặc <b>VLC Player</b>. Chất lượng phụ thuộc nguồn phim.</li>
               <li>Hoặc cài đặt tiện ích mở rộng trình duyệt <b>Live Stream Downloader</b> để tải video m3u8 tự động.</li>
             </ul>
           </div>
@@ -1717,7 +1744,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-surface-container-highest">
           ${currentEpisode.link_m3u8 ? `
-            <a href="${currentEpisode.link_m3u8}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md transition-colors flex items-center gap-1.5">
+            <a href="${escapeHtml(safeUrl(currentEpisode.link_m3u8, '#'))}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md transition-colors flex items-center gap-1.5">
               <span class="material-symbols-outlined text-[16px]">open_in_new</span>
               <span>Mở trực tiếp link m3u8</span>
             </a>
@@ -1765,7 +1792,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         <div class="space-y-3">
           <p class="font-body-sm text-on-surface-variant">
-            Báo cáo sự cố phát cho <b class="text-on-surface">${movieData.movie.name} - ${epLabel}</b>:
+            Báo cáo sự cố phát cho <b class="text-on-surface">${escapeHtml(movieData.movie.name)} - ${escapeHtml(epLabel)}</b>:
           </p>
 
           <div class="space-y-2" id="report-reasons-group">
@@ -1817,22 +1844,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       const details = modal.querySelector('#report-details-input').value.trim();
 
       const submitBtn = modal.querySelector('#submit-report-btn');
+      if (submitBtn.disabled) return;
+      const originalLabel = submitBtn.innerHTML;
       submitBtn.disabled = true;
       submitBtn.innerText = 'Đang gửi...';
 
       try {
-        await API.reportError(movieData.movie.slug, currentEpisode.slug, reason, details);
+        const response = await API.reportError(movieData.movie.slug, currentEpisode.slug, reason, details);
+        if (response?.status !== true) throw new Error(response?.message || 'Chưa gửi được báo lỗi. Vui lòng thử lại.');
         closeFn();
-        window.showToast('✅ Đã tiếp nhận báo lỗi! Đội ngũ CineViet sẽ kiểm tra xử lý ngay.');
+        window.showToast?.('Đã tiếp nhận báo lỗi! Đội ngũ CineViet sẽ kiểm tra xử lý.');
       } catch (e) {
-        closeFn();
-        window.showToast('Đã ghi nhận phản hồi của bạn. Cảm ơn bạn!');
+        window.showToast?.(e.message || 'Chưa gửi được báo lỗi. Vui lòng thử lại.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalLabel;
       }
     };
   }
 
   function openRateModal() {
     if (!currentEpisode) return;
+    const storedUser = localStorage.getItem('kk_user');
+    if (!storedUser && !user) {
+      window.showToast?.('Vui lòng đăng nhập để đánh giá phim!', 'warning');
+      setTimeout(() => {
+        window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      }, 800);
+      return;
+    }
     let modal = document.getElementById('modal-rate');
     if (!modal) {
       modal = document.createElement('div');
@@ -1853,14 +1893,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     modal.innerHTML = `
       <div class="relative w-full max-w-sm bg-surface-container rounded-2xl overflow-hidden shadow-2xl border border-surface-container-highest flex flex-col p-6 gap-4 text-center">
         <div class="flex items-center justify-between border-b border-surface-container-highest pb-3">
-          <h3 class="font-headline-sm text-on-surface font-bold">Đánh Giá Tập Phim</h3>
+          <h3 class="font-headline-sm text-on-surface font-bold">Đánh giá phim</h3>
           <button id="close-rate-btn" class="p-1.5 rounded-full hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
 
         <p class="font-body-sm text-on-surface-variant">
-          Bạn thấy chất lượng nội dung và hình ảnh của <b class="text-on-surface">${epLabel}</b> thế nào?
+          Chấm điểm cho <b class="text-on-surface">${escapeHtml(movieData.movie.name)}</b>. Mỗi tài khoản có một phiếu và có thể cập nhật điểm.
         </p>
 
         <div class="flex items-center justify-center gap-2 py-2" id="star-picker">
@@ -1916,14 +1956,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     modal.querySelector('#submit-rate-btn').onclick = async () => {
       try {
-        await API.rateMovie(movieData.movie.slug, selectedScore, currentEpisode.slug);
-      } catch(e) {}
+        const res = await API.rateMovie(movieData.movie.slug, selectedScore, currentEpisode.slug);
+        if (!res?.status) {
+          window.showToast?.(res?.message || 'Không thể lưu đánh giá. Vui lòng thử lại.', 'error');
+          if (res?.httpStatus === 401) setTimeout(() => {
+            window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+          }, 800);
+          return;
+        }
+      } catch(e) { window.showToast?.('Không thể lưu đánh giá. Vui lòng thử lại.', 'error'); return; }
       closeFn();
       const rateBtn = document.getElementById('btn-rate-ep') || document.querySelector('button[title*="Đánh giá"]');
       if (rateBtn) {
         rateBtn.classList.add('text-primary');
       }
-      window.showToast(`⭐ Cảm ơn bạn đã đánh giá ${selectedScore}/5 sao cho ${epLabel}!`);
+      window.showToast(`Đã lưu đánh giá ${selectedScore}/5 sao cho phim.`);
     };
   }
 
@@ -1945,7 +1992,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sendBtn = document.getElementById('watch-send-btn') || document.querySelector('button.bg-primary-container:has(.send)');
     const timeTagBtn = document.getElementById('watch-timetag-btn') || document.querySelector('button[title="Đính kèm mốc thời gian phim"]');
     const timeTagPreview = document.getElementById('watch-timetag-preview');
-    const emojiBtn = document.getElementById('watch-emoji-btn') || document.querySelector('button[title="Chèn biểu tượng cảm xúc"]');
+    const clearTimeTagBtn = document.getElementById('watch-timetag-clear');
     const sortNewestBtn = document.getElementById('watch-btn-sort-newest');
     const sortFeaturedBtn = document.getElementById('watch-btn-sort-featured');
     const userAvatarEl = document.getElementById('watch-user-avatar');
@@ -1959,10 +2006,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch(e) {}
 
     if (currentUser && userAvatarEl && currentUser.avatar) {
-      userAvatarEl.src = currentUser.avatar;
+      userAvatarEl.src = safeUrl(currentUser.avatar); userAvatarEl.dataset.avatarUser = currentUser.id;
     }
 
     if (!commentsList) return;
+    let commentRequest = 0;
+    const threadScope = window.CommentThreads?.scope({ list: commentsList, servers: movieData.episodes, current: () => currentEpisode?.slug || '', watch: true, onChange: () => loadAndRenderComments() });
+    const spoilerCheck = input && window.CommentThreads?.spoilerInput(input);
+    window.addEventListener('cineviet:episode-change', () => { resetTimeTag(); loadAndRenderComments(); });
 
     // Relative Time Formatter
     function formatRelativeTime(dateStr) {
@@ -2004,32 +2055,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (e) {}
     }
 
-    // Emoji Picker Quick Dropdown / Cycle
-    if (emojiBtn && input) {
-      emojiBtn.addEventListener('click', () => {
-        const emojis = ['🍿', '🔥', '❤️', '👏', '😱', '👍', '⭐'];
-        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-        input.value += (input.value ? ' ' : '') + randomEmoji;
-        input.focus();
-      });
-    }
 
     // Attach Time Tag from Current Video Player
     let attachedTimeTag = null;
+    let attachedEpisode = null;
+    const resetTimeTag = () => { attachedTimeTag = null; attachedEpisode = null; if (timeTagPreview) timeTagPreview.textContent = ''; if (clearTimeTagBtn) clearTimeTagBtn.hidden = true; };
+    if (clearTimeTagBtn) clearTimeTagBtn.onclick = resetTimeTag;
     if (timeTagBtn) {
       timeTagBtn.addEventListener('click', () => {
         const vid = document.getElementById('TTPhim-player') || document.querySelector('video');
-        if (vid && vid.currentTime > 0) {
-          const m = Math.floor(vid.currentTime / 60);
-          const s = Math.floor(vid.currentTime % 60);
-          attachedTimeTag = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-          if (timeTagPreview) timeTagPreview.innerText = attachedTimeTag;
-          if (input) {
-            if (!input.value.includes(`[${attachedTimeTag}]`)) {
-              input.value = `[${attachedTimeTag}] ` + input.value;
-            }
-            input.focus();
-          }
+        if (vid && Number.isFinite(vid.currentTime) && vid.currentTime >= 0 && vid.readyState >= 1) {
+          attachedTimeTag = formatTime(vid.currentTime);
+          attachedEpisode = currentEpisode?.slug || null;
+          if (timeTagPreview) timeTagPreview.textContent = attachedTimeTag;
+          if (clearTimeTagBtn) clearTimeTagBtn.hidden = false;
+          input?.focus();
           window.showToast(`⏱️ Đã gắn mốc thời gian ${attachedTimeTag}`);
         } else {
           window.showToast('Hãy phát video để lấy mốc thời gian thực', 'info');
@@ -2055,7 +2095,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function loadAndRenderComments() {
-      let comments = await API.getComments(movieSlug);
+      const request = ++commentRequest;
+      let comments;
+      try { comments = await API.getComments(movieSlug); }
+      catch (_) { if (request === commentRequest) commentsList.textContent = 'Chưa tải được bình luận. Hãy chọn lại bộ lọc để thử lại.'; return; }
+      if (request !== commentRequest) return;
+      if (threadScope) comments = threadScope.filter(comments);
       if (commentCountBadge) {
         commentCountBadge.innerText = `${comments.length} Bình luận`;
       }
@@ -2070,7 +2115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         commentsList.innerHTML = `
           <div class="py-8 text-center text-on-surface-variant flex flex-col items-center gap-1.5 bg-surface-container-low rounded-xl">
             <span class="material-symbols-outlined text-[32px] text-surface-variant">chat</span>
-            <p class="font-body-sm text-[13px]">Chưa có bình luận nào. Hãy chia sẻ cảm nghĩ của bạn về tập phim này!</p>
+            <p class="font-body-sm text-[13px]">Chưa có bình luận trong mục này.</p>
           </div>
         `;
         return;
@@ -2079,18 +2124,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       const likedIds = getLikedCommentIds();
 
       commentsList.innerHTML = comments.map(c => {
-        const isLiked = likedIds.includes(c.id);
+        const isLiked = c.liked === true;
         const relTime = formatRelativeTime(c.created_at);
         const replies = c.replies || [];
+        let body = String(c.content || '');
+        const prefix = `[${c.timestamp_tag}]`;
+        if (c.timestamp_tag && body.trimStart().startsWith(prefix)) body = body.trimStart().slice(prefix.length).trimStart();
 
         return `
-        <div class="p-3 rounded-xl bg-surface-container-low/80 hover:bg-surface-container-low transition-colors space-y-2 border border-white/5" id="watch-comment-card-${c.id}">
+        <div class="p-3 rounded-xl bg-surface-container-low/80 hover:bg-surface-container-low transition-colors space-y-2 border border-white/5" id="watch-comment-card-${escapeHtml(c.id)}">
           <div class="flex items-start gap-3">
-            <img src="${c.user_avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8'}" class="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-white/10" alt="${c.user_name}" />
+            <img data-avatar-user="${escapeHtml(c.user_id || '')}" src="${escapeHtml(safeUrl(c.user_avatar || '/images/avatar-default.svg'))}" class="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-white/10" alt="${escapeHtml(c.user_name)}" />
             <div class="flex-1 min-w-0 space-y-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-label-md text-label-md font-bold text-on-surface truncate">${c.user_name}</span>
-                <span class="px-2 py-0.2 rounded bg-surface-container-highest text-secondary-fixed font-label-badge text-[10px]">Thành Viên</span>
+              <div class="watch-comment-header flex items-center gap-2 flex-wrap">
+                <span class="font-label-md text-label-md font-bold text-on-surface truncate">${escapeHtml(c.user_name)}</span>
+                <span class="watch-member-badge">${c.user_role === 'admin' ? 'Quản trị viên' : 'Thành viên'}</span>
                 <span class="font-body-sm text-[11px] text-on-surface-variant">${relTime}</span>
               </div>
 
@@ -2101,23 +2149,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button type="button" class="btn-toggle-watch-spoil text-primary underline cursor-pointer">Bấm để xem</button>
                   </div>
                   <p class="spoiler-body text-body-md text-on-surface filter blur-[5px] select-none transition-all duration-300 leading-relaxed">
-                    ${c.timestamp_tag ? `<span class="text-primary hover:underline cursor-pointer font-bold seek-jump" data-time="${c.timestamp_tag}">${c.timestamp_tag}</span> ` : ''}
-                    ${c.content}
+                    ${c.timestamp_tag ? `<button type="button" class="text-primary hover:underline cursor-pointer font-bold seek-jump" data-time="${escapeHtml(c.timestamp_tag)}" data-episode="${escapeHtml(c.episode_slug || '')}" aria-label="Tới mốc ${escapeHtml(c.timestamp_tag)}">${escapeHtml(c.timestamp_tag)}</button> ` : ''}
+                    ${escapeHtml(body)}
                   </p>
                 </div>
               ` : `
-                <p class="font-body-md text-body-md text-on-surface leading-relaxed">
-                  ${c.timestamp_tag ? `<span class="text-primary hover:underline cursor-pointer font-bold seek-jump inline-flex items-center gap-0.5 bg-primary/10 px-1.5 py-0.2 rounded" data-time="${c.timestamp_tag}"><span class="material-symbols-outlined text-[13px]">play_circle</span>${c.timestamp_tag}</span> ` : ''}
-                  ${c.content}
+                <p class="watch-comment-body font-body-md text-body-md text-on-surface leading-relaxed">${c.timestamp_tag ? `<button type="button" class="comment-time-tag text-primary seek-jump inline-flex items-center gap-1 bg-primary/10 px-1.5 rounded" data-time="${escapeHtml(c.timestamp_tag)}" data-episode="${escapeHtml(c.episode_slug || '')}" aria-label="Tới mốc ${escapeHtml(c.timestamp_tag)}"><span class="material-symbols-outlined text-[14px]" aria-hidden="true">play_circle</span>${escapeHtml(c.timestamp_tag)}</button> ` : ''}${escapeHtml(body)}
                 </p>
               `}
 
               <div class="flex items-center gap-4 text-on-surface-variant font-body-sm text-xs pt-1">
-                <button class="btn-like-watch-comment flex items-center gap-1 ${isLiked ? 'text-primary font-bold' : 'hover:text-primary'} transition-colors cursor-pointer" data-id="${c.id}" data-liked="${isLiked}">
+                <button class="btn-like-watch-comment flex items-center gap-1 ${isLiked ? 'text-primary font-bold' : 'hover:text-primary'} transition-colors cursor-pointer" data-id="${escapeHtml(c.id)}" data-liked="${isLiked}">
                   <span class="material-symbols-outlined text-[16px]">${isLiked ? 'favorite' : 'thumb_up'}</span>
-                  <span class="like-counter">${c.likes || 0}</span>
+                  <span class="like-counter">${Number(c.likes) || 0}</span>
                 </button>
-                <button class="btn-reply-watch hover:text-on-surface transition-colors cursor-pointer flex items-center gap-1" data-id="${c.id}" data-author="${c.user_name}">
+                <button class="btn-reply-watch hover:text-on-surface transition-colors cursor-pointer flex items-center gap-1" data-id="${escapeHtml(c.id)}" data-author="${escapeHtml(c.user_name)}">
                   <span class="material-symbols-outlined text-[15px]">reply</span>
                   <span>Trả lời (${replies.length})</span>
                 </button>
@@ -2126,14 +2172,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
 
           <!-- Inline Reply Box (Hidden by default) -->
-          <div class="watch-reply-box hidden pt-2 border-t border-surface-container-highest" id="watch-reply-box-${c.id}">
+          <div class="watch-reply-box hidden pt-2 border-t border-surface-container-highest" id="watch-reply-box-${escapeHtml(c.id)}">
             <div class="flex gap-2 items-center">
-              <input type="text" class="reply-input flex-1 px-3 py-1.5 rounded-lg bg-surface-container text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-high transition-colors" placeholder="Phản hồi cho ${c.user_name}..." />
-              <button type="button" class="btn-send-watch-reply px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold hover:brightness-110 cursor-pointer shadow-sm flex items-center gap-1 shrink-0" data-id="${c.id}">
+              <input type="text" class="reply-input flex-1 px-3 py-1.5 rounded-lg bg-surface-container text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-high transition-colors" placeholder="Phản hồi cho ${escapeHtml(c.user_name)}..." />
+              <button type="button" class="btn-send-watch-reply px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold hover:brightness-110 cursor-pointer shadow-sm flex items-center gap-1 shrink-0" data-id="${escapeHtml(c.id)}">
                 <span>Gửi</span>
                 <span class="material-symbols-outlined text-[13px]">send</span>
               </button>
-              <button type="button" class="btn-close-watch-reply p-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface cursor-pointer shrink-0" data-id="${c.id}">
+              <button type="button" class="btn-close-watch-reply p-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface cursor-pointer shrink-0" data-id="${escapeHtml(c.id)}">
                 <span class="material-symbols-outlined text-[15px]">close</span>
               </button>
             </div>
@@ -2141,15 +2187,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <!-- Nested Replies List -->
           ${replies.length > 0 ? `
-            <div class="space-y-2 pl-4 sm:pl-8 border-l border-surface-container-highest pt-1">
+            <div data-comment-replies class="space-y-2 pl-4 sm:pl-8 border-l border-surface-container-highest pt-1">
               ${replies.map(r => `
                 <div class="bg-surface-container/50 p-2 rounded-lg space-y-0.5">
                   <div class="flex items-center gap-2">
-                    <img src="${r.user_avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCSbujeZINk45JTMl1uHDHy58dzZtklTE0t5uPEhCwlICLLPGtijYtFO9JeqSqDGusRdB1gt7qycyJ5OX6kz4PYsmWLL5tvWy-spdqpz_DrG4qLJz8bQgtQlXHllA2zvsiuNrLj_cdZxocwgDBP1kYO7DK8ESLeW9ehVKs4rk50GYzAAygACch82GxO5zi10RYSftDRhD9PgHoAOvOFxw2ZKO2w05zb0jDbKL3RAg4'}" class="w-5 h-5 rounded-full object-cover shrink-0" />
-                    <span class="text-xs font-bold text-on-surface">${r.user_name}</span>
+                    <img data-avatar-user="${escapeHtml(r.user_id || '')}" src="${escapeHtml(safeUrl(r.user_avatar || '/favicon.svg'))}" class="w-5 h-5 rounded-full object-cover shrink-0" />
+                    <span class="text-xs font-bold text-on-surface">${escapeHtml(r.user_name)}</span>
                     <span class="text-[10px] text-on-surface-variant">${formatRelativeTime(r.created_at)}</span>
                   </div>
-                  <p class="text-xs text-on-surface-variant pl-7 leading-relaxed">${r.content}</p>
+                  <p class="text-xs text-on-surface-variant pl-7 leading-relaxed">${escapeHtml(r.content)}</p>
                 </div>
               `).join('')}
             </div>
@@ -2157,9 +2203,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       `;
       }).join('');
+      window.CommentThreads?.protect(commentsList, comments, 'watch-comment-card-');
 
       // Wire up Spoiler Toggles
       commentsList.querySelectorAll('.btn-toggle-watch-spoil').forEach(btn => {
+        if (window.CommentThreads) return;
         btn.addEventListener('click', () => {
           const wrapper = btn.closest('.spoiler-wrapper');
           const body = wrapper?.querySelector('.spoiler-body');
@@ -2186,7 +2234,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           const counter = b.querySelector('.like-counter');
           const icon = b.querySelector('.material-symbols-outlined');
 
-          const newLikes = await API.likeComment(cid, newAction);
+          if (b.disabled) return;
+          b.disabled = true;
+          let newLikes;
+          try { newLikes = await API.likeComment(cid, newAction); }
+          catch (error) {
+            window.showToast?.(error.message || 'Không thể thích bình luận. Vui lòng thử lại.', 'error');
+            if (error.httpStatus === 401) window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+            return;
+          } finally { b.disabled = false; }
           toggleLikedCommentId(cid, !currentlyLiked);
 
           b.dataset.liked = (!currentlyLiked).toString();
@@ -2225,6 +2281,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       commentsList.querySelectorAll('.btn-send-watch-reply').forEach(b => {
         b.addEventListener('click', async () => {
+          const storedUser = currentUser || (localStorage.getItem('kk_user') ? JSON.parse(localStorage.getItem('kk_user')) : null);
+          if (!storedUser) {
+            window.showToast?.('Vui lòng đăng nhập để phản hồi bình luận!', 'warning');
+            setTimeout(() => {
+              window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+            }, 800);
+            return;
+          }
+
           const cid = b.dataset.id;
           const box = document.getElementById(`watch-reply-box-${cid}`);
           const replyInput = box?.querySelector('.reply-input');
@@ -2236,7 +2301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
 
           b.disabled = true;
-          const res = await API.postReply(cid, content, currentUser?.name || 'Khán giả CineViet');
+          const res = await API.postReply(cid, content, storedUser.name || 'Khán giả CineViet');
           b.disabled = false;
 
           if (res.status) {
@@ -2257,22 +2322,37 @@ document.addEventListener('DOMContentLoaded', async () => {
           const timeText = sj.dataset.time || sj.innerText;
           const clean = timeText.replace(/[\[\]]/g, '').trim();
           const parts = clean.split(':').map(Number);
-          if (parts.length === 2) {
-            const targetSec = parts[0] * 60 + parts[1];
-            const vid = document.getElementById('TTPhim-player') || document.querySelector('video');
-            if (vid) {
-              vid.currentTime = targetSec;
-              vid.play().catch(() => {});
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-              window.showToast(`⏩ Đã nhảy tới thời điểm ${clean}`);
-            }
+          if (parts.length < 2 || parts.length > 3 || parts.some(part => !Number.isFinite(part) || part < 0)) return;
+          const targetSec = parts.reduce((total, part) => total * 60 + part, 0);
+          const episodeSlug = sj.dataset.episode;
+          if (episodeSlug && episodeSlug !== currentEpisode?.slug) {
+            const ep = movieData.episodes?.[activeServerIndex]?.server_data?.find(item => item.slug === episodeSlug);
+            if (ep) { useEmbed = false; loadEpisode(ep, targetSec); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+            else window.showToast?.('Mốc này thuộc tập khác, không có trên server hiện tại.', 'info');
+            return;
           }
+          const vid = document.getElementById('TTPhim-player') || document.querySelector('video');
+          if (!vid || vid.readyState < 1) { window.showToast?.('Server nhúng không hỗ trợ tua bằng mốc thời gian.', 'info'); return; }
+          vid.currentTime = Number.isFinite(vid.duration) ? Math.min(targetSec, vid.duration) : targetSec;
+          vid.play().catch(() => {});
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.showToast?.(`Đã chuyển tới ${clean}`);
         });
       });
     }
 
     if (sendBtn && input) {
       sendBtn.addEventListener('click', async () => {
+        if (sendBtn.disabled) return;
+        const storedUser = currentUser || (localStorage.getItem('kk_user') ? JSON.parse(localStorage.getItem('kk_user')) : null);
+        if (!storedUser) {
+          window.showToast?.('Vui lòng đăng nhập để đăng bình luận!', 'warning');
+          setTimeout(() => {
+            window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+          }, 800);
+          return;
+        }
+
         const text = input.value.trim();
         if (!text) {
           window.showToast('Vui lòng nhập nội dung bình luận', 'error');
@@ -2285,26 +2365,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         const commentPayload = {
           content: text,
           timestamp_tag: attachedTimeTag,
-          user_name: currentUser?.name || 'Khán giả CineViet'
+          episode_slug: currentEpisode?.slug || null,
+          is_spoil: Boolean(spoilerCheck?.checked),
+          user_name: storedUser.name || 'Khán giả CineViet'
         };
 
-        const res = await API.postComment(movieSlug, commentPayload);
+        let res;
+        try { res = await API.postComment(movieSlug, commentPayload); }
+        catch (_) { res = { status: false, message: 'Không thể gửi bình luận. Vui lòng thử lại.' }; }
         sendBtn.disabled = false;
         sendBtn.innerHTML = `<span>Gửi</span><span class="material-symbols-outlined text-[16px]">send</span>`;
 
         if (res.status) {
           input.value = '';
-          attachedTimeTag = null;
-          if (timeTagPreview) timeTagPreview.innerText = '';
+          if (spoilerCheck) spoilerCheck.checked = false;
+          resetTimeTag();
           window.showToast('🎉 Đã đăng bình luận thành công!');
           loadAndRenderComments();
         } else {
           window.showToast(res.message || 'Lỗi đăng bình luận', 'error');
+          if (res.status === false && (res.message?.includes('đăng nhập') || res.message?.includes('hết hạn'))) {
+            setTimeout(() => {
+              window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+            }, 800);
+          }
         }
       });
 
       input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') sendBtn.click();
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.isComposing) { e.preventDefault(); sendBtn.click(); }
       });
     }
 
@@ -2367,9 +2456,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const stored = localStorage.getItem('kk_user');
         if (stored) {
           const u = JSON.parse(stored);
-          if (u && (u.name || u.email)) {
+          if (u && (u.name || u.email || u.id)) {
             partyUser = {
-              id: u.id || `user_${Date.now()}`,
+              id: u.id,
               name: u.name || u.email.split('@')[0],
               avatar: u.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8'
             };
@@ -2377,22 +2466,27 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         }
       } catch(e) {}
+      if (typeof user !== 'undefined' && user) {
+        partyUser = {
+          id: user.id,
+          name: user.name || 'Khán giả CineViet',
+          avatar: user.avatar
+        };
+        return partyUser;
+      }
+      return null;
+    }
 
-      let guestId = localStorage.getItem('TTPhim_party_guest_id');
-      if (!guestId) {
-        guestId = `guest_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 4)}`;
-        localStorage.setItem('TTPhim_party_guest_id', guestId);
+    function requirePartyAuth(actionText = 'sử dụng tính năng Xem chung') {
+      const u = getPartyUser();
+      if (!u) {
+        window.showToast?.(`Vui lòng đăng nhập để ${actionText}!`, 'warning');
+        setTimeout(() => {
+          window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+        }, 800);
+        return null;
       }
-      let guestName = localStorage.getItem('TTPhim_party_guest_name');
-      if (!guestName) {
-        guestName = `Khán giả #${guestId.slice(-4)}`;
-      }
-      partyUser = {
-        id: guestId,
-        name: guestName,
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDmV0kJ3rLlFchh-aGILVOr-pQbdtHs2qQKQtkeKftGRHjg2nb7ii3xkFe2aJA7-Gldl5BqHuj4L_uiVmqQyW9CCgKPrUz_MCzKjGtUsI1R3dM0r3vXdhkgOsKaL_SVbs9gl7b2sTWQGr3VphY1X_pUChBkXZ-KPQtC6HeaIV7uxpjuEKEltMKcvR78AOcVjnQlk989xeMDULyOev-eHEjgdEO-N14MVTh2oQR_E3A'
-      };
-      return partyUser;
+      return u;
     }
 
     function saveCustomName(name) {
@@ -2400,12 +2494,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       const clean = name.trim();
       localStorage.setItem('TTPhim_party_guest_name', clean);
       const u = getPartyUser();
-      u.name = clean;
+      if (u) u.name = clean;
     }
 
     // --- Tab Switcher (Episodes vs Watch Party) ---
     function selectTab(tab) {
       if (tab === 'party') {
+        if (!activePartyRoom) {
+          const u = requirePartyAuth('sử dụng tính năng Xem chung');
+          if (!u) return;
+        }
         if (paneEpisodes) paneEpisodes.classList.add('hidden');
         if (paneParty) paneParty.classList.remove('hidden');
         if (tabParty) {
@@ -2437,7 +2535,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Modal Management ---
     function openModal(tab = 'create', prefilledCode = '') {
       if (!modal) return;
-      const u = getPartyUser();
+      const u = requirePartyAuth(tab === 'create' ? 'tạo phòng xem chung' : 'tham gia phòng xem chung');
+      if (!u) return;
       const currentMovie = getActiveMovie();
       if (inputRoomName) {
         if (!inputRoomName.value || inputRoomName.value.startsWith('Phòng xem') || inputRoomName.value.includes('undefined')) {
@@ -2518,6 +2617,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Header Button Trigger
     if (btnWatchPartyHeader) {
       btnWatchPartyHeader.addEventListener('click', () => {
+        const u = requirePartyAuth('sử dụng tính năng Xem chung');
+        if (!u) return;
         if (!activePartyRoom) {
           openModal('create');
         } else {
@@ -2532,7 +2633,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Create Room Submit ---
     if (btnSubmitCreate) {
       btnSubmitCreate.addEventListener('click', async () => {
-        const u = getPartyUser();
+        const u = requirePartyAuth('tạo phòng xem chung');
+        if (!u) return;
         const customName = inputCreateUser ? inputCreateUser.value.trim() : '';
         if (customName) saveCustomName(customName);
 
@@ -2578,7 +2680,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Join Room Submit ---
     if (btnSubmitJoin) {
       btnSubmitJoin.addEventListener('click', async () => {
-        const u = getPartyUser();
+        const u = requirePartyAuth('tham gia phòng xem chung');
+        if (!u) return;
         const customName = inputJoinUser ? inputJoinUser.value.trim() : '';
         if (customName) saveCustomName(customName);
 
@@ -2678,7 +2781,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           partyBtnIcon.innerText = 'group';
           partyBtnIcon.className = 'material-symbols-outlined text-[18px] text-secondary-fixed';
         }
-        if (partyBtnLabel) partyBtnLabel.innerText = 'Watch Party';
+        if (partyBtnLabel) partyBtnLabel.innerText = 'Xem chung';
         if (partyBtnBadge) {
           partyBtnBadge.innerText = 'LIVE';
           partyBtnBadge.className = 'px-1 rounded bg-secondary-fixed/20 text-secondary-fixed font-label-badge text-[10px]';
@@ -2708,7 +2811,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       const u = getPartyUser();
-      const streamUrl = `/api/party/${code}/stream?userId=${encodeURIComponent(u.id)}&userName=${encodeURIComponent(u.name)}`;
+      const userId = u ? u.id : '';
+      const userName = u ? u.name : 'Khán giả CineViet';
+      const streamUrl = `/api/party/${code}/stream?userId=${encodeURIComponent(userId)}&userName=${encodeURIComponent(userName)}`;
       sseSource = new EventSource(streamUrl);
 
       sseSource.onmessage = (event) => {
@@ -2786,7 +2891,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Remote Player Sync Handler ---
     function handleRemotePlayerSync(data) {
       const u = getPartyUser();
-      if (data.senderId === u.id) return; // Ignore own echo
+      if (u && data.senderId === u.id) return; // Ignore own echo
 
       isRemoteSync = true;
       const vid = document.getElementById('TTPhim-player') || document.querySelector('video');
@@ -2902,6 +3007,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       heartbeatTimer = setInterval(() => {
         if (!activePartyRoom) return;
         const u = getPartyUser();
+        if (!u) return;
         const isHost = activePartyRoom.hostId === u.id;
         if (isHost) {
           const vid = document.getElementById('TTPhim-player') || document.querySelector('video');
@@ -2956,7 +3062,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!partyPaneContent || !activePartyRoom) return;
       const room = activePartyRoom;
       const u = getPartyUser();
-      const isHost = room.hostId === u.id;
+      const isHost = Boolean(u && room.hostId === u.id);
 
       partyPaneContent.innerHTML = `
         <div class="flex flex-col h-full flex-1 min-h-0">
@@ -2965,11 +3071,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2 min-w-0">
                 <span class="w-2.5 h-2.5 rounded-full bg-secondary-fixed animate-ping"></span>
-                <h4 class="font-bold text-white text-xs truncate max-w-[140px]" title="${room.name}">${room.name}</h4>
+                <h4 class="font-bold text-white text-xs truncate max-w-[140px]" title="${escapeHtml(room.name)}">${escapeHtml(room.name)}</h4>
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
                 <button id="btn-copy-party-link" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-mono font-bold text-[11px] transition-all cursor-pointer border border-white/10" title="Bấm để sao chép liên kết mời bạn bè">
-                  <span class="text-secondary-fixed">${room.code}</span>
+                  <span class="text-secondary-fixed">${escapeHtml(room.code)}</span>
                   <span class="material-symbols-outlined text-[14px]">content_copy</span>
                 </button>
                 <button id="btn-leave-party" class="p-1.5 rounded-lg bg-error-container/20 hover:bg-error-container text-error hover:text-white transition-colors cursor-pointer" title="Rời khỏi phòng">
@@ -3046,7 +3152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const u = getPartyUser();
         try {
-          await API.leavePartyRoom(activePartyRoom.code, u.id);
+          if (u) await API.leavePartyRoom(activePartyRoom.code, u.id);
         } catch(e) {}
 
         if (sseSource) {
@@ -3072,6 +3178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (!activePartyRoom) return;
           const emoji = btn.dataset.emoji || '❤️';
           const u = getPartyUser();
+          if (!u) return;
 
           // Spawn locally
           spawnFloatingEmoji(emoji, 'Bạn');
@@ -3095,6 +3202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (!text || !activePartyRoom) return;
 
           const u = getPartyUser();
+          if (!u) return;
           chatInput.value = '';
 
           try {
@@ -3117,8 +3225,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const members = activePartyRoom.members || [];
 
       container.innerHTML = members.map(m => `
-        <div class="relative group/m shrink-0" title="${m.name} ${m.isHost ? '(Chủ phòng 👑)' : ''}">
-          <img class="w-6 h-6 rounded-full object-cover ring-1 ${m.isHost ? 'ring-primary' : 'ring-white/20'}" src="${m.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDmV0kJ3rLlFchh-aGILVOr-pQbdtHs2qQKQtkeKftGRHjg2nb7ii3xkFe2aJA7-Gldl5BqHuj4L_uiVmqQyW9CCgKPrUz_MCzKjGtUsI1R3dM0r3vXdhkgOsKaL_SVbs9gl7b2sTWQGr3VphY1X_pUChBkXZ-KPQtC6HeaIV7uxpjuEKEltMKcvR78AOcVjnQlk989xeMDULyOev-eHEjgdEO-N14MVTh2oQR_E3A'}" alt="${m.name}" />
+        <div class="relative group/m shrink-0" title="${escapeHtml(m.name)} ${m.isHost ? '(Chủ phòng 👑)' : ''}">
+          <img class="w-6 h-6 rounded-full object-cover ring-1 ${m.isHost ? 'ring-primary' : 'ring-white/20'}" src="${escapeHtml(safeUrl(m.avatar || '/favicon.svg'))}" alt="${escapeHtml(m.name)}" />
           ${m.isHost ? '<span class="absolute -top-1 -right-1 text-[10px] leading-none">👑</span>' : ''}
           <span class="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-black"></span>
         </div>
@@ -3142,7 +3250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!stream || !msg) return;
 
       const u = getPartyUser();
-      const isMe = msg.userId === u.id;
+      const isMe = Boolean(u && msg.userId === u.id);
 
       const el = document.createElement('div');
 
@@ -3150,21 +3258,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         el.className = 'text-center my-1';
         el.innerHTML = `
           <span class="inline-block px-2.5 py-0.5 rounded-full bg-surface-container-high/80 text-[11px] text-on-surface-variant font-medium">
-            ${msg.text}
+            ${escapeHtml(msg.text)}
           </span>
         `;
       } else {
         el.className = `flex gap-2 items-start ${isMe ? 'flex-row-reverse' : ''}`;
         el.innerHTML = `
-          <img class="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-white/10 mt-0.5" src="${msg.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDmV0kJ3rLlFchh-aGILVOr-pQbdtHs2qQKQtkeKftGRHjg2nb7ii3xkFe2aJA7-Gldl5BqHuj4L_uiVmqQyW9CCgKPrUz_MCzKjGtUsI1R3dM0r3vXdhkgOsKaL_SVbs9gl7b2sTWQGr3VphY1X_pUChBkXZ-KPQtC6HeaIV7uxpjuEKEltMKcvR78AOcVjnQlk989xeMDULyOev-eHEjgdEO-N14MVTh2oQR_E3A'}" alt="${msg.userName}" />
+          <img class="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-white/10 mt-0.5" src="${escapeHtml(safeUrl(msg.avatar || '/favicon.svg'))}" alt="${escapeHtml(msg.userName)}" />
           <div class="flex flex-col max-w-[80%] ${isMe ? 'items-end' : 'items-start'}">
             <div class="flex items-center gap-1.5 text-[10px] text-on-surface-variant mb-0.5">
-              <span class="font-bold text-on-surface">${isMe ? 'Bạn' : msg.userName}</span>
+              <span class="font-bold text-on-surface">${escapeHtml(isMe ? 'Bạn' : msg.userName)}</span>
               ${msg.isHost ? '<span class="text-primary font-bold">👑 Host</span>' : ''}
-              <span class="text-[9px] opacity-75">${msg.time || ''}</span>
+              <span class="text-[9px] opacity-75">${escapeHtml(msg.time || '')}</span>
             </div>
             <div class="px-3 py-1.5 rounded-2xl text-xs ${isMe ? 'bg-secondary-fixed text-on-secondary-fixed rounded-tr-xs font-medium' : 'bg-surface-container-high text-on-surface rounded-tl-xs'} shadow-sm leading-relaxed break-words">
-              ${msg.content || ''}
+              ${escapeHtml(msg.content || '')}
             </div>
           </div>
         `;
@@ -3189,10 +3297,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       const code = urlParams.get('party');
       if (!code) return;
 
+      const u = getPartyUser();
+      if (!u) {
+        window.showToast?.('Vui lòng đăng nhập để tham gia phòng xem chung!', 'warning');
+        setTimeout(() => {
+          window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+        }, 800);
+        return;
+      }
+
       try {
         const res = await API.getPartyRoom(code);
         if (res.status && res.data) {
-          const u = getPartyUser();
           openModal('join', code);
           selectTab('party');
         }
@@ -3208,20 +3324,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       isHost: () => {
         if (!activePartyRoom) return false;
         const u = getPartyUser();
-        return activePartyRoom.hostId === u.id;
+        return Boolean(u && activePartyRoom.hostId === u.id);
       },
       canControl: () => {
         if (!activePartyRoom) return true;
         if (activePartyRoom.controlMode === 'free_for_all') return true;
         const u = getPartyUser();
-        return activePartyRoom.hostId === u.id;
+        return Boolean(u && activePartyRoom.hostId === u.id);
       },
       isRemoteSync: false,
       openModal: (tab, code) => openModal(tab, code),
       updateMovie: (newMovie, newEp) => {
         if (inputRoomName && (!inputRoomName.value || inputRoomName.value.startsWith('Phòng xem'))) {
           const u = getPartyUser();
-          inputRoomName.value = `Phòng xem ${newMovie.name} của ${u.name}`;
+          const hostName = u?.name || 'bạn';
+          inputRoomName.value = `Phòng xem ${newMovie?.name || ''} của ${hostName}`;
         }
         updateEmbedPartyBar();
       },
@@ -3229,6 +3346,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       emitPlayerAction: (action, currentTime) => {
         if (!activePartyRoom || isRemoteSync) return;
         const u = getPartyUser();
+        if (!u) return;
         const isHost = activePartyRoom.hostId === u.id;
 
         if (activePartyRoom.controlMode === 'host_only' && !isHost && action !== 'heartbeat') {
@@ -3247,6 +3365,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       onEpisodeChanged: (ep) => {
         if (!activePartyRoom || isRemoteSync) return;
         const u = getPartyUser();
+        if (!u) return;
         API.syncPartyPlayer(activePartyRoom.code, {
           action: 'change_episode',
           currentTime: 0,

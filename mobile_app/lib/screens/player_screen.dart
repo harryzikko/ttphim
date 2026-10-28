@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
+import '../services/api_service.dart';
 import '../services/storage_service.dart';
+import '../services/embed_policy.dart';
 import '../theme/app_theme.dart';
 
 enum VideoFitMode {
@@ -35,6 +35,9 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMixin {
+  late Movie _activeMovie;
+  late List<ServerItem> _activeServers;
+  List<Map<String, dynamic>> _seasons = [];
   late ServerItem _currentServer;
   late EpisodeItem _currentEpisode;
 
@@ -106,6 +109,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    _activeMovie = widget.movie;
+    _activeServers = widget.servers;
     _currentServer = widget.initialServer;
     _currentEpisode = widget.initialEpisode;
 
@@ -142,17 +147,144 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   Future<void> _loadInitialState() async {
-    final fav = await StorageService.isFavorite(widget.movie.slug);
-    final watched = await StorageService.getWatchedEpisodes(widget.movie.slug);
+    final fav = await StorageService.isFavorite(_activeMovie.slug);
+    final watched = await StorageService.getWatchedEpisodes(_activeMovie.slug);
     final autoNext = await StorageService.getAutoNext();
+    final seasons = await ApiService.getMovieSeasons(_activeMovie.slug);
     if (mounted) {
       setState(() {
         _isFavorite = fav;
         _watchedSlugs = watched;
         _isAutoPlayEnabled = autoNext;
+        _seasons = seasons;
         _syncEpisodeTab();
       });
     }
+  }
+
+  String _getCurrentSeasonLabel() {
+    for (final s in _seasons) {
+      if (s['slug'] == _activeMovie.slug || s['is_current'] == true) {
+        return s['label']?.toString() ?? s['name']?.toString() ?? 'Chọn Phần';
+      }
+    }
+    return _seasons.isNotEmpty ? (_seasons.first['label']?.toString() ?? 'Chọn Phần') : 'Chọn Phần';
+  }
+
+  Future<void> _switchSeason(Map<String, dynamic> season) async {
+    final slug = season['slug']?.toString();
+    if (slug == null || slug == _activeMovie.slug) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Đang chuyển sang ${season['label'] ?? season['name'] ?? 'mùa mới'}...'),
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppTheme.surface,
+      ),
+    );
+
+    await _saveProgress();
+
+    final detail = await ApiService.getMovieDetail(slug);
+    if (!mounted || detail == null || detail.servers.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không tải được thông tin mùa phim này')),
+        );
+      }
+      return;
+    }
+
+    final newSeasons = await ApiService.getMovieSeasons(slug);
+    if (!mounted) return;
+
+    setState(() {
+      _activeMovie = detail.movie;
+      _activeServers = detail.servers;
+      _seasons = newSeasons.isNotEmpty ? newSeasons : _seasons;
+      _currentServer = detail.servers.first;
+      _currentEpisode = _currentServer.episodes.isNotEmpty
+          ? _currentServer.episodes.first
+          : EpisodeItem(name: 'Tập 1', slug: 'tap-1', filename: '', linkEmbed: '', linkM3u8: '');
+      _selectedEpisodeTab = 0;
+    });
+
+    await _loadInitialState();
+    _initPlayer();
+  }
+
+  void _showSeasonSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141722),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Chọn Mùa / Phần Phim',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: AppTheme.textMuted, size: 20),
+                      onPressed: () => Navigator.pop(ctx),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(color: AppTheme.border, height: 16),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: _seasons.length,
+                  separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+                  itemBuilder: (context, idx) {
+                    final s = _seasons[idx];
+                    final isCurrent = s['slug'] == _activeMovie.slug || s['is_current'] == true;
+                    final label = s['label']?.toString() ?? s['name']?.toString() ?? 'Phần ${idx + 1}';
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      title: Text(
+                        label,
+                        style: TextStyle(
+                          color: isCurrent ? AppTheme.primaryLight : Colors.white,
+                          fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: s['year'] != null
+                          ? Text('Năm: ${s['year']}', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12))
+                          : null,
+                      trailing: isCurrent ? const Icon(Icons.check_circle_rounded, color: AppTheme.primary, size: 20) : null,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        if (!isCurrent) {
+                          _switchSeason(s);
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _syncEpisodeTab() {
@@ -211,7 +343,28 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     HapticFeedback.lightImpact();
   }
 
-  /// Launch In-App Web Embed Player with full browser engine, CORS/cookie support, and ad popups suppression
+  /// Helper: Extract direct .m3u8 playlist URL from embed wrapper URL if present
+  String? _extractM3u8FromEmbed(String embedUrl) {
+    if (embedUrl.isEmpty) return null;
+    try {
+      final uri = Uri.tryParse(embedUrl);
+      if (uri != null) {
+        final urlParam = uri.queryParameters['url'] ?? uri.queryParameters['file'];
+        if (urlParam != null && urlParam.contains('.m3u8')) {
+          return Uri.decodeFull(urlParam);
+        }
+      }
+    } catch (_) {}
+
+    final regex = RegExp(r'(https?://[^\s"&]+\.m3u8[^\s"&]*)', caseSensitive: false);
+    final match = regex.firstMatch(embedUrl);
+    if (match != null) {
+      return match.group(1);
+    }
+    return null;
+  }
+
+  /// Launch In-App Web Embed Player with sandboxed iframe & ad popup suppressors
   void _initWebPlayer(String embedUrl) {
     _videoPlayerController?.removeListener(_videoListener);
     _videoPlayerController?.dispose();
@@ -224,19 +377,50 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     });
 
     try {
-      late final PlatformWebViewControllerCreationParams params;
-      if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-        params = WebKitWebViewControllerCreationParams(
-          allowsInlineMediaPlayback: true,
-          mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
-        );
-      } else {
-        params = const PlatformWebViewControllerCreationParams();
-      }
+      final iframeSource = EmbedPolicy.iframeSource(embedUrl);
+      final embedHtml = '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="no-referrer-when-downgrade">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; background:#000; }
+    html, body { width:100%; height:100%; overflow:hidden; background:#000; }
+    iframe {
+      width:100%;
+      height:100%;
+      border:0;
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+    }
+  </style>
+</head>
+<body>
+  <iframe src="$iframeSource"
+          referrerpolicy="no-referrer-when-downgrade"
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+          allowfullscreen="true"
+          webkitallowfullscreen="true"
+          mozallowfullscreen="true">
+  </iframe>
+  <script>
+    // Suppress intrusive popups, prompts, and top-level hijack
+    window.open = function() { return null; };
+    window.alert = function() {};
+    window.confirm = function() { return false; };
+    window.prompt = function() { return null; };
+  </script>
+</body>
+</html>
+''';
 
-      late final WebViewController controller;
-      controller = WebViewController.fromPlatformCreationParams(params);
-      controller
+      final controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.black)
         ..setUserAgent(
@@ -245,57 +429,25 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         ..setNavigationDelegate(
           NavigationDelegate(
             onNavigationRequest: (request) {
-              final reqUrl = request.url.toLowerCase();
-              // Prevent unwanted app switches, store launches, and rogue deep-links
-              if (reqUrl.startsWith('intent:') ||
-                  reqUrl.startsWith('market:') ||
-                  reqUrl.startsWith('tel:') ||
-                  reqUrl.startsWith('mailto:') ||
-                  reqUrl.startsWith('whatsapp:') ||
-                  reqUrl.startsWith('tg:') ||
-                  reqUrl.startsWith('viber:')) {
-                return NavigationDecision.prevent;
-              }
-              // Allow all web URLs, media streams, and vendor player scripts to execute freely
-              return NavigationDecision.navigate;
-            },
-            onPageFinished: (url) {
-              // Inject script to suppress popups, alerts, and ensure clean fullscreen canvas
-              controller.runJavaScript('''
-                try {
-                  window.open = function() { return null; };
-                  window.alert = function() {};
-                  window.confirm = function() { return false; };
-                  window.prompt = function() { return null; };
-                  document.body.style.backgroundColor = '#000000';
-                  document.documentElement.style.backgroundColor = '#000000';
-                } catch(e) {}
-              ''');
-            },
-            onWebResourceError: (error) {
-              debugPrint('Web embed resource error: ${error.description}');
+              return EmbedPolicy.allowsNavigation(embedUrl, request.url)
+                  ? NavigationDecision.navigate
+                  : NavigationDecision.prevent;
             },
           ),
         );
 
-      if (controller.platform is AndroidWebViewController) {
-        AndroidWebViewController.enableDebugging(false);
-        final androidController = controller.platform as AndroidWebViewController;
-        androidController.setMediaPlaybackRequiresUserGesture(false);
-      }
-
-      controller.loadRequest(Uri.parse(embedUrl));
+      controller.loadHtmlString(embedHtml, baseUrl: embedUrl);
       _webViewController = controller;
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Không thể khởi tạo Trình phát Web Embed: $e';
+          _errorMessage = 'Không thể khởi tạo Web Embed Player: $e';
         });
       }
     }
   }
 
-  /// Initialize video playback with intelligent Direct HLS -> Web Embed fallback
+  /// Initialize video playback with intelligent HLS -> Extracted M3U8 -> In-App Embed fallback
   Future<void> _initPlayer({bool forceEmbed = false}) async {
     if (!mounted) return;
     final generation = ++_playerGeneration;
@@ -314,18 +466,22 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     await previous?.dispose();
     if (!isCurrent()) return;
 
-    // 1. Force Embed mode requested by user
+    // 1. Force Embed
     if (forceEmbed && episode.linkEmbed.isNotEmpty) {
       _initWebPlayer(episode.linkEmbed);
       return;
     }
 
-    // 2. Direct HLS: Only use native VideoPlayerController when episode has a direct, explicit linkM3u8.
-    // If the episode only has linkEmbed, DO NOT force-extract .m3u8 with regex because embed CDNs
-    // protect the stream with session tokens, cookies, and Referer validation (causing ExoPlayer 403 Forbidden).
-    final streamUrl = episode.linkM3u8.trim();
+    // 2. Resolve stream URL: Direct HLS or automatically extract from embed link
+    String streamUrl = episode.linkM3u8.trim();
+    if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
+      final extracted = _extractM3u8FromEmbed(episode.linkEmbed);
+      if (extracted != null && extracted.isNotEmpty) {
+        streamUrl = extracted;
+      }
+    }
 
-    // 3. Fallback directly to Web Embed if no explicit direct HLS stream
+    // 3. Fallback to Web Embed if no direct HLS
     if (streamUrl.isEmpty) {
       if (episode.linkEmbed.isNotEmpty) {
         _initWebPlayer(episode.linkEmbed);
@@ -339,7 +495,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       }
     }
 
-    // 4. Play with native high-performance video engine (when direct HLS is present)
+    // 4. Play with native high-performance video engine
     _isEmbedMode = false;
 
     VideoPlayerController? pendingController;
@@ -361,7 +517,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       if (!isCurrent()) return;
 
       // Check Watch History to Auto-Resume
-      final history = await StorageService.getHistoryForMovie(widget.movie.slug);
+      final history = await StorageService.getHistoryForMovie(_activeMovie.slug);
       if (!isCurrent()) return;
       int? seekTargetSeconds;
       if (history != null &&
@@ -418,15 +574,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     if (!mounted || _videoPlayerController == null) return;
     final val = _videoPlayerController!.value;
 
-    // Gracefully fallback to Web Embed if native player fails mid-stream (e.g. 403 / CDN token expiry)
-    if (val.hasError && !_isEmbedMode) {
-      debugPrint('Video player runtime error: ${val.errorDescription}');
-      if (_currentEpisode.linkEmbed.isNotEmpty) {
-        _initWebPlayer(_currentEpisode.linkEmbed);
-        return;
-      }
-    }
-
     if (val.isInitialized && val.duration > Duration.zero) {
       if (val.position >= val.duration - const Duration(seconds: 1) && !_isShowingNextPrompt) {
         _checkAutoPlayNext();
@@ -466,9 +613,9 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       final episode = _currentEpisode;
       final server = _currentServer;
       await StorageService.saveHistory(WatchHistoryItem(
-        movieSlug: widget.movie.slug,
-        movieName: widget.movie.name,
-        posterUrl: widget.movie.posterUrl,
+        movieSlug: _activeMovie.slug,
+        movieName: _activeMovie.name,
+        posterUrl: _activeMovie.posterUrl,
         episodeSlug: episode.slug,
         episodeName: episode.name,
         positionSeconds: pos,
@@ -476,7 +623,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         serverName: server.serverName,
         updatedAt: DateTime.now(),
       ));
-      await StorageService.markEpisodeWatched(widget.movie.slug, episode.slug);
+      await StorageService.markEpisodeWatched(_activeMovie.slug, episode.slug);
       if (mounted) {
         setState(() {
           _watchedSlugs.add(episode.slug);
@@ -895,7 +1042,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        widget.movie.name,
+                        _activeMovie.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -1362,7 +1509,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   Widget _buildPortraitContent() {
-    final movie = widget.movie;
+    final movie = _activeMovie;
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1418,7 +1565,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 color: _isFavorite ? AppTheme.gold : Colors.white70,
                 onTap: () async {
                   try {
-                    final newState = await StorageService.toggleFavorite(widget.movie);
+                    final newState = await StorageService.toggleFavorite(_activeMovie);
                     if (mounted) setState(() => _isFavorite = newState);
                   } catch (error) {
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
@@ -1456,6 +1603,38 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         const Divider(color: AppTheme.border, height: 1),
         const SizedBox(height: 14),
 
+        // Multi-Season Selector (if series has > 1 seasons)
+        if (_seasons.length > 1) ...[
+          GestureDetector(
+            onTap: _showSeasonSelector,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.card,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.primary.withOpacity(0.5), width: 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.layers_rounded, color: AppTheme.primary, size: 18),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      _getCurrentSeasonLabel(),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.expand_more_rounded, color: AppTheme.textSecondary, size: 18),
+                ],
+              ),
+            ),
+          ),
+        ],
+
         // Server Selection
         const Text(
           'Nguồn Phát (Server)',
@@ -1465,7 +1644,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: widget.servers.map((s) {
+            children: _activeServers.map((s) {
               final isCurrent = s.serverName == _currentServer.serverName;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -1630,52 +1809,192 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   void _showEpisodesModal() {
+    int modalChunkTab = _selectedEpisodeTab;
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF141722),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Danh Sách Tập Phim',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 14),
-            Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5,
-                  childAspectRatio: 2.1,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemCount: _currentServer.episodes.length,
-                itemBuilder: (context, idx) {
-                  final ep = _currentServer.episodes[idx];
-                  final isCurrent = ep.slug == _currentEpisode.slug;
-                  return ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _switchEpisode(ep);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isCurrent ? AppTheme.primary : AppTheme.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (modalContext, setModalState) {
+          final totalEpisodes = _currentServer.episodes.length;
+          final totalChunks = (totalEpisodes / _episodesPerPage).ceil();
+          final currentChunk = modalChunkTab.clamp(0, totalChunks > 0 ? totalChunks - 1 : 0);
+          final chunkStart = currentChunk * _episodesPerPage;
+          final chunkEnd = (chunkStart + _episodesPerPage > totalEpisodes)
+              ? totalEpisodes
+              : chunkStart + _episodesPerPage;
+          final displayedEpisodes = totalEpisodes > 0
+              ? _currentServer.episodes.sublist(chunkStart, chunkEnd)
+              : <EpisodeItem>[];
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.75,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    child: Text(
-                      ep.name,
-                      style: TextStyle(
-                        color: isCurrent ? Colors.white : Colors.white70,
-                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Danh Sách Tập Phim',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: AppTheme.textMuted, size: 20),
+                      onPressed: () => Navigator.pop(ctx),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Multi-Season Selector (if franchise has > 1 seasons)
+                if (_seasons.length > 1) ...[
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _showSeasonSelector();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.card,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.primary.withOpacity(0.5), width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.layers_rounded, color: AppTheme.primary, size: 16),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              _getCurrentSeasonLabel(),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.expand_more_rounded, color: AppTheme.textSecondary, size: 18),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                ],
+
+                // Episode Chunk Tabs (when server has > 25 episodes)
+                if (totalChunks > 1) ...[
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: List.generate(totalChunks, (chunkIdx) {
+                        final start = chunkIdx * _episodesPerPage + 1;
+                        final end = (chunkIdx + 1) * _episodesPerPage > totalEpisodes
+                            ? totalEpisodes
+                            : (chunkIdx + 1) * _episodesPerPage;
+                        final isSel = chunkIdx == currentChunk;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8, bottom: 10),
+                          child: ChoiceChip(
+                            label: Text('Tập $start - $end'),
+                            selected: isSel,
+                            selectedColor: AppTheme.primary,
+                            backgroundColor: AppTheme.card,
+                            labelStyle: TextStyle(
+                              color: isSel ? Colors.white : AppTheme.textSecondary,
+                              fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 12,
+                            ),
+                            onSelected: (_) {
+                              setModalState(() {
+                                modalChunkTab = chunkIdx;
+                                _selectedEpisodeTab = chunkIdx;
+                              });
+                            },
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ],
+
+                // Grid of Episodes
+                Expanded(
+                  child: GridView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 5,
+                      childAspectRatio: 2.0,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: displayedEpisodes.length,
+                    itemBuilder: (context, idx) {
+                      final ep = displayedEpisodes[idx];
+                      final isCurrent = ep.slug == _currentEpisode.slug;
+                      final isWatched = _watchedSlugs.contains(ep.slug);
+
+                      return ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _switchEpisode(ep);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          backgroundColor: isCurrent ? AppTheme.primary : AppTheme.card,
+                          side: isCurrent
+                              ? const BorderSide(color: Colors.white, width: 1.2)
+                              : (isWatched ? BorderSide(color: AppTheme.primary.withOpacity(0.3), width: 1) : null),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (isCurrent)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 3),
+                                child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 14),
+                              ),
+                            Flexible(
+                              child: Text(
+                                ep.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isCurrent ? Colors.white : (isWatched ? AppTheme.textSecondary : Colors.white),
+                                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -1695,7 +2014,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 14),
-            ...widget.servers.map((s) {
+            ..._activeServers.map((s) {
               final isCurrent = s.serverName == _currentServer.serverName;
               return ListTile(
                 title: Text(s.serverName, style: TextStyle(color: isCurrent ? AppTheme.primaryLight : Colors.white)),

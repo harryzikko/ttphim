@@ -154,8 +154,9 @@ function loadController(kind) {
     toggleWatchlist: async () => ({ status: true, data: { added: true } })
   };
   window.eval(fs.readFileSync(path.join(__dirname, '../public/js/player-ux.js'), 'utf8'));
+  window.eval(fs.readFileSync(path.join(__dirname, '../public/js/player-recovery.js'), 'utf8'));
   window.eval(fs.readFileSync(path.join(__dirname, mobile ? '../public/mobile/js/xem-phim.js' : '../public/js/watch.js'), 'utf8'));
-  return { dom, window, callbacks, errors, saves, Hls };
+  return { dom, window, callbacks, errors, saves, Hls, data };
 }
 
 for (const kind of ['mobile', 'desktop']) {
@@ -246,4 +247,205 @@ test('playback failure saves the final timestamp before clearing the video sourc
   await tick();
   assert.equal(saved, 85);
   assert.equal(session.isActive(), false);
+});
+
+test('autoplay prompt survives canplay until a successful user-initiated play', async () => {
+  const video = new Video(), states = [];
+  video.play = () => Promise.reject(Object.assign(new Error('blocked'), { name: 'NotAllowedError' }));
+  const session = UX.createSession({ video, url: 'test', onState: (name, message) => states.push([name, message]) });
+  try {
+    video.emit('loadedmetadata'); await tick();
+    video.emit('canplay');
+    assert.equal(states.at(-1)[0], 'paused');
+    assert.match(states.at(-1)[1], /Nhấn Phát/);
+    video.play = Video.prototype.play;
+    session.play(); video.emit('playing');
+    assert.deepEqual(states.at(-1), ['ready', undefined]);
+  } finally { session.destroy(); }
+});
+
+function telemetryFixture({ dnt, disabled = false, throwing = false } = {}) {
+  const vm = require('node:vm');
+  const requests = [], timers = new Map();
+  let sequence = 0, now = 100000;
+  const window = {
+    navigator: { doNotTrack: dnt }, PLAYER_TELEMETRY_DISABLED: disabled,
+    fetch: (url, options) => { requests.push([url, options]); if (throwing) throw new Error('network'); return Promise.reject(new Error('offline')); }
+  };
+  const context = vm.createContext({ window, Date: { now: () => now },
+    setTimeout: callback => { const id = ++sequence; timers.set(id, callback); return id; }, clearTimeout: id => timers.delete(id) });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../public/js/player-ux.js'), 'utf8'), context);
+  return { UX: window.PlayerUX, requests, timers, window, advance: ms => { now += ms; } };
+}
+
+test('telemetry is finite, private, same-origin, best-effort, and clears timers on disposal', async () => {
+  const { UX, requests, timers } = telemetryFixture();
+  const telemetry = UX.createTelemetry({ provider: 'https://secret.invalid/token?user=id' });
+  for (let i = 0; i < 100; i++) for (const event of ['start', 'ready', 'stall', 'resume', 'error', 'fallback', 'end', 'secret freeform error']) telemetry.record(event);
+  assert.equal(timers.size, 1);
+  telemetry.destroy(); telemetry.destroy(); telemetry.record('start');
+  assert.equal(timers.size, 0);
+  assert.equal(requests.length, 1);
+  const [url, options] = requests[0];
+  assert.equal(url, '/api/playback/events');
+  assert.equal(options.credentials, 'include'); assert.equal(options.mode, 'same-origin'); assert.equal(options.keepalive, true);
+  const events = JSON.parse(options.body).events;
+  assert.equal(events.length, 7);
+  assert.ok(events.every(event => event.provider === 'unknown'));
+  assert.ok(events.every(event => Object.keys(event).every(key => ['event', 'provider', 'duration_ms', 'startup_ms'].includes(key))));
+  assert.equal(events.find(event => event.event === 'ready').startup_ms, 0);
+  await tick(); // rejected transport is intentionally swallowed
+});
+
+test('telemetry honors DNT, opt-out, session opt-out and synchronous transport errors', () => {
+  for (const options of [{ dnt: '1' }, { dnt: 'yes' }, { disabled: true }]) {
+    const fixture = telemetryFixture(options);
+    const telemetry = fixture.UX.createTelemetry(); telemetry.record('start'); telemetry.destroy();
+    assert.equal(fixture.requests.length, 0); assert.equal(fixture.timers.size, 0);
+  }
+  const fixture = telemetryFixture({ throwing: true });
+  const disabled = fixture.UX.createTelemetry({ enabled: false }); disabled.record('start'); disabled.destroy();
+  assert.equal(fixture.requests.length, 0);
+  const telemetry = fixture.UX.createTelemetry(); telemetry.record('start');
+  assert.doesNotThrow(() => telemetry.destroy());
+  assert.equal(fixture.timers.size, 0);
+});
+
+test('telemetry limits rapid session churn and recovers its minute budget', () => {
+  const fixture = telemetryFixture({ throwing: true });
+  for (let i = 0; i < 100; i++) {
+    const telemetry = fixture.UX.createTelemetry();
+    for (const event of ['start', 'ready', 'stall', 'resume', 'error', 'fallback', 'end']) telemetry.record(event);
+    telemetry.destroy();
+  }
+  assert.ok(fixture.requests.length <= 12);
+  assert.ok(fixture.requests.flatMap(([, options]) => JSON.parse(options.body).events).length <= 60);
+  fixture.advance(60000);
+  const count = fixture.requests.length;
+  const telemetry = fixture.UX.createTelemetry(); telemetry.record('start'); telemetry.destroy();
+  assert.equal(fixture.requests.length, count + 1);
+  assert.equal(fixture.timers.size, 0);
+});
+
+test('telemetry periodically flushes once, clamps timing, and honors opt-out before a queued flush', () => {
+  const fixture = telemetryFixture({ throwing: true });
+  const telemetry = fixture.UX.createTelemetry({ provider: 'hls' });
+  telemetry.record('start');
+  fixture.advance(200000); telemetry.record('ready');
+  [...fixture.timers.values()][0]();
+  assert.equal(fixture.timers.size, 0);
+  const events = JSON.parse(fixture.requests[0][1].body).events;
+  assert.equal(events[1].startup_ms, 120000);
+  telemetry.record('ready');
+  assert.equal(fixture.timers.size, 0);
+  telemetry.record('end'); fixture.window.PLAYER_TELEMETRY_DISABLED = true;
+  telemetry.destroy();
+  assert.equal(fixture.requests.length, 1);
+  assert.equal(fixture.timers.size, 0);
+});
+
+test('desktop switches by exact episode slug and rejects an empty server before destroying playback', async () => {
+  const f = loadController('desktop');
+  f.data.episodes = JSON.parse(JSON.stringify(servers));
+  f.data.episodes[1].server_data[2].name = 'Season 1 Episode 3';
+  f.data.episodes[0].server_data.forEach((ep, index) => { ep.name = `Episode ${index + 1}`; });
+  try {
+    for (const callback of f.callbacks) await callback();
+    f.window.document.querySelector('.server-pill-btn').click();
+    assert.match(f.Hls.instances.at(-1).url, /Primary\/3/);
+  } finally { f.window.dispatchEvent(new f.window.Event('pagehide')); f.dom.window.close(); }
+  const empty = loadController('desktop');
+  empty.data.episodes = JSON.parse(JSON.stringify(servers)); empty.data.episodes[0].server_data = [];
+  const messages = []; empty.window.showToast = message => messages.push(message);
+  try {
+    for (const callback of empty.callbacks) await callback();
+    empty.window.document.querySelector('.server-pill-btn').click();
+    assert.equal(empty.Hls.instances.length, 1);
+    assert.equal(empty.Hls.instances[0].destroyed, undefined);
+    assert.ok(messages.some(message => message.includes('chưa có tập phim')));
+  } finally { empty.window.dispatchEvent(new empty.window.Event('pagehide')); empty.dom.window.close(); }
+});
+
+test('returning from embed to HLS restores the last matching HLS position, not time inside the iframe', async () => {
+  const f = loadController('desktop'); f.data.episodes = JSON.parse(JSON.stringify(servers));
+  f.data.episodes[1].server_data[2].link_embed = 'https://player.example/embed';
+  try {
+    for (const callback of f.callbacks) await callback();
+    f.window.document.querySelector('#player-viewport video').currentTime = 123;
+    f.window.document.querySelector('#btn-toggle-engine').click();
+    assert.ok(f.window.document.querySelector('#player-viewport iframe'));
+    f.window.document.querySelector('#btn-toggle-engine').click();
+    const video = f.window.document.querySelector('#player-viewport video');
+    video.dispatchEvent(new f.window.Event('loadedmetadata'));
+    assert.equal(video.currentTime, 123);
+  } finally { f.window.dispatchEvent(new f.window.Event('pagehide')); f.dom.window.close(); }
+});
+
+test('grouped source switch from iframe to HLS restores saved progress for the same episode', async () => {
+  const f = loadController('desktop'); f.data.episodes = JSON.parse(JSON.stringify(servers));
+  f.data.episodes[1].server_data[2].link_embed = 'https://player.example/embed';
+  f.window.eval(fs.readFileSync(path.join(__dirname, '../public/js/episode-sources.js'), 'utf8'));
+  try {
+    for (const callback of f.callbacks) await callback();
+    const first = f.window.document.querySelector('#player-viewport video');
+    first.dispatchEvent(new f.window.Event('loadedmetadata')); first.currentTime = 123;
+    f.window.document.querySelector('#btn-toggle-engine').click();
+    assert.ok(f.window.document.querySelector('#player-viewport iframe'));
+    f.window.document.querySelector('[data-source-index="0"]').click();
+    const video = f.window.document.querySelector('#player-viewport video');
+    video.dispatchEvent(new f.window.Event('loadedmetadata'));
+    assert.match(f.Hls.instances.at(-1).url, /Primary\/3/);
+    assert.equal(video.currentTime, 123);
+  } finally { f.window.dispatchEvent(new f.window.Event('pagehide')); f.dom.window.close(); }
+});
+
+for (const kind of ['desktop', 'mobile']) test(`${kind} replay and seeking back cancel pending auto-next`, async () => {
+  const f = loadController(kind), timers = new Map();
+  f.window.history.replaceState(null, '', `/${kind === 'mobile' ? 'mobile/' : ''}xem-phim/film/tap-2?server=1`);
+  const name = kind === 'desktop' ? 'setInterval' : 'setTimeout', clear = kind === 'desktop' ? 'clearInterval' : 'clearTimeout';
+  const original = f.window[name].bind(f.window), originalClear = f.window[clear].bind(f.window); let sequence = 100000;
+  f.window[name] = (callback, delay) => { if (delay !== (kind === 'desktop' ? 1000 : 3000)) return original(callback, delay); timers.set(++sequence, callback); return sequence; };
+  f.window[clear] = id => { if (timers.has(id)) timers.delete(id); else originalClear(id); };
+  try {
+    for (const callback of f.callbacks) await callback();
+    const video = f.window.document.querySelector(kind === 'desktop' ? '#player-viewport video' : '#m-video-player');
+    video.dispatchEvent(new f.window.Event('ended')); assert.equal(timers.size, 1);
+    video.dispatchEvent(new f.window.Event('play')); assert.equal(timers.size, 0);
+    video.dispatchEvent(new f.window.Event('ended')); assert.equal(timers.size, 1);
+    video.currentTime = 2; video.dispatchEvent(new f.window.Event('seeking')); assert.equal(timers.size, 0);
+    assert.equal(f.Hls.instances.length, 1);
+  } finally { f.window.dispatchEvent(new f.window.Event('pagehide')); f.dom.window.close(); }
+});
+
+test('rating 500 failure retains the authenticated viewer and allows retry without an auth redirect', async () => {
+  const f = loadController('desktop'); const delays = [], messages = [];
+  const original = f.window.setTimeout.bind(f.window);
+  f.window.setTimeout = (callback, delay) => { delays.push(delay); return original(callback, delay); };
+  f.window.showToast = message => messages.push(message);
+  f.window.API.rateMovie = async () => ({ status: false, httpStatus: 500, message: 'Thử lại sau' });
+  try {
+    for (const callback of f.callbacks) await callback();
+    f.window.document.querySelector('#btn-rate-ep').click();
+    f.window.document.querySelector('#submit-rate-btn').click(); await tick();
+    assert.ok(messages.includes('Thử lại sau'));
+    assert.equal(delays.includes(800), false);
+    assert.ok(f.window.document.querySelector('#submit-rate-btn').closest('[id]').isConnected);
+  } finally { f.window.dispatchEvent(new f.window.Event('pagehide')); f.dom.window.close(); }
+});
+
+for (const kind of ['desktop', 'mobile']) test(`${kind} failed source proposes a matching alternate and switches only after confirmation`, async () => {
+  const f=loadController(kind);
+  try {
+    for(const callback of f.callbacks) await callback();
+    const video=f.window.document.querySelector(kind==='desktop'?'#player-viewport video':'#m-video-player');video.currentTime=123;
+    f.Hls.instances[0].emit('error',{fatal:true,type:'unrecoverable'});await tick();
+    assert.equal(f.Hls.instances.length,1);
+    const prompt=f.window.document.querySelector('.player-recovery');assert.ok(prompt);
+    assert.ok(prompt.textContent.includes('123 giây'));
+    const pending=prompt.querySelector('.player-recovery-confirm');pending.click();await tick();
+    assert.equal(f.Hls.instances.length,2);assert.match(f.Hls.instances[1].url,/Primary\/3/);
+    const next=f.window.document.querySelector(kind==='desktop'?'#player-viewport video':'#m-video-player');next.dispatchEvent(new f.window.Event('loadedmetadata'));
+    assert.equal(next.currentTime,123);
+    pending.click();assert.equal(f.Hls.instances.length,2);
+  } finally {f.window.dispatchEvent(new f.window.Event('pagehide'));f.dom.window.close();}
 });

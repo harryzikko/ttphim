@@ -52,14 +52,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   ];
 
   function switchTab(tabId) {
-    activeTab = tabId;
+    activeTab = ['watchlist', 'history', 'downloads'].includes(tabId) ? tabId : 'watchlist';
+    tabId = activeTab;
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', activeTab);
+    window.history.replaceState(null, '', url.pathname + url.search);
+    if (typeof MobileApp !== 'undefined') MobileApp.setupActiveTab?.();
+    if (clearListBtn) clearListBtn.hidden = activeTab === 'downloads';
     tabButtons.forEach(({ btn, panel, id }) => {
       if (id === tabId) {
+        btn.setAttribute('aria-selected', 'true');
         btn.classList.add('bg-primary-container', 'text-white', 'shadow-md');
         btn.classList.remove('text-on-surface-variant');
         panel.classList.remove('hidden');
       } else {
         btn.classList.remove('bg-primary-container', 'text-white', 'shadow-md');
+        btn.setAttribute('aria-selected', 'false');
         btn.classList.add('text-on-surface-variant');
         panel.classList.add('hidden');
       }
@@ -89,7 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         list.forEach(m => {
           const card = document.createElement('div');
           card.className = 'group relative flex flex-col bg-surface-container rounded-2xl overflow-hidden border border-white/5 shadow-md';
-          const thumb = m.thumb_url || m.poster_url || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400';
+          const thumb = m.poster_url || m.thumb_url || '/favicon.svg';
           card.innerHTML = `
             <a href="/mobile/phim/${m.slug}" class="relative w-full aspect-[2/3] bg-surface-container-lowest overflow-hidden">
               <img src="${thumb}" alt="${m.name}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
@@ -108,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <a href="/mobile/xem-phim/${m.slug}" class="text-[11px] font-bold text-primary flex items-center gap-0.5">
                   <span class="material-symbols-outlined text-[15px]">play_circle</span> Xem
                 </a>
-                <button class="remove-fav-btn w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center text-red-400 hover:text-red-300 active:scale-90" data-slug="${m.slug}">
+                <button aria-label="Bỏ yêu thích" class="remove-fav-btn w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center text-red-400 hover:text-red-300 active:scale-90" data-slug="${m.slug}">
                   <span class="material-symbols-outlined text-[14px]">delete</span>
                 </button>
               </div>
@@ -160,10 +168,18 @@ document.addEventListener('DOMContentLoaded', async () => {
               <p class="text-[10px] text-primary font-medium mt-0.5">Đang xem: ${m.episode || 'Tập 1'}</p>
               <p class="text-[9px] text-on-surface-variant">Server: ${m.server_name || 'VIP 1'}</p>
             </div>
-            <button class="remove-history-btn w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-red-400 active:scale-90" data-slug="${m.slug}">
+            <button aria-label="Xóa khỏi lịch sử" class="remove-history-btn w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-red-400 active:scale-90" data-slug="${m.slug}">
               <span class="material-symbols-outlined text-[16px]">close</span>
             </button>
           `;
+          if (Number(m.current_time) > 0 && Number(m.progress_percent || 0) < 95) {
+            const visibility = document.createElement('button'); visibility.type = 'button';
+            visibility.className = 'continue-visibility-btn text-[10px] text-primary text-left py-2';
+            visibility.style.minHeight = '44px';
+            visibility.textContent = m.continue_hidden === true ? 'Hiện lại trong Xem tiếp' : 'Ẩn khỏi Xem tiếp, giữ lịch sử';
+            visibility.onclick = async () => { if (visibility.disabled) return; visibility.disabled = true; await mutate(() => API.setContinueHidden(m.movie_slug, m.continue_hidden !== true)); visibility.disabled = false; };
+            item.querySelector('.flex-1.min-w-0')?.appendChild(visibility);
+          }
           historyList.appendChild(item);
         });
 
@@ -187,7 +203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const list = library.history || [];
       if (tabCountSummary) tabCountSummary.textContent = `${list.length} tập phim đang xem`;
     } else {
-      if (tabCountSummary) tabCountSummary.textContent = `2 phim đã tải về (2.05 GB)`;
+      if (tabCountSummary) tabCountSummary.textContent = 'Chưa hỗ trợ tải offline trên web';
     }
   }
 
@@ -206,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           void mutate(() => API.clearHistory());
         }
       } else {
-        alert('Đã dọn dẹp các tập phim tải về');
+        notify('Chưa hỗ trợ tải offline trên web');
       }
     });
   }

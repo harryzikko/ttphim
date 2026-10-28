@@ -1,0 +1,31 @@
+.movie-follow-control { display: inline-flex; flex-direction: column; align-items: flex-start; gap: .35rem; max-width: 100%; }
+.movie-follow-button { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; min-height: 44px; padding: 0; border: 1px solid transparent; border-radius: 999px; background: #282933; color: #e1e1ef; font: inherit; cursor: pointer; transition: color 150ms ease, background-color 150ms ease; }
+.movie-follow-button:hover { background: #32343e; }
+.movie-follow-button.is-following { color: #ff6470; }
+.movie-follow-button:focus-visible { outline: 2px solid #ffb4b6; outline-offset: 3px; }
+.movie-follow-button:disabled { opacity: .65; cursor: wait; }
+.movie-follow-status { max-width: 16rem; color: #e4b9c1; font-size: .75rem; line-height: 1.35; }
+.movie-follow-status:empty { display: none; }
+.movie-follow-control--mobile { align-items: center; flex: 1 1 0; min-width: 0; text-align: center; }
+.movie-follow-control--mobile .movie-follow-button { padding: 0; border-radius: 999px; }
+@media (max-width: 600px) { .movie-follow-status { max-width: 11rem; } }
+.movie-follow-button .material-symbols-outlined { font-size: 23px; }
+#m-action-watchlist[aria-pressed="true"] #m-action-watchlist-icon { color: #ff6470; }
+.movie-follow-status.is-success { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) { .movie-follow-button { transition: none; } }
+
+/* One geometry contract prevents font baselines and padding from sizing each action differently. */
+#detail-action-deck { --detail-action-size: 52px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+#detail-action-deck > a { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: var(--detail-action-size); min-height: var(--detail-action-size); max-width: 100%; padding: 0 26px; box-sizing: border-box; }
+#detail-action-deck > a > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#detail-action-deck > button, #detail-action-deck .movie-follow-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 var(--detail-action-size); width: var(--detail-action-size); height: var(--detail-action-size); min-height: var(--detail-action-size); padding: 0; box-sizing: border-box; border: 0; border-radius: 50%; background: #282933; line-height: 1; }
+#detail-action-deck > button:hover, #detail-action-deck .movie-follow-button:hover { background: #32343e; }
+#detail-action-deck > .movie-follow-control { flex: 0 0 var(--detail-action-size); width: var(--detail-action-size); gap: 0; }
+#detail-action-deck .material-symbols-outlined { display: block; width: 22px; height: 22px; font-size: 22px; line-height: 1; text-align: center; }
+#detail-action-deck :is(a, button):is(:hover, :active) { transform: none; }
+#m-detail-action-deck { --detail-action-size: 52px; align-items: start; }
+#m-detail-action-deck > button > div, #m-detail-action-deck .movie-follow-button { display: flex; align-items: center; justify-content: center; width: var(--detail-action-size); height: var(--detail-action-size); min-height: var(--detail-action-size); box-sizing: border-box; padding: 0; border: 0; border-radius: 50%; background: #282933; }
+#m-detail-action-deck .material-symbols-outlined { display: block; width: 22px; height: 22px; font-size: 22px; line-height: 1; text-align: center; }
+#m-detail-action-deck > .movie-follow-control { align-self: start; gap: 0; }
+#m-detail-action-deck button:active { transform: none; }
+@media (max-width: 600px) { #detail-action-deck > a { flex-basis: 100%; } }

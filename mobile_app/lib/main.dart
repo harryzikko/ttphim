@@ -19,17 +19,17 @@ void main() {
     ),
   );
 
-  runApp(const CineVietApp());
+  runApp(const TTPhimApp());
   unawaited(ApiService.restoreSession());
 }
 
-class CineVietApp extends StatelessWidget {
-  const CineVietApp({super.key});
+class TTPhimApp extends StatelessWidget {
+  const TTPhimApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CineViet',
+      title: 'TTPhim',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const MainNavigationScreen(),

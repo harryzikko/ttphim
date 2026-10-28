@@ -2,7 +2,7 @@
 <html class="dark" lang="vi">
 <head>
   <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
   <meta content="mobile_stack" name="shell-type"/>
   <title>Chi Tiết Phim - CineViet Mobile</title>
   
@@ -18,45 +18,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "surface": "#11131c",
-            "surface-dim": "#11131c",
-            "surface-bright": "#373943",
-            "surface-container-lowest": "#0c0e17",
-            "surface-container-low": "#191b24",
-            "surface-container": "#1d1f29",
-            "surface-container-high": "#282933",
-            "surface-container-highest": "#32343e",
-            "on-surface": "#e1e1ef",
-            "on-surface-variant": "#e9bcb6",
-            "primary": "#ffb4aa",
-            "primary-container": "#e50914",
-            "on-primary-container": "#fff7f6",
-            "secondary": "#d3fbff",
-            "secondary-container": "#00eefc",
-            "secondary-fixed": "#7df4ff",
-            "tertiary": "#dcb8ff",
-            "tertiary-container": "#9a40f2",
-            "tertiary-fixed": "#efdbff"
-          },
-          borderRadius: {
-            "DEFAULT": "0.5rem",
-            "lg": "0.75rem",
-            "xl": "1rem",
-            "2xl": "1.25rem",
-            "full": "9999px"
-          }
-        }
-      }
-    };
-  </script>
+  <link rel="stylesheet" href="/css/site-a29a5b4dfb9c.css?v=b8edecfc485f">
+  
   <link rel="stylesheet" href="/mobile/css/mobile.css" />
+  <link rel="stylesheet" href="/mobile/css/responsive.css?v=1.0.0" />
+  <link rel="stylesheet" href="/css/movie-phone.css?v=1.0.0" />
+  <link rel="stylesheet" href="/css/episode-sources.css?v=1.2.1">
+<link rel="stylesheet" href="/css/site-footer.css?v=1.0.0">
 </head>
 
 <body class="bg-surface text-on-surface font-body-md flex flex-col min-h-screen">
@@ -86,32 +54,18 @@
     <div class="flex flex-col w-full pb-safe">
 
       <!-- Backdrop Hero (16:10 Cinematic Ratio) -->
-      <div class="relative w-full aspect-[16/10] bg-surface-container-lowest overflow-hidden">
+      <div id="m-detail-art" class="relative w-full aspect-[16/10] bg-surface-container-lowest overflow-hidden">
         <div id="m-detail-backdrop" class="w-full h-full bg-cover bg-center transition-all duration-500" style="background-image: url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1000');"></div>
         <div class="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent"></div>
         <div class="absolute inset-0 bg-gradient-to-r from-surface/70 via-transparent to-transparent"></div>
 
-        <!-- Badges on Backdrop -->
-        <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between pointer-events-none">
-          <div class="flex items-center gap-1.5 pointer-events-auto">
-            <span class="px-2 py-0.5 rounded-full bg-primary-container text-white font-label-badge text-[9px] uppercase tracking-wider font-bold shadow-md">
-              Độc Quyền 4K
-            </span>
-            <span id="m-detail-rank" class="px-2 py-0.5 rounded-full bg-surface-container-highest/80 backdrop-blur-md text-on-surface font-label-badge text-[10px]">
-              Top #1 Hôm nay
-            </span>
-          </div>
-          <button id="m-detail-trailer-btn" class="pointer-events-auto px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold flex items-center gap-1 active:scale-95 transition-transform border border-white/15">
-            <span class="material-symbols-outlined text-[15px]">movie</span>
-            <span>Trailer</span>
-          </button>
-        </div>
       </div>
 
       <!-- Content Container -->
-      <div class="flex flex-col px-4 pt-3">
+      <div id="m-detail-content-shell" class="flex flex-col px-4 pt-3">
         <!-- Title & Origin Name -->
         <div class="flex flex-col gap-0.5">
+          <img id="m-detail-poster" alt="" hidden decoding="async" />
           <h2 id="m-detail-title" class="font-headline-lg-mobile text-[22px] font-bold text-on-surface tracking-tight leading-tight">
             Đang tải thông tin phim...
           </h2>
@@ -121,29 +75,15 @@
         </div>
 
         <!-- Technical Badges -->
-        <div id="m-detail-tech-badges" class="flex flex-wrap items-center gap-1.5 mt-2.5">
-          <span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-label-badge text-[10px]">T16</span>
-          <span class="px-2 py-0.5 rounded bg-surface-container-high text-secondary-fixed font-label-badge text-[10px]">4K Ultra HD</span>
-          <span class="px-2 py-0.5 rounded bg-surface-container-high text-tertiary-fixed font-label-badge text-[10px]">Dolby Atmos 5.1</span>
-        </div>
+        <div id="m-detail-tech-badges" class="flex flex-wrap items-center gap-1.5 mt-2.5"></div>
 
         <!-- Community Ratings Banner -->
         <div class="flex items-center gap-4 mt-3 py-2 px-3.5 rounded-xl bg-surface-container-low border border-white/5">
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
             <div class="flex flex-col">
-              <span id="m-detail-rating" class="font-headline-sm text-[15px] font-bold text-on-surface leading-tight">9.2<span class="text-[11px] text-on-surface-variant font-normal">/10</span></span>
-              <span class="text-[10px] text-on-surface-variant leading-tight">12.5k đánh giá</span>
-            </div>
-          </div>
-          <div class="h-6 w-px bg-surface-container-highest"></div>
-          <div class="flex items-center gap-2 min-w-0">
-            <div class="w-7 h-7 rounded-full bg-secondary-container/20 flex items-center justify-center shrink-0">
-              <span class="material-symbols-outlined text-secondary-fixed text-[16px]">thumb_up</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-bold text-on-surface leading-tight">98%</span>
-              <span class="text-[10px] text-on-surface-variant leading-tight">Đề xuất xem</span>
+              <span id="m-detail-rating" class="font-headline-sm text-[15px] font-bold text-on-surface leading-tight">Đang tải đánh giá…</span>
+              <span class="text-[10px] text-on-surface-variant leading-tight">Đánh giá cộng đồng CineViet</span>
             </div>
           </div>
         </div>
@@ -155,32 +95,27 @@
         </a>
 
         <!-- Quick Action Bar -->
-        <div class="grid grid-cols-4 gap-1 mt-3 py-1">
-          <button id="m-action-watchlist" class="flex flex-col items-center gap-1 text-on-surface-variant active:scale-95 transition-transform">
+        <div id="m-detail-action-deck" class="grid grid-cols-4 gap-1 mt-3 py-1">
+          <button id="m-action-watchlist" type="button" aria-label="Yêu thích" aria-pressed="false" class="flex flex-col items-center gap-1 text-on-surface-variant active:scale-95 transition-transform">
             <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface">
-              <span id="m-action-watchlist-icon" class="material-symbols-outlined text-[20px]">bookmark_add</span>
+              <span id="m-action-watchlist-icon" class="material-symbols-outlined text-[20px]" aria-hidden="true">favorite</span>
             </div>
             <span id="m-action-watchlist-label" class="text-[11px]">Yêu Thích</span>
           </button>
-          <button id="m-action-download" class="flex flex-col items-center gap-1 text-on-surface-variant active:scale-95 transition-transform">
+          <button id="m-action-download" type="button" disabled title="Chưa hỗ trợ tải offline trên web" aria-label="Chưa hỗ trợ tải offline trên web" class="flex flex-col items-center gap-1 text-on-surface-variant opacity-50">
             <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface">
               <span class="material-symbols-outlined text-[20px]">download</span>
             </div>
             <span class="text-[11px]">Tải Về</span>
           </button>
-          <button id="m-action-trailer" class="flex flex-col items-center gap-1 text-on-surface-variant active:scale-95 transition-transform">
-            <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface">
-              <span class="material-symbols-outlined text-[20px]">play_circle</span>
-            </div>
-            <span class="text-[11px]">Trailer</span>
-          </button>
-          <button id="m-action-share" class="flex flex-col items-center gap-1 text-on-surface-variant active:scale-95 transition-transform">
+          <button id="m-action-share" type="button" aria-label="Chia sẻ phim" title="Chia sẻ phim" class="flex flex-col items-center gap-1 text-on-surface-variant active:scale-95 transition-transform">
             <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface">
               <span class="material-symbols-outlined text-[20px]">share</span>
             </div>
             <span class="text-[11px]">Chia Sẻ</span>
           </button>
         </div>
+        <a id="m-detail-episode-jump" href="#m-detail-episodes">Chọn tập và Server <span class="material-symbols-outlined" aria-hidden="true">expand_more</span></a>
 
         <!-- Synopsis / Nội dung phim -->
         <div class="mt-4 pt-3 border-t border-white/5">
@@ -206,13 +141,23 @@
         </div>
 
         <!-- Server & Episode Selector Tab Section -->
-        <div class="mt-5">
+        <div id="m-detail-episodes" class="mt-5">
           <div class="flex items-center justify-between mb-2.5">
             <h3 class="font-bold text-[15px] text-on-surface flex items-center gap-1.5">
               <span class="w-1.5 h-4 bg-primary-container rounded-full"></span>
               <span>Danh Sách Tập Phim</span>
             </h3>
             <span id="m-episode-count" class="text-xs text-on-surface-variant"></span>
+          </div>
+
+          <!-- Season Selector on Mobile -->
+          <div id="m-seasons-wrapper" class="hidden items-center gap-2 mb-2.5">
+            <span class="material-symbols-outlined text-primary text-[18px]">layers</span>
+            <div class="relative inline-flex items-center w-full">
+              <select id="m-seasons-select" class="w-full appearance-none bg-surface-container-high text-on-surface font-bold text-xs py-1.5 pl-2.5 pr-7 rounded-lg border border-primary/40 focus:border-primary focus:outline-none transition-all cursor-pointer">
+              </select>
+              <span class="material-symbols-outlined absolute right-2 pointer-events-none text-on-surface-variant text-[16px]">expand_more</span>
+            </div>
           </div>
 
           <!-- Server Pills -->
@@ -241,20 +186,6 @@
     </div>
   </main>
 
-  <!-- Trailer Modal -->
-  <div id="trailerModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex flex-col items-center justify-center p-4">
-    <div class="w-full max-w-lg bg-surface-container rounded-2xl overflow-hidden shadow-2xl relative">
-      <div class="flex items-center justify-between p-3 border-b border-white/10">
-        <h4 class="font-bold text-sm text-white">Trailer Phim</h4>
-        <button id="closeTrailerBtn" class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-white">
-          <span class="material-symbols-outlined text-[18px]">close</span>
-        </button>
-      </div>
-      <div class="w-full aspect-video bg-black">
-        <iframe id="trailerIframe" class="w-full h-full" src="" frameborder="0" allowfullscreen></iframe>
-      </div>
-    </div>
-  </div>
 
   <!-- Mobile Bottom Tab Navigation Bar -->
   <nav class="mobile-app-nav fixed bottom-0 w-full z-50 pb-safe">
@@ -283,9 +214,20 @@
   </nav>
 
   <!-- Mobile Scripts -->
-  <script src="/js/api.js?v=2.7.2"></script>
-  <script src="/mobile/js/mobile-app.js?v=1.0.0"></script>
-  <script src="/mobile/js/chi-tiet.js?v=1.0.0"></script>
+  <link rel="stylesheet" href="/css/follows.css?v=1.3.0">
+  <script src="/js/api.js?v=3.1.0"></script>
+  <script src="/js/follows.js?v=1.2.0"></script>
+  <script src="/mobile/js/mobile-app.js?v=1.2.0"></script>
+  <script src="/js/episode-sources.js?v=1.2.2"></script>
+  <script src="/mobile/js/chi-tiet.js?v=1.6.2"></script>
+<footer class="cv-footer" aria-label="Thông tin CineViet">
+  <div class="cv-footer-inner">
+    <div class="cv-footer-intro"><a class="cv-footer-brand" href="/mobile" aria-label="CineViet - Trang chủ">Cine<span>Viet</span></a><p>Khám phá phim hay. Lưu câu chuyện bạn thích. Xem tiếp khi thuận tiện.</p><a class="cv-footer-email" href="mailto:admin@cineviet.live">admin@cineviet.live</a><span class="cv-footer-note">Hỗ trợ · Góp ý · Yêu cầu bản quyền</span></div>
+    <nav class="cv-footer-nav" aria-label="Liên kết cuối trang"><div class="cv-footer-group"><h2>Khám phá</h2><ul><li><a href="/mobile/kham-pha?type=phim-bo">Phim bộ</a></li><li><a href="/mobile/kham-pha?type=phim-le">Phim lẻ</a></li><li><a href="/mobile/kham-pha?type=chieu-rap">Chiếu rạp</a></li><li><a href="/mobile/kham-pha?type=song-ngu">Song Ngữ</a></li><li><a href="/mobile/kham-pha?type=hoat-hinh">Anime &amp; hoạt hình</a></li><li><a href="/mobile/kham-pha?type=tv-shows">TV Show</a></li></ul></div><div class="cv-footer-group"><h2>Thư viện của bạn</h2><ul><li><a href="/mobile/danh-sach?tab=watchlist">Yêu thích</a></li><li><a href="/mobile/danh-sach?tab=history">Xem tiếp</a></li><li><a href="/mobile/danh-sach?tab=history">Lịch sử xem</a></li><li><a href="/mobile/tai-khoan">Tài khoản</a></li></ul></div><div class="cv-footer-group"><h2>CineViet &amp; hỗ trợ</h2><ul><li><a href="/gioi-thieu">Giới thiệu</a></li><li><a href="/tro-giup">Trợ giúp</a></li><li><a href="/lien-he">Liên hệ &amp; báo lỗi</a></li><li><a href="/dieu-khoan">Điều khoản sử dụng</a></li><li><a href="/quyen-rieng-tu">Quyền riêng tư</a></li><li><a href="/ban-quyen">Bản quyền</a></li></ul></div></nav>
+    <div class="cv-footer-bottom"><p>© 2026 CineViet</p><p>Chất lượng và khả năng phát phụ thuộc nguồn, thiết bị và kết nối. Nội dung bên thứ ba thuộc các chủ thể quyền tương ứng.</p><button type="button" class="cv-footer-top" data-footer-top hidden>Về đầu trang <span aria-hidden="true">↑</span></button></div>
+  </div>
+</footer>
+<script defer src="/js/site-footer.js?v=1.0.0"></script>
 </body>
 </html>
 

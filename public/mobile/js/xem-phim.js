@@ -68,12 +68,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   let hlsInstance = null;
   let hideOverlayTimer = null;
   let isDraggingScrubber = false;
-  const speeds = [1.0, 1.25, 1.5, 2.0];
-  let currentSpeedIdx = 0;
+  const speeds = window.PlayerPreferences?.SPEEDS || [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+  let currentSpeedIdx = speeds.indexOf(1), playbackPreferences = null;
   let playerSession = null, progressStore = null, user = null;
-  let nextTimer = null, historyTimer = null, embedTimer = null;
+  let nextTimer = null, historyTimer = null, embedSession = null;
+  let recoveryPrompt = null, recoveryEpisode = '';
+  const failedSources = new Set();
+  function offerRecovery(ep, time, engine, message) {
+    if (!window.PlayerRecovery || currentEpisodes[currentEpIndex] !== ep) return;
+    recoveryPrompt?.destroy();
+    const serverIndex = currentServerIndex;
+    const key = PlayerRecovery.sourceKey(engine, engine === 'hls' ? ep.link_m3u8 : ep.link_embed);
+    failedSources.add(key);
+    recoveryPrompt = PlayerRecovery.offer({
+      container: playerWrapper, servers: allServers, episode: ep, serverIndex, time, failed: failedSources, message,
+      retry: () => { if (currentEpisodes[currentEpIndex] !== ep || currentServerIndex !== serverIndex) return; failedSources.delete(key); loadEpisode(currentEpIndex, time, engine); },
+      choose: (option, resume) => {
+        if (currentEpisodes[currentEpIndex] !== ep || currentServerIndex !== serverIndex) return;
+        cleanupPlayer(); currentServerIndex = option.serverIndex; currentEpisodes = allServers[currentServerIndex].server_data;
+        renderServerPills(); loadEpisode(currentEpisodes.indexOf(option.episode), resume, option.engine);
+      }
+    });
+  }
   const notify = (message, type = 'info') => MobileApp.toast(message, type);
   const updateStatus = PlayerUX.createStatus(playerWrapper, {
+    embedHelpContainer: document.getElementById('m-embed-player-help'),
     retry: () => {
       if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; updateStatus('ready'); return; }
       if (movieData) {
@@ -90,14 +109,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     return progressStore?.save(currentEpisodes[currentEpIndex], allServers[currentServerIndex]?.server_name, videoEl, keepalive);
   }
   function cleanupPlayer() {
+    recoveryPrompt?.destroy(); recoveryPrompt = null;
     clearTimeout(nextTimer);
     nextTimer = null;
-    clearTimeout(embedTimer);
+    embedSession?.destroy();
+    embedSession = null;
     playerSession?.destroy();
     playerSession = null;
     hlsInstance = null;
     iframeEl.onload = null;
     iframeEl.src = 'about:blank';
+    updateStatus('ready');
   }
   window.addEventListener('pagehide', () => { saveProgress(true); cleanupPlayer(); clearInterval(historyTimer); clearTimeout(hideOverlayTimer); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(true); });
@@ -121,7 +143,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load Movie Data
   try {
     loaderEl.classList.remove('hidden');
-    [movieData, user] = await Promise.all([API.getMovieDetail(slug), API.getMe().catch(() => null)]);
+    [movieData, user] = await Promise.all([API.getMovieDetail(slug), API.getMe()]);
+    if (window.PlayerPreferences) {
+      playbackPreferences = PlayerPreferences.create({ user, api: API });
+      await playbackPreferences.load();
+      playbackPreferences.subscribe(value => {
+        currentSpeedIdx = speeds.indexOf(value.playback_speed);
+        if (speedBtn) speedBtn.textContent = `${value.playback_speed}x`;
+        if (!value.auto_next) cancelPendingNext();
+      });
+    }
     if (!movieData || !movieData.movie) {
       notify('Không tìm thấy dữ liệu phim', 'error');
       setTimeout(() => window.location.href = '/mobile', 1500);
@@ -129,71 +160,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const movie = movieData.movie;
-    allServers = movieData.episodes || [];
+    allServers = (movieData.episodes || []).map(server => window.EpisodeSources ? { ...server, server_data: EpisodeSources.playable(server) } : server);
 
-    document.title = `${movie.name} - Đang xem - CineViet Mobile`;
+    document.title = `${movie.name} - Đang xem - CineViet`;
     if (movieNameEl) movieNameEl.textContent = movie.name;
     if (infoTitle) infoTitle.textContent = movie.name;
-
-    // Render Cast & Crew Rail
-    const castRail = document.getElementById('m-watch-cast-rail');
-    const castSection = document.getElementById('m-watch-cast-section');
-    if (castRail && (movie.director?.length || movie.actor?.length || movie.credits || movie.tmdb_cast)) {
-      function toSlug(str) {
-        if (!str) return '';
-        return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      }
-
-      const tmdbCast = movie.tmdb_cast || movie.credits?.cast || [];
-      const tmdbDirs = movie.tmdb_directors || movie.credits?.directors || [];
-
-      let directors = [];
-      let actors = [];
-
-      if (tmdbDirs.length || tmdbCast.length) {
-        directors = tmdbDirs;
-        actors = tmdbCast;
-      } else {
-        directors = (movie.director || []).filter(Boolean).map(d => ({
-          name: d,
-          character: 'Đạo diễn',
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true`
-        }));
-        actors = (movie.actor || []).filter(Boolean).map(a => ({
-          name: a,
-          character: 'Diễn viên',
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true`
-        }));
-      }
-
-      castRail.innerHTML = `
-        ${directors.map(d => {
-          const imgUrl = d.avatar || (d.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${d.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`);
-          return `
-          <a href="/dien-vien/${toSlug(d.name)}?type=director&id=${d.id || ''}&name=${encodeURIComponent(d.name)}" class="flex flex-col items-center justify-start shrink-0 text-center w-20 h-[108px] cursor-pointer">
-            <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container p-0.5 bg-surface-container shadow-md shrink-0">
-              <img src="${imgUrl}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
-            </div>
-            <span class="text-[11px] font-bold text-white line-clamp-1 block w-full mt-1 h-3.5 leading-3.5">${d.name}</span>
-            <span class="text-[9px] text-primary font-semibold block uppercase truncate w-full h-3 leading-3">Đạo Diễn</span>
-          </a>
-        `;}).join('')}
-
-        ${actors.map(a => {
-          const imgUrl = a.avatar || (a.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${a.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`);
-          return `
-          <a href="/dien-vien/${toSlug(a.name)}?id=${a.id || ''}&name=${encodeURIComponent(a.name)}" class="flex flex-col items-center justify-start shrink-0 text-center w-20 h-[108px] cursor-pointer">
-            <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md shrink-0">
-              <img src="${imgUrl}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
-            </div>
-            <span class="text-[11px] font-bold text-white line-clamp-1 block w-full mt-1 h-3.5 leading-3.5">${a.name}</span>
-            <span class="text-[9px] text-on-surface-variant font-semibold block uppercase truncate w-full h-3 leading-3">${a.character || 'Diễn Viên'}</span>
-          </a>
-        `;}).join('')}
-      `;
-    } else if (castSection) {
-      castSection.classList.add('hidden');
-    }
 
     // Check watchlist state
     updateFavButtonState(Boolean(movieData.inWatchlist));
@@ -202,6 +173,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (favBtn) {
       favBtn.addEventListener('click', async () => {
         try {
+          const loggedInUser = user || (localStorage.getItem('kk_user') ? JSON.parse(localStorage.getItem('kk_user')) : null);
+          if (!loggedInUser) {
+            notify('Vui lòng đăng nhập để lưu phim vào danh sách!', 'warning');
+            setTimeout(() => {
+              window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+            }, 800);
+            return;
+          }
           const result = await API.toggleWatchlist({ movie_slug: movie.slug, movie_name: movie.name,
             origin_name: movie.origin_name, poster_url: movie.poster_url, thumb_url: movie.thumb_url,
             quality: movie.quality, year: movie.year });
@@ -230,6 +209,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup Comments
     setupComments(movie.slug);
 
+    // Setup Seasons Selector (Netflix Style)
+    loadMobileWatchSeasons(movie.slug);
+
   } catch (err) {
     console.error('Player error:', err);
     loaderEl.classList.add('hidden');
@@ -237,8 +219,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     notify('Lỗi tải phim: ' + err.message, 'error');
   }
 
+  async function loadMobileWatchSeasons(movieSlug) {
+    const wrapper = document.getElementById('m-watch-seasons-wrapper');
+    const select = document.getElementById('m-watch-seasons-select');
+    if (!wrapper || !select || !movieSlug) return;
+    try {
+      const seasons = await API.getMovieSeasons(movieSlug);
+      if (Array.isArray(seasons) && seasons.length > 1) {
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        select.innerHTML = seasons.map(s => {
+          return `<option value="${esc(s.slug)}" ${s.is_current ? 'selected' : ''}>${esc(s.label || s.name)}</option>`;
+        }).join('');
+        wrapper.classList.remove('hidden');
+        wrapper.classList.add('flex');
+        select.onchange = e => {
+          const nextSlug = e.target.value;
+          if (nextSlug && nextSlug !== movieSlug) {
+            window.location.href = `/mobile/xem-phim/${encodeURIComponent(nextSlug)}`;
+          }
+        };
+      } else {
+        wrapper.classList.add('hidden');
+        wrapper.classList.remove('flex');
+      }
+    } catch (_) {
+      wrapper.classList.add('hidden');
+      wrapper.classList.remove('flex');
+    }
+  }
+
   function updateFavButtonState(isSaved) {
     if (!favIcon) return;
+    favBtn?.setAttribute('aria-label', isSaved ? 'Bỏ yêu thích' : 'Yêu thích');
+    favBtn?.setAttribute('aria-pressed', String(isSaved));
     if (isSaved) {
       favIcon.textContent = 'bookmark_added';
       favIcon.classList.add('text-primary-container');
@@ -251,6 +264,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Render Server selector
   function renderServerPills() {
     if (!serverContainer) return;
+    if (window.EpisodeSources) {
+      EpisodeSources.render(serverContainer, allServers, currentServerIndex, selectServer);
+      return;
+    }
     serverContainer.innerHTML = '';
     allServers.forEach((srv, idx) => {
       const btn = document.createElement('button');
@@ -281,7 +298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Load specific Episode
-  function loadEpisode(epIdx, initialTime = 0) {
+  function loadEpisode(epIdx, initialTime = 0, engine = '') {
     saveProgress(true);
     cleanupPlayer();
     if (!currentEpisodes[epIdx]) {
@@ -291,7 +308,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     currentEpIndex = epIdx;
     const ep = currentEpisodes[epIdx];
+    if (!PlayerUX.episodeMatches(recoveryEpisode, ep.slug)) failedSources.clear();
+    recoveryEpisode = ep.slug;
     epSlug = ep.slug;
+    window.dispatchEvent(new CustomEvent('cineviet:episode-change', { detail: { slug: ep.slug } }));
     window.history.replaceState(null, '', `/mobile/xem-phim/${slug}/${ep.slug}?server=${currentServerIndex}`);
     if (epTotalEl) epTotalEl.textContent = `${currentEpisodes.length} tập`;
 
@@ -304,7 +324,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const streamUrl = ep.link_m3u8 || '';
     const embedUrl = ep.link_embed || '';
 
-    playStream(streamUrl, embedUrl, ep, initialTime);
+    if (engine === 'embed' || (!streamUrl && embedUrl)) fallbackToEmbed(embedUrl);
+    else playStream(streamUrl, embedUrl, ep, initialTime);
   }
 
   // Render Episode horizontal list
@@ -320,13 +341,16 @@ document.addEventListener('DOMContentLoaded', async () => {
           : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
       }`;
       chip.textContent = ep.name || `Tập ${idx + 1}`;
+      chip.classList.add('episode-mobile-choice');
+      if (isCur) chip.setAttribute('aria-current', 'true');
+      if (window.EpisodeSources) chip.prepend(EpisodeSources.image(ep, movieData.movie));
       chip.addEventListener('click', () => {
         loadEpisode(idx);
       });
       epListContainer.appendChild(chip);
 
       if (isCur) {
-        setTimeout(() => chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }), 100);
+        setTimeout(() => { if (chip.isConnected) epListContainer.scrollTo({ left: chip.offsetLeft - epListContainer.offsetLeft - (epListContainer.clientWidth - chip.clientWidth) / 2, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }, 100);
       }
     });
   }
@@ -344,6 +368,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
       }`;
       btn.textContent = ep.name || `Tập ${idx + 1}`;
+      btn.classList.add('episode-mobile-choice');
+      if (isCur) btn.setAttribute('aria-current', 'true');
+      if (window.EpisodeSources) btn.prepend(EpisodeSources.image(ep, movieData.movie));
       btn.addEventListener('click', () => {
         loadEpisode(idx);
         closeEpisodeDrawer();
@@ -361,10 +388,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     videoEl.playbackRate = speeds[currentSpeedIdx];
     playerSession = PlayerUX.createSession({
       video: videoEl, Hls: window.Hls, url: m3u8Url, embedUrl, initialTime,
+      preferences: playbackPreferences, tracksContainer: playerWrapper,
       onHls: hls => { hlsInstance = hls; },
       onState: updateStatus,
       onBeforeStop: () => saveProgress(true),
-      onFallback: () => fallbackToEmbed(embedUrl)
+      onFailure: (time, message) => { updateStatus('error', message || 'Nguồn phát gặp lỗi.'); offerRecovery(ep, time, 'hls', message); }
     });
   }
 
@@ -377,15 +405,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     overlayEl.hidden = true;
     iframeEl.classList.remove('hidden');
     loaderEl.classList.add('hidden');
-    updateStatus('embed', 'Đang mở server nhúng. Nếu không phát được, hãy đổi server.');
-    notify('Đang dùng server nhúng; tua tiếp đúng thời điểm có thể không được hỗ trợ.');
-    iframeEl.onload = () => { clearTimeout(embedTimer); updateStatus('ready'); };
-    iframeEl.src = embedUrl;
-    embedTimer = setTimeout(() => updateStatus('error', 'Server nhúng phản hồi chậm. Hãy đổi server.'), 20000);
+    embedSession?.destroy();
+    embedSession = PlayerUX.createEmbedSession({ iframe: iframeEl, url: embedUrl, onState: updateStatus,
+      onFailure: message => offerRecovery(currentEpisodes[currentEpIndex], PlayerUX.selectInitial(allServers, epSlug, currentServerIndex, progressStore?.get()).resume, 'embed', message) });
   }
 
   // Video Native Event Listeners
+  function cancelPendingNext() {
+    if (!nextTimer) return;
+    clearTimeout(nextTimer); nextTimer = null;
+    updateStatus('ready');
+  }
+  videoEl.addEventListener('seeking', () => { if (!videoEl.ended) cancelPendingNext(); });
   videoEl.addEventListener('play', () => {
+    cancelPendingNext();
     if (playIcon) playIcon.textContent = 'pause';
     scheduleHideOverlay();
   });
@@ -420,7 +453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   videoEl.addEventListener('ended', () => {
     saveProgress(true);
-    if (localStorage.getItem('TTPhim_auto_next') === 'false') return;
+    if (playbackPreferences ? !playbackPreferences.get().auto_next : localStorage.getItem('TTPhim_auto_next') === 'false') return;
     if (currentEpIndex + 1 < currentEpisodes.length) {
       notify('Tập tiếp theo sau 3 giây…');
       clearTimeout(nextTimer);
@@ -437,7 +470,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function hideOverlay() {
-    if (videoEl.paused) return;
+    if (videoEl.paused || overlayEl.contains(document.activeElement)) return;
     overlayEl.style.opacity = '0';
     overlayEl.style.pointerEvents = 'none';
   }
@@ -448,6 +481,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       hideOverlay();
     }, 3500);
   }
+  overlayEl.addEventListener('focusin', showOverlay);
+  overlayEl.addEventListener('focusout', scheduleHideOverlay);
 
   // Toggle overlay on tapping video
   playerWrapper.addEventListener('click', (e) => {
@@ -529,12 +564,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Speed selector
   if (speedBtn) {
-    speedBtn.addEventListener('click', (e) => {
+    speedBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      currentSpeedIdx = (currentSpeedIdx + 1) % speeds.length;
-      const rate = speeds[currentSpeedIdx];
-      videoEl.playbackRate = rate;
-      speedBtn.textContent = `${rate}x`;
+      const index = (currentSpeedIdx + 1) % speeds.length;
+      const rate = speeds[index];
+      if (playbackPreferences) {
+        if (!await playbackPreferences.update({ playback_speed: rate })) notify('Chưa lưu được tốc độ phát. Vui lòng thử lại.', 'error');
+      } else { currentSpeedIdx = index; videoEl.playbackRate = rate; speedBtn.textContent = `${rate}x`; }
       scheduleHideOverlay();
     });
   }
@@ -553,6 +589,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Episode Drawer Toggle
+  document.getElementById('m-open-episodes')?.addEventListener('click', openEpisodeDrawer);
   if (drawerToggleBtn) {
     drawerToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -572,9 +609,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  function openEpisodeDrawer() {
+  async function openEpisodeDrawer() {
     if (!epDrawerBackdrop) return;
+    if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (_) { return; } }
+    else if (document.webkitFullscreenElement) { try { document.webkitExitFullscreen(); } catch (_) { return; } }
     epDrawerBackdrop.classList.add('active');
+    setTimeout(() => { if (epDrawerBackdrop.classList.contains('active')) closeDrawerBtn?.focus({ preventScroll: true }); }, 50);
   }
 
   function closeEpisodeDrawer() {
@@ -586,39 +626,65 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Real comments shared with the desktop player.
   async function setupComments(movieSlug) {
     let comments = [];
+    if (!commentList) return;
+    const threadScope = window.CommentThreads?.scope({ list: commentList, servers: allServers, current: () => currentEpisodes[currentEpIndex]?.slug || '', watch: true, onChange: () => renderComments() });
+    const spoilerCheck = commentInput && window.CommentThreads?.spoilerInput(commentInput);
+    window.addEventListener('cineviet:episode-change', () => renderComments());
     function renderComments() {
-      if (!commentList) return;
       commentList.replaceChildren();
-      comments.forEach(comment => {
+      const visible = threadScope ? threadScope.filter(comments) : comments;
+      visible.forEach(comment => {
         const item = document.createElement('div');
+        item.id = `mobile-comment-${comment.id}`;
         item.className = 'p-2.5 rounded-xl bg-surface-container flex flex-col gap-1 border border-white/5';
         const name = document.createElement('strong');
         name.textContent = comment.user_name || 'Khán giả';
         const content = document.createElement('p');
         content.textContent = comment.content || '';
-        item.append(name, content);
+        item.append(name);
+        if (comment.is_spoil) {
+          content.className = 'spoiler-body';
+          const toggle = document.createElement('button'); toggle.type = 'button'; toggle.dataset.spoilerToggle = ''; toggle.textContent = 'Hiện spoiler';
+          item.append(toggle);
+        }
+        item.append(content);
+        if (comment.replies?.length) {
+          const replies = document.createElement('div'); replies.dataset.commentReplies = '';
+          comment.replies.forEach(reply => { const row = document.createElement('p'); row.textContent = `${reply.user_name || 'Khán giả'}: ${reply.content || ''}`; replies.append(row); });
+          item.append(replies);
+        }
         commentList.appendChild(item);
       });
-      if (!comments.length) commentList.textContent = 'Chưa có bình luận. Hãy chia sẻ cảm nhận của bạn.';
+      window.CommentThreads?.protect(commentList, visible, 'mobile-comment-');
+      if (!visible.length) commentList.textContent = 'Chưa có bình luận trong mục này. Hãy chia sẻ cảm nhận của bạn.';
     }
     try { comments = await API.getComments(movieSlug); renderComments(); }
-    catch (_) { if (commentList) commentList.textContent = 'Không thể tải bình luận.'; }
+    catch (_) { commentList.textContent = 'Không thể tải bình luận. Tải lại trang để thử lại.'; }
     if (commentSend && commentInput) {
       commentSend.addEventListener('click', async () => {
         const content = commentInput.value.trim();
         if (!content || commentSend.disabled) return;
+        const loggedInUser = user || (localStorage.getItem('kk_user') ? JSON.parse(localStorage.getItem('kk_user')) : null);
+        if (!loggedInUser) {
+          notify('Vui lòng đăng nhập để bình luận', 'warning');
+          setTimeout(() => {
+            window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+          }, 800);
+          return;
+        }
         commentSend.disabled = true;
         try {
-          const result = await API.postComment(movieSlug, { content, user_name: user?.name || 'Khán giả' });
+          const result = await API.postComment(movieSlug, { content, episode_slug: currentEpisodes[currentEpIndex]?.slug || null, is_spoil: Boolean(spoilerCheck?.checked) });
           if (!result.status) throw new Error(result.message);
           comments.unshift(result.data);
           commentInput.value = '';
+          if (spoilerCheck) spoilerCheck.checked = false;
           renderComments();
           notify('Đã gửi bình luận');
         } catch (error) { notify(error.message || 'Không thể gửi bình luận', 'error'); }
         finally { commentSend.disabled = false; }
       });
-      commentInput.addEventListener('keydown', event => { if (event.key === 'Enter') commentSend.click(); });
+      commentInput.addEventListener('keydown', event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.isComposing) { event.preventDefault(); commentSend.click(); } });
     }
   }
 

@@ -1,0 +1,71 @@
+/* Scoped to native mobile account security; independent of generated site CSS. */
+.m-security {
+  --security-border: rgba(255, 255, 255, .12);
+  margin: 0 16px 24px;
+  border: 1px solid var(--security-border);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #26212a, #191c25 45%);
+  color: #f3f2f6;
+  min-width: 0;
+  scroll-margin-top: 88px;
+}
+.m-security [hidden] { display: none !important; }
+.m-security summary {
+  min-height: 52px;
+  padding: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.m-security-body { padding: 0 16px 16px; }
+.m-security section { border-top: 1px solid var(--security-border); padding: 20px 0; min-width: 0; }
+.m-security h2 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+.m-security h3 { font-size: 16px; font-weight: 600; }
+.m-security p { color: #cecbd3; font-size: 14px; line-height: 1.6; margin: 8px 0 12px; overflow-wrap: anywhere; }
+.m-security label { display: block; font-size: 14px; margin: 14px 0 6px; }
+.m-security input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #77717e;
+  border-radius: 10px;
+  background: #11131c;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+.m-security button, .m-security a, #settingDevices {
+  min-height: 44px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.m-security button, .m-security a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 10px 14px;
+  margin: 10px 6px 0 0;
+  border: 1px solid #887985;
+  border-radius: 12px;
+  color: #fff;
+  background: #392730;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.m-security button:disabled { opacity: .55; cursor: not-allowed; }
+.m-security :focus-visible { outline: 3px solid #ffb4b8; outline-offset: 3px; }
+.m-security code, .m-security pre { display: block; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 16px; line-height: 1.8; padding: 12px; background: #11131c; border-radius: 10px; user-select: text; }
+.m-security ul { list-style: none; padding: 0; margin: 16px 0 0; }
+.m-security li { padding: 16px; margin-top: 12px; border: 1px solid var(--security-border); border-radius: 12px; overflow-wrap: anywhere; }
+.m-session-current { display: inline-block; border: 1px solid #64b693; border-radius: 20px; padding: 3px 10px; margin-top: 8px; color: #a5efcd; font-size: 13px; }
+#m-security-devices { scroll-margin-top: 88px; }
+#m-security-status:not(:empty) { border-left: 3px solid #ffb4b8; padding-left: 12px; }
+@media (max-width: 360px) {
+  .m-security-body { padding: 0 12px 12px; }
+  .m-security button, .m-security a { width: 100%; margin-right: 0; }
+  .m-security li { padding: 12px; }
+}

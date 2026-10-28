@@ -6,7 +6,7 @@ const vm = require('vm');
 
 for (const [name, exports] of Object.entries({
   vicdnService: { hasBilingualMatch: () => false },
-  nguoncService: {},
+  nguoncService: { hasMatch: () => false, getNguoncServers: async () => [] },
   dbService: { getSettings: async () => ({ featured_slugs: [] }), getMovieViews: async () => ({}) }
 })) {
   const id = require.resolve(`../src/services/${name}`);
@@ -62,11 +62,12 @@ test('pinned spotlights load concurrently while preserving administrator order',
     peak = Math.max(peak, active);
     await new Promise(resolve => setTimeout(resolve, slug === 'first' ? 30 : 5));
     active--;
-    return { movie: { slug, name: slug }, episodes: [] };
+    return { movie: { slug, name: slug, type:'single', tmdb:{id:550,type:'movie'} }, episodes: [] };
   };
   const home = await service.getHomeData();
   assert.equal(peak, 3);
   assert.deepEqual(home.spotlights.map(item => item.slug), ['first', 'second', 'third']);
+  assert.ok(home.spotlights.every(movie=>movie.tmdb.id===550 && movie.tmdb.type==='movie' && movie.type==='single'));
 });
 
 test('failed shared requests are removed so subsequent calls can retry', async () => {
@@ -198,4 +199,35 @@ test('home pages use prebuilt local Tailwind CSS rather than a blocking runtime 
   }
   const script = fs.readFileSync(path.join(__dirname, '../public/js/header.js'), 'utf8');
   assert.ok(script.includes("if (!popover.classList.contains('hidden')) loadNotifications()"));
+});
+
+test('spotlights omit unsupported stored sources without rewriting administrator settings', async () => {
+  const pins = [{ slug: 'supported', source: 'kkphim' }, { slug: 'legacy', source: 'removed-provider' }, 'plain-slug'];
+  db.getSettings = async () => ({ featured_slugs: pins });
+  service.fetchJson = async () => ({ items: [], data: { items: [] } });
+  const requested = [];
+  service.getMovieDetail = async slug => { requested.push(slug); return { movie: { slug, name: slug }, episodes: [] }; };
+  const home = await service.getHomeData();
+  assert.deepEqual(home.spotlights.map(item => item.slug), ['supported', 'plain-slug']);
+  assert.deepEqual(requested, ['supported', 'plain-slug']);
+  assert.equal(pins.length, 3);
+});
+
+test('catalog and quick search combine primary and bilingual sources only', async () => {
+  const bilingual = require('../src/services/vicdnService');
+  const originalSearch = bilingual.searchViCdn;
+  const calls = [];
+  bilingual.searchViCdn = async () => [{ slug: 'bilingual', name: 'Test Bilingual', origin_name: 'Test Bilingual' }];
+  service.fetchJson = async endpoint => {
+    calls.push(endpoint);
+    return { data: { items: [{ slug: 'primary', name: 'Test Primary', origin_name: 'Test Primary' }] } };
+  };
+  try {
+    const quick = await service.quickSearch('test');
+    const catalog = await service.getCatalog({ keyword: 'test' });
+    assert.deepEqual(quick.map(item => item.slug), ['primary', 'bilingual']);
+    assert.deepEqual(catalog.items.map(item => item.slug), ['primary', 'bilingual']);
+    assert.equal(calls.length, 1, 'quick search and catalog reuse the same bounded result snapshot');
+    assert.ok(calls.every(endpoint => endpoint.startsWith('/v1/api/tim-kiem?')));
+  } finally { if (originalSearch) bilingual.searchViCdn = originalSearch; else delete bilingual.searchViCdn; }
 });

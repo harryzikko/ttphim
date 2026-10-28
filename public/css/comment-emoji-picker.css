@@ -1,0 +1,33 @@
+.comment-emoji-trigger {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 44px; min-height: 44px; padding: 8px 12px; flex-shrink: 0;
+  border: 1px solid #ffffff26; border-radius: 10px; background: #252733; color: #e1e1ef;
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.comment-emoji-trigger:hover { background: #343744; }
+.comment-emoji-picker {
+  position: fixed; z-index: 120; box-sizing: border-box; padding: 12px;
+  border: 1px solid #ffffff29; border-radius: 16px; background: #1d1f29; color: #e1e1ef;
+  box-shadow: 0 16px 50px #0009; overflow: auto; overscroll-behavior: contain; font-family: inherit;
+}
+.comment-emoji-picker[hidden] { display: none !important; }
+.comment-emoji-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
+.comment-emoji-heading button {
+  min-width: 44px; min-height: 44px; border: 0; border-radius: 8px;
+  background: transparent; color: #ddd; font-size: 26px; cursor: pointer;
+}
+.comment-emoji-tabs { display: flex; gap: 4px; margin: 4px 0 10px; padding-bottom: 8px; border-bottom: 1px solid #ffffff1a; overflow-x: auto; }
+.comment-emoji-tabs button {
+  flex: 1; white-space: nowrap; min-height: 44px; padding: 6px; border: 0; border-radius: 8px;
+  background: transparent; color: #bbb; font: inherit; font-size: 12px; cursor: pointer;
+}
+.comment-emoji-tabs button[aria-selected=true] { background: #e5091429; color: #ffb4aa; font-weight: 700; }
+.comment-emoji-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 4px; }
+.comment-emoji-option {
+  display: flex; align-items: center; justify-content: center; min-height: 44px; border: 0;
+  border-radius: 10px; background: transparent; font-size: 25px; line-height: 1.2; cursor: pointer;
+}
+.comment-emoji-option:hover, .comment-emoji-heading button:hover { background: #ffffff14; }
+.comment-emoji-picker :focus-visible, .comment-emoji-trigger:focus-visible { outline: 2px solid #7df4ff; outline-offset: -2px; }
+.comment-emoji-status { margin: 8px 0 0; min-height: 0; font-size: 12px; color: #ffb4aa; }
+.comment-emoji-status:empty { display: none; }

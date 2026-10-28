@@ -1,0 +1,105 @@
+/* Both home routes use the same portrait composition, independent of UA or view preference. */
+@media (max-width: 767px) and (orientation: portrait) {
+  #home-hero, #m-spotlight-section {
+    --phone-hero-height: clamp(440px, calc((100vw - 24px) * 1.5), 630px);
+    width: min(calc(100% - 24px), 420px); min-height: 0;
+    margin: 14px auto 12px; border: 1px solid #ffffff1c; border-radius: 16px;
+    background: #0c0e17; overflow: hidden;
+  }
+  #home-hero .hero-layout { height: var(--phone-hero-height); min-height: 0; }
+  #home-hero .hero-bg-layer::before, #m-spotlight-bg::before { opacity: .25; }
+  #home-hero .hero-artwork-image, #m-spotlight-bg .hero-artwork-image {
+    object-position: center top; -webkit-mask-image: none; mask-image: none;
+  }
+  #home-hero .hero-bg-container::after, #m-spotlight-bg::after {
+    background: linear-gradient(0deg, #0c0e17 0%, #0c0e17ed 15%, #0c0e1799 32%, #0c0e1720 52%, transparent 70%);
+  }
+  #home-hero .hero-main-content {
+    position: absolute; inset: 0; display: flex; align-items: flex-end;
+    padding: 0 16px 66px; width: 100%; margin: 0;
+  }
+  #home-hero .hero-details-grid { width: 100%; }
+  #home-hero #hero-content-deck { width: 100%; gap: 8px; align-items: center; text-align: center; }
+  #home-hero #hero-content-deck::before, #m-spotlight-rank {
+    font-size: 10px; line-height: 14px; letter-spacing: .12em; color: #e6c4c1;
+    font-weight: 600; text-transform: uppercase; margin: 0;
+  }
+  #home-hero #hero-content-deck > div:first-child,
+  #home-hero #hero-content-deck > div:nth-child(3),
+  #home-hero p.font-body-lg { display: none; }
+  #home-hero #hero-content-deck > div:nth-child(2) { width: 100%; }
+  #home-hero h1, #m-spotlight-title {
+    max-width: 100%; margin: 0; font-size: clamp(24px, 7vw, 28px); line-height: 1.15;
+    font-weight: 800; font-style: normal; text-transform: none; letter-spacing: -.025em;
+    transform: none; text-align: center; text-shadow: 0 2px 16px #0008;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  #home-hero p.font-headline-sm {
+    font-size: 12px; line-height: 18px; margin-top: 6px; letter-spacing: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #m-spotlight-section .m-hero-content {
+    display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+    height: var(--phone-hero-height); min-height: 0; padding: 0 16px 66px;
+    text-align: center; gap: 8px;
+  }
+  #m-spotlight-badges { justify-content: center; gap: 6px; margin: 0; }
+  #m-spotlight-badges > span { font-size: 10px; background: none; padding: 0 2px; }
+  #m-spotlight-badges > span:nth-child(n+4) { display: none; }
+  #home-hero #hero-action-deck, #m-spotlight-section .m-hero-actions {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    width: 100%; gap: 8px; padding: 0; margin-top: 6px;
+  }
+  #home-hero #hero-action-deck > :is(a, button), #m-spotlight-section .m-hero-actions > :is(a, button) {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    min-width: 0; height: 44px; min-height: 44px; padding: 0 5px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; white-space: nowrap; box-shadow: none;
+  }
+  #home-hero #hero-action-deck .material-symbols-outlined,
+  #m-spotlight-section .m-hero-actions .material-symbols-outlined { font-size: 20px; line-height: 1; }
+  #home-hero #hero-action-deck > button[title] { border: 1px solid #ffffff30; background: #282933cc; }
+  #home-hero #hero-poster-deck {
+    position: absolute; inset: auto 12px 4px; width: auto; margin: 0; padding: 0;
+  }
+  #home-hero .hero-carousel-controls, #m-spotlight-section .m-hero-navigation {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    height: 44px; margin: 0; padding: 0;
+  }
+  #m-spotlight-section .m-hero-navigation { position: absolute; inset: auto 12px 4px; width: auto; }
+  #home-hero .hero-carousel-controls > button, #m-spotlight-section .m-hero-navigation > button {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; min-height: 44px; flex-shrink: 0;
+    border: 0; border-radius: 50%; background: transparent;
+  }
+  #home-hero #hero-slide-dots { gap: 5px; }
+  #home-hero #hero-slide-dots button { width: 10px; min-height: 44px; }
+  #home-hero #hero-slide-dots button[aria-current="true"] { width: 22px; }
+  #home-hero .hero-timer-track { position: absolute; bottom: 0; height: 1px; opacity: 0; pointer-events: none; }
+  #m-spotlight-section .m-hero-progress { display: none; }
+}
+
+/* One action geometry contract across both home templates and viewport orientations. */
+  #home-hero #hero-action-deck, #m-spotlight-section .m-hero-actions {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) 48px;
+    align-items: center; gap: 8px; width: 100%; max-width: 480px;
+  }
+  #home-hero #hero-action-deck > :is(#hero-play-btn, #hero-favorite-btn, #hero-info-btn),
+  #m-spotlight-section .m-hero-actions > :is(#m-spotlight-play-btn, #m-spotlight-watchlist-btn, #m-spotlight-info-btn) {
+    display: flex; flex-direction: row; align-items: center; justify-content: center;
+    box-sizing: border-box; width: 100%; min-width: 0; height: 48px; min-height: 48px;
+    margin: 0; padding: 0 6px; gap: 6px; border: 1px solid transparent;
+    border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 20px;
+    white-space: nowrap; box-shadow: none; transform: none;
+  }
+  #home-hero #hero-action-deck > :is(#hero-favorite-btn, #hero-info-btn),
+  #m-spotlight-section .m-hero-actions > :is(#m-spotlight-watchlist-btn, #m-spotlight-info-btn) {
+    border-color: #ffffff30; background: #282933cc;
+  }
+  #home-hero #hero-action-deck .material-symbols-outlined,
+  #m-spotlight-section .m-hero-actions .material-symbols-outlined {
+    display: block; flex: 0 0 20px; width: 20px; height: 20px;
+    font-size: 20px; line-height: 20px; text-align: center;
+  }
+  #hero-play-btn, #m-spotlight-play-btn { order: 0; }
+  #hero-favorite-btn, #m-spotlight-watchlist-btn { order: 1; }
+  #hero-info-btn, #m-spotlight-info-btn { order: 2; }

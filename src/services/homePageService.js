@@ -3,6 +3,7 @@ const path = require('path');
 const config = require('../config');
 const templateService = require('./templateService');
 const banners = require('./bannerService');
+const { prepareHome } = require('./featuredArtwork');
 
 let cachedPage = null;
 
@@ -12,11 +13,13 @@ function serializeData(data) {
 }
 
 function addHomeData(html, data) {
-  const image = data.spotlights?.[0]?.thumb_url || data.spotlights?.[0]?.poster_url;
-  let hints = '<link rel="preconnect" href="https://phimimg.com" crossorigin>';
+  const first = data.spotlights?.[0];
+  const image = first?.hero_backdrop_url || first?.thumb_url || first?.poster_url;
+  let hints = '<link rel="preconnect" href="https://phimimg.com" crossorigin><link rel="preconnect" href="https://image.tmdb.org" crossorigin>';
   if (image && /^https?:\/\//.test(image)) {
-    const escaped = image.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    hints += `<link rel="preload" as="image" href="${escaped}" fetchpriority="high">`;
+    const escape = value => String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const responsive = first?.hero_backdrop_srcset ? ` imagesrcset="${escape(first.hero_backdrop_srcset)}" imagesizes="100vw"` : '';
+    hints += `<link rel="preload" as="image" href="${escape(image)}"${responsive} fetchpriority="high">`;
   }
   return html.replace('</head>', `${hints}</head>`)
     .replace('</body>', `<script id="home-data" type="application/json">${serializeData(data)}</script></body>`);
@@ -25,7 +28,7 @@ function addHomeData(html, data) {
 async function renderHomePage(data, settings = { featured_slugs: (data.spotlights || []).map(item => item.slug) }) {
   const file = path.join(config.PUBLIC_DIR, 'index.html');
   const stat = await fs.stat(file);
-  const display = banners.applyHome(data, settings);
+  const display = await prepareHome(data, settings);
   const heroKey = JSON.stringify(display.spotlights);
   if (!(cachedPage?.data === data && cachedPage.modified === stat.mtimeMs && cachedPage.heroKey === heroKey)) {
     const raw = await fs.readFile(file, 'utf8');

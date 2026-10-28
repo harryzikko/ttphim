@@ -1,4 +1,4 @@
-﻿// TTPhim - Library & Watchlist Controller (Real Data Binding)
+// TTPhim - Library & Watchlist Controller (Real Data Binding)
 document.addEventListener('DOMContentLoaded', async () => {
   let libraryData = null;
   let activeTab = 'watchlist'; // 'continue', 'watchlist', 'history', 'downloaded'
@@ -34,18 +34,87 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selectedCountEl = document.getElementById('selectedCount');
   const cancelBatchBtn = document.getElementById('cancelBatchBtn');
   const batchDeleteBtn = batchActionBar?.querySelector('button.bg-error-container');
+  // Moving items between lists has no server-backed implementation.
+  batchActionBar?.querySelectorAll('button').forEach(button => {
+    if (button !== batchDeleteBtn && button !== cancelBatchBtn) button.remove();
+  });
+  const batchDeleteLabel = document.createElement('span');
+  if (batchDeleteBtn) {
+    const icon = batchDeleteBtn.querySelector('.material-symbols-outlined');
+    batchDeleteBtn.replaceChildren(...(icon ? [icon, batchDeleteLabel] : [batchDeleteLabel]));
+  }
 
   // Filter chips & Sort
   const categoryChips = document.querySelectorAll('div.flex.items-center.gap-space-xs.overflow-x-auto button');
   const sortSelect = document.querySelector('select:has(option[value="recent"])');
-
-  // Load Library Data
-  async function loadData() {
+  let mutationBusy = false;
+  async function changeLibrary(button, operation, message, afterSuccess = () => {}) {
+    if (mutationBusy) return;
+    mutationBusy = true; if (button) button.disabled = true;
     try {
-      libraryData = await API.getLibrary();
+      const response = await operation();
+      if (!response?.status) throw new Error(response?.message || 'Không thể lưu thay đổi. Vui lòng thử lại.');
+      afterSuccess();
+      window.showToast?.(message);
+      await loadData();
+    } catch (error) { window.showToast?.(error.message || 'Không thể lưu thay đổi. Vui lòng thử lại.', 'error'); }
+    finally { mutationBusy = false; if (button) button.disabled = false; }
+  }
+  const escapeText = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  function displayItems(items) {
+    return items.filter(item => /^[a-zA-Z0-9_-]+$/.test(item.movie_slug || '')).map(item => Object.fromEntries(Object.entries(item).map(([key, value]) => {
+      if (key === 'episode_slug') return [key, encodeURIComponent(value || 'tap-1')];
+      if (key === 'poster_url' || key === 'thumb_url') {
+        try { const url = new URL(value, location.href); return [key, /^https?:$/.test(url.protocol) ? escapeText(url.href) : '/favicon.svg']; }
+        catch (_) { return [key, '/favicon.svg']; }
+      }
+      return [key, typeof value === 'string' ? escapeText(value) : value];
+    })));
+  }
+
+  // Share one authenticated response with the summary; keep HTTP auth failures distinct.
+  async function loadData() {
+    const summaryRoot = document.getElementById('library-stats');
+    const renderSummary = state => window.LibraryStats?.render(summaryRoot, libraryData, state);
+    const syncStatus = document.getElementById('library-sync-status');
+    renderSummary('loading');
+    if (syncStatus) syncStatus.textContent = 'Đang tải dữ liệu…';
+    try {
+      const response = await fetch(`${API.getBaseUrl()}/api/user/library`, { credentials: 'include', headers: { Accept: 'application/json' } });
+      if (response.status === 401) {
+        libraryData = null;
+        renderSummary('guest');
+        if (syncStatus) syncStatus.textContent = 'Chưa đăng nhập';
+        if (targetGrid) {
+          targetGrid.replaceChildren();
+          const message = document.createElement('p');
+          message.className = 'col-span-full py-12 text-center text-on-surface-variant';
+          message.textContent = 'Đăng nhập để xem thư viện cá nhân của bạn.';
+          targetGrid.append(message);
+        }
+        return;
+      }
+      if (!response.ok) throw new Error('Library request failed');
+      const result = await response.json();
+      if (!result.status || !Array.isArray(result.data?.history) || !Array.isArray(result.data?.watchlist)) {
+        throw new Error('Invalid library response');
+      }
+      libraryData = result.data;
+      renderSummary('ready');
+      if (syncStatus) syncStatus.textContent = 'Đã tải dữ liệu mới nhất';
       updateMetricBadges();
       renderActiveTab();
     } catch (e) {
+      libraryData = null;
+      renderSummary('error');
+      if (syncStatus) syncStatus.textContent = 'Chưa đồng bộ được dữ liệu';
+      if (targetGrid) {
+        targetGrid.replaceChildren();
+        const message = document.createElement('p');
+        message.className = 'col-span-full py-12 text-center text-on-surface-variant';
+        message.textContent = 'Không thể tải thư viện. Vui lòng tải lại trang để thử lại.';
+        targetGrid.append(message);
+      }
       console.error('[TTPhim] Error loading library:', e);
       if (window.showToast) window.showToast('Lỗi tải dữ liệu thư viện cá nhân', 'error');
     }
@@ -61,11 +130,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const statWatching = document.getElementById('stat-watching-count') || countWatching;
     if (statWatching) {
-      statWatching.innerHTML = `${(libraryData.continueWatching?.length || 0) + (libraryData.watchlist?.length || 0)} <span class="font-body-sm text-body-sm text-on-surface-variant">tựa phim</span>`;
+      const unique = new Set([...(libraryData.continueWatching || []), ...(libraryData.watchlist || [])].map(item => item.movie_slug).filter(Boolean));
+      statWatching.innerHTML = `${unique.size} <span class="font-body-sm text-body-sm text-on-surface-variant">tựa phim</span>`;
     }
     const statHistory = document.getElementById('stat-history-count');
     if (statHistory) {
-      statHistory.innerHTML = `${libraryData.history?.length || 0} <span class="font-body-sm text-body-sm text-on-surface-variant">tập phim</span>`;
+      statHistory.innerHTML = `${new Set((libraryData.history || []).map(item => item.movie_slug).filter(Boolean)).size} <span class="font-body-sm text-body-sm text-on-surface-variant">tựa phim</span>`;
     }
   }
 
@@ -86,6 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Reset batch mode on tab switch
     if (isBatchMode) toggleBatchMode(false);
 
+    if (toggleBatchBtn) toggleBatchBtn.disabled = activeTab === 'downloaded' || !libraryData;
     renderActiveTab();
   }
 
@@ -139,6 +210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Batch Mode Toggle
   function toggleBatchMode(forceState) {
     isBatchMode = typeof forceState === 'boolean' ? forceState : !isBatchMode;
+    if (isBatchMode && (mutationBusy || !libraryData || activeTab === 'downloaded')) isBatchMode = false;
     selectedSlugs.clear();
     updateBatchCount();
 
@@ -184,17 +256,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (batchDeleteBtn) {
     batchDeleteBtn.addEventListener('click', async () => {
+      if (mutationBusy || !libraryData || !isBatchMode || activeTab === 'downloaded') return;
       if (selectedSlugs.size === 0) {
-        window.showToast('Vui lòng chọn ít nhất một phim để xóa', 'info');
+        window.showToast?.('Vui lòng chọn ít nhất một phim', 'info');
         return;
       }
 
-      if (confirm(`Bạn có chắc chắn muốn xóa ${selectedSlugs.size} phim đã chọn?`)) {
-        const slugs = Array.from(selectedSlugs);
-        await API.batchRemoveWatchlist(slugs);
-        window.showToast(`Đã xóa thành công ${slugs.length} phim khỏi danh sách!`);
-        toggleBatchMode(false);
-        loadData();
+      const tab = activeTab;
+      const slugs = Array.from(selectedSlugs);
+      const actions = {
+        watchlist: ['xóa khỏi danh sách yêu thích', 'Đã xóa khỏi danh sách yêu thích.'],
+        continue: ['ẩn khỏi Xem tiếp (giữ nguyên lịch sử và yêu thích)', 'Đã ẩn khỏi Xem tiếp. Lịch sử và yêu thích vẫn được giữ.'],
+        history: ['xóa lịch sử xem và tiến trình đã lưu (không xóa yêu thích)', 'Đã xóa lịch sử xem các phim đã chọn.']
+      };
+      if (!actions[tab]) return;
+      if (confirm(`Bạn có chắc chắn muốn ${actions[tab][0]} cho ${slugs.length} phim đã chọn?`)) {
+        await changeLibrary(batchDeleteBtn, async () => {
+          if (tab === 'watchlist') return API.batchRemoveWatchlist(slugs);
+          for (const slug of slugs) {
+            const response = tab === 'continue'
+              ? await API.setContinueHidden(slug, true)
+              : await API.removeFromHistory(slug);
+            if (!response?.status) return response;
+          }
+          return { status: true };
+        }, actions[tab][1], () => { if (activeTab === tab) toggleBatchMode(false); });
       }
     });
   }
@@ -211,9 +297,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Filter by category
     if (currentCategory !== 'all') {
       result = result.filter(m => {
-        if (currentCategory === 'series') return m.episode_name || m.current_time;
-        if (currentCategory === 'single') return !m.episode_name || m.episode_name === 'Full';
-        return (m.category || '').toLowerCase().includes(currentCategory.toLowerCase());
+        if (currentCategory === 'series') return m.type === 'series' || m.type === 'tv' || m.type === 'phim-bo';
+        if (currentCategory === 'single') return m.type === 'single' || m.type === 'movie' || m.type === 'phim-le';
+        const categories = Array.isArray(m.category) ? m.category.map(item => typeof item === 'string' ? item : item?.name || '').join(' ') : String(m.category || '');
+        return categories.toLowerCase().includes(currentCategory.toLowerCase());
       });
     }
 
@@ -230,6 +317,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function renderActiveTab() {
+    if (toggleBatchBtn) toggleBatchBtn.disabled = activeTab === 'downloaded' || !libraryData;
+    batchDeleteLabel.textContent = activeTab === 'continue' ? 'Ẩn khỏi Xem tiếp' : activeTab === 'history' ? 'Xóa lịch sử đã chọn' : 'Xóa yêu thích đã chọn';
     if (!targetGrid) return;
 
     if (activeTab === 'continue') {
@@ -244,6 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function renderContinueWatching(container, items) {
+    items = displayItems(items);
     if (items.length === 0) {
       container.innerHTML = `
         <div class="col-span-full py-20 text-center text-on-surface-variant flex flex-col items-center gap-2">
@@ -285,7 +375,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <a href="/xem-phim/${item.movie_slug}/${item.episode_slug || 'tap-1'}" class="flex-1 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-label-badge text-[11px] font-bold text-center hover:bg-inverse-primary transition-all flex items-center justify-center gap-1">
               <span class="material-symbols-outlined text-[14px]">play_arrow</span> Xem tiếp
             </a>
-            <button class="btn-remove-hist p-1.5 rounded-lg hover:bg-error/20 text-on-surface-variant hover:text-error transition-colors cursor-pointer" data-slug="${item.movie_slug}" title="Xóa">
+            <button class="btn-remove-hist p-1.5 rounded-lg hover:bg-error/20 text-on-surface-variant hover:text-error transition-colors cursor-pointer" data-slug="${item.movie_slug}" title="Ẩn khỏi Xem tiếp, giữ lịch sử" aria-label="Ẩn khỏi Xem tiếp, giữ lịch sử">
               <span class="material-symbols-outlined text-[16px]">close</span>
             </button>
           </div>
@@ -296,9 +386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.querySelectorAll('.btn-remove-hist').forEach(b => {
       b.addEventListener('click', async () => {
         const slug = b.dataset.slug;
-        await API.removeFromHistory(slug);
-        window.showToast('Đã xóa phim khỏi danh sách đang xem');
-        loadData();
+        await changeLibrary(b, () => API.setContinueHidden(slug, true), 'Đã ẩn khỏi Xem tiếp. Lịch sử vẫn được giữ.');
       });
     });
 
@@ -313,6 +401,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function renderWatchlist(container, items) {
+    items = displayItems(items);
     if (items.length === 0) {
       container.innerHTML = `
         <div class="col-span-full py-20 text-center text-on-surface-variant flex flex-col items-center gap-2">
@@ -369,9 +458,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.querySelectorAll('.btn-remove-wl').forEach(b => {
       b.addEventListener('click', async () => {
         const slug = b.dataset.slug;
-        await API.removeFromWatchlist(slug);
-        window.showToast('Đã xóa khỏi danh sách yêu thích');
-        loadData();
+        await changeLibrary(b, () => API.removeFromWatchlist(slug), 'Đã xóa khỏi danh sách yêu thích.');
       });
     });
 
@@ -386,6 +473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function renderHistory(container, items) {
+    items = displayItems(items);
     if (items.length === 0) {
       container.innerHTML = `
         <div class="col-span-full py-20 text-center text-on-surface-variant flex flex-col items-center gap-2">
@@ -408,6 +496,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="relative w-full aspect-video overflow-hidden bg-surface-container-highest">
             <img src="${item.thumb_url || item.poster_url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
             <span class="badge-glass-ep absolute bottom-2 right-2">${formatEpBadge(item.episode_name)}</span>
+            ${isBatchMode ? `<input type="checkbox" class="card-batch-cb absolute top-2 left-2 z-20 w-5 h-5" data-slug="${item.movie_slug}" aria-label="Chọn phim để xóa lịch sử" ${selectedSlugs.has(item.movie_slug) ? 'checked' : ''} />` : ''}
             <button class="btn-remove-single-hist absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 hover:bg-error text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10" title="Xóa khỏi lịch sử xem" data-slug="${item.movie_slug}">
               <span class="material-symbols-outlined text-[14px]">close</span>
             </button>
@@ -420,17 +509,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                 Xem lại <span class="material-symbols-outlined text-[13px]">arrow_forward</span>
               </a>
             </div>
+            ${Number(item.current_time) > 0 && Number(item.progress_percent || 0) < 95 ? `<button type="button" class="btn-continue-visibility text-primary text-xs py-2 text-left" data-slug="${item.movie_slug}" data-hidden="${item.continue_hidden === true ? 'false' : 'true'}">${item.continue_hidden === true ? 'Hiện lại trong Xem tiếp' : 'Ẩn khỏi Xem tiếp, giữ lịch sử'}</button>` : ''}
           </div>
         </div>
       `).join('')}
     `;
 
+    container.querySelectorAll('.card-batch-cb').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) selectedSlugs.add(cb.dataset.slug);
+        else selectedSlugs.delete(cb.dataset.slug);
+        updateBatchCount();
+      });
+    });
+    container.querySelectorAll('.btn-continue-visibility').forEach(button => {
+      button.onclick = () => changeLibrary(button, () => API.setContinueHidden(button.dataset.slug, button.dataset.hidden === 'true'), button.dataset.hidden === 'true' ? 'Đã ẩn khỏi Xem tiếp, giữ nguyên lịch sử.' : 'Đã hiện lại trong Xem tiếp.');
+    });
     container.querySelectorAll('.btn-remove-single-hist').forEach(b => {
       b.addEventListener('click', async () => {
         const slug = b.dataset.slug;
-        await API.removeFromHistory(slug);
-        window.showToast('Đã xóa phim khỏi lịch sử xem');
-        loadData();
+        if (!confirm('Xóa lịch sử xem và tiến trình đã lưu của phim này? Yêu thích vẫn được giữ.')) return;
+        await changeLibrary(b, () => API.removeFromHistory(slug), 'Đã xóa phim khỏi lịch sử xem.');
       });
     });
 
@@ -438,9 +537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (clearBtn) {
       clearBtn.addEventListener('click', async () => {
         if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử xem không?')) {
-          await API.clearHistory();
-          window.showToast('Đã xóa toàn bộ lịch sử xem');
-          loadData();
+          await changeLibrary(clearBtn, () => API.clearHistory(), 'Đã xóa toàn bộ lịch sử xem.');
         }
       });
     }
@@ -452,10 +549,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="w-16 h-16 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center mb-4">
           <span class="material-symbols-outlined text-[32px]">download_for_offline</span>
         </div>
-        <h3 class="font-headline-sm text-on-surface font-bold">Chưa Có Phim Tải Về Ngoại Tuyến</h3>
+        <h3 class="font-headline-sm text-on-surface font-bold">Web chưa hỗ trợ xem ngoại tuyến</h3>
         <p class="font-body-sm text-on-surface-variant max-w-md mx-auto mt-2 leading-relaxed">
-          Tính năng tải phim xem ngoại tuyến hiện được hỗ trợ độc quyền trên ứng dụng <strong>CineViet Mobile (iOS / Android)</strong>.<br/>
-          Trên nền tảng Web, bạn có thể thưởng thức toàn bộ kho phim chuẩn 4K HDR trực tuyến với tốc độ cao không giới hạn.
+          Hiện chưa có chức năng tải và quản lý phim ngoại tuyến trên website. Chất lượng phát trực tuyến phụ thuộc nguồn phim, thiết bị và kết nối của bạn.
         </p>
         <div class="mt-6 flex items-center justify-center gap-3">
           <a href="/" class="px-5 py-2.5 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold hover:bg-inverse-primary transition-all flex items-center gap-1.5 shadow-md">
@@ -472,8 +568,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderActiveTab();
     });
   }
+  if (toggleBatchBtn) toggleBatchBtn.disabled = true;
 
-  // Initial load
   loadData();
 });
 

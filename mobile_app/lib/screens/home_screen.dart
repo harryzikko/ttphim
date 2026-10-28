@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/movie.dart';
 import '../services/api_service.dart';
+import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/continue_watching_rail.dart';
 import '../widgets/hero_banner.dart';
 import '../widgets/movie_rail.dart';
 import '../widgets/top10_reel.dart';
@@ -9,8 +11,9 @@ import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int tabIndex)? onNavigateTab;
+  final int refreshVersion;
 
-  const HomeScreen({super.key, this.onNavigateTab});
+  const HomeScreen({super.key, this.onNavigateTab, this.refreshVersion = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -24,14 +27,36 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Movie> _singleMovies = [];
   List<Movie> _seriesMovies = [];
   List<Movie> _animeMovies = [];
+  List<WatchHistoryItem> _continueWatching = [];
 
   @override
   void initState() {
     super.initState();
     _loadAllContent();
+    _loadContinueWatching();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshVersion != oldWidget.refreshVersion) {
+      _loadContinueWatching();
+    }
+  }
+
+  Future<void> _loadContinueWatching() async {
+    try {
+      final history = await StorageService.getHistory();
+      if (mounted) {
+        setState(() {
+          _continueWatching = history.take(10).toList();
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadAllContent() async {
+    _loadContinueWatching();
     setState(() => _isLoading = true);
 
     try {
@@ -68,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
         titleSpacing: 16,
         title: Row(
           children: [
-            // CineViet Logo
+            // TTPhim Logo
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -83,21 +108,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               child: const Text(
-                'CINE',
+                'TT',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
-                  fontSize: 15,
+                  fontSize: 16,
                   letterSpacing: 1,
                 ),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             const Text(
-              'VIET',
+              'Phim',
               style: TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.bold,
                 fontSize: 20,
                 letterSpacing: 0.5,
               ),
@@ -156,6 +181,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   HeroBanner(movies: _featuredMovies.isNotEmpty ? _featuredMovies : _newMovies),
 
                   const SizedBox(height: 12),
+
+                  // Continue Watching Rail (Netflix-Style)
+                  if (_continueWatching.isNotEmpty) ...[
+                    ContinueWatchingRail(
+                      items: _continueWatching,
+                      onSeeAll: () => widget.onNavigateTab?.call(3),
+                      onRefresh: _loadContinueWatching,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
                   // Top 10 Today Reel (Đồng bộ thứ hạng lượt xem thực tế từ Website)
                   Top10Reel(movies: _rankingMovies.isNotEmpty ? _rankingMovies : _newMovies),

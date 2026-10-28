@@ -33,7 +33,7 @@ Tập trung player desktop/mobile: mở phim, đổi tập/server, resume, xử 
 ## Giới hạn còn lại
 
 - Chưa kiểm thử Safari/iPhone/Android thật, fullscreen thực, remote TV, Flutter build hoặc Lighthouse/Core Web Vitals. Browser panel tích hợp không mở được; đã dùng Edge headless cho các kiểm tra nêu trên.
-- Nguồn HLS mẫu phát được không chứng minh mọi phim/codec/CDN đều hoạt động; cần kiểm tra nguồn KKPhim/ViCDN/NguonC thực trên thiết bị.
+- Nguồn HLS mẫu phát được không chứng minh mọi phim/codec/CDN đều hoạt động; cần kiểm tra nguồn KKPhim/ViCDN thực trên thiết bị.
 - Embed bên thứ ba không có giao thức chung để lấy tiến trình/seek; không hứa resume hoặc đồng bộ 100% cho iframe. Iframe load chỉ cho biết trang nhúng đã tải, không xác nhận video bên trong.
 - `public/xem-phim.html` còn script CDN legacy trong file nguồn do công cụ Edit bị từ chối 3 lần (`EDIT_PARSE_FAILED`/`EDIT_REGISTER_EMPTY`). Không tiếp tục sửa path đó. `readWatchTemplate()` loại script này trước khi phục vụ mọi route desktop player kể cả fallback, và file HLS local được dùng. Nếu build lại views hoặc dùng HTML ngoài Express cần bỏ script CDN trong template gốc.
 - Tailwind CDN/font bên ngoài và dữ liệu nguồn phim vẫn ảnh hưởng cold load; đây chưa phải chứng nhận production-ready toàn bộ website.

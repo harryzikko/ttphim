@@ -1,0 +1,80 @@
+/* Applied only to catalog templates; controller IDs and URL behavior are preserved. */
+.catalog-filter-toolbar { display: none; }
+#catalog-advanced-filters { display: flex; flex-direction: column; gap: 16px; }
+.m-catalog-title { margin: 0; color: #f1f2f6; font: 800 26px/1.25 'Montserrat', sans-serif; letter-spacing: -.03em; }
+#catalog-page-title { overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  #catalog-page { padding: 18px 16px 28px; gap: 14px; }
+  #catalog-intro { padding: 0; gap: 14px; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+  #catalog-intro > div:first-child > div:first-child, #catalog-intro > div:first-child > p, #catalog-hot-keywords { display: none; }
+  #catalog-page #catalog-page-title, #m-catalog-search-controls #catalog-page-title { margin: 0; font-size: 25px; font-weight: 800; line-height: 32px; letter-spacing: -.03em; }
+  #catalog-intro > div:last-child { gap: 0; }
+  #catalog-intro > div:last-child > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr) 64px; align-items: center; gap: 8px; border: 1px solid #ffffff1c; border-radius: 10px; background: #1d1f29; padding: 4px; }
+  #catalog-intro > div:last-child > div:first-child > .material-symbols-outlined { left: 12px; font-size: 20px; }
+  body #catalog-search-input { width: 100%; height: 44px; min-height: 44px; padding: 0 8px 0 36px; border: 0; border-radius: 6px; background: transparent; box-shadow: none; font-size: 16px; }
+  #catalog-intro #btn-quick-search { position: static; display: flex; align-items: center; justify-content: center; width: 64px; height: 44px; padding: 0 10px; border-radius: 7px; font-size: 13px; }
+  #btn-quick-search > span:last-child { display: none; }
+  #catalog-filter-panel { gap: 10px; padding: 0; background: transparent; box-shadow: none; }
+  #catalog-filter-panel > div:first-child { display: block; padding: 0; }
+  #catalog-filter-panel > div:first-child > div:first-child { display: none; }
+  #catalog-page #filter-type-group { display: flex; flex-wrap: nowrap; gap: 8px; padding: 0 0 2px; overflow-x: auto; scrollbar-width: none; }
+  #catalog-page #filter-type-group > button { flex: 0 0 auto; min-height: 44px; margin: 0; padding: 0 14px; border-radius: 8px; font-size: 12px; line-height: 18px; white-space: nowrap; box-shadow: none; }
+  .catalog-filter-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding-top: 2px; }
+  #catalog-filter-toggle { display: flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid #ffffff26; border-radius: 8px; background: #1d1f29; color: #e1e1ef; font-size: 13px; font-weight: 600; cursor: pointer; }
+  #catalog-filter-toggle .material-symbols-outlined { font-size: 18px; line-height: 1; }
+  #catalog-filter-toggle[aria-expanded="true"] .catalog-filter-chevron { transform: rotate(180deg); }
+  #catalog-filter-count:not([hidden]) { display: grid; place-items: center; min-width: 18px; height: 18px; border-radius: 4px; background: #e50914; color: #fff; font-size: 10px; }
+  #catalog-filter-summary { min-width: 0; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: right; font-size: 12px; color: #afb5c3; }
+  #catalog-filter-panel.catalog-layout-ready.is-filter-collapsed #catalog-advanced-filters { display: none; }
+  #catalog-advanced-filters { padding: 14px; border: 1px solid #ffffff18; border-radius: 10px; background: #191b24; }
+  #catalog-advanced-filters > div:first-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; padding: 0; }
+  #catalog-advanced-filters > div:first-child > div { min-width: 0; }
+  #catalog-advanced-filters label { font-size: 10px; line-height: 16px; letter-spacing: .02em; min-height: 16px; }
+  #catalog-advanced-filters label .material-symbols-outlined { display: none; }
+  #catalog-advanced-filters select { min-width: 0; min-height: 44px; width: 100%; padding: 0 26px 0 8px; border-radius: 6px; font-size: 16px; }
+  #catalog-advanced-filters > div:nth-child(2) > div:first-child { gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+  #catalog-advanced-filters > div:nth-child(2) > div:first-child > span:first-child { font-size: 10px; letter-spacing: .02em; }
+  #selected-genre-count { font-size: 11px; line-height: 18px; }
+  #catalog-page #genre-chips-container { display: flex; max-height: 190px; overflow-y: auto; overscroll-behavior: contain; gap: 8px; }
+  #catalog-page .genre-chip { min-height: 44px; padding: 0 10px; border-radius: 7px; font-size: 12px; line-height: 18px; box-shadow: none; }
+  #catalog-advanced-filters > div:last-child { gap: 8px; padding: 0; background: transparent; }
+  #catalog-advanced-filters > div:last-child > div:first-child { display: none; }
+  #catalog-advanced-filters > div:last-child > div:last-child { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
+  #catalog-advanced-filters :is(#btn-apply-filters, #btn-reset-filters) { width: 100%; min-height: 44px; padding: 0 8px; border-radius: 8px; font-size: 12px; box-shadow: none; }
+  #catalog-results-meta { gap: 8px; padding: 0; align-items: center; }
+  #catalog-results-meta > div:first-child { gap: 6px; max-width: 100%; }
+  #catalog-results-meta > div:first-child > span:first-child { display: none; }
+  #catalog-results-meta > div:last-child { font-size: 11px; line-height: 18px; text-transform: none; letter-spacing: 0; }
+  #catalog-results-meta .btn-remove-tag { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 44px; flex-shrink: 0; }
+  #catalog-results-meta > div:first-child > span { max-width: 100%; overflow-wrap: anywhere; }
+  #catalog-page > p[role="status"] { padding: 0; margin: 0; font-size: 12px; }
+  #catalog-page > p[role="status"]:empty { display: none; }
+  #catalog-page > section[aria-label="Danh sách phim tìm kiếm"] { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  #catalog-page > section[aria-label="Danh sách phim tìm kiếm"] article { border: 0; border-radius: 8px; box-shadow: none; min-width: 0; }
+  #catalog-page > section[aria-label="Danh sách phim tìm kiếm"] article h3 { font-size: 12px; line-height: 18px; }
+  #catalog-page > section[aria-label="Danh sách phim tìm kiếm"] article:hover { transform: none; }
+  #catalog-pagination { gap: 12px; padding: 12px; border-radius: 10px; }
+  #catalog-pagination button, #catalog-pagination a, #catalog-pagination input { min-height: 44px; min-width: 40px; }
+  #catalog-pagination input { font-size: 16px; }
+  #m-catalog-search-controls { padding: 18px 16px 8px; gap: 14px; }
+  #m-catalog-search-controls > div:first-of-type { display: flex; align-items: center; gap: 0; padding: 4px; min-height: 54px; border: 1px solid #ffffff1c; border-radius: 10px; background: #1d1f29; box-shadow: none; }
+  #m-catalog-search-controls > div:first-of-type > span { margin: 0 8px; }
+  body #movieSearchInput { flex: 1 1 0; min-width: 0; width: auto; height: 44px; padding: 0 4px; font-size: 16px; }
+  #m-catalog-search-controls #clearSearchBtn { position: static; width: 40px; min-width: 40px; height: 44px; border-radius: 7px; margin: 0; }
+  #m-catalog-search-controls #openFilterSheetBtn { width: 44px; min-width: 44px; height: 44px; border-radius: 7px; margin: 0; box-shadow: none; }
+  #m-catalog-search-controls #m-category-rail { gap: 8px; padding-block: 0; }
+  #m-category-rail .m-chip { flex-shrink: 0; min-height: 44px; padding: 0 14px; white-space: nowrap; line-height: 18px; border-radius: 8px; box-shadow: none; }
+  #m-catalog-search-controls > div:last-child { min-height: 44px; gap: 8px; }
+  #quickYearBtn, #quickSortBtn { min-height: 44px; border-radius: 8px; padding-inline: 10px; font-size: 12px; white-space: nowrap; }
+  #m-catalog-results-meta { padding-block: 10px; border: 0; background: transparent; }
+  #m-catalog-results-meta > div:last-child { display: none; }
+  #m-catalog-results-meta > div:first-child > span:first-child { display: none; }
+  #m-catalog-results-meta + p[role="status"]:empty { display: none; }
+  #movieGrid { gap: 16px 12px; padding-top: 0; }
+}
+@media (min-width: 768px) {
+  #catalog-filter-panel > div:first-child { gap: 16px; }
+  #filter-type-group { flex-wrap: wrap; }
+  #filter-type-group button { white-space: nowrap; }
+}
+@media (prefers-reduced-motion: reduce) { .catalog-filter-chevron { transition: none; } }

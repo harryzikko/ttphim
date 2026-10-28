@@ -1,0 +1,12 @@
+.auth-gender { border:0;padding:0;margin:0;min-width:0; }
+.auth-gender[hidden] { display:none!important; }
+.auth-gender legend { font-size:14px;font-weight:600;color:#e9dfe0;margin-bottom:6px; }
+.auth-gender p { font-size:12px;line-height:1.6;color:#b9abad;margin:0 0 10px; }
+.auth-gender-options { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
+.auth-gender-option { position:relative;display:flex;align-items:center;gap:10px;min-height:82px;padding:10px;border:1px solid #ffffff26;border-radius:12px;background:#ffffff05;cursor:pointer; }
+.auth-gender-option img { width:54px;height:54px;border-radius:50%;object-fit:cover;flex-shrink:0; }
+.auth-gender-option span { font-size:16px;font-weight:600;color:#eee4e5; }
+.auth-gender-option input { position:absolute;opacity:0;width:1px;height:1px; }
+.auth-gender-option:has(input:checked) { border-color:#ff8893;background:#f34b5d16;box-shadow:inset 0 0 0 1px #ff8893; }
+.auth-gender-option:has(input:focus-visible) { outline:2px solid #ffc0c5;outline-offset:3px; }
+@media(max-width:360px){.auth-gender-options{gap:8px}.auth-gender-option{padding:8px;gap:7px}.auth-gender-option img{width:44px;height:44px}}

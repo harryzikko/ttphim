@@ -9,6 +9,7 @@ function element() {
   return {
     innerHTML: '', innerText: '', textContent: '', style: {}, children: [], listeners: {},
     classList: { add() {}, remove() {} },
+    setAttribute() {},
     querySelectorAll() { return []; },
     appendChild(child) { this.children.push(child); },
     addEventListener(name, callback) { this.listeners[name] = callback; }
@@ -41,7 +42,7 @@ test('mobile detail renders root-level episodes and the correct first play URL',
   });
   vm.runInContext(source('public/mobile/js/chi-tiet.js'), context);
   await dom.events.DOMContentLoaded();
-  assert.equal(dom.elements['m-detail-play-btn'].href, '/mobile/xem-phim/test-film/full');
+  assert.equal(dom.elements['m-detail-play-btn'].href, '/mobile/xem-phim/test-film/full?server=0');
   assert.match(dom.elements['m-episode-grid'].innerHTML, /\/mobile\/xem-phim\/test-film\/full\?server=0/);
   assert.equal(dom.elements['m-episode-count'].innerText, '1 tập');
 });
@@ -68,7 +69,7 @@ test('mobile library reads backend fields and clears history through the API', a
   const dom = fixture(['tabBtnWatchlist', 'tabBtnHistory', 'tabBtnDownloads', 'panelWatchlist', 'panelHistory', 'panelDownloads', 'watchlistGrid', 'watchlistEmpty', 'historyList', 'historyEmpty', 'badgeWatchlist', 'badgeHistory', 'tabCountSummary', 'clearListBtn']);
   let cleared = false;
   const context = vm.createContext({
-    document: dom.document, window: { location: { search: '' } }, URLSearchParams,
+    document: dom.document, window: { location: { search: '', href: 'https://site.test/mobile/danh-sach' }, history: { replaceState() {} } }, URLSearchParams, URL,
     confirm: () => true,
     API: {
       getLibrary: async () => ({

@@ -5,6 +5,12 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment
+.env
+.env.*
+!.env.example
+data/*.lock/
+data/*.tmp
+data/avatars/
 .env.local
 .env.*.local
 

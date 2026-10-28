@@ -10,6 +10,33 @@ const TMDB_IMG = 'https://image.tmdb.org/t/p';
 // In-memory cache for fast response (1 hour TTL)
 const cache = new Map();
 const CACHE_TTL = 60 * 60 * 1000;
+const ratingFlights = new Map();
+const artworkCache = new Map(), artworkFlights = new Map();
+const artworkIdentities = new Map(), artworkIdentityFlights = new Map();
+function selectArtwork(images, kind) {
+  return (Array.isArray(images) ? images : []).filter(image =>
+    /^\/[a-zA-Z0-9_-]+\.(?:jpg|png|webp)$/.test(image?.file_path || '') &&
+    Number.isSafeInteger(image.width) && Number.isSafeInteger(image.height) && image.height > 0 &&
+    (kind === 'backdrop' ? image.width >= 640 && image.width / image.height >= 1.3 && image.width / image.height <= 2.6 : image.width >= 300 && image.width / image.height >= 0.45 && image.width / image.height <= 0.85)
+  ).sort((a, b) => b.width * b.height - a.width * a.height || Number(a.iso_639_1 != null) - Number(b.iso_639_1 != null) || (b.vote_count || 0) - (a.vote_count || 0))[0] || null;
+}
+function artworkImage(image, kind) {
+  if (!image) return null;
+  const sizes = kind === 'backdrop' ? [780, 1280] : [342, 500, 780];
+  const original = `${TMDB_IMG}/original${image.file_path}`;
+  return { url: original, width: image.width, height: image.height,
+    srcset: [...sizes.filter(width => width < image.width).map(width => `${TMDB_IMG}/w${width}${image.file_path} ${width}w`), `${original} ${image.width}w`].join(', ') };
+}
+
+function ratingReference(movie) {
+  const metadata = movie?.tmdb;
+  const rawId = (metadata && typeof metadata === 'object' ? metadata.id : metadata) || movie?.tmdb_id || movie?.tmdbId;
+  if (!/^[1-9]\d*$/.test(String(rawId ?? '')) || !Number.isSafeInteger(Number(rawId))) return null;
+  const declaredType = (metadata && typeof metadata === 'object' ? metadata.type : null) || movie?.tmdb_type || movie?.tmdbType;
+  const mediaType = declaredType || ({ series: 'tv', tv: 'tv', 'phim-bo': 'tv', single: 'movie', movie: 'movie', 'phim-le': 'movie' })[movie?.type];
+  if (!['movie', 'tv'].includes(mediaType)) return null;
+  return { id: Number(rawId), mediaType };
+}
 
 function getCached(key) {
   const item = cache.get(key);
@@ -26,7 +53,81 @@ function setCache(key, data, ttl = CACHE_TTL) {
 }
 
 class TmdbService {
-  async fetchTmdb(endpoint, params = {}) {
+  async resolveArtworkReference(movie) {
+    const explicit = ratingReference(movie);
+    if (explicit) return explicit;
+    const rawId = (movie?.tmdb && typeof movie.tmdb === 'object' ? movie.tmdb.id : movie?.tmdb) || movie?.tmdb_id || movie?.tmdbId;
+    if (rawId) return null;
+    const mediaType = ({ single:'movie', movie:'movie', 'phim-le':'movie', series:'tv', tv:'tv', 'phim-bo':'tv' })[movie?.type];
+    const title = typeof movie?.origin_name === 'string' ? movie.origin_name.trim() : '';
+    const year = Number(movie?.year);
+    if (!mediaType || !title || title.length > 200 || !Number.isInteger(year) || year < 1880 || year > new Date().getFullYear() + 3) return null;
+    const fold = value => String(value || '').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    const key = `${mediaType}:${fold(title)}:${year}`;
+    const cached = artworkIdentities.get(key);
+    if (cached && cached.expires > Date.now()) return cached.value;
+    if (artworkIdentityFlights.has(key)) return artworkIdentityFlights.get(key);
+    const work = (async () => {
+      const params = { query:title, language:'en-US', include_adult:false, ...(mediaType === 'movie' ? {year} : {first_air_date_year:year}) };
+      const result = await this.fetchTmdb(`/search/${mediaType}`, params, {timeoutMs:2500});
+      if (!Array.isArray(result?.results)) return null;
+      const matches = result.results.filter(item => Number.isSafeInteger(item.id) && item.id > 0 && String(item.release_date || item.first_air_date || '').slice(0,4) === String(year) && [item.original_title,item.title,item.original_name,item.name].some(name => fold(name) === fold(title)));
+      const ids = [...new Set(matches.map(item => item.id))];
+      const value = ids.length === 1 ? {id:ids[0],mediaType} : null;
+      if (artworkIdentities.size >= 300) artworkIdentities.delete(artworkIdentities.keys().next().value);
+      artworkIdentities.set(key,{value,expires:Date.now()+(value?24*CACHE_TTL:15*60*1000)});
+      return value;
+    })();
+    artworkIdentityFlights.set(key,work);
+    try { return await work; } finally { if(artworkIdentityFlights.get(key)===work)artworkIdentityFlights.delete(key); }
+  }
+  async getMovieArtwork(movie) {
+    const reference = await this.resolveArtworkReference(movie);
+    if (!reference) return null;
+    const { id, mediaType } = reference, key = `${mediaType}:${id}`;
+    const cached = artworkCache.get(key);
+    if (cached && cached.expires > Date.now()) return cached.value;
+    if (artworkFlights.has(key)) return artworkFlights.get(key);
+    const work = (async () => {
+      const images = await this.fetchTmdb(`/${mediaType}/${id}/images`, { include_image_language: 'null,vi,en' }, { timeoutMs: 2500 });
+      if (!images || images.id !== id || !Array.isArray(images.backdrops) || !Array.isArray(images.posters)) throw new Error('TMDb artwork unavailable');
+      const backdrop = artworkImage(selectArtwork(images.backdrops, 'backdrop'), 'backdrop');
+      const poster = artworkImage(selectArtwork(images.posters, 'poster'), 'poster');
+      const value = { source: 'tmdb', tmdb_id: id, media_type: mediaType, backdrop, poster };
+      if (artworkCache.size >= 300) artworkCache.delete(artworkCache.keys().next().value);
+      artworkCache.set(key, { value, expires: Date.now() + (backdrop || poster ? 24 * CACHE_TTL : 15 * 60 * 1000) });
+      return value;
+    })();
+    artworkFlights.set(key, work);
+    try { return await work; }
+    catch (error) {
+      if (artworkCache.size >= 300) artworkCache.delete(artworkCache.keys().next().value);
+      artworkCache.set(key, { value: null, expires: Date.now() + 30000 });
+      throw error;
+    } finally { if (artworkFlights.get(key) === work) artworkFlights.delete(key); }
+  }
+  async getMovieRating(movie) {
+    const reference = ratingReference(movie);
+    if (!reference) return { source: 'tmdb', tmdb_id: null, media_type: null, score_10: null, vote_count: 0, url: null };
+    const { id, mediaType } = reference;
+    const key = `rating_${mediaType}_${id}`;
+    const cached = getCached(key);
+    if (cached) return { ...cached };
+    if (ratingFlights.has(key)) return { ...await ratingFlights.get(key) };
+    const work = (async () => {
+      const detail = await this.fetchTmdb(`/${mediaType}/${id}`);
+      if (!detail || detail.id !== id || typeof detail.vote_average !== 'number' || !Number.isFinite(detail.vote_average) || detail.vote_average < 0 || detail.vote_average > 10 || !Number.isSafeInteger(detail.vote_count) || detail.vote_count < 0) {
+        throw Object.assign(new Error('TMDb rating unavailable'), { statusCode: 502 });
+      }
+      const result = { source: 'tmdb', tmdb_id: id, media_type: mediaType, score_10: detail.vote_count > 0 ? detail.vote_average : null, vote_count: detail.vote_count, url: `https://www.themoviedb.org/${mediaType}/${id}` };
+      setCache(key, result, detail.vote_count > 0 ? CACHE_TTL : 10 * 60 * 1000);
+      return result;
+    })();
+    ratingFlights.set(key, work);
+    try { return { ...await work }; }
+    finally { if (ratingFlights.get(key) === work) ratingFlights.delete(key); }
+  }
+  async fetchTmdb(endpoint, params = {}, { timeoutMs = 6000 } = {}) {
     const url = new URL(`${TMDB_BASE}${endpoint}`);
     url.searchParams.set('api_key', TMDB_API_KEY);
     for (const [k, v] of Object.entries(params)) {
@@ -36,19 +137,17 @@ class TmdbService {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const res = await fetch(url.toString(), {
         signal: controller.signal,
         headers: { 'Accept': 'application/json' }
       });
-      clearTimeout(timer);
       if (!res.ok) return null;
       return await res.json();
     } catch (e) {
-      clearTimeout(timer);
       return null;
-    }
+    } finally { clearTimeout(timer); }
   }
 
   /**
@@ -101,42 +200,48 @@ class TmdbService {
     if (cached) return cached;
 
     let tmdbId = null;
-    let isTv = false;
+    let isTv = movie.type === 'series' || movie.type === 'hoathinh';
 
-    // Check existing TMDb ID in movie payload
+    // 1. Check existing TMDb ID in movie payload
     if (movie.tmdb) {
       if (typeof movie.tmdb === 'object' && movie.tmdb.id) {
-        tmdbId = movie.tmdb.id;
-        isTv = movie.tmdb.type === 'tv';
+        tmdbId = String(movie.tmdb.id);
+        if (movie.tmdb.type) isTv = movie.tmdb.type === 'tv';
       } else if (typeof movie.tmdb === 'string' || typeof movie.tmdb === 'number') {
         tmdbId = String(movie.tmdb);
       }
     }
-
-    // If no TMDb ID, search by origin_name or name
-    if (!tmdbId) {
-      const searchTitle = movie.origin_name || movie.name;
-      const found = await this.findMovieTmdbId(searchTitle, movie.year, movie.type === 'series' || movie.type === 'hoathinh');
-      if (found) {
-        tmdbId = found.id;
-        isTv = found.isTv;
-      }
+    if (!tmdbId && movie.tmdb_id) {
+      tmdbId = String(movie.tmdb_id);
+    }
+    if (!tmdbId && movie.tmdbId) {
+      tmdbId = String(movie.tmdbId);
     }
 
-    // If still no match and movie has an IMDb ID
-    if (!tmdbId && movie.imdb && movie.imdb.id) {
-      const imdbId = movie.imdb.id;
+    // 2. If no TMDb ID, look up via IMDb ID (external_source = imdb_id)
+    const imdbId = (movie.imdb && typeof movie.imdb === 'object' ? movie.imdb.id : movie.imdb) || movie.imdb_id || movie.imdbId;
+    if (!tmdbId && imdbId && typeof imdbId === 'string' && imdbId.startsWith('tt')) {
       const findRes = await this.fetchTmdb(`/find/${imdbId}`, { external_source: 'imdb_id' });
       if (findRes) {
         const item = findRes.movie_results?.[0] || findRes.tv_results?.[0];
         if (item) {
-          tmdbId = item.id;
-          isTv = Boolean(findRes.tv_results?.[0]);
+          tmdbId = String(item.id);
+          isTv = Boolean(findRes.tv_results?.[0] && !findRes.movie_results?.[0]);
         }
       }
     }
 
-    // If we have TMDb ID, fetch credits directly!
+    // 3. If still no TMDb ID, search by origin_name or name
+    if (!tmdbId) {
+      const searchTitle = movie.origin_name || movie.name;
+      const found = await this.findMovieTmdbId(searchTitle, movie.year, isTv);
+      if (found) {
+        tmdbId = String(found.id);
+        isTv = found.isTv;
+      }
+    }
+
+    // 4. If we have TMDb ID, fetch credits directly!
     if (tmdbId) {
       const endpoint = isTv ? `/tv/${tmdbId}/credits` : `/movie/${tmdbId}/credits`;
       let creditsRes = await this.fetchTmdb(endpoint, { language: 'vi-VN' });
@@ -148,22 +253,27 @@ class TmdbService {
         const rawCast = creditsRes.cast || [];
         const rawCrew = creditsRes.crew || [];
 
-        const cast = rawCast.slice(0, 15).map(c => ({
+        const cast = rawCast.slice(0, 24).map(c => ({
           id: c.id,
           name: c.name,
           character: c.character || 'Diễn viên',
           profile_path: c.profile_path,
           avatar: c.profile_path
             ? `${TMDB_IMG}/w276_and_h350_face${c.profile_path}`
-            : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=e50914&color=fff&size=256&bold=true`,
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=1d1f29&color=e50914&size=256&bold=true`,
           isDirector: false
         }));
 
-        const directorCrew = rawCrew.filter(c => c.job === 'Director' || c.department === 'Directing');
+        // Prioritize true Director job, only fallback to directing department if empty
+        let directorCrew = rawCrew.filter(c => c.job === 'Director');
+        if (!directorCrew.length) {
+          directorCrew = rawCrew.filter(c => c.department === 'Directing');
+        }
+
         const seenDirectors = new Set();
         const directors = [];
 
-        directorCrew.forEach(d => {
+        directorCrew.slice(0, 6).forEach(d => {
           if (!seenDirectors.has(d.name)) {
             seenDirectors.add(d.name);
             directors.push({
@@ -173,11 +283,42 @@ class TmdbService {
               profile_path: d.profile_path,
               avatar: d.profile_path
                 ? `${TMDB_IMG}/w276_and_h350_face${d.profile_path}`
-                : `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=e5a914&color=fff&size=256&bold=true`,
+                : `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=f59e0b&size=256&bold=true`,
               isDirector: true
             });
           }
         });
+
+        // If directors list is still empty but movie payload has director names
+        if (!directors.length && Array.isArray(movie.director) && movie.director.length) {
+          movie.director.filter(Boolean).forEach(dName => {
+            if (!seenDirectors.has(dName)) {
+              seenDirectors.add(dName);
+              directors.push({
+                id: null,
+                name: dName,
+                character: 'Đạo diễn',
+                profile_path: null,
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(dName)}&background=1d1f29&color=f59e0b&size=256&bold=true`,
+                isDirector: true
+              });
+            }
+          });
+        }
+
+        // If cast list is empty but movie payload has actor names
+        if (!cast.length && Array.isArray(movie.actor) && movie.actor.length) {
+          movie.actor.filter(Boolean).forEach(aName => {
+            cast.push({
+              id: null,
+              name: aName,
+              character: 'Diễn viên',
+              profile_path: null,
+              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(aName)}&background=1d1f29&color=e50914&size=256&bold=true`,
+              isDirector: false
+            });
+          });
+        }
 
         const result = { cast, directors };
         setCache(cacheKey, result);
@@ -186,21 +327,26 @@ class TmdbService {
     }
 
     // Fallback if TMDb credits not found: use Cinemeta if IMDb ID exists
-    if (movie.imdb && movie.imdb.id) {
+    if (imdbId && typeof imdbId === 'string' && imdbId.startsWith('tt')) {
       try {
-        const cinemetaRes = await fetch(`https://v3-cinemeta.strem.io/meta/movie/${movie.imdb.id}.json`);
+        const cinemetaEndpoint = isTv ? `series/${imdbId}` : `movie/${imdbId}`;
+        const cinemetaRes = await fetch(`https://v3-cinemeta.strem.io/meta/${cinemetaEndpoint}.json`);
         const cData = await cinemetaRes.json();
         if (cData?.meta) {
-          const cast = (cData.meta.cast || []).map(name => ({
+          const cast = (cData.meta.cast || []).slice(0, 20).map(name => ({
+            id: null,
             name,
             character: 'Diễn viên',
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=e50914&color=fff&size=256&bold=true`,
+            profile_path: null,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1d1f29&color=e50914&size=256&bold=true`,
             isDirector: false
           }));
-          const directors = (cData.meta.director || []).map(name => ({
+          const directors = (cData.meta.director || []).slice(0, 4).map(name => ({
+            id: null,
             name,
             character: 'Đạo diễn',
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=e5a914&color=fff&size=256&bold=true`,
+            profile_path: null,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1d1f29&color=f59e0b&size=256&bold=true`,
             isDirector: true
           }));
           const result = { cast, directors };
@@ -210,74 +356,64 @@ class TmdbService {
       } catch (_) {}
     }
 
-    return { cast: [], directors: [] };
+    // Ultimate fallback: use raw movie.director and movie.actor from payload
+    const directors = (Array.isArray(movie.director) ? movie.director : []).filter(Boolean).map(name => ({
+      id: null,
+      name,
+      character: 'Đạo diễn',
+      profile_path: null,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1d1f29&color=f59e0b&size=256&bold=true`,
+      isDirector: true
+    }));
+    const cast = (Array.isArray(movie.actor) ? movie.actor : []).filter(Boolean).map(name => ({
+      id: null,
+      name,
+      character: 'Diễn viên',
+      profile_path: null,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1d1f29&color=e50914&size=256&bold=true`,
+      isDirector: false
+    }));
+
+    const result = { cast, directors };
+    setCache(cacheKey, result);
+    return result;
   }
 
   /**
    * Get accurate person biography, details, and filmography from TMDb
    */
-  async getPersonDetail(nameOrId, options = {}) {
-    const rawInput = (nameOrId != null ? String(nameOrId) : '').trim();
-    const explicitId = options.id ? String(options.id).trim() : (/^\d+$/.test(rawInput) ? rawInput : null);
-    const cleanName = explicitId ? (options.name || rawInput) : rawInput;
-    if (!cleanName && !explicitId) return null;
-
-    const cacheKey = `person_${explicitId || cleanName}_${options.type || ''}`;
+  async getPersonDetail(name) {
+    if (!name || !name.trim()) return null;
+    const cleanName = name.trim();
+    const cacheKey = `person_${cleanName}`;
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
-    const toSlug = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-
-    let personId = explicitId;
-    let personMatch = null;
-
-    // 1. If no numeric ID provided, search person on TMDb with intelligent candidate scoring
-    if (!personId) {
-      let searchRes = await this.fetchTmdb('/search/person', { query: cleanName, language: 'vi-VN' });
-      if (!searchRes?.results?.length) {
-        searchRes = await this.fetchTmdb('/search/person', { query: cleanName, language: 'en-US' });
-      }
-
-      const results = searchRes?.results || [];
-      if (!results.length) return null;
-
-      const targetSlug = toSlug(cleanName);
-      const scored = results.map(c => {
-        const cSlug = toSlug(c.name);
-        const aliases = (c.also_known_as || []).map(toSlug);
-        let score = c.popularity || 0;
-        if (cSlug === targetSlug || aliases.includes(targetSlug)) {
-          score += 1000;
-        } else if (cSlug.includes(targetSlug) || targetSlug.includes(cSlug)) {
-          score += 500;
-        }
-        return { candidate: c, score };
-      });
-
-      scored.sort((a, b) => b.score - a.score);
-      personMatch = scored[0].candidate;
-      personId = personMatch.id;
+    // 1. Search person on TMDb
+    let searchRes = await this.fetchTmdb('/search/person', { query: cleanName, language: 'vi-VN' });
+    if (!searchRes?.results?.length) {
+      searchRes = await this.fetchTmdb('/search/person', { query: cleanName, language: 'en-US' });
     }
 
+    const personMatch = searchRes?.results?.[0];
+    if (!personMatch) return null;
+
     // 2. Fetch full person details + movie & tv credits
+    const personId = personMatch.id;
     let detail = await this.fetchTmdb(`/person/${personId}`, {
       append_to_response: 'movie_credits,tv_credits,images',
       language: 'vi-VN'
     });
 
-    if (!detail || !detail.name) return null;
-
     // If biography in Vietnamese is empty, get English biography
-    if (!detail?.biography || detail.biography.trim().length < 20) {
+    if (!detail?.biography) {
       const enDetail = await this.fetchTmdb(`/person/${personId}`, { language: 'en-US' });
       if (enDetail?.biography) {
         detail.biography = enDetail.biography;
       }
     }
 
-    const isDirector = options.type === 'director' ||
-      personMatch?.known_for_department === 'Directing' ||
-      detail.known_for_department === 'Directing';
+    const isDirector = personMatch.known_for_department === 'Directing' || detail.known_for_department === 'Directing';
     const roleTitle = isDirector ? 'Đạo diễn điện ảnh' : 'Diễn viên điện ảnh';
 
     // High resolution profile picture
@@ -286,30 +422,18 @@ class TmdbService {
       : `https://ui-avatars.com/api/?name=${encodeURIComponent(detail.name)}&background=e50914&color=fff&size=512&bold=true`;
 
     // Process movie & tv credits
-    const rawCreditsList = isDirector
-      ? [
-          ...(detail.movie_credits?.crew?.filter(c => c.job === 'Director') || []),
-          ...(detail.tv_credits?.crew?.filter(c => c.job === 'Director') || [])
-        ]
-      : [
-          ...(detail.movie_credits?.cast || []),
-          ...(detail.tv_credits?.cast || [])
-        ];
+    const allCredits = [
+      ...(detail.movie_credits?.cast || []),
+      ...(detail.movie_credits?.crew?.filter(c => c.job === 'Director') || []),
+      ...(detail.tv_credits?.cast || []),
+      ...(detail.tv_credits?.crew?.filter(c => c.job === 'Director') || [])
+    ];
 
-    // Filter out talk shows, award shows, and self-appearances
-    const talkShowKeywords = ['talk show', 'jimmy fallon', 'academy awards', 'golden globe', 'grammy', 'oscars', 'self - guest', 'self'];
-    const filteredCredits = rawCreditsList.filter(m => {
-      const char = (m.character || '').toLowerCase();
-      const title = (m.title || m.name || '').toLowerCase();
-      const isSelf = talkShowKeywords.some(kw => char.includes(kw) || title.includes(kw));
-      return !isSelf;
-    });
-
-    // Deduplicate and sort by popularity
+    // Deduplicate and sort by popularity / release date
     const seenMovies = new Set();
     const filmography = [];
 
-    filteredCredits
+    allCredits
       .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
       .forEach(m => {
         const title = m.title || m.name;
@@ -325,13 +449,13 @@ class TmdbService {
           tmdb_id: m.id,
           name: title,
           origin_name: m.original_title || m.original_name || title,
-          character: m.character || (isDirector ? 'Đạo diễn' : 'Diễn viên'),
+          character: m.character || (m.job === 'Director' ? 'Đạo diễn' : ''),
           poster_url: posterUrl,
           thumb_url: posterUrl,
           year: year || 2024,
           vote_average: m.vote_average ? Number(m.vote_average.toFixed(1)) : 8.5,
           quality: 'FHD',
-          slug: toSlug(title)
+          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
         });
       });
 
@@ -339,7 +463,7 @@ class TmdbService {
       person: {
         id: detail.id,
         name: detail.name,
-        slug: toSlug(detail.name),
+        slug: detail.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         role: roleTitle,
         type: isDirector ? 'director' : 'actor',
         avatar,
@@ -349,7 +473,6 @@ class TmdbService {
         biography: detail.biography || `${detail.name} là một nghệ sĩ điện ảnh nổi tiếng, được khán giả toàn cầu yêu mến qua nhiều tác phẩm đỉnh cao đạt doanh thu và đánh giá xuất sắc tại TMDb và IMDb.`,
         movies_count: filmography.length
       },
-      rawCredits: filteredCredits,
       movies: filmography
     };
 
@@ -359,3 +482,5 @@ class TmdbService {
 }
 
 module.exports = new TmdbService();
+module.exports.TmdbService = TmdbService;
+module.exports.ratingReference = ratingReference;

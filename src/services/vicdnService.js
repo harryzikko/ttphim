@@ -32,6 +32,10 @@ class MemoryCache {
   }
 }
 
+function searchText(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+}
+
 function removeAccents(str) {
   if (!str) return '';
   return String(str)
@@ -160,41 +164,22 @@ class ViCDNService {
         }
       ];
       for (const s of seedTitles) {
-        movieMap.set(s.slug, s);
+        movieMap.set(s.slug, { ...s, search_unverified: true });
       }
 
-      // 1. Fetch page 1 first to get real total_pages
-      const page1Res = await this.fetchJson(`${this.baseUrl}/update/1`).catch(() => null);
-      if (page1Res) {
-        if (page1Res.pagination?.total_records) {
-          this.totalMovies = page1Res.pagination.total_records;
-          this.totalPages = page1Res.pagination.total_pages;
-        }
-        if (Array.isArray(page1Res.data)) {
-          for (const item of page1Res.data) {
-            if (item && item.slug) {
-              movieMap.set(item.slug, item);
-            }
+      // 1. Fetch update pages 1 to 7 in parallel
+      const updatePages = [1, 2, 3, 4, 5, 6, 7];
+      const updateResults = await Promise.allSettled(
+        updatePages.map(page => this.fetchJson(`${this.baseUrl}/update/${page}`))
+      );
+
+      for (const res of updateResults) {
+        if (res.status === 'fulfilled' && res.value) {
+          if (res.value.pagination?.total_records) {
+            this.totalMovies = res.value.pagination.total_records;
+            this.totalPages = res.value.pagination.total_pages;
           }
-        }
-      }
-
-      // 2. Fetch all remaining update pages in parallel batches
-      const maxPages = Math.min(this.totalPages || 65, 80);
-      const remainingPages = [];
-      for (let p = 2; p <= maxPages; p++) {
-        remainingPages.push(p);
-      }
-
-      const batchSize = 15;
-      for (let i = 0; i < remainingPages.length; i += batchSize) {
-        const batch = remainingPages.slice(i, i + batchSize);
-        const updateResults = await Promise.allSettled(
-          batch.map(page => this.fetchJson(`${this.baseUrl}/update/${page}`))
-        );
-
-        for (const res of updateResults) {
-          if (res.status === 'fulfilled' && res.value && Array.isArray(res.value.data)) {
+          if (Array.isArray(res.value.data)) {
             for (const item of res.value.data) {
               if (item && item.slug) {
                 movieMap.set(item.slug, item);
@@ -204,7 +189,7 @@ class ViCDNService {
         }
       }
 
-      // 3. Fetch specific popular genres to capture any extra titles
+      // 2. Fetch specific popular genres to capture any extra titles
       const types = ['hoat-hinh', 'vien-tuong', 'hinh-su', 'bi-an', 'hanh-dong'];
       const typeResults = await Promise.allSettled(
         types.map(t => this.fetchJson(`${this.baseUrl}/type/${t}/1`))
@@ -219,6 +204,10 @@ class ViCDNService {
           }
         }
       }
+
+      this.searchSyncUnavailable = ![...updateResults, ...typeResults].some(result => result.status === 'fulfilled' && Array.isArray(result.value?.data));
+      this.searchSyncAt = Date.now();
+      if (this.searchSyncUnavailable && this.allMovies.some(item => !item.search_unverified)) return;
 
       // Rebuild index maps
       this.moviesByTmdb.clear();
@@ -280,11 +269,6 @@ class ViCDNService {
   hasBilingualMatch(movie) {
     if (!movie) return false;
     if (movie.has_song_ngu) return true;
-    if (movie.source === 'vicdn') return true;
-    if (typeof movie.slug === 'string' && movie.slug.startsWith('tv-')) return true;
-    if (typeof movie.lang === 'string' && /song\s*ngữ/i.test(movie.lang)) return true;
-    if (typeof movie.quality === 'string' && /song\s*ngữ/i.test(movie.quality)) return true;
-    if (typeof movie.source_name === 'string' && /vicdn|song\s*ngữ/i.test(movie.source_name)) return true;
 
     // 1. Match by TMDB ID
     let tmdbId = null;
@@ -447,7 +431,7 @@ class ViCDNService {
       });
 
       return {
-        server_name: 'ViCDN #Song Ngữ (Đa Giọng & Phụ Đề)',
+        server_name: 'Song Ngữ (Đa Giọng & Phụ Đề)',
         server_type: 'song_ngu',
         server_note: 'Đa Giọng (Audio Gốc + Thuyết Minh Nam/Nữ) & Phụ Đề Đa Ngôn Ngữ',
         is_song_ngu: true,
@@ -515,7 +499,7 @@ class ViCDNService {
 
     const episodes = [
       {
-        server_name: 'ViCDN #Song Ngữ (Đa Giọng & Phụ Đề)',
+        server_name: 'Song Ngữ (Đa Giọng & Phụ Đề)',
         server_type: 'song_ngu',
         is_song_ngu: true,
         server_data: serverData
@@ -529,12 +513,46 @@ class ViCDNService {
     };
   }
 
-  async searchViCdn(keyword) {
-    if (!this.isInitialized) {
-      await this.init();
-    }
+  async ensureSearchIndex() {
+    if (!this.isInitialized) return this.init();
+    if (!this.searchSyncUnavailable || Date.now() - (this.searchSyncAt || 0) < 5000) return;
+    if (!this.searchSyncRetry) this.searchSyncRetry = this.syncCatalog().finally(() => { this.searchSyncRetry = null; });
+    return this.searchSyncRetry;
+  }
+
+  async getCatalog({ page = 1, limit = 30, keyword = '', year, sort, category, country, format } = {}) {
+    await this.ensureSearchIndex();
+    const currentPage = Math.max(1, parseInt(page, 10) || 1);
+    const pageSize = Math.min(60, Math.max(1, parseInt(limit, 10) || 30));
+    const query = searchText(keyword);
+    const image = (value, size) => !value ? '' : /^https?:\/\//i.test(value) ? value : `https://image.tmdb.org/t/p/${size}/${value}.jpg`;
+    const active = value => value && value !== 'all';
+    const countries = { CN: 'trung-quoc', JP: 'nhat-ban', KR: 'han-quoc', VN: 'viet-nam', US: 'au-my', GB: 'anh', TH: 'thai-lan', TW: 'dai-loan', HK: 'hong-kong', IN: 'an-do', FR: 'phap', CA: 'canada', DE: 'duc' };
+    let movies = this.allMovies.filter(item => !item.search_unverified && item.slug &&
+      (!String(keyword).trim() || (query && [item.vname, item.ename, item.slug].some(value => searchText(value).includes(query)))) &&
+      (!active(year) || (year === 'pre-2020' ? Number(item.year) > 0 && Number(item.year) < 2020 : String(item.year) === String(year))) &&
+      (!active(category) || (item.genre || []).some(value => removeAccents(value.slug || value.name || value) === removeAccents(category))) &&
+      (!active(country) || (item.country || []).some(value => removeAccents(countries[String(value).toUpperCase()] || value.slug || value.name || value) === removeAccents(country))));
+    movies = movies.filter(item => require('./catalogFormat')({ quality: item.quality || '', lang: 'Song Ngữ', has_song_ngu: true }, format));
+    if (['year', 'released'].includes(sort)) movies = [...movies].sort((a, b) => (Number(b.year) || 0) - (Number(a.year) || 0));
+    const items = movies.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(item => ({
+      id: item.slug, slug: item.slug, name: item.vname || item.ename || item.slug,
+      origin_name: item.ename || '', year: item.year || null,
+      poster_url: image(item.poster, 'w400'), thumb_url: image(item.banner, 'w1280') || image(item.poster, 'w400'),
+      quality: item.quality || '', lang: 'Song Ngữ', has_song_ngu: true, source: 'vicdn',
+      category: (item.genre || []).map(value => ({ name: value, slug: removeAccents(value) })),
+      country: (item.country || []).map(value => ({ name: value, slug: countries[String(value).toUpperCase()] || removeAccents(value) })),
+      episode_current: item.stt ? `Tập ${item.stt}/${item.total || item.stt}` : '',
+      type: item.type === 'tv' ? 'series' : 'single', tmdb: item.tmdb || null
+    }));
+    const unavailable = !this.allMovies.some(item => !item.search_unverified);
+    return { items, ...(unavailable ? { error: 'provider_unavailable' } : {}), searchInfo: { limited: true, partial: !!this.searchSyncUnavailable, unavailable, message: 'Song Ngữ: tìm trong chỉ mục ViCDN đã đồng bộ, không phải toàn bộ kho phim. Chỉ hỗ trợ thứ tự đồng bộ hoặc năm phát hành.' }, pagination: { totalItems: movies.length, totalItemsPerPage: pageSize, currentPage, totalPages: Math.max(1, Math.ceil(movies.length / pageSize)) } };
+  }
+
+  async searchViCdn(keyword, { unlimited = false } = {}) {
+    await this.ensureSearchIndex();
     if (!keyword) return [];
-    const trimmed = keyword.trim();
+    const trimmed = String(keyword).trim().slice(0, 200);
 
     const resolveImg = (img, type = 'w400') => {
       if (!img) return '';
@@ -543,7 +561,7 @@ class ViCDNService {
     };
 
     // 1. Direct slug probe
-    if (trimmed.startsWith('tv-') || trimmed.startsWith('movie-')) {
+    if (/^(?:tv|movie)-[a-z0-9-]+$/i.test(trimmed)) {
       try {
         const direct = await this.fetchInfo(trimmed);
         if (direct) {
@@ -554,8 +572,8 @@ class ViCDNService {
             origin_name: direct.ename || direct.vname || '',
             poster_url: resolveImg(direct.poster, 'w400'),
             thumb_url: resolveImg(direct.banner, 'w1280') || resolveImg(direct.poster, 'w400'),
-            year: direct.year || 2026,
-            quality: 'FHD • Song Ngữ',
+            year: direct.year || null,
+            quality: direct.quality || '',
             lang: 'Song Ngữ',
             episode_current: direct.stt ? `Tập ${direct.stt}/${direct.total || direct.stt}` : 'Trọn Bộ',
             type: direct.type === 'tv' ? 'series' : 'single',
@@ -568,14 +586,15 @@ class ViCDNService {
       } catch(e) {}
     }
 
-    const norm = removeAccents(trimmed);
+    const norm = searchText(trimmed);
     if (!norm) return [];
 
     const matches = [];
     for (const item of this.allMovies) {
-      const vnameNorm = removeAccents(item.vname);
-      const enameNorm = removeAccents(item.ename);
-      const slugNorm = removeAccents(item.slug);
+      if (item.search_unverified) continue;
+      const vnameNorm = searchText(item.vname);
+      const enameNorm = searchText(item.ename);
+      const slugNorm = searchText(item.slug);
       if (
         (vnameNorm && vnameNorm.includes(norm)) ||
         (enameNorm && enameNorm.includes(norm)) ||
@@ -588,11 +607,13 @@ class ViCDNService {
           origin_name: item.ename || item.vname || '',
           poster_url: resolveImg(item.poster, 'w400'),
           thumb_url: resolveImg(item.banner, 'w1280') || resolveImg(item.poster, 'w400'),
-          year: item.year || 2026,
-          quality: 'FHD • Song Ngữ',
+          year: item.year || null,
+          quality: item.quality || '',
           lang: 'Song Ngữ',
           episode_current: item.stt ? `Tập ${item.stt}/${item.total || item.stt}` : 'Trọn Bộ',
-          type: item.type === 'tv' ? 'series' : 'single',
+          type: item.type === 'tv' ? 'series' : 'single', tmdb: item.tmdb || null,
+          category: (item.genre || []).map(value => ({ name: value, slug: removeAccents(value) })),
+          country: (item.country || []).map(value => ({ name: value, slug: ({ CN: 'trung-quoc', JP: 'nhat-ban', KR: 'han-quoc', VN: 'viet-nam', US: 'au-my', TH: 'thai-lan' })[value] || removeAccents(value) })),
           source: 'vicdn',
           source_name: 'ViCDN Song Ngữ',
           source_badge: 'ViCDN',
@@ -600,7 +621,7 @@ class ViCDNService {
         });
       }
     }
-    return matches.slice(0, 15);
+    return unlimited ? matches : matches.slice(0, 15);
   }
 }
 

@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { promisify } = require('util');
 const scrypt = promisify(crypto.scrypt);
+const passwordValid = value => typeof value === 'string' && value.length >= 6 && value.length <= 256;
 
 function isPasswordHash(value) {
   return typeof value === 'string' && value.startsWith('scrypt$');
@@ -28,8 +29,14 @@ async function verifyPassword(password, stored) {
 
 function publicUser(user) {
   if (!user) return null;
-  const { password, ...safeUser } = user;
-  return safeUser;
+  const safe = {};
+  for (const key of ['id', 'email', 'name', 'gender', 'avatar', 'role', 'created_at', 'is_vip', 'vip_tier', 'vip_level', 'vip_expire_date', 'days_left', 'max_devices', 'email_verified', 'email_verified_at']) {
+    if (user[key] !== undefined) safe[key] = user[key];
+  }
+  safe.avatar = require('./defaultAvatars').avatarFor(user);
+  safe.email_verified = Boolean(user.email_verified_at || user.email_verified);
+  safe.mfa_enabled = Boolean(user.mfa?.enabled);
+  return safe;
 }
 
-module.exports = { hashPassword, verifyPassword, isPasswordHash, publicUser };
+module.exports = { hashPassword, verifyPassword, isPasswordHash, passwordValid, publicUser };

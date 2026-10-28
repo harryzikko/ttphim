@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html class="dark" lang="vi">
 <head>
   <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
   <meta content="mobile_tab" name="shell-type"/>
   <title>Tài Khoản & Cài Đặt - CineViet Mobile</title>
   
@@ -18,45 +18,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "surface": "#11131c",
-            "surface-dim": "#11131c",
-            "surface-bright": "#373943",
-            "surface-container-lowest": "#0c0e17",
-            "surface-container-low": "#191b24",
-            "surface-container": "#1d1f29",
-            "surface-container-high": "#282933",
-            "surface-container-highest": "#32343e",
-            "on-surface": "#e1e1ef",
-            "on-surface-variant": "#e9bcb6",
-            "primary": "#ffb4aa",
-            "primary-container": "#e50914",
-            "on-primary-container": "#fff7f6",
-            "secondary": "#d3fbff",
-            "secondary-container": "#00eefc",
-            "secondary-fixed": "#7df4ff",
-            "tertiary": "#dcb8ff",
-            "tertiary-container": "#9a40f2",
-            "tertiary-fixed": "#efdbff"
-          },
-          borderRadius: {
-            "DEFAULT": "0.5rem",
-            "lg": "0.75rem",
-            "xl": "1rem",
-            "2xl": "1.25rem",
-            "full": "9999px"
-          }
-        }
-      }
-    };
-  </script>
+  <link rel="stylesheet" href="/css/site-a29a5b4dfb9c.css?v=b8edecfc485f">
+
   <link rel="stylesheet" href="/mobile/css/mobile.css" />
+  <link rel="stylesheet" href="/mobile/css/responsive.css?v=1.0.0" />
+  <link rel="stylesheet" href="/mobile/css/account-security.css?v=1.0.0" />
+  <link rel="stylesheet" href="/css/avatar-upload.css?v=1.1.0" />
+<link rel="stylesheet" href="/css/site-footer.css?v=1.0.0">
 </head>
 
 <body class="bg-surface text-on-surface font-body-md flex flex-col min-h-screen">
@@ -66,7 +34,7 @@
     <div class="h-16 px-4 flex items-center justify-between gap-2">
       <div class="flex items-center gap-1">
         <span class="w-2.5 h-6 bg-primary-container rounded-sm shadow-[0_0_12px_rgba(229,9,20,0.6)]"></span>
-        <span class="font-headline-md text-lg tracking-tight font-extrabold text-on-surface">CINE<span class="text-primary-container">VIET</span></span>
+        <span class="font-headline-md text-lg tracking-tight font-extrabold text-on-surface">Cine<span class="text-primary-container">Viet</span></span>
       </div>
       <div class="flex items-center gap-1">
         <a href="/mobile/kham-pha" aria-label="Tìm kiếm" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors">
@@ -96,12 +64,13 @@
         <!-- Avatar -->
         <div class="relative mb-3">
           <div class="w-24 h-24 rounded-full p-0.5 bg-gradient-to-tr from-primary-container to-secondary-container shadow-[0_0_24px_rgba(229,9,20,0.35)]">
-            <img id="userAvatar" class="w-full h-full object-cover rounded-full bg-surface-container" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80" alt="Avatar"/>
+            <img id="userAvatar" class="w-full h-full object-cover rounded-full bg-surface-container" src="/images/avatar-default.svg" alt="Avatar"/>
           </div>
           <div class="absolute -bottom-1 -right-1 flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white shadow-md">
             <span class="material-symbols-outlined text-[16px]">check</span>
           </div>
         </div>
+        <div id="m-avatar-controls"></div>
 
         <!-- Name & Member Badge -->
         <div class="flex items-center gap-1.5 mb-1">
@@ -110,7 +79,7 @@
             <span class="material-symbols-outlined text-[12px]">verified</span> Miễn Phí
           </span>
         </div>
-        <p id="userEmail" class="text-xs text-on-surface-variant mb-3">member@cineviet.vip</p>
+        <p id="userEmail" class="text-xs text-on-surface-variant mb-3">member@cineviet.vn</p>
 
         <!-- Subscription Active Pill & Quick Edit -->
         <div class="flex items-center gap-2">
@@ -133,7 +102,7 @@
           <div class="flex items-center justify-between relative z-10 mb-4">
             <div class="flex items-center gap-2.5">
               <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-container to-red-600 flex items-center justify-center text-white font-black text-xs shadow-md">
-                TT
+                CV
               </div>
               <div>
                 <div class="text-sm font-extrabold text-white tracking-wider">
@@ -200,7 +169,7 @@
         </div>
 
         <!-- Quick Navigation Shortcuts -->
-        <div class="grid grid-cols-3 gap-2">
+        <div id="m-account-shortcuts" class="grid grid-cols-3 gap-2">
           <a class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-high hover:bg-surface-container text-on-surface active:scale-95 transition-all text-center border border-white/5" href="/mobile/danh-sach?tab=history">
             <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-secondary mb-1 shadow-inner">
               <span class="material-symbols-outlined text-[20px]">history</span>
@@ -222,10 +191,66 @@
         </div>
       </section>
 
+      <details id="m-security" class="m-security">
+        <summary id="m-security-summary">Bảo mật &amp; thiết bị</summary>
+        <div class="m-security-body">
+          <p id="m-security-status" role="status" aria-live="polite" aria-atomic="true"></p>
+          <section aria-labelledby="m-email-heading">
+            <h2 id="m-email-heading">Xác minh email</h2>
+            <p id="m-email-state">Đang xác minh tài khoản…</p>
+            <button id="m-email-resend" type="button" disabled>Gửi lại email xác minh</button>
+            <button id="m-security-refresh" type="button" disabled>Kiểm tra lại trạng thái</button>
+          </section>
+          <section aria-labelledby="m-password-heading">
+            <h2 id="m-password-heading">Đổi mật khẩu</h2>
+            <p>Đổi mật khẩu sẽ thu hồi các phiên đăng nhập. Bạn cần đăng nhập lại.</p>
+            <form id="m-password-form">
+              <label for="m-password-current">Mật khẩu hiện tại</label>
+              <input id="m-password-current" type="password" autocomplete="current-password" required />
+              <label for="m-password-new">Mật khẩu mới (6–256 ký tự)</label>
+              <input id="m-password-new" type="password" autocomplete="new-password" minlength="6" maxlength="256" required />
+              <label for="m-password-confirm">Nhập lại mật khẩu mới</label>
+              <input id="m-password-confirm" type="password" autocomplete="new-password" minlength="6" maxlength="256" required />
+              <button id="m-password-submit" type="submit" disabled>Đổi mật khẩu &amp; đăng nhập lại</button>
+            </form>
+          </section>
+          <section aria-labelledby="m-mfa-heading">
+            <h2 id="m-mfa-heading">Xác thực hai bước (TOTP)</h2>
+            <p id="m-mfa-state">Đang xác minh tài khoản…</p>
+            <label for="m-mfa-password">Mật khẩu hiện tại để bật / tắt MFA</label>
+            <input id="m-mfa-password" type="password" autocomplete="current-password" />
+            <button id="m-mfa-setup" type="button" disabled>Thiết lập ứng dụng xác thực</button>
+            <div id="m-mfa-enrollment" hidden>
+              <p>Nhập khóa này vào ứng dụng xác thực, hoặc mở liên kết bên dưới. Xác nhận trong vòng 5 phút.</p>
+              <code id="m-mfa-secret"></code>
+              <a id="m-mfa-uri" hidden>Mở ứng dụng xác thực</a>
+              <button id="m-mfa-cancel" type="button">Hủy &amp; ẩn khóa</button>
+            </div>
+            <label for="m-mfa-code">Mã 6 số từ ứng dụng (hoặc mã khôi phục khi tắt MFA)</label>
+            <input id="m-mfa-code" type="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" />
+            <button id="m-mfa-confirm" type="button" hidden disabled>Xác nhận bật MFA</button>
+            <button id="m-mfa-disable" type="button" hidden disabled>Tắt MFA</button>
+            <div id="m-mfa-recovery" hidden>
+              <p>Lưu ngay các mã khôi phục ở nơi an toàn. Mỗi mã chỉ dùng một lần; danh sách này không thể xem lại sau khi đóng.</p>
+              <pre id="m-mfa-recovery-codes"></pre>
+              <button id="m-mfa-saved" type="button">Đã lưu, ẩn mã</button>
+            </div>
+          </section>
+          <section id="m-security-devices" tabindex="-1" aria-labelledby="m-devices-heading">
+            <h2 id="m-devices-heading">Phiên đăng nhập &amp; thiết bị</h2>
+            <p>Chỉ hiển thị các phiên đăng nhập từ máy chủ.</p>
+            <button id="m-sessions-refresh" type="button" disabled>Làm mới danh sách</button>
+            <button id="m-sessions-revoke-others" type="button" disabled>Đăng xuất các thiết bị khác</button>
+            <p id="m-sessions-status" role="status" aria-live="polite"></p>
+            <ul id="m-sessions-list"></ul>
+          </section>
+        </div>
+      </details>
+
       <!-- Grouped Settings & Preferences -->
       <section class="px-4 flex flex-col gap-4 mb-8">
         <!-- Group 1: Trình phát & Tải về -->
-        <div class="flex flex-col gap-1.5">
+        <div id="m-legacy-playback-group" class="flex flex-col gap-1.5">
           <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider px-1">Cài Đặt Trình Phát & Tải Về</span>
           <div class="bg-surface-container rounded-2xl overflow-hidden shadow-sm flex flex-col border border-white/5">
             <!-- Quality selector -->
@@ -334,7 +359,7 @@
                 <span class="material-symbols-outlined text-on-surface-variant text-[22px]">support_agent</span>
                 <div class="flex flex-col">
                   <span class="text-xs font-bold text-on-surface">Hotline Hỗ Trợ CineViet 24/7</span>
-                  <span class="text-[11px] text-secondary font-semibold">1900 888 CINEVIET (Miễn phí)</span>
+                  <span class="text-[11px] text-secondary font-semibold">1900 888 CineViet (Miễn phí)</span>
                 </div>
               </div>
               <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
@@ -390,9 +415,21 @@
   </nav>
 
   <!-- Mobile Scripts -->
-  <script src="/js/api.js?v=2.7.2"></script>
-  <script src="/mobile/js/mobile-app.js?v=1.0.0"></script>
-  <script src="/mobile/js/tai-khoan.js?v=1.0.0"></script>
+  <script src="/js/api.js?v=3.6.0"></script>
+  <script src="/mobile/js/mobile-app.js?v=1.2.0"></script>
+  <script src="/mobile/js/account-security.js?v=1.2.0"></script>
+  <script src="/mobile/js/tai-khoan.js?v=1.4.0"></script>
+  <script src="/js/avatar-upload.js?v=1.1.0"></script>
+  <link rel="stylesheet" href="/css/playback-options.css?v=1.0.0">
+  <script src="/js/player-preferences.js?v=1.0.0"></script>
+<footer class="cv-footer" aria-label="Thông tin CineViet">
+  <div class="cv-footer-inner">
+    <div class="cv-footer-intro"><a class="cv-footer-brand" href="/mobile" aria-label="CineViet - Trang chủ">Cine<span>Viet</span></a><p>Khám phá phim hay. Lưu câu chuyện bạn thích. Xem tiếp khi thuận tiện.</p><a class="cv-footer-email" href="mailto:admin@cineviet.live">admin@cineviet.live</a><span class="cv-footer-note">Hỗ trợ · Góp ý · Yêu cầu bản quyền</span></div>
+    <nav class="cv-footer-nav" aria-label="Liên kết cuối trang"><div class="cv-footer-group"><h2>Khám phá</h2><ul><li><a href="/mobile/kham-pha?type=phim-bo">Phim bộ</a></li><li><a href="/mobile/kham-pha?type=phim-le">Phim lẻ</a></li><li><a href="/mobile/kham-pha?type=chieu-rap">Chiếu rạp</a></li><li><a href="/mobile/kham-pha?type=song-ngu">Song Ngữ</a></li><li><a href="/mobile/kham-pha?type=hoat-hinh">Anime &amp; hoạt hình</a></li><li><a href="/mobile/kham-pha?type=tv-shows">TV Show</a></li></ul></div><div class="cv-footer-group"><h2>Thư viện của bạn</h2><ul><li><a href="/mobile/danh-sach?tab=watchlist">Yêu thích</a></li><li><a href="/mobile/danh-sach?tab=history">Xem tiếp</a></li><li><a href="/mobile/danh-sach?tab=history">Lịch sử xem</a></li><li><a href="/mobile/tai-khoan">Tài khoản</a></li></ul></div><div class="cv-footer-group"><h2>CineViet &amp; hỗ trợ</h2><ul><li><a href="/gioi-thieu">Giới thiệu</a></li><li><a href="/tro-giup">Trợ giúp</a></li><li><a href="/lien-he">Liên hệ &amp; báo lỗi</a></li><li><a href="/dieu-khoan">Điều khoản sử dụng</a></li><li><a href="/quyen-rieng-tu">Quyền riêng tư</a></li><li><a href="/ban-quyen">Bản quyền</a></li></ul></div></nav>
+    <div class="cv-footer-bottom"><p>© 2026 CineViet</p><p>Chất lượng và khả năng phát phụ thuộc nguồn, thiết bị và kết nối. Nội dung bên thứ ba thuộc các chủ thể quyền tương ứng.</p><button type="button" class="cv-footer-top" data-footer-top hidden>Về đầu trang <span aria-hidden="true">↑</span></button></div>
+  </div>
+</footer>
+<script defer src="/js/site-footer.js?v=1.0.0"></script>
 </body>
 </html>
 

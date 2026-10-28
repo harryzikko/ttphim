@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const choice = document.getElementById('banner-preview-choice');
   const hints = {
     header: 'Dưới thanh điều hướng, trước nội dung trang chủ/trang xem.',
-    footer: 'Cuối nội dung, ngay trước footer. Có trên desktop và mobile.',
+    footer: 'Banner nổi cố định chân màn hình (Sticky Bottom Banner). Ghim ở đáy khi cuộn trang trên desktop và mobile.',
     side_left: 'Bên trái vùng nội dung, chỉ desktop rộng từ 1600 px. Không che phim.',
     side_right: 'Bên phải vùng nội dung, chỉ desktop rộng từ 1600 px. Không che phim.',
     below_featured: 'Ngay dưới phim nổi bật ở trang chủ, trước các hàng phim.',
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
       check(body, item, 'enabled', 'Bật vị trí quảng cáo này');
       const fields = node('div', '', 'banner-fields');
       field(fields, item, 'title', 'Tiêu đề / mô tả ảnh'); field(fields, item, 'description', 'Nội dung ngắn · tùy chọn');
-      field(fields, item, 'image_desktop', 'Ảnh desktop · URL HTTP(S)', 'url'); field(fields, item, 'image_mobile', 'Ảnh mobile · tùy chọn', 'url');
+      field(fields, item, 'image_desktop', 'Ảnh desktop · URL HTTP(S) hoặc /đường-dẫn', 'text'); field(fields, item, 'image_mobile', 'Ảnh mobile · tùy chọn (URL hoặc /đường-dẫn)', 'text');
       field(fields, item, 'href', 'Liên kết · /đường-dẫn hoặc HTTP(S)'); field(fields, item, 'cta_label', 'Chữ nút · tùy chọn');
       field(fields, item, 'start', 'Bắt đầu · giờ địa phương', 'datetime-local'); field(fields, item, 'end', 'Kết thúc · giờ địa phương', 'datetime-local');
       field(fields, item, 'focal_x', 'Trọng tâm ngang (%)', 'number'); field(fields, item, 'focal_y', 'Trọng tâm dọc (%)', 'number');
@@ -78,12 +78,15 @@ document.addEventListener('DOMContentLoaded', () => {
     container.dataset.mode = mode; container.dataset.kind = 'ad'; container.dataset.slot = item.slot;
     const side = ['side_left', 'side_right'].includes(item.slot);
     const active = item.enabled && (!item.start || Date.parse(item.start) <= Date.now()) && (!item.end || Date.parse(item.end) > Date.now());
-    document.getElementById('banner-preview-state').textContent = mode === 'mobile' && side ? 'Ẩn trên mobile · chỉ hiện ở desktop rộng' : `${active ? 'Đang trong lịch' : 'Tắt / ngoài lịch'} · ${hints[item.slot]}`;
+    const hiddenOnMobile = mode === 'mobile' && side;
+    container.hidden = hiddenOnMobile;
+    document.getElementById('banner-preview-state').textContent = hiddenOnMobile ? 'Ẩn trên mobile · chỉ hiện ở desktop rộng từ 1600 px. Không hiển thị quảng cáo ở vị trí này trên mobile.' : `${active ? 'Đang trong lịch' : 'Tắt / ngoài lịch'} · ${hints[item.slot]}`;
+    if (hiddenOnMobile) return;
     container.appendChild(node('small', 'Quảng cáo', 'ad-label'));
     const visual = node('div', '', 'preview-visual');
     const url = mode === 'mobile' ? item.image_mobile || item.image_desktop : item.image_desktop;
     try {
-      const parsed = new URL(url);
+      const parsed = new URL(url, window.location.origin);
       if (!['http:', 'https:'].includes(parsed.protocol)) throw Error();
       const img = document.createElement('img'); img.src = parsed.href; img.alt = item.title || 'Quảng cáo'; img.style.objectPosition = `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%`;
       img.onerror = () => { img.hidden = true; visual.dataset.error = 'Không tải được ảnh'; }; visual.appendChild(img);

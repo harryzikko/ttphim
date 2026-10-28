@@ -1,4 +1,16 @@
-
+const { safeComment } = require('./htmlSafety');
+function replaceCommentContainer(html, id, content) {
+  const opening = new RegExp(`<div\\b[^>]*id="${id}"[^>]*>`, 'i').exec(html);
+  if (!opening) return html;
+  const start = opening.index + opening[0].length;
+  const tags = /<\/?div\b[^>]*>/gi; tags.lastIndex = start;
+  let depth = 1, token;
+  while ((token = tags.exec(html))) {
+    depth += /^<\//.test(token[0]) ? -1 : 1;
+    if (!depth) return html.slice(0, start) + content + html.slice(token.index);
+  }
+  return html;
+}
 function formatEpBadge(epName) {
   if (!epName) return 'Tập 01';
   const str = String(epName).trim();
@@ -24,17 +36,6 @@ function formatLangBadge(lang) {
   return s;
 }
 
-function isMovieSongNgu(movie) {
-  if (!movie) return false;
-  if (movie.has_song_ngu) return true;
-  if (movie.source === 'vicdn') return true;
-  if (typeof movie.slug === 'string' && movie.slug.startsWith('tv-')) return true;
-  if (typeof movie.lang === 'string' && /song\s*ngữ/i.test(movie.lang)) return true;
-  if (typeof movie.quality === 'string' && /song\s*ngữ/i.test(movie.quality)) return true;
-  if (typeof movie.source_name === 'string' && /vicdn|song\s*ngữ/i.test(movie.source_name)) return true;
-  return false;
-}
-
 function cleanEpName(name) {
   if (!name) return '01';
   const str = String(name).trim();
@@ -44,6 +45,139 @@ function cleanEpName(name) {
     return isNaN(num) ? m[0] : (num < 10 ? `0${num}` : `${num}`);
   }
   return str;
+}
+
+function getPersonUrl(name, isDirector = false) {
+  if (!name || !name.trim()) return '/kham-pha';
+  const cleanName = name.trim();
+  const base = isDirector ? 'dao-dien' : 'dien-vien';
+  const slug = cleanName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  if (slug && slug.length > 0) {
+    return `/${base}/${slug}?name=${encodeURIComponent(cleanName)}`;
+  }
+  return `/${base}?name=${encodeURIComponent(cleanName)}`;
+}
+
+function renderCastAndCrewComponent(movie) {
+  if (!movie) return '';
+  const credits = movie.credits || {};
+  let directorsList = [...(credits.directors || movie.tmdb_directors || [])];
+  let actorsList = [...(credits.cast || movie.tmdb_cast || [])];
+
+  const seenDirs = new Set(directorsList.map(d => (d.name || '').toLowerCase().trim()));
+  const seenActors = new Set(actorsList.map(a => (a.name || '').toLowerCase().trim()));
+
+  if (Array.isArray(movie.director)) {
+    movie.director.filter(Boolean).forEach(d => {
+      const clean = d.trim();
+      if (clean && !seenDirs.has(clean.toLowerCase())) {
+        seenDirs.add(clean.toLowerCase());
+        directorsList.push({
+          name: clean,
+          character: 'Đạo diễn',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=1d1f29&color=f59e0b&size=256&bold=true`,
+          isDirector: true
+        });
+      }
+    });
+  }
+
+  if (Array.isArray(movie.actor)) {
+    movie.actor.filter(Boolean).forEach(a => {
+      const clean = a.trim();
+      if (clean && !seenActors.has(clean.toLowerCase())) {
+        seenActors.add(clean.toLowerCase());
+        actorsList.push({
+          name: clean,
+          character: 'Diễn viên',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=1d1f29&color=e50914&size=256&bold=true`,
+          isDirector: false
+        });
+      }
+    });
+  }
+
+  const totalCount = directorsList.length + actorsList.length;
+  if (totalCount === 0) {
+    return `
+      <div class="cast-crew-wrapper col-span-full w-full bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-sm shadow-md border border-white/5">
+        <div class="flex items-center gap-2 border-b border-white/5 pb-2.5">
+          <span class="w-2.5 h-6 rounded-full bg-primary-container inline-block"></span>
+          <span class="font-headline-sm text-headline-sm font-bold text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[20px]">recent_actors</span>
+            <span>Đạo Diễn & Diễn Viên</span>
+          </span>
+        </div>
+        <p class="text-xs text-on-surface-variant py-2">Thông tin đạo diễn và diễn viên đang được cập nhật...</p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="cast-crew-wrapper col-span-full w-full bg-surface-container-low rounded-xl p-space-md lg:p-space-lg flex flex-col gap-space-sm shadow-md border border-white/5">
+      <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-5 rounded-full bg-primary-container inline-block"></span>
+          <span class="font-headline-sm text-headline-sm font-bold text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[20px]">recent_actors</span>
+            <span>Đạo Diễn & Diễn Viên</span>
+            <span class="px-2 py-0.5 rounded-full bg-surface-container text-primary font-label-badge text-label-badge font-bold">${totalCount}</span>
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[12px] text-on-surface-variant/70 hidden md:inline mr-1">Chạm vào nghệ sĩ để xem tiểu sử & danh sách phim TMDb</span>
+          <button type="button" class="cast-scroll-prev p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer" title="Cuộn sang trái">
+            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+          </button>
+          <button type="button" class="cast-scroll-next p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer" title="Cuộn sang phải">
+            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="cast-carousel flex items-start gap-3 sm:gap-4 overflow-x-auto pb-2 pt-2 scrollbar-none scroll-smooth">
+        ${directorsList.map(d => {
+          const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=f59e0b&size=256&bold=true`;
+          const avatarUrl = d.avatar || fallback;
+          return `
+            <a href="${getPersonUrl(d.name, true)}" class="group flex flex-col items-center gap-2 shrink-0 text-center w-24 sm:w-28 p-2 rounded-xl hover:bg-surface-container/60 transition-all cursor-pointer" title="Đạo diễn: ${d.name}">
+              <div class="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden p-0.5 ring-2 ring-amber-500/80 bg-surface-container shadow-lg group-hover:scale-105 group-hover:ring-amber-400 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all duration-300">
+                <img src="${avatarUrl}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='${fallback}';" />
+                <span class="absolute bottom-0 inset-x-0 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider py-0.5 text-center">Đạo Diễn</span>
+              </div>
+              <div class="w-full">
+                <span class="text-xs sm:text-[13px] font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block">${d.name}</span>
+                <span class="text-[11px] text-amber-400/90 font-medium line-clamp-1 mt-0.5">Đạo diễn</span>
+              </div>
+            </a>
+          `;
+        }).join('')}
+
+        ${actorsList.map(a => {
+          const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=1d1f29&color=e50914&size=256&bold=true`;
+          const avatarUrl = a.avatar || fallback;
+          return `
+            <a href="${getPersonUrl(a.name, false)}" class="group flex flex-col items-center gap-2 shrink-0 text-center w-24 sm:w-28 p-2 rounded-xl hover:bg-surface-container/60 transition-all cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
+              <div class="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden p-0.5 ring-2 ring-white/20 bg-surface-container shadow-lg group-hover:scale-105 group-hover:ring-primary-container group-hover:shadow-[0_0_20px_rgba(229,9,20,0.5)] transition-all duration-300">
+                <img src="${avatarUrl}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='${fallback}';" />
+              </div>
+              <div class="w-full">
+                <span class="text-xs sm:text-[13px] font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block">${a.name}</span>
+                <span class="text-[11px] text-on-surface-variant line-clamp-1 mt-0.5" title="${a.character || 'Diễn viên'}">${a.character || 'Diễn viên'}</span>
+              </div>
+            </a>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
 }
 
 class TemplateService {
@@ -64,22 +198,21 @@ class TemplateService {
       // Replace hero subtitle
       html = html.replace(
         /<p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium tracking-wide">.*?<\/p>/s,
-        `<p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium tracking-wide">${spotlight.origin_name || ''} (${spotlight.year || 2026})</p>`
+        `<p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium tracking-wide">${spotlight.origin_name || ''}${spotlight.year ? ` (${spotlight.year})` : ''}</p>`
       );
 
       // Replace hero excerpt
       html = html.replace(
         /<p class="font-body-lg text-body-lg text-on-surface-variant line-clamp-3 max-w-2xl text-shadow">.*?<\/p>/s,
-        `<p class="font-body-lg text-body-lg text-on-surface-variant line-clamp-3 max-w-2xl text-shadow">${spotlight.content || 'Khám phá thế giới điện ảnh sắc nét với chất lượng 4K HDR trên KKPhim...'}</p>`
+        `<p class="font-body-lg text-body-lg text-on-surface-variant line-clamp-3 max-w-2xl text-shadow">${spotlight.content || 'Khám phá phim và câu chuyện bạn yêu thích trên CineViet.'}</p>`
       );
 
-      // Replace hero bg
-      const bgUrl = spotlight.thumb_url || spotlight.poster_url;
+      const escapeArtwork = value => String(value || '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+      const imageUrl = value => require('./htmlSafety').safeImageUrl(value) || '';
+      const bgUrl = imageUrl(spotlight.hero_backdrop_url || spotlight.thumb_url || spotlight.poster_url);
       if (bgUrl) {
-        html = html.replace(
-          /style="background-image:\s*url\('[^']*'\)"/,
-          `style="background-image: url('${bgUrl}')"`
-        );
+        const srcset = spotlight.hero_backdrop_srcset ? ` srcset="${escapeArtwork(spotlight.hero_backdrop_srcset)}" sizes="(min-width: 1600px) 1600px, 100vw"` : '';
+        html = html.replace(/<img\b(?=[^>]*\bid="hero-backdrop-img-1")[^>]*>/, `<img id="hero-backdrop-img-1" class="hero-artwork-image" src="${escapeArtwork(bgUrl)}"${srcset} alt="${escapeArtwork(spotlight.banner_title || spotlight.name)}" data-hero-fallback="${escapeArtwork(imageUrl(spotlight.hero_backdrop_fallback))}" decoding="async" fetchpriority="high">`);
       }
 
       // Replace Watch CTA link
@@ -89,12 +222,10 @@ class TemplateService {
       );
 
       // Replace Right-side hero poster card if present
-      const posterUrl = spotlight.poster_url || spotlight.thumb_url;
+      const posterUrl = imageUrl(spotlight.hero_poster_url || spotlight.poster_url || spotlight.thumb_url);
       if (posterUrl) {
-        html = html.replace(
-          /id="hero-poster-img" src="[^"]*"/,
-          `id="hero-poster-img" src="${posterUrl}"`
-        );
+        const posterSrcset = spotlight.hero_poster_srcset ? ` srcset="${escapeArtwork(spotlight.hero_poster_srcset)}" sizes="(min-width: 1280px) 280px, (min-width: 768px) 200px, 140px"` : '';
+        html = html.replace(/<img\b(?=[^>]*\bid="hero-poster-img")[^>]*>/, `<img id="hero-poster-img" class="w-full object-contain" src="${escapeArtwork(posterUrl)}"${posterSrcset} alt="Poster phim nổi bật" data-hero-fallback="${escapeArtwork(imageUrl(spotlight.hero_poster_fallback))}" decoding="async">`);
         html = html.replace(
           /id="hero-poster-card" href="[^"]*"/,
           `id="hero-poster-card" href="/xem-phim/${spotlight.slug}/${spotlight.first_episode_slug || 'tap-1'}"`
@@ -125,7 +256,7 @@ class TemplateService {
       );
       html = html.replace(
         /<p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium tracking-wide">.*?<\/p>/s,
-        `<p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium tracking-wide">Kho Phim Chuẩn Điện Ảnh 4K HDR Không Quảng Cáo</p>`
+        `<p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium tracking-wide">Khám phá phim và xem tiếp câu chuyện bạn thích</p>`
       );
       html = html.replace(
         /<p class="font-body-lg text-body-lg text-on-surface-variant line-clamp-3 max-w-2xl text-shadow">.*?<\/p>/s,
@@ -146,26 +277,19 @@ class TemplateService {
 
     // Replace Section 2 (Mới Cập Nhật Hôm Nay) cards
     if (homeData.latest && homeData.latest.length > 0) {
-      const latestCardsHtml = homeData.latest.slice(0, 12).map(m => {
-        const isSongNgu = isMovieSongNgu(m);
-        const songNguBadge = isSongNgu ? `
-          <span class="badge-song-ngu">
-            <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-          </span>` : '';
-        const langFormatted = formatLangBadge(m.lang);
-        const subBadge = (langFormatted && (!isSongNgu || !/song\s*ngữ/i.test(langFormatted)))
-          ? `<span class="badge-glass-sub">${langFormatted}</span>` : '';
-
-        return `
+      const latestCardsHtml = homeData.latest.slice(0, 12).map(m => `
         <div class="movie-card group relative rounded-xl overflow-hidden bg-surface-container flex flex-col cursor-pointer border border-white/5" onclick="window.location.href='/phim/${m.slug}'">
           <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-high">
             <img src="${m.poster_url || m.thumb_url}" alt="${m.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" />
             <div class="absolute top-2 left-2 flex flex-col gap-1 z-10 items-start pointer-events-none">
-              ${songNguBadge}
-              ${subBadge}
+              ${m.has_song_ngu ? `
+                <span class="badge-song-ngu">
+                  <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+                </span>` : ''}
+              ${m.lang ? `<span class="badge-glass-sub">${formatLangBadge(m.lang)}</span>` : ''}
             </div>
             <div class="absolute top-2 right-2 z-10 pointer-events-none">
-              <span class="badge-glass-quality">${m.quality || 'FHD'}</span>
+              <span class="badge-glass-quality">${m.quality || ''}</span>
             </div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent p-3.5 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
               <p class="font-body-sm text-[12px] text-white/90 line-clamp-3 mb-3 leading-relaxed drop-shadow">${m.content || m.name}</p>
@@ -183,13 +307,12 @@ class TemplateService {
           <div class="p-3 flex flex-col gap-1">
             <h3 class="font-label-md text-label-md text-on-surface font-bold truncate group-hover:text-primary transition-colors">${m.name}</h3>
             <div class="flex items-center justify-between text-on-surface-variant font-body-sm text-[12px]">
-              <span class="text-amber-400 font-semibold truncate max-w-[110px]">${m.episode_current || m.time || 'Trọn Bộ'}</span>
+              <span class="text-amber-400 font-semibold truncate max-w-[110px]">${m.episode_current || m.time || ''}</span>
               <span class="text-on-surface-variant/80">${m.year}</span>
             </div>
           </div>
         </div>
-      `;
-      }).join('');
+      `).join('');
 
       html = html.replace(
         /(<h2 class="font-headline-lg text-headline-lg text-on-surface">Mới Cập Nhật Hôm Nay<\/h2>[\s\S]*?<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-space-md">)[\s\S]*?(<\/div>\s*<\/section>)/,
@@ -309,7 +432,7 @@ class TemplateService {
                 <span class="px-2 py-0.5 rounded-md ${badgeClass} font-label-badge text-[10px] font-black tracking-wider uppercase">
                   #${rank}
                 </span>
-                ${isMovieSongNgu(m) ? `
+                ${m.has_song_ngu ? `
                   <span class="badge-song-ngu">
                     <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
                   </span>` : ''}
@@ -317,7 +440,7 @@ class TemplateService {
 
               <!-- Quality Badge -->
               <div class="absolute top-2.5 right-2.5 z-20 pointer-events-none">
-                <span class="badge-glass-quality">${m.quality || 'FHD'}</span>
+                <span class="badge-glass-quality">${m.quality || ''}</span>
               </div>
 
               <!-- Quick Play Hover Overlay -->
@@ -358,12 +481,6 @@ class TemplateService {
   renderRailCards(items, badgeType = 'default') {
     if (!items || !items.length) return '';
     return items.slice(0, 16).map(m => {
-      const isSongNgu = isMovieSongNgu(m);
-      const songNguBadge = isSongNgu ? `
-        <span class="badge-song-ngu">
-          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-        </span>` : '';
-
       let badgeHtml = '';
       if (badgeType === 'chieurap') {
         badgeHtml = `<span class="badge-glass-cinema">Chiếu Rạp</span>`;
@@ -374,11 +491,13 @@ class TemplateService {
       } else if (badgeType === 'anime') {
         badgeHtml = `<span class="badge-glass-anime">Anime</span>`;
       } else if (m.lang) {
-        const langFmt = formatLangBadge(m.lang);
-        if (!isSongNgu || !/song\s*ngữ/i.test(langFmt)) {
-          badgeHtml = `<span class="badge-glass-sub">${langFmt}</span>`;
-        }
+        badgeHtml = `<span class="badge-glass-sub">${formatLangBadge(m.lang)}</span>`;
       }
+
+      const songNguBadge = m.has_song_ngu ? `
+        <span class="badge-song-ngu">
+          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+        </span>` : '';
 
       return `
         <div class="movie-card group relative rounded-xl overflow-hidden bg-surface-container flex flex-col cursor-pointer border border-white/5 w-[155px] sm:w-[175px] md:w-[195px] shrink-0" onclick="window.location.href='/phim/${m.slug}'">
@@ -389,7 +508,7 @@ class TemplateService {
               ${badgeHtml}
             </div>
             <div class="absolute top-2 right-2 z-10 pointer-events-none">
-              <span class="badge-glass-quality">${m.quality || 'FHD'}</span>
+              <span class="badge-glass-quality">${m.quality || ''}</span>
             </div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent p-3 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
               <p class="font-body-sm text-[11px] text-white/90 line-clamp-3 mb-2 leading-relaxed drop-shadow">${m.content || m.name}</p>
@@ -407,8 +526,8 @@ class TemplateService {
           <div class="p-2.5 flex flex-col gap-0.5">
             <h3 class="font-label-md text-[13px] text-on-surface font-bold truncate group-hover:text-primary transition-colors">${m.name}</h3>
             <div class="flex items-center justify-between text-on-surface-variant font-body-sm text-[11px]">
-              <span class="text-amber-400 font-semibold truncate max-w-[105px]">${m.episode_current || m.time || 'Trọn Bộ'}</span>
-              <span class="text-on-surface-variant/80">${m.year || 2026}</span>
+              <span class="text-amber-400 font-semibold truncate max-w-[105px]">${m.episode_current || m.time || ''}</span>
+              <span class="text-on-surface-variant/80">${m.year || ''}</span>
             </div>
           </div>
         </div>
@@ -456,29 +575,22 @@ class TemplateService {
       return 'Phim Lẻ';
     };
 
-    const cardsHtml = catalogData.items.map(m => {
-      const isSongNgu = isMovieSongNgu(m);
-      const songNguBadge = isSongNgu ? `
-        <span class="badge-song-ngu">
-          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-        </span>` : '';
-      const langFormatted = formatLangBadge(m.lang);
-      const subBadge = (langFormatted && (!isSongNgu || !/song\s*ngữ/i.test(langFormatted)))
-        ? `<span class="badge-glass-sub">${langFormatted}</span>` : '';
-
-      return `
+    const cardsHtml = catalogData.items.map(m => `
       <article class="group relative flex flex-col bg-surface-container rounded-xl overflow-hidden hover:bg-surface-container-high transition-all duration-300 hover:-translate-y-1.5 shadow-md hover:shadow-2xl cursor-pointer" onclick="window.location.href='/phim/${m.slug}'">
         <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
           <img src="${m.poster_url || m.thumb_url}" alt="${m.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
           <div class="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10 items-start pointer-events-none">
-            ${songNguBadge}
-            ${subBadge}
+            ${m.has_song_ngu ? `
+              <span class="badge-song-ngu">
+                <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+              </span>` : ''}
+            ${m.lang ? `<span class="badge-glass-sub">${formatLangBadge(m.lang)}</span>` : ''}
           </div>
           <div class="absolute top-2.5 right-2.5 z-10 pointer-events-none">
-            <span class="badge-glass-quality">${m.quality || 'FHD'}</span>
+            <span class="badge-glass-quality">${m.quality || ''}</span>
           </div>
           <div class="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/80 to-transparent flex items-end justify-between z-10">
-            <span class="font-label-badge text-[11px] text-amber-300 font-semibold truncate max-w-[110px]">${m.episode_current || m.time || 'Trọn Bộ'}</span>
+            <span class="font-label-badge text-[11px] text-amber-300 font-semibold truncate max-w-[110px]">${m.episode_current || m.time || ''}</span>
             <span class="px-1.5 py-0.2 rounded bg-surface-container-high/90 text-on-surface-variant font-label-badge text-[10px]">${m.year}</span>
           </div>
           <div class="absolute inset-0 bg-primary-container/20 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
@@ -494,11 +606,11 @@ class TemplateService {
           </div>
           <div class="flex items-center justify-between text-on-surface-variant font-label-badge text-[11px] pt-1 border-t border-surface-container-highest">
             <span>${getMovieTypeBadge(m)}</span>
+            <span class="text-secondary flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">star</span> 8.9</span>
           </div>
         </div>
       </article>
-    `;
-    }).join('');
+    `).join('');
 
     html = html.replace(
       /(<section aria-label="Danh sách phim tìm kiếm"[^>]*>)[\s\S]*?(<\/section>)/,
@@ -585,10 +697,11 @@ class TemplateService {
    */
   renderDetail(html, detailData, comments = []) {
     if (!detailData || !detailData.movie) return html;
+    comments = comments.map(safeComment);
     const { movie, episodes, related } = detailData;
 
     // 1. Page Title
-    const titleStr = `${movie.name} (${movie.year}) - Xem Phim Full HD Vietsub | CineViet`;
+    const titleStr = `${movie.name}${movie.year ? ` (${movie.year})` : ''} | CineViet`;
     html = html.replace(/<title>.*?<\/title>/i, `<title>${titleStr}</title>`);
     if (!html.includes('<title>')) {
       html = html.replace('<head>', `<head>\n  <title>${titleStr}</title>`);
@@ -630,7 +743,7 @@ class TemplateService {
     // 5. Quick Stat Bar under poster
     html = html.replace(
       /<p class="text-label-lg font-label-lg text-secondary-container font-bold">[^<]*<\/p>/,
-      `<p class="text-label-lg font-label-lg text-secondary-container font-bold">${(movie.view || 128000).toLocaleString('vi-VN')}</p>`
+      `<p class="text-label-lg font-label-lg text-secondary-container font-bold">${movie.view != null && Number.isFinite(Number(movie.view)) && Number(movie.view) >= 0 ? Number(movie.view).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}</p>`
     );
     html = html.replace(
       /<p class="text-label-lg font-label-lg text-on-surface font-semibold">[^<]*<\/p>/,
@@ -650,10 +763,10 @@ class TemplateService {
     // 7. Metadata Pill Badges
     const pillsHtml = `
       <span class="px-2.5 py-1 rounded-md bg-surface-container-high text-on-surface font-label-md text-label-md">${movie.year}</span>
-      <span class="px-2.5 py-1 rounded-md bg-surface-container-high text-on-surface font-label-md text-label-md">${movie.episode_current || movie.time || '1 Tập'}</span>
-      <span class="px-2.5 py-1 rounded-md bg-primary-container/20 text-primary-fixed-dim font-label-md text-label-md font-bold">${movie.chieurap ? 'Chiếu Rạp' : '16+'}</span>
+      <span class="px-2.5 py-1 rounded-md bg-surface-container-high text-on-surface font-label-md text-label-md">${movie.episode_current || movie.time || ''}</span>
+      ${movie.chieurap ? '<span class="px-2.5 py-1 rounded-md bg-primary-container/20 text-primary-fixed-dim font-label-md text-label-md font-bold">Chiếu Rạp</span>' : ''}
       <span class="px-2.5 py-1 rounded-md bg-secondary-container/20 text-secondary-fixed font-label-md text-label-md font-semibold flex items-center gap-1">
-        <span class="material-symbols-outlined text-[16px]">high_quality</span>${movie.quality || '4K Ultra HD'}
+        <span class="material-symbols-outlined text-[16px]">high_quality</span>${movie.quality || 'FHD'}
       </span>
       <span class="px-2.5 py-1 rounded-md bg-tertiary-container/30 text-tertiary font-label-md text-label-md flex items-center gap-1">
         <span class="material-symbols-outlined text-[16px]">translate</span>${movie.lang || 'Vietsub'}
@@ -665,60 +778,8 @@ class TemplateService {
       ` : ''}
     `;
     html = html.replace(
-      /(<!-- Metadata Pill Badges -->\s*<div class="flex flex-wrap items-center gap-space-xs sm:gap-space-sm pt-1">)[\s\S]*?(<\/div>\s*<!-- Ratings Bar -->)/,
+      /(<!-- Metadata Pill Badges -->\s*<div(?: id="detail-meta")? class="flex flex-wrap items-center gap-space-xs sm:gap-space-sm pt-1">)[\s\S]*?(<\/div>\s*<!-- Ratings Bar -->)/,
       `$1\n${pillsHtml}\n$2`
-    );
-
-    // 7.5. Dynamic Real Ratings Bar (No Fake Data)
-    const tmdbScore = (movie.tmdb?.vote_average && movie.tmdb.vote_average > 0) ? Number(movie.tmdb.vote_average).toFixed(1) : null;
-    const imdbScore = (movie.imdb?.vote_average && movie.imdb.vote_average > 0) ? Number(movie.imdb.vote_average).toFixed(1) : null;
-    const localScore = (movie.vote_average && Number(movie.vote_average) > 0) ? Number(movie.vote_average).toFixed(1) : (tmdbScore || imdbScore || '8.8');
-    const realVotes = movie.tmdb?.vote_count || movie.imdb?.vote_count || movie.vote_count || 0;
-    const voteText = realVotes > 0 ? `${realVotes.toLocaleString('vi-VN')} lượt đánh giá` : 'Đánh giá từ khán giả';
-
-    const ratingsBarHtml = `
-      <div class="flex flex-wrap items-center gap-space-lg py-space-xs bg-surface-container-low/50 px-space-md rounded-xl backdrop-blur-md">
-        <!-- CineViet Rating -->
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center text-primary-container">
-            <span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
-          </div>
-          <div>
-            <div class="flex items-baseline gap-1">
-              <span class="text-headline-md font-headline-md font-extrabold text-on-surface">${localScore}</span>
-              <span class="text-body-sm font-body-sm text-on-surface-variant">/10</span>
-            </div>
-            <p class="text-body-sm font-body-sm text-on-surface-variant">${voteText}</p>
-          </div>
-        </div>
-        ${imdbScore ? `
-          <!-- IMDb Badge -->
-          <div class="flex items-center gap-2.5 pl-4 border-l border-white/10">
-            <span class="px-2 py-1 rounded bg-[#E2B616] text-[#000000] font-black font-label-badge text-label-badge">IMDb</span>
-            <div>
-              <span class="text-headline-sm font-headline-sm font-bold text-on-surface">${imdbScore}</span>
-              <span class="text-body-sm font-body-sm text-on-surface-variant">/10</span>
-            </div>
-          </div>
-        ` : (tmdbScore ? `
-          <!-- TMDb Badge -->
-          <div class="flex items-center gap-2.5 pl-4 border-l border-white/10">
-            <span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-black font-label-badge text-label-badge">TMDb</span>
-            <div>
-              <span class="text-headline-sm font-headline-sm font-bold text-on-surface">${tmdbScore}</span>
-              <span class="text-body-sm font-body-sm text-on-surface-variant">/10</span>
-            </div>
-          </div>
-        ` : '')}
-        <div class="hidden md:flex items-center gap-2 ml-auto">
-          <span class="material-symbols-outlined text-secondary text-[20px]">thumb_up</span>
-          <span class="text-body-sm font-body-sm text-on-surface">${movie.view ? `${movie.view.toLocaleString('vi-VN')} lượt xem` : 'Phim chuẩn 4K HDR'}</span>
-        </div>
-      </div>
-    `;
-    html = html.replace(
-      /(<!-- Ratings Bar -->\s*<div class="flex flex-wrap items-center gap-space-lg[^"]*">)[\s\S]*?(<\/div>\s*<!-- Genres Tags -->)/,
-      `<!-- Ratings Bar -->\n${ratingsBarHtml}\n<!-- Genres Tags -->`
     );
 
     // 8. Genre tags
@@ -730,7 +791,7 @@ class TemplateService {
         `).join('')}
       `;
       html = html.replace(
-        /(<!-- Genres Tags -->\s*<div class="flex flex-wrap items-center gap-2">)[\s\S]*?(<\/div>\s*<!-- Action CTA Group -->)/,
+        /(<!-- Genres Tags -->\s*<div(?: id="detail-genres")? class="flex flex-wrap items-center gap-2">)[\s\S]*?(<\/div>\s*<!-- Action CTA Group -->)/,
         `$1\n${genresHtml}\n$2`
       );
     }
@@ -754,70 +815,9 @@ class TemplateService {
     );
 
     // 11. Cast & Crew with Avatars (Powered by TMDb & IMDb)
-    function toPersonSlug(str) {
-      if (!str) return '';
-      return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    }
-
-    const tmdbCredits = movie.credits || null;
-    let directorsList = [];
-    let actorsList = [];
-
-    if (tmdbCredits && (tmdbCredits.directors?.length || tmdbCredits.cast?.length)) {
-      directorsList = tmdbCredits.directors || [];
-      actorsList = tmdbCredits.cast || [];
-    } else {
-      directorsList = (movie.director || []).filter(Boolean).map(d => ({
-        name: d,
-        character: 'Đạo diễn',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true`
-      }));
-      actorsList = (movie.actor || []).filter(Boolean).map(a => ({
-        name: a,
-        character: 'Diễn viên',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true`
-      }));
-    }
-
-    const castHtml = `
-      <div class="col-span-full space-y-3">
-        <div class="flex items-center justify-between border-b border-white/5 pb-2">
-          <span class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 font-bold">
-            <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
-            <span>Đạo Diễn & Diễn Viên (${directorsList.length + actorsList.length})</span>
-          </span>
-          <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem tiểu sử & danh sách phim TMDb</span>
-        </div>
-        
-        <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
-          ${directorsList.map(d => `
-            <a href="/dao-dien/${toPersonSlug(d.name)}?id=${d.id || ''}&name=${encodeURIComponent(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
-              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
-                <img src="${d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
-              </div>
-              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${d.name}</span>
-              <span class="text-[10px] text-primary font-semibold block uppercase truncate w-full h-3.5 leading-3.5">Đạo Diễn</span>
-            </a>
-          `).join('')}
-
-          ${actorsList.map(a => `
-            <a href="/dien-vien/${toPersonSlug(a.name)}?id=${a.id || ''}&name=${encodeURIComponent(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
-              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
-                <img src="${a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
-              </div>
-              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${a.name}</span>
-              <span class="text-[10px] text-on-surface-variant font-semibold block uppercase truncate w-full h-3.5 leading-3.5" title="${a.character || 'Diễn Viên'}">${a.character || 'Diễn Viên'}</span>
-            </a>
-          `).join('')}
-
-          ${(!directorsList.length && !actorsList.length) ? `
-            <div class="text-xs text-on-surface-variant py-2">Thông tin nghệ sĩ đang được cập nhật</div>
-          ` : ''}
-        </div>
-      </div>
-    `;
+    const castHtml = renderCastAndCrewComponent(movie);
     html = html.replace(
-      /(<!-- Cast & Crew Metadata Grid -->\s*<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-space-sm pt-space-sm border-t border-transparent bg-surface-container-lowest\/60 p-space-md rounded-xl">)[\s\S]*?(<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/section>)/,
+      /(<!-- Cast & Crew Section for Detail Page -->\s*<div id="detail-cast-crew-section"[^>]*>)[\s\S]*?(<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/section>)/,
       `$1\n${castHtml}\n$2`
     );
 
@@ -841,25 +841,52 @@ class TemplateService {
 
       // Episode Range Tabs & Cards
       const eps = episodes[0]?.server_data || [];
-      const chunkSize = 12;
+      let chunkSize = 25;
+      if (eps.length <= 25) chunkSize = eps.length || 1;
+      else if (eps.length <= 60) chunkSize = 25;
+      else chunkSize = 50;
       const totalRanges = Math.ceil(eps.length / chunkSize);
       let rangeHtml = '';
-      if (totalRanges > 1) {
+      if (totalRanges > 4) {
         rangeHtml = `
-          <span class="text-body-sm font-body-sm text-on-surface-variant">Phân đoạn tập:</span>
-          ${Array.from({ length: totalRanges }).map((_, rIdx) => {
-            const start = rIdx * chunkSize + 1;
-            const end = Math.min((rIdx + 1) * chunkSize, eps.length);
-            const isActive = rIdx === 0;
-            return `
-              <button class="range-tab px-3 py-1 rounded-md font-label-md text-label-md font-semibold transition-all cursor-pointer ${isActive ? 'bg-on-surface text-surface' : 'bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface'}" data-range="${rIdx}" type="button">
-                Tập ${start} - ${end}
-              </button>
-            `;
-          }).join('')}
+          <span class="text-body-sm font-medium text-on-surface-variant shrink-0 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[18px] text-primary">view_carousel</span>
+            <span class="font-semibold text-on-surface">Đoạn tập:</span>
+          </span>
+          <div class="relative inline-flex items-center">
+            <select class="range-select appearance-none bg-surface-container-high text-on-surface font-semibold text-xs sm:text-sm py-1.5 pl-3 pr-8 rounded-lg border border-outline-variant/30 focus:border-primary focus:outline-none transition-all cursor-pointer shadow-sm">
+              ${Array.from({ length: totalRanges }).map((_, rIdx) => {
+                const start = rIdx * chunkSize + 1;
+                const end = Math.min((rIdx + 1) * chunkSize, eps.length);
+                const count = end - start + 1;
+                return `<option value="${rIdx}">Tập ${String(start).padStart(2, '0')} - ${String(end).padStart(2, '0')} (${count} tập)</option>`;
+              }).join('')}
+            </select>
+            <span class="material-symbols-outlined absolute right-2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+          </div>
+          <span class="text-xs text-on-surface-variant font-medium hidden md:inline">(${eps.length} tập)</span>
+        `;
+      } else if (totalRanges > 1) {
+        rangeHtml = `
+          <span class="text-body-sm font-medium text-on-surface-variant shrink-0 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[16px] text-primary">view_carousel</span>
+            <span class="hidden sm:inline">Phân đoạn:</span>
+          </span>
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            ${Array.from({ length: totalRanges }).map((_, rIdx) => {
+              const start = rIdx * chunkSize + 1;
+              const end = Math.min((rIdx + 1) * chunkSize, eps.length);
+              const isActive = rIdx === 0;
+              return `
+                <button class="range-tab shrink-0 px-3 py-1 rounded-lg font-label-md text-label-md font-semibold transition-all cursor-pointer ${isActive ? 'bg-primary-container text-on-primary-container shadow-sm' : 'bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface'}" data-range="${rIdx}" type="button">
+                  Tập ${start} - ${end}
+                </button>
+              `;
+            }).join('')}
+          </div>
         `;
       } else {
-        rangeHtml = `<span class="text-body-sm font-body-sm text-on-surface-variant">Trọn bộ ${eps.length || 1} tập</span>`;
+        rangeHtml = `<span class="material-symbols-outlined text-[16px] text-primary">video_library</span><span class="text-body-sm font-medium text-on-surface-variant">Trọn bộ ${eps.length || 1} tập</span>`;
       }
 
       html = html.replace(
@@ -867,7 +894,7 @@ class TemplateService {
         `$1\n${rangeHtml}\n$2`
       );
 
-      const displayedEps = eps.slice(0, 12);
+      const displayedEps = eps.slice(0, chunkSize);
       const latestEpSlug = eps.length > 1 ? eps[eps.length - 1].slug : null;
       const epCardsHtml = displayedEps.map((e, idx) => {
         const epLabel = /full/i.test(e.name) ? 'Bản Full' : `Tập ${cleanEpName(e.name)}`;
@@ -882,12 +909,12 @@ class TemplateService {
               </div>
             </div>
             ${e.slug === latestEpSlug ? '<span class="absolute top-2 left-2 px-2 py-0.5 rounded bg-primary-container text-on-primary-container font-label-badge text-label-badge font-bold">TẬP MỚI</span>' : ''}
-            <span class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-surface-container-lowest/80 text-on-surface font-label-badge text-label-badge">${movie.quality || 'FHD'}</span>
+            <span class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-surface-container-lowest/80 text-on-surface font-label-badge text-label-badge">${movie.quality || ''}</span>
           </div>
           <div class="p-space-sm flex flex-col flex-1 justify-between">
             <div class="flex items-center justify-between">
               <h4 class="text-label-lg font-label-lg font-bold text-on-surface group-hover:text-primary transition-colors truncate">${epLabel}</h4>
-              <span class="text-body-sm font-body-sm text-secondary-fixed font-semibold">${movie.lang || 'Vietsub'}</span>
+              <span class="text-body-sm font-body-sm text-secondary-fixed font-semibold">${movie.lang || ''}</span>
             </div>
             <p class="text-body-sm font-body-sm text-on-surface-variant line-clamp-1 mt-1">${movie.name} - ${epLabel}</p>
           </div>
@@ -932,52 +959,8 @@ class TemplateService {
       );
     }
 
-    // 14. Community Discussion Feed
-    let commentsFeedHtml = '';
-    if (comments && comments.length > 0) {
-      commentsFeedHtml = comments.map(c => `
-        <div class="p-space-md rounded-2xl bg-surface-container-low transition-all">
-          <div class="flex items-start justify-between gap-space-sm">
-            <div class="flex items-center gap-3">
-              <img class="w-10 h-10 rounded-full object-cover" src="${c.user_avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8'}" alt="${c.user_name}" />
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="font-label-lg text-label-lg text-on-surface font-semibold">${c.user_name}</span>
-                  ${c.is_vip ? '<span class="px-2 py-0.2 rounded bg-primary-container/20 text-primary-fixed-dim font-label-badge text-label-badge">VIP</span>' : '<span class="px-2 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-badge text-label-badge">Thành viên</span>'}
-                </div>
-                <span class="text-body-sm font-body-sm text-on-surface-variant">${c.created_at || 'Vừa xong'}</span>
-              </div>
-            </div>
-            <div class="flex text-[#E2B616]">
-              ${Array.from({ length: c.rating || 5 }).map(() => '<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: \'FILL\' 1;">star</span>').join('')}
-            </div>
-          </div>
-          <p class="text-body-md font-body-md text-on-surface mt-space-sm leading-relaxed">${c.content}</p>
-          <div class="flex items-center gap-space-lg mt-space-sm text-body-sm font-body-sm text-on-surface-variant">
-            <button class="flex items-center gap-1.5 hover:text-primary transition-colors">
-              <span class="material-symbols-outlined text-[18px]">thumb_up</span>
-              <span>${c.likes || 1}</span>
-            </button>
-            <button class="flex items-center gap-1.5 hover:text-on-surface transition-colors">
-              <span class="material-symbols-outlined text-[18px]">reply</span>
-              <span>Trả lời</span>
-            </button>
-          </div>
-        </div>
-      `).join('');
-    } else {
-      commentsFeedHtml = `
-        <div class="py-12 text-center text-on-surface-variant bg-surface-container-low rounded-2xl flex flex-col items-center gap-2">
-          <span class="material-symbols-outlined text-[36px] text-surface-variant">chat_bubble_outline</span>
-          <p class="font-body-md text-sm">Chưa có bình luận nào cho bộ phim này. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
-        </div>
-      `;
-    }
-
-    html = html.replace(
-      /(<!-- Comment Items List -->\s*<div class="space-y-space-sm"[^>]*>)[\s\S]*?(<\/div>\s*<\/div>\s*<\/div>\s*<\/section>\s*<!-- Related & Recommended Movies Rail Carousel -->)/,
-      `$1\n${commentsFeedHtml}\n$2`
-    );
+    // Comments hydrate from the authenticated viewer scope; never flash spoilers in SSR.
+    html = replaceCommentContainer(html, 'detail-comments-list', '<p role="status">Đang tải bình luận...</p><noscript>Bật JavaScript để lọc bình luận và mở spoiler theo lựa chọn của bạn.</noscript>');
 
     // 15. Sanitize all mock data-alt strings
     html = html.replace(/data-alt="[^"]*"/g, `data-alt="${movie.name}"`);
@@ -990,6 +973,7 @@ class TemplateService {
    */
   renderWatch(html, detailData, activeEpSlug, comments = [], requestedServerIdx) {
     if (!detailData || !detailData.movie) return html;
+    comments = comments.map(safeComment);
     const { movie, episodes, related } = detailData;
 
     // Pick active server and episode
@@ -1052,7 +1036,7 @@ class TemplateService {
 
     // 1. Page Title
     const epDisplay = cleanEpName(currentEp.name);
-    const titleStr = `Đang xem: ${movie.name} - Tập ${epDisplay} | CineViet Cinema 4K`;
+    const titleStr = `Đang xem: ${movie.name} - Tập ${epDisplay} | CineViet`;
     html = html.replace(/<title>.*?<\/title>/i, `<title>${titleStr}</title>`);
     if (!html.includes('<title>')) {
       html = html.replace('<head>', `<head>\n  <title>${titleStr}</title>`);
@@ -1137,85 +1121,18 @@ class TemplateService {
       `$1\n${serverPillsHtml}\n$2`
     );
 
-    // 5. Movie Info Below Player (Real Data & Rich Cast Carousel)
+    // 5. Movie Info Below Player
+    const directorStr = movie.director?.length ? movie.director.join(', ') : 'Đang cập nhật';
+    const actorStr = movie.actor?.length ? movie.actor.join(', ') : 'Đang cập nhật';
     const catStr = movie.category?.map(c => c.name).join(', ') || 'Chính kịch';
-    const tmdbScore = (movie.tmdb?.vote_average && movie.tmdb.vote_average > 0) ? Number(movie.tmdb.vote_average).toFixed(1) : null;
-    const imdbScore = (movie.imdb?.vote_average && movie.imdb.vote_average > 0) ? Number(movie.imdb.vote_average).toFixed(1) : null;
-    const watchScore = tmdbScore || imdbScore || (movie.vote_average && Number(movie.vote_average) > 0 ? Number(movie.vote_average).toFixed(1) : '8.8');
-    const watchViews = (movie.view && movie.view > 0) ? `${movie.view.toLocaleString('vi-VN')} lượt xem` : 'Lượt xem mới';
-
-    // Cast & Directors with uniform cards & avatars
-    function toWatchPersonSlug(str) {
-      if (!str) return '';
-      return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    }
-
-    const tmdbWatchCredits = movie.credits || null;
-    let watchDirectorsList = [];
-    let watchActorsList = [];
-
-    if (tmdbWatchCredits && (tmdbWatchCredits.directors?.length || tmdbWatchCredits.cast?.length)) {
-      watchDirectorsList = tmdbWatchCredits.directors || [];
-      watchActorsList = tmdbWatchCredits.cast || [];
-    } else {
-      watchDirectorsList = (movie.director || []).filter(Boolean).map(d => ({
-        name: d,
-        character: 'Đạo diễn',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(d)}&background=1d1f29&color=fff&size=128&bold=true`
-      }));
-      watchActorsList = (movie.actor || []).filter(Boolean).map(a => ({
-        name: a,
-        character: 'Diễn viên',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a)}&background=e50914&color=fff&size=128&bold=true`
-      }));
-    }
-
-    const watchCastHtml = `
-      <div id="watch-cast-container" class="col-span-full space-y-3 pt-3 border-t border-white/5">
-        <div class="flex items-center justify-between pb-1">
-          <span class="text-label-badge font-label-badge text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 font-bold">
-            <span class="material-symbols-outlined text-[17px] text-primary-container">recent_actors</span>
-            <span>Đạo Diễn & Diễn Viên (${watchDirectorsList.length + watchActorsList.length})</span>
-          </span>
-          <span class="text-[11px] text-on-surface-variant/80 hidden sm:inline">Chạm vào nghệ sĩ để xem tiểu sử & danh sách phim</span>
-        </div>
-        
-        <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
-          ${watchDirectorsList.map(d => `
-            <a href="/dao-dien/${toWatchPersonSlug(d.name)}?id=${d.id || ''}&name=${encodeURIComponent(d.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Đạo diễn: ${d.name}">
-              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/80 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
-                <img src="${d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true`}" alt="${d.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1d1f29&color=fff&size=128&bold=true';" />
-              </div>
-              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${d.name}</span>
-              <span class="text-[10px] text-primary font-semibold block uppercase truncate w-full h-3.5 leading-3.5">Đạo Diễn</span>
-            </a>
-          `).join('')}
-
-          ${watchActorsList.map(a => `
-            <a href="/dien-vien/${toWatchPersonSlug(a.name)}?id=${a.id || ''}&name=${encodeURIComponent(a.name)}" class="group flex flex-col items-center justify-start shrink-0 text-center w-24 h-[122px] cursor-pointer" title="Diễn viên: ${a.name} (${a.character || 'Diễn viên'})">
-              <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 p-0.5 bg-surface-container shadow-md group-hover:scale-110 group-hover:border-primary-container transition-all shrink-0">
-                <img src="${a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true`}" alt="${a.name}" class="w-full h-full object-cover rounded-full" loading="lazy" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=e50914&color=fff&size=128&bold=true';" />
-              </div>
-              <span class="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1 block w-full mt-1.5 h-4 leading-4">${a.name}</span>
-              <span class="text-[10px] text-on-surface-variant font-semibold block uppercase truncate w-full h-3.5 leading-3.5" title="${a.character || 'Diễn Viên'}">${a.character || 'Diễn Viên'}</span>
-            </a>
-          `).join('')}
-
-          ${(!watchDirectorsList.length && !watchActorsList.length) ? `
-            <div class="text-xs text-on-surface-variant py-2">Thông tin nghệ sĩ đang được cập nhật</div>
-          ` : ''}
-        </div>
-      </div>
-    `;
-
     const infoSectionHtml = `
       <div class="flex flex-col md:flex-row md:items-start justify-between gap-space-md">
         <div class="space-y-2">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary-container font-label-badge text-label-badge font-bold uppercase">CINEVIET ĐỀ XUẤT</span>
+            <span class="px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary-container font-label-badge text-label-badge font-bold uppercase">CINEVIET</span>
             <span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-badge text-label-badge">${movie.year}</span>
-            <span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-badge text-label-badge">${movie.episode_current || movie.time || 'Trọn Bộ'}</span>
-            <span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-secondary-fixed font-label-badge text-label-badge">${movie.quality || 'FHD'}</span>
+            <span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-badge text-label-badge">${movie.episode_current || movie.time || ''}</span>
+            <span class="px-2.5 py-0.5 rounded bg-surface-container-highest text-secondary-fixed font-label-badge text-label-badge">${movie.quality || ''}</span>
           </div>
           <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">${movie.name} ${movie.origin_name ? `(${movie.origin_name})` : ''}</h2>
           <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed max-w-4xl">${movie.content || 'Nội dung phim đang cập nhật...'}</p>
@@ -1223,19 +1140,27 @@ class TemplateService {
         <div class="flex flex-col items-center justify-center p-space-md rounded-xl bg-surface-container shrink-0 min-w-[140px] text-center shadow-inner">
           <div class="flex items-center gap-1 text-primary-container">
             <span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
-            <span class="font-headline-lg text-headline-lg font-black text-on-surface">${watchScore}</span>
+            <span class="font-headline-lg text-headline-lg font-black text-on-surface">—</span>
           </div>
-          <span class="font-body-sm text-body-sm text-on-surface-variant mt-1">${watchViews}</span>
+          <span class="font-body-sm text-body-sm text-on-surface-variant mt-1">${movie.view != null && Number.isFinite(Number(movie.view)) && Number(movie.view) >= 0 ? Number(movie.view).toLocaleString('vi-VN') + ' lượt xem' : 'Chưa có dữ liệu lượt xem'}</span>
         </div>
       </div>
-      <div class="pt-1 font-body-sm text-body-sm text-on-surface-variant">
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-space-xs font-body-sm text-body-sm text-on-surface-variant">
+        <div><span class="text-on-surface font-semibold">Đạo diễn:</span> ${directorStr}</div>
+        <div><span class="text-on-surface font-semibold">Diễn viên:</span> ${actorStr}</div>
         <div><span class="text-on-surface font-semibold">Thể loại:</span> ${catStr}</div>
       </div>
-      ${watchCastHtml}
     `;
     html = html.replace(
-      /(<!-- Movie Synopsis, Tags & Key Actors Row -->\s*<div class="w-full bg-surface-container-low rounded-xl p-space-md lg:p-space-lg flex flex-col gap-space-md shadow-md">)[\s\S]*?(<\/div>\s*<!-- Real-Time Interactive Live Chat)/,
+      /(<!-- Movie Synopsis, Tags & Key Actors Row -->\s*<div(?: id="watch-film-info")? class="w-full bg-surface-container-low rounded-xl p-space-md lg:p-space-lg flex flex-col gap-space-md shadow-md">)[\s\S]*?(<\/div>\s*<!-- Cast & Crew Section for Watch Page -->)/,
       `$1\n${infoSectionHtml}\n$2`
+    );
+
+    // 5b. Cast & Crew with Avatars (Powered by TMDb & IMDb)
+    const watchCastHtml = renderCastAndCrewComponent(movie);
+    html = html.replace(
+      /(<!-- Cast & Crew Section for Watch Page -->\s*<div id="watch-cast-crew-section"[^>]*>)[\s\S]*?(<\/div>\s*<!-- Real-Time Interactive Live Chat)/,
+      `$1\n${watchCastHtml}\n$2`
     );
 
     // 6. Episode Drawer List
@@ -1253,7 +1178,7 @@ class TemplateService {
               </div>
             </div>
           ` : ''}
-          <span class="absolute bottom-1 right-1 px-1 rounded bg-surface-container-lowest/90 font-label-badge text-[10px] text-on-surface">${movie.quality || 'FHD'}</span>
+          <span class="absolute bottom-1 right-1 px-1 rounded bg-surface-container-lowest/90 font-label-badge text-[10px] text-on-surface">${movie.quality || ''}</span>
         </div>
         <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
           <div>
@@ -1261,7 +1186,7 @@ class TemplateService {
             <p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-1 mt-0.5 leading-snug">${movie.name}</p>
           </div>
           <div class="flex items-center justify-between font-label-badge text-[11px] text-on-surface-variant pt-1">
-            <span>${movie.lang || 'Vietsub'}</span>
+            <span>${movie.lang || ''}</span>
             ${e.slug === currentEp.slug ? `
               <span class="text-primary font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span> Đang phát</span>
             ` : `
@@ -1273,7 +1198,7 @@ class TemplateService {
     `).join('');
 
     html = html.replace(
-      /(<!-- Episode Scrollable List -->\s*<div class="p-2 space-y-2 overflow-y-auto flex-1 overscroll-contain" style="max-height: 700px;"[^>]*>)[\s\S]*?(<\/div>\s*<\/div>\s*<!-- Pane 2: Watch Party)/,
+      /(<!-- Episode Scrollable List -->\s*<div class="p-2 space-y-2 overflow-y-auto flex-1 overscroll-contain" style="max-height: 700px;"[^>]*>)[\s\S]*?(<\/div>\s*<\/div>\s*<!-- Pane 2: (?:Watch Party|Xem chung))/i,
       `$1\n${drawerHtml}\n$2`
     );
 
@@ -1286,11 +1211,11 @@ class TemplateService {
           </div>
           <div class="flex-1 min-w-0">
             <span class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate block">${r.name}</span>
-            <span class="text-on-surface-variant font-body-sm text-[12px] block">${r.episode_current || r.year || 'Full HD'}</span>
+            <span class="text-on-surface-variant font-body-sm text-[12px] block">${r.episode_current || r.year || ''}</span>
             <div class="flex items-center gap-1 text-primary-container text-[12px] font-semibold mt-1">
               <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
-              <span>9.2</span>
-              <span class="text-on-surface-variant font-normal">· ${r.lang || 'Vietsub'}</span>
+              <span>—</span>
+              <span class="text-on-surface-variant font-normal">${r.lang ? '· ' + r.lang : ''}</span>
             </div>
           </div>
         </a>
@@ -1302,38 +1227,7 @@ class TemplateService {
       );
     }
 
-    // 8. Comments List
-    const commentsListHtml = (comments && comments.length > 0)
-      ? comments.map(c => `
-        <div class="flex items-start gap-3">
-          <img class="w-9 h-9 rounded-full object-cover shrink-0" src="${c.user_avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDmV0kJ3rLlFchh-aGILVOr-pQbdtHs2qQKQtkeKftGRHjg2nb7ii3xkFe2aJA7-Gldl5BqHuj4L_uiVmqQyW9CCgKPrUz_MCzKjGtUsI1R3dM0r3vXdhkgOsKaL_SVbs9gl7b2sTWQGr3VphY1X_pUChBkXZ-KPQtC6HeaIV7uxpjuEKEltMKcvR78AOcVjnQlk989xeMDULyOev-eHEjgdEO-N14MVTh2oQR_E3A'}" alt="${c.user_name || 'Khán giả'}" />
-          <div class="flex-1 space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="font-label-md text-label-md font-bold text-on-surface">${c.user_name || 'Khán giả'}</span>
-              <span class="font-body-sm text-[12px] text-on-surface-variant">${c.created_at || 'Vừa xong'}</span>
-            </div>
-            <p class="font-body-md text-body-md text-on-surface">
-              ${c.timestamp_tag ? `<span class="text-primary hover:underline cursor-pointer font-semibold">${c.timestamp_tag}</span> ` : ''}
-              ${c.content}
-            </p>
-            <div class="flex items-center gap-4 text-on-surface-variant font-body-sm text-body-sm pt-1">
-              <button class="flex items-center gap-1 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[16px]">thumb_up</span> ${c.likes || 1}</button>
-              <button class="hover:text-on-surface transition-colors">Trả lời</button>
-            </div>
-          </div>
-        </div>
-      `).join('')
-      : `
-        <div class="text-center py-8 text-on-surface-variant font-body-sm">
-          <span class="material-symbols-outlined text-4xl mb-2 text-outline block">chat_bubble_outline</span>
-          Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ về bộ phim!
-        </div>
-      `;
-
-    html = html.replace(
-      /(<!-- Comment feed list -->\s*<div[^>]*id="watch-comments-list"[^>]*>)[\s\S]*?(<\/div>\s*<\/div>\s*<\/div>\s*<!-- Right Episode Playlist Drawer)/,
-      `$1\n${commentsListHtml}\n$2`
-    );
+    html = replaceCommentContainer(html, 'watch-comments-list', '<p role="status">Đang tải bình luận của tập đang xem...</p><noscript>Bật JavaScript để xem bình luận theo tập và chủ động mở spoiler.</noscript>');
 
     // 9. Sanitize all mock data-alt strings
     html = html.replace(/data-alt="[^"]*"/g, `data-alt="${movie.name}"`);
@@ -1342,5 +1236,9 @@ class TemplateService {
   }
 }
 
-module.exports = new TemplateService();
+const templateService = new TemplateService();
+templateService.getPersonUrl = getPersonUrl;
+templateService.renderCastAndCrewComponent = renderCastAndCrewComponent;
+
+module.exports = templateService;
 

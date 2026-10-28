@@ -14,6 +14,24 @@ const publicFile = (file) => path.join(config.PUBLIC_DIR, file);
 const mobileFile = (file) => path.join(config.PUBLIC_DIR, 'mobile', file);
 const tvFile = (file) => path.join(config.PUBLIC_DIR, 'tv', file);
 
+const { sendPageError, episodeExists } = require('../services/pageError');
+const seo = require('../services/seoService');
+router.use(seo.middleware(config.PUBLIC_ORIGIN));
+const sendView = file => async (req, res, next) => {
+  try { res.send(await fs.readFile(file, 'utf8')); } catch (error) { next(error); }
+};
+router.get('/robots.txt', (req, res) => {
+  const origin = seo.originOf(config.PUBLIC_ORIGIN);
+  res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /auth\n${origin ? `Sitemap: ${origin}/sitemap.xml\n` : ''}`);
+});
+router.get('/sitemap.xml', async (req, res) => {
+  if (!seo.originOf(config.PUBLIC_ORIGIN)) return res.status(503).set('Retry-After', '300').type('text').send('Configure PUBLIC_ORIGIN to publish the sitemap.');
+  try {
+    const home = await kkphimService.getHomeData();
+    const slugs = Object.values(home || {}).flatMap(value => Array.isArray(value) ? value : []).filter(item => item && typeof item.slug === 'string').map(item => item.slug);
+    res.type('application/xml').set('Cache-Control', 'public, max-age=300').send(seo.sitemap(config.PUBLIC_ORIGIN, slugs));
+  } catch (_) { res.type('application/xml').send(seo.sitemap(config.PUBLIC_ORIGIN)); }
+});
 // 1. View Preference & Auto-detection Middleware
 router.use((req, res, next) => {
   // If user requested explicit view mode, persist into cookie
@@ -38,15 +56,16 @@ router.use((req, res, next) => {
   const isMobile = viewPref === 'mobile' || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 
   if (isMobile) {
-    if (req.path === '/') return res.redirect('/mobile');
+    const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    if (req.path === '/') return res.redirect('/mobile' + query);
     if (req.path === '/kham-pha') {
       const q = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
       return res.redirect('/mobile/kham-pha' + q);
     }
-    if (req.path.startsWith('/phim/')) return res.redirect('/mobile' + req.path);
-    if (req.path.startsWith('/xem-phim/')) return res.redirect('/mobile' + req.path);
-    if (req.path === '/danh-sach' || req.path === '/danh-sach-cua-toi') return res.redirect('/mobile/danh-sach');
-    if (req.path === '/tai-khoan') return res.redirect('/mobile/tai-khoan');
+    if (req.path.startsWith('/phim/')) return res.redirect('/mobile' + req.path + query);
+    if (req.path.startsWith('/xem-phim/')) return res.redirect('/mobile' + req.path + query);
+    if (req.path === '/danh-sach' || req.path === '/danh-sach-cua-toi') return res.redirect('/mobile/danh-sach' + query);
+    if (req.path === '/tai-khoan') return res.redirect('/mobile/tai-khoan' + query);
   }
 
   next();
@@ -60,16 +79,49 @@ router.get(['/mobile', '/mobile/', '/mobile/index.html'], async (req, res) => {
   res.set('Cache-Control', 'private, no-cache');
   res.send(bannerService.decorate(html, settings, true));
 });
-router.get('/mobile/kham-pha', (req, res) => res.sendFile(mobileFile('kham-pha.html')));
-router.get('/mobile/phim/:slug', (req, res) => res.sendFile(mobileFile('chi-tiet.html')));
+router.get('/mobile/kham-pha', async (req, res, next) => {
+  try {
+    const rawHtml = await fs.readFile(mobileFile('kham-pha.html'), 'utf8');
+    const settings = await dbService.getSettings();
+    res.send(bannerService.decorate(rawHtml, settings, true));
+  } catch (err) { next(err); }
+});
+router.get('/mobile/phim/:slug', async (req, res) => {
+  try {
+    const data = await kkphimService.getMovieDetail(req.params.slug);
+    if (!data?.movie) return sendPageError(res, { status: 404 });
+    res.locals.seoMovie = data.movie;
+    const [html, settings] = await Promise.all([fs.readFile(mobileFile('chi-tiet.html'), 'utf8'), dbService.getSettings()]);
+    res.send(bannerService.decorate(html, settings, true));
+  } catch (error) { sendPageError(res, error); }
+});
 async function mobileWatch(req, res) {
-  const [html, settings] = await Promise.all([fs.readFile(mobileFile('xem-phim.html'), 'utf8'), dbService.getSettings()]);
-  res.set('Cache-Control', 'private, no-cache');
-  res.send(bannerService.decorate(html, settings, true));
+  try {
+    if (req.params.slug) {
+      const data = await kkphimService.getMovieDetail(req.params.slug);
+      if (!data?.movie || !episodeExists(data, req.params.episode, req.query.server)) return sendPageError(res, { status: 404 });
+      res.locals.seoMovie = data.movie;
+    }
+    const [html, settings] = await Promise.all([fs.readFile(mobileFile('xem-phim.html'), 'utf8'), dbService.getSettings()]);
+    res.set('Cache-Control', 'private, no-cache');
+    res.send(bannerService.decorate(html, settings, true));
+  } catch (error) { sendPageError(res, error); }
 }
 router.get(['/mobile/xem-phim.html', '/mobile/xem-phim/:slug', '/mobile/xem-phim/:slug/:episode'], mobileWatch);
-router.get('/mobile/danh-sach', (req, res) => res.sendFile(mobileFile('danh-sach.html')));
-router.get('/mobile/tai-khoan', (req, res) => res.sendFile(mobileFile('tai-khoan.html')));
+router.get('/mobile/danh-sach', async (req, res, next) => {
+  try {
+    const rawHtml = await fs.readFile(mobileFile('danh-sach.html'), 'utf8');
+    const settings = await dbService.getSettings();
+    res.send(bannerService.decorate(rawHtml, settings, true));
+  } catch (err) { next(err); }
+});
+router.get('/mobile/tai-khoan', async (req, res, next) => {
+  try {
+    const rawHtml = await fs.readFile(mobileFile('tai-khoan.html'), 'utf8');
+    const settings = await dbService.getSettings();
+    res.send(bannerService.decorate(rawHtml, settings, true));
+  } catch (err) { next(err); }
+});
 
 // ==========================================
 // ANDROID TV LEANBACK 10-FOOT ROUTES
@@ -97,17 +149,24 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Catalog / Explore Page with real KKPhim data
-router.get('/kham-pha', async (req, res) => {
+// Search is hydrated by the escaped catalog controller, never raw provider/query HTML.
+router.get('/kham-pha', async (req, res, next) => {
   try {
     const rawHtml = await fs.readFile(publicFile('kham-pha.html'), 'utf8');
-    const query = { limit: 30, ...req.query };
-    const catalogData = await kkphimService.getCatalog(query);
-    const rendered = templateService.renderCatalog(rawHtml, catalogData, query);
-    res.send(rendered);
+    let shell = rawHtml
+      .replace(/(<section aria-label="Danh sách phim tìm kiếm"[^>]*>)[\s\S]*?(<\/section>)/, (_, open, close) => `${open}<p class="col-span-full py-10 text-center" role="status">Đang tải kết quả tìm kiếm...</p><noscript>Vui lòng bật JavaScript để tìm kiếm và lọc phim.</noscript>${close}`)
+      .replace(/(<nav id="catalog-pagination"[^>]*>)[\s\S]*?(<\/nav>)/, (_, open, close) => `${open}${close}`)
+      .replace(/Hiển thị <span class="text-on-surface font-bold">[^<]*<\/span> trên tổng số <span class="text-primary font-bold">[^<]*<\/span> phim/, 'Đang tải kết quả...<span class="text-primary" hidden></span>')
+      .replace(/<span>Hơn <strong class="text-on-surface font-semibold">[^<]*<\/strong>[^<]*<\/span>/, '<span>Tra cứu phim theo tên tiếng Việt, tên gốc và bộ lọc.</span>');
+    try {
+      if (typeof dbService?.getSettings === 'function' && typeof bannerService?.decorate === 'function') {
+        const settings = await dbService.getSettings();
+        shell = bannerService.decorate(shell, settings);
+      }
+    } catch (_) {}
+    res.send(shell);
   } catch (err) {
-    console.error('Error rendering catalog view:', err);
-    res.sendFile(publicFile('kham-pha.html'));
+    next(err);
   }
 });
 
@@ -115,24 +174,30 @@ router.get('/kham-pha', async (req, res) => {
 router.get('/phim/:slug', async (req, res) => {
   try {
     const rawHtml = await fs.readFile(publicFile('chi-tiet.html'), 'utf8');
-    dbService.incrementMovieView(req.params.slug).catch(() => {});
+    // Invalid slugs must not create view counters.
     const movieData = await kkphimService.getMovieDetail(req.params.slug);
-    if (!movieData || !movieData.movie) {
-      return res.sendFile(publicFile('chi-tiet.html'));
-    }
+    if (!movieData?.movie) return sendPageError(res, { status: 404 });
+    res.locals.seoMovie = movieData.movie;
+    dbService.incrementMovieView(req.params.slug).catch(() => {});
     
     // Enrich with accurate TMDb / IMDb credits
     try {
       const credits = await tmdbService.getMovieCredits(movieData.movie);
       movieData.movie.credits = credits;
+      if (credits.cast && credits.cast.length > 0) {
+        movieData.movie.tmdb_cast = credits.cast;
+      }
+      if (credits.directors && credits.directors.length > 0) {
+        movieData.movie.tmdb_directors = credits.directors;
+      }
     } catch (_) {}
 
     const comments = await dbService.getComments(req.params.slug).catch(() => []);
     const rendered = templateService.renderDetail(rawHtml, movieData, comments);
-    res.send(rendered);
+    res.send(bannerService.decorate(rendered, await dbService.getSettings()));
   } catch (err) {
     console.error('Error rendering detail view:', err);
-    res.sendFile(publicFile('chi-tiet.html'));
+    sendPageError(res, err);
   }
 });
 
@@ -151,27 +216,33 @@ async function handleWatchView(req, res) {
     const epSlug = req.params.episode;
     const serverParam = req.query.server;
     const requestedServerIdx = (serverParam !== undefined && !isNaN(parseInt(serverParam, 10))) ? parseInt(serverParam, 10) : undefined;
-    dbService.incrementMovieView(slug).catch(() => {});
+    // Verify the requested movie and episode before rendering or counting a view.
     const [movieData, comments] = await Promise.all([
       kkphimService.getMovieDetail(slug),
       dbService.getComments(slug)
     ]);
 
-    if (!movieData || !movieData.movie) {
-      return res.send(await decorateWatch(rawHtml));
-    }
+    if (!movieData?.movie || !episodeExists(movieData, epSlug, serverParam)) return sendPageError(res, { status: 404 });
+    res.locals.seoMovie = movieData.movie;
+    dbService.incrementMovieView(slug).catch(() => {});
 
     // Enrich with accurate TMDb / IMDb credits
     try {
       const credits = await tmdbService.getMovieCredits(movieData.movie);
       movieData.movie.credits = credits;
+      if (credits.cast && credits.cast.length > 0) {
+        movieData.movie.tmdb_cast = credits.cast;
+      }
+      if (credits.directors && credits.directors.length > 0) {
+        movieData.movie.tmdb_directors = credits.directors;
+      }
     } catch (_) {}
 
     const rendered = templateService.renderWatch(rawHtml, movieData, epSlug, comments, requestedServerIdx);
     res.send(await decorateWatch(rendered));
   } catch (err) {
     console.error('Error rendering watch view:', err);
-    res.send(await decorateWatch(await readWatchTemplate()));
+    sendPageError(res, err);
   }
 }
 
@@ -191,17 +262,44 @@ router.get('/quoc-gia', (req, res) => res.redirect('/kham-pha'));
 router.get('/quoc-gia/:slug', (req, res) => res.redirect(`/kham-pha?country=${req.params.slug}`));
 router.get('/bang-xep-hang', (req, res) => res.redirect('/#bang-xep-hang'));
 
+// Public information pages are static and available in every device/view mode.
+for (const slug of ['gioi-thieu', 'tro-giup', 'lien-he', 'dieu-khoan', 'quyen-rieng-tu', 'ban-quyen']) {
+  router.get(`/${slug}`, async (req, res, next) => {
+    try {
+      const rawHtml = await fs.readFile(publicFile(`${slug}.html`), 'utf8');
+      const settings = await dbService.getSettings();
+      res.send(bannerService.decorate(rawHtml, settings));
+    } catch (err) { next(err); }
+  });
+}
+
 // Library & Account
-router.get(['/danh-sach', '/tu-phim', '/danh-sach-cua-toi'], (req, res) => res.sendFile(publicFile('danh-sach.html')));
+router.get(['/danh-sach', '/tu-phim', '/danh-sach-cua-toi'], async (req, res, next) => {
+  try {
+    const rawHtml = await fs.readFile(publicFile('danh-sach.html'), 'utf8');
+    const settings = await dbService.getSettings();
+    res.send(bannerService.decorate(rawHtml, settings));
+  } catch (err) { next(err); }
+});
 router.get('/dang-nhap', (req, res) => res.sendFile(publicFile('auth.html')));
 router.get('/dang-ky', (req, res) => res.sendFile(publicFile('auth.html')));
 router.get('/auth', (req, res) => res.sendFile(publicFile('auth.html')));
-router.get('/tai-khoan', (req, res) => res.sendFile(publicFile('tai-khoan.html')));
+router.get('/tai-khoan', async (req, res, next) => {
+  try {
+    const rawHtml = await fs.readFile(publicFile('tai-khoan.html'), 'utf8');
+    const settings = await dbService.getSettings();
+    res.send(bannerService.decorate(rawHtml, settings));
+  } catch (err) { next(err); }
+});
 router.get(['/admin', '/quan-tri'], (req, res) => res.sendFile(publicFile('admin.html')));
 
 // Actor & Director Profile Pages
-router.get(['/dien-vien', '/dien-vien/:name', '/dao-dien', '/dao-dien/:name', '/nghe-si/:name'], (req, res) => {
-  res.sendFile(publicFile('dien-vien.html'));
+router.get(['/dien-vien', '/dien-vien/:name', '/dao-dien', '/dao-dien/:name', '/nghe-si/:name'], async (req, res, next) => {
+  try {
+    const rawHtml = await fs.readFile(publicFile('dien-vien.html'), 'utf8');
+    const settings = await dbService.getSettings();
+    res.send(bannerService.decorate(rawHtml, settings));
+  } catch (err) { next(err); }
 });
 
 // TV QR Code Mobile Authorization Page
@@ -210,7 +308,6 @@ router.get(['/tv-auth', '/tv-login', '/tv-dang-nhap'], (req, res) => {
 });
 
 // Favicon
-router.get('/favicon.ico', (req, res) => res.type('image/x-icon').sendFile(publicFile('favicon.ico')));
-router.get('/favicon.svg', (req, res) => res.type('image/svg+xml').sendFile(publicFile('favicon.svg')));
+router.get(['/favicon.ico', '/favicon.svg'], (req, res) => res.type('image/svg+xml').sendFile(publicFile('favicon.svg')));
 
 module.exports = router;

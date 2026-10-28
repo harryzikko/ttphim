@@ -16,45 +16,14 @@
       html, body { margin: 0; padding: 0; }
       body { overscroll-behavior: none; }
     }
-    ::-webkit-scrollbar { display: none; }
     .avatar-glow {
       box-shadow: 0 0 40px rgba(229, 9, 20, 0.35), 0 10px 25px rgba(0, 0, 0, 0.8);
     }
   </style>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "primary": "#ffb4aa",
-            "primary-container": "#e50914",
-            "background": "#11131c",
-            "surface": "#11131c",
-            "surface-container": "#1d1f29",
-            "surface-container-high": "#282933",
-            "surface-container-highest": "#32343e",
-            "surface-container-low": "#191b24",
-            "surface-container-lowest": "#0c0e17",
-            "on-surface": "#e1e1ef",
-            "on-surface-variant": "#e9bcb6",
-            "secondary": "#d3fbff",
-            "secondary-container": "#00eefc"
-          },
-          fontFamily: {
-            "headline-lg": ["Montserrat"],
-            "headline-md": ["Montserrat"],
-            "headline-sm": ["Montserrat"],
-            "body-lg": ["Inter"],
-            "body-md": ["Inter"],
-            "body-sm": ["Inter"]
-          }
-        }
-      }
-    };
-  </script>
+  <link rel="stylesheet" href="/css/site-272dfb713b27.css?v=39b0aa014cc6">
+  
   <link rel="stylesheet" href="/css/custom.css"/>
+<link rel="stylesheet" href="/css/site-footer.css?v=1.0.0">
 </head>
 <body class="bg-background font-body-md text-on-surface antialiased min-h-screen flex flex-col justify-between">
 
@@ -63,7 +32,7 @@
     <div class="h-20 w-full px-4 md:px-8 max-w-[1680px] mx-auto flex items-center justify-between gap-4">
       <div class="flex items-center gap-6">
         <a class="flex items-center gap-2" href="/">
-          <span class="font-headline-sm tracking-wider uppercase text-on-surface font-extrabold">CINE<span class="text-primary-container">VIET</span></span>
+          <span class="font-headline-sm tracking-wider uppercase text-on-surface font-extrabold">Cine<span class="text-primary-container">Viet</span></span>
         </a>
         <nav class="hidden md:flex items-center gap-2 text-sm font-semibold">
           <a href="/" class="px-3 py-1.5 rounded-lg text-on-surface-variant hover:text-white transition-colors">Trang Chủ</a>
@@ -172,12 +141,17 @@
   </main>
 
   <!-- Footer -->
-  <footer class="w-full bg-surface-container-lowest border-t border-white/5 py-8 text-center text-xs text-on-surface-variant">
-    <p>© 2026 CineViet - Nền Tảng Xem Phim Chuẩn Điện Ảnh 4K HDR</p>
-  </footer>
+  <footer class="cv-footer" aria-label="Thông tin CineViet">
+  <div class="cv-footer-inner">
+    <div class="cv-footer-intro"><a class="cv-footer-brand" href="/" aria-label="CineViet - Trang chủ">Cine<span>Viet</span></a><p>Khám phá phim hay. Lưu câu chuyện bạn thích. Xem tiếp khi thuận tiện.</p><a class="cv-footer-email" href="mailto:admin@cineviet.live">admin@cineviet.live</a><span class="cv-footer-note">Hỗ trợ · Góp ý · Yêu cầu bản quyền</span></div>
+    <nav class="cv-footer-nav" aria-label="Liên kết cuối trang"><div class="cv-footer-group"><h2>Khám phá</h2><ul><li><a href="/kham-pha?type=phim-bo">Phim bộ</a></li><li><a href="/kham-pha?type=phim-le">Phim lẻ</a></li><li><a href="/kham-pha?type=chieu-rap">Chiếu rạp</a></li><li><a href="/kham-pha?type=song-ngu">Song Ngữ</a></li><li><a href="/kham-pha?type=hoat-hinh">Anime &amp; hoạt hình</a></li><li><a href="/kham-pha?type=tv-shows">TV Show</a></li></ul></div><div class="cv-footer-group"><h2>Thư viện của bạn</h2><ul><li><a href="/danh-sach?tab=watchlist">Yêu thích</a></li><li><a href="/danh-sach?tab=continue">Xem tiếp</a></li><li><a href="/danh-sach?tab=history">Lịch sử xem</a></li><li><a href="/tai-khoan">Tài khoản</a></li></ul></div><div class="cv-footer-group"><h2>CineViet &amp; hỗ trợ</h2><ul><li><a href="/gioi-thieu">Giới thiệu</a></li><li><a href="/tro-giup">Trợ giúp</a></li><li><a href="/lien-he">Liên hệ &amp; báo lỗi</a></li><li><a href="/dieu-khoan">Điều khoản sử dụng</a></li><li><a href="/quyen-rieng-tu">Quyền riêng tư</a></li><li><a href="/ban-quyen">Bản quyền</a></li></ul></div></nav>
+    <div class="cv-footer-bottom"><p>© 2026 CineViet</p><p>Chất lượng và khả năng phát phụ thuộc nguồn, thiết bị và kết nối. Nội dung bên thứ ba thuộc các chủ thể quyền tương ứng.</p><button type="button" class="cv-footer-top" data-footer-top hidden>Về đầu trang <span aria-hidden="true">↑</span></button></div>
+  </div>
+</footer>
 
   <script src="/js/api.js"></script>
-  <script src="/js/header.js"></script>
+  <script src="/js/header.js?v=3.1.0"></script>
   <script src="/js/dien-vien.js"></script>
+<script defer src="/js/site-footer.js?v=1.0.0"></script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vận hành & Kiểm duyệt - CineViet</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/css/operations.css"><script defer src="/js/operations.js"></script></head>
+<body><main>
+<header><div><a href="/admin">CINEVIET / ADMIN</a><p class="eyebrow">SỨC KHỎE HỆ THỐNG</p><h1>Vận hành & Kiểm duyệt</h1><p class="muted">Số liệu tổng hợp tối đa 7 ngày. Telemetry do trình duyệt gửi, không phải chứng nhận chất lượng mọi nguồn phim.</p></div><button id="refresh" type="button">Làm mới</button></header>
+<p id="status" role="status" aria-live="polite">Đang xác minh quyền quản trị…</p>
+<section aria-labelledby="metrics-title"><h2 id="metrics-title">API & Trình phát</h2><div id="metrics" class="cards"></div></section>
+<section aria-labelledby="sources-title"><div class="section-heading"><h2 id="sources-title">Nguồn phim & Sao lưu</h2><div><button id="check-sources" type="button">Kiểm tra nguồn</button> <button id="backup" type="button">Backup mã hóa</button></div></div><div id="sources"></div><pre id="backup-state"></pre></section>
+<section aria-labelledby="alerts-title"><h2 id="alerts-title">Cảnh báo</h2><div id="alerts"></div></section>
+<section aria-labelledby="reports-title"><h2 id="reports-title">Báo cáo bình luận</h2><div id="reports"></div></section>
+<section aria-labelledby="comments-title"><h2 id="comments-title">Kiểm duyệt nội dung</h2><div id="comments"></div></section>
+<section aria-labelledby="users-title"><h2 id="users-title">Quản lý truy cập tài khoản</h2><p class="muted">Khóa/mở tài khoản sẽ thu hồi các phiên đăng nhập hiện có.</p><div id="users"></div></section>
+<section aria-labelledby="audit-title"><h2 id="audit-title">Nhật ký quản trị</h2><div id="audit"></div></section>
+<dialog id="action-dialog"><form id="action-form"><h2 id="action-title">Xác nhận thao tác</h2><label for="action-reason">Lý do (bắt buộc)</label><textarea id="action-reason" required maxlength="500" rows="4"></textarea><p id="action-error" role="alert"></p><div class="dialog-actions"><button id="action-cancel" type="button">Hủy</button><button id="action-submit" type="submit">Xác nhận</button></div></form></dialog>
+</main></body></html>

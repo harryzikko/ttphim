@@ -1,5 +1,10 @@
 // TTPhim - Header & Global UI Controller
 (function() {
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const safeUrl = (value, fallback = '/favicon.svg') => {
+    try { const url = new URL(value, window.location.href); return /^https?:$/.test(url.protocol) ? url.href : fallback; } catch (_) { return fallback; }
+  };
+  const pathSegment = value => encodeURIComponent(String(value ?? '')).replace(/'/g, '%27');
   // Toast Helper
   window.showToast = function(message, type = 'success') {
     let container = document.getElementById('toast-container');
@@ -16,7 +21,7 @@
     
     toast.innerHTML = `
       <span class="material-symbols-outlined ${color} text-[20px]">${icon}</span>
-      <span>${message}</span>
+      <span>${escapeHtml(message)}</span>
     `;
 
     container.appendChild(toast);
@@ -45,7 +50,7 @@
         banner.className = 'w-full bg-gradient-to-r from-red-700 via-amber-600 to-red-700 text-white text-xs font-semibold py-1.5 px-4 text-center flex items-center justify-center gap-2 shadow z-[60] relative';
         banner.innerHTML = `
           <span class="material-symbols-outlined text-[16px] animate-pulse">campaign</span>
-          <span class="truncate max-w-2xl">${res.announcement}</span>
+          <span class="truncate max-w-2xl">${escapeHtml(res.announcement)}</span>
           <button id="close-announcement-btn" class="ml-2 hover:opacity-75 cursor-pointer text-white/80 hover:text-white p-0.5">
             <span class="material-symbols-outlined text-[14px]">close</span>
           </button>
@@ -59,6 +64,17 @@
 
   // Highlight active navigation tab & handle dropdowns
   function initNavigation() {
+    document.querySelectorAll('header nav').forEach(nav => {
+      if (nav.querySelector('[data-path="song-ngu"]')) return;
+      const cinema = nav.querySelector('a[data-path="chieu-rap"], a[href="/kham-pha?type=chieu-rap"]');
+      if (!cinema) return;
+      const bilingual = document.createElement('a');
+      bilingual.href = '/kham-pha?type=song-ngu';
+      bilingual.dataset.path = 'song-ngu';
+      bilingual.className = cinema.className;
+      bilingual.textContent = 'Song Ngữ';
+      cinema.after(bilingual);
+    });
     const currentPath = window.location.pathname;
     const searchParams = new URLSearchParams(window.location.search);
     const typeParam = searchParams.get('type');
@@ -180,7 +196,7 @@
           try {
             const results = await API.quickSearch(query);
             if (!results || results.length === 0) {
-              dropdown.innerHTML = `<div class="p-4 text-center text-on-surface-variant text-body-sm">Không tìm thấy phim phù hợp cho "<strong>${query}</strong>"</div>`;
+              dropdown.innerHTML = `<div class="p-4 text-center text-on-surface-variant text-body-sm">Không tìm thấy phim phù hợp cho "<strong>${escapeHtml(query)}</strong>"</div>`;
               return;
             }
 
@@ -190,25 +206,25 @@
                 <span class="text-primary">${results.length} kết quả</span>
               </div>
               ${results.map(item => `
-                <a href="/phim/${item.slug}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-container-highest transition-colors group">
-                  <img src="${item.poster_url || item.thumb_url}" class="w-10 h-14 object-cover rounded bg-surface-container shrink-0 group-hover:scale-105 transition-transform" />
+                <a href="/phim/${pathSegment(item.slug)}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-container-highest transition-colors group">
+                  <img src="${escapeHtml(safeUrl(item.poster_url || item.thumb_url))}" class="w-10 h-14 object-cover rounded bg-surface-container shrink-0 group-hover:scale-105 transition-transform" />
                   <div class="flex-1 min-w-0">
-                    <h4 class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors truncate">${item.name}</h4>
-                    <p class="font-body-sm text-[12px] text-on-surface-variant truncate">${item.origin_name || item.year}</p>
+                    <h4 class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors truncate">${escapeHtml(item.name)}</h4>
+                    <p class="font-body-sm text-[12px] text-on-surface-variant truncate">${escapeHtml(item.origin_name || item.year)}</p>
                     <div class="flex items-center gap-1.5 mt-0.5">
                       ${item.has_song_ngu ? `
                         <span class="badge-song-ngu text-[9px] py-0 px-1.5">
                           <span class="material-symbols-outlined text-[10px]">record_voice_over</span>Song Ngữ
                         </span>
                       ` : ''}
-                      <span class="badge-glass-quality text-[9px] py-0 px-1.5">${item.quality || 'FHD'}</span>
-                      <span class="badge-glass-sub text-[9px] py-0 px-1.5">${item.year}</span>
+                      <span class="badge-glass-quality text-[9px] py-0 px-1.5">${escapeHtml(item.quality || 'FHD')}</span>
+                      <span class="badge-glass-sub text-[9px] py-0 px-1.5">${escapeHtml(item.year)}</span>
                     </div>
                   </div>
                 </a>
               `).join('')}
               <a href="/kham-pha?keyword=${encodeURIComponent(query)}" class="block text-center py-2 mt-1 rounded-lg bg-surface-container hover:bg-primary-container hover:text-on-primary-container text-primary font-label-md text-label-md transition-colors">
-                Xem tất cả kết quả cho "${query}" &rarr;
+                Xem tất cả kết quả cho "${escapeHtml(query)}" &rarr;
               </a>
             `;
           } catch (err) {
@@ -268,7 +284,7 @@
 
     if (!profileBtn) return;
 
-    const user = await API.getMe();
+    let user = await API.getMe();
     const wrapper = profileBtn.parentElement || profileBtn;
     wrapper.classList.add('relative');
 
@@ -276,20 +292,35 @@
     if (user && user.avatar) {
       const btnImg = profileBtn.querySelector('img');
       if (btnImg) {
-        btnImg.src = user.avatar;
+        btnImg.src = safeUrl(user.avatar);
       }
     }
 
     // Create dropdown menu
     const menu = document.createElement('div');
     menu.className = 'absolute top-full right-0 mt-3 w-64 bg-surface-container-high/95 backdrop-blur-2xl rounded-2xl shadow-2xl p-3 z-50 hidden border border-white/10 flex flex-col gap-2 text-on-surface animate-fade-in';
+    const applyAvatar = next => {
+      if (!user || next?.id !== user.id || typeof next.avatar !== 'string') return;
+      user = { ...user, ...next };
+      profileBtn.querySelectorAll('img').forEach(image => { image.src = safeUrl(user.avatar); });
+      menu.querySelectorAll('img').forEach(image => { image.src = safeUrl(user.avatar); });
+    };
+    window.addEventListener('cineviet:profile-updated', event => applyAvatar(event.detail));
+    let refreshedAt = 0;
+    const refreshAvatar = async () => {
+      if (Date.now() - refreshedAt < 5000) return;
+      refreshedAt = Date.now();
+      try { applyAvatar(await API.getMe()); } catch (_) {}
+    };
+    window.addEventListener('focus', refreshAvatar);
+    window.addEventListener('storage', event => { if (event.key === 'kk_user') refreshAvatar(); });
     
     if (user) {
       menu.innerHTML = `
         <div class="flex items-center gap-3 p-2 rounded-xl bg-surface-container">
-          <img src="${user.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8'}" class="w-10 h-10 rounded-full object-cover ring-2 ring-primary-container" />
+          <img src="${escapeHtml(safeUrl(user.avatar || '/favicon.svg'))}" class="w-10 h-10 rounded-full object-cover ring-2 ring-primary-container" />
           <div class="min-w-0 flex-1">
-            <h4 class="font-label-md text-label-md font-bold truncate">${user.name}</h4>
+            <h4 class="font-label-md text-label-md font-bold truncate">${escapeHtml(user.name)}</h4>
             <span class="inline-flex items-center gap-1 text-[11px] font-label-badge text-primary-fixed-dim font-bold">
               <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span> ${user.role === 'admin' ? 'Quản Trị Viên' : 'Thành Viên'}
             </span>
@@ -320,10 +351,11 @@
     } else {
       menu.innerHTML = `
         <div class="p-3 text-center">
-          <p class="font-label-md text-label-md text-on-surface">Chào mừng bạn đến với CineViet</p>
+          <p class="font-label-md text-label-md text-on-surface font-bold">Chào mừng bạn đến với CineViet</p>
           <p class="font-body-sm text-[12px] text-on-surface-variant mt-1">Đăng nhập để lưu phim yêu thích & xem tiếp mọi lúc</p>
-          <a href="/dang-nhap" class="mt-3 block w-full py-2 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold text-center hover:bg-inverse-primary transition-all">
+          <a href="/auth" class="mt-3 block w-full py-2.5 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold text-center hover:bg-inverse-primary transition-all shadow-md">
             Đăng Nhập / Đăng Ký
+          </a>
         </div>
       `;
     }
@@ -344,9 +376,14 @@
     const logoutBtn = menu.querySelector('#btn-logout');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
-        await API.logout();
-        window.showToast('Đã đăng xuất thành công', 'info');
-        setTimeout(() => window.location.reload(), 600);
+        if (logoutBtn.disabled) return;
+        logoutBtn.disabled = true;
+        try {
+          await API.logout();
+          window.showToast('Đã đăng xuất thành công', 'info');
+          setTimeout(() => window.location.reload(), 600);
+        } catch (error) { window.showToast(error.message || 'Chưa thể đăng xuất. Vui lòng thử lại.', 'error'); }
+        finally { logoutBtn.disabled = false; }
       });
     }
   }
@@ -405,7 +442,7 @@
         </div>
       </div>
       <div class="pt-2 border-t border-surface-container-highest flex items-center justify-between text-[12px] text-on-surface-variant px-1">
-        <span>Cập nhật liên tục 24/7</span>
+        <span>Kiểm tra cập nhật khi mở bảng</span>
         <a href="/kham-pha?type=chieu-rap" class="text-primary hover:underline font-semibold flex items-center gap-0.5">
           <span>Xem phim rạp</span>
           <span class="material-symbols-outlined text-[14px]">chevron_right</span>
@@ -418,10 +455,15 @@
     let notifications = [];
     let loaded = false;
     let loading = null;
+    let loadedAt = 0;
+    const isReadNotification = (item, ids) => item.type === 'follow_episode' ? item.read === true : ids.includes(item.id);
+    const markFollowRead = id => API.markFollowNotificationRead
+      ? API.markFollowNotificationRead(id)
+      : API.request(`/api/user/follow-notifications/${encodeURIComponent(id)}/read`, { method: 'POST' });
 
     const updateBadge = () => {
       const currentRead = getReadIds();
-      const unread = notifications.filter(n => !currentRead.includes(n.id)).length;
+      const unread = notifications.filter(n => !isReadNotification(n, currentRead)).length;
       if (badgeDot) {
         if (unread > 0) {
           badgeDot.style.display = 'block';
@@ -458,14 +500,14 @@
       }
 
       listEl.innerHTML = notifications.map(item => {
-        const isRead = currentRead.includes(item.id);
+        const isRead = isReadNotification(item, currentRead);
         const isSystem = item.type === 'system';
         const isCinema = item.type === 'cinema';
 
         let iconOrThumbHtml = '';
         if (item.thumb) {
           iconOrThumbHtml = `
-            <img src="${item.thumb}" class="w-10 h-14 rounded-lg object-cover shrink-0 ring-1 ring-white/10 shadow-md" alt="${item.title}" />
+            <img src="${escapeHtml(safeUrl(item.thumb))}" class="w-10 h-14 rounded-lg object-cover shrink-0 ring-1 ring-white/10 shadow-md" alt="${escapeHtml(item.title)}" />
           `;
         } else if (isSystem) {
           iconOrThumbHtml = `
@@ -476,22 +518,22 @@
         } else {
           iconOrThumbHtml = `
             <div class="w-10 h-10 rounded-full bg-secondary-container/20 text-secondary-fixed flex items-center justify-center shrink-0">
-              <span class="material-symbols-outlined text-[20px]">${item.icon || 'notifications'}</span>
+              <span class="material-symbols-outlined text-[20px]">${escapeHtml(item.icon || 'notifications')}</span>
             </div>
           `;
         }
 
         return `
-          <div data-notif-id="${item.id}" data-url="${item.url || '#'}" 
+          <div role="link" tabindex="0" data-notif-id="${escapeHtml(item.id)}" data-url="${escapeHtml(safeUrl(item.url || '/', '/'))}"
                class="notif-item flex items-start gap-3 p-2.5 rounded-xl transition-all cursor-pointer ${isRead ? 'opacity-70 hover:opacity-100 hover:bg-surface-container' : 'bg-surface-container/60 hover:bg-surface-container border-l-2 border-primary-container shadow-sm'}">
             ${iconOrThumbHtml}
             <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between gap-1 mb-0.5">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isSystem ? 'bg-primary-container/20 text-primary-fixed-dim' : (isCinema ? 'bg-secondary-container/20 text-secondary-fixed' : 'bg-surface-container-highest text-on-surface-variant')}">${item.badge || 'Tin tức'}</span>
-                <span class="text-[11px] text-on-surface-variant/70 shrink-0">${item.time || ''}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isSystem ? 'bg-primary-container/20 text-primary-fixed-dim' : (isCinema ? 'bg-secondary-container/20 text-secondary-fixed' : 'bg-surface-container-highest text-on-surface-variant')}">${escapeHtml(item.badge || 'Tin tức')}</span>
+                <span class="text-[11px] text-on-surface-variant/70 shrink-0">${escapeHtml(item.time || '')}</span>
               </div>
-              <h5 class="font-label-md text-[13px] font-semibold text-on-surface line-clamp-1">${item.title}</h5>
-              <p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-2 mt-0.5">${item.message}</p>
+              <h5 class="font-label-md text-[13px] font-semibold text-on-surface line-clamp-1">${escapeHtml(item.title)}</h5>
+              <p class="font-body-sm text-[12px] text-on-surface-variant line-clamp-2 mt-0.5">${escapeHtml(item.message)}</p>
             </div>
             ${!isRead ? '<span class="w-2 h-2 rounded-full bg-primary-container shrink-0 mt-2"></span>' : ''}
           </div>
@@ -500,13 +542,19 @@
 
       // Click to read & navigate
       listEl.querySelectorAll('.notif-item').forEach(el => {
-        el.addEventListener('click', () => {
+        el.addEventListener('click', async () => {
           const id = el.getAttribute('data-notif-id');
           const url = el.getAttribute('data-url');
-          const cur = getReadIds();
-          if (!cur.includes(id)) {
-            cur.push(id);
-            saveReadIds(cur);
+          const item = notifications.find(notification => notification.id === id);
+          if (item?.type === 'follow_episode' && !item.read) {
+            try {
+              const response = await markFollowRead(id);
+              if (!response?.status) throw new Error();
+              item.read = true;
+            } catch (_) { window.showToast?.('Chưa thể đánh dấu thông báo đã đọc. Vui lòng thử lại.', 'error'); return; }
+          } else {
+            const cur = getReadIds();
+            if (!cur.includes(id)) { cur.push(id); saveReadIds(cur); }
           }
           updateBadge();
           renderList();
@@ -514,17 +562,19 @@
             window.location.href = url;
           }
         });
+        el.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); el.click(); } });
       });
     };
 
     if (badgeDot) badgeDot.style.display = 'none';
     // Notifications are not on the critical path; fetch on first open and retry failures.
     const loadNotifications = async () => {
-      if (loaded || loading) return loading;
+      if (loading || (loaded && Date.now() - loadedAt < 60000)) return loading;
       loading = (async () => {
         try {
           notifications = window.API?.getNotifications ? await API.getNotifications() : [];
           loaded = true;
+          loadedAt = Date.now();
         } catch (e) {
           console.warn('Could not load notifications:', e);
           const listEl = popover.querySelector('#notif-items-list');
@@ -540,15 +590,20 @@
     // Mark all as read
     const markAllBtn = popover.querySelector('#notif-mark-all');
     if (markAllBtn) {
-      markAllBtn.addEventListener('click', (e) => {
+      markAllBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const allIds = notifications.map(n => n.id);
-        saveReadIds(allIds);
-        updateBadge();
-        renderList();
-        if (window.showToast) {
-          window.showToast('Đã đánh dấu tất cả thông báo là đã đọc', 'info');
-        }
+        if (markAllBtn.disabled) return;
+        markAllBtn.disabled = true;
+        try {
+          await Promise.all(notifications.filter(item => item.type === 'follow_episode' && !item.read).map(async item => {
+            const response = await markFollowRead(item.id);
+            if (!response?.status) throw new Error();
+            item.read = true;
+          }));
+          saveReadIds(notifications.filter(item => item.type !== 'follow_episode').map(item => item.id));
+          window.showToast?.('Đã đánh dấu tất cả thông báo là đã đọc', 'info');
+        } catch (_) { window.showToast?.('Chưa thể đánh dấu đầy đủ thông báo. Vui lòng thử lại.', 'error'); }
+        finally { markAllBtn.disabled = false; updateBadge(); renderList(); }
       });
     }
 
@@ -645,7 +700,7 @@
       <!-- Top Header -->
       <div class="h-20 px-5 flex items-center justify-between border-b border-surface-container-highest shrink-0">
         <a class="flex items-center gap-2" href="/">
-          <span class="font-headline-sm tracking-wider uppercase text-on-surface font-extrabold text-[17px]">CINE<span class="text-primary-container">VIET</span></span>
+          <span class="font-headline-sm tracking-wider uppercase text-on-surface font-extrabold text-[17px]">Cine<span class="text-primary-container">Viet</span></span>
         </a>
         <button id="btn-close-mobile-menu" class="p-2 rounded-full hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer" type="button" aria-label="Đóng menu">
           <span class="material-symbols-outlined text-[22px]">close</span>
@@ -689,6 +744,10 @@
           <span class="material-symbols-outlined text-[20px]">theater_comedy</span>
           <span>Chiếu Rạp</span>
         </a>
+        <a href="/kham-pha?type=song-ngu" class="mobile-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-surface-container transition-colors ${typeParam === 'song-ngu' ? 'bg-primary-container text-on-primary-container font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}">
+          <span class="material-symbols-outlined text-[20px]">record_voice_over</span>
+          <span>Song Ngữ</span>
+        </a>
 
         <!-- Accordion: Thể Loại -->
         <div class="pt-1">
@@ -701,8 +760,8 @@
           </button>
           <div id="mobile-cat-dropdown" class="hidden pl-4 pr-1 py-1.5 grid grid-cols-2 gap-1 text-xs">
             ${categories.map(c => `
-              <a href="/kham-pha?category=${c.slug}" class="px-2.5 py-1.5 rounded-lg hover:bg-surface-container transition-colors ${catParam === c.slug ? 'text-primary font-bold bg-white/5' : 'text-on-surface-variant hover:text-on-surface'}">
-                ${c.name}
+              <a href="/kham-pha?category=${pathSegment(c.slug)}" class="px-2.5 py-1.5 rounded-lg hover:bg-surface-container transition-colors ${catParam === c.slug ? 'text-primary font-bold bg-white/5' : 'text-on-surface-variant hover:text-on-surface'}">
+                ${escapeHtml(c.name)}
               </a>
             `).join('')}
           </div>
@@ -719,8 +778,8 @@
           </button>
           <div id="mobile-country-dropdown" class="hidden pl-4 pr-1 py-1.5 grid grid-cols-2 gap-1 text-xs">
             ${countries.map(c => `
-              <a href="/kham-pha?country=${c.slug}" class="px-2.5 py-1.5 rounded-lg hover:bg-surface-container transition-colors ${countryParam === c.slug ? 'text-primary font-bold bg-white/5' : 'text-on-surface-variant hover:text-on-surface'}">
-                ${c.name}
+              <a href="/kham-pha?country=${pathSegment(c.slug)}" class="px-2.5 py-1.5 rounded-lg hover:bg-surface-container transition-colors ${countryParam === c.slug ? 'text-primary font-bold bg-white/5' : 'text-on-surface-variant hover:text-on-surface'}">
+                ${escapeHtml(c.name)}
               </a>
             `).join('')}
           </div>
@@ -756,9 +815,9 @@
         authBox.innerHTML = `
           <div class="flex items-center justify-between gap-3">
             <a href="/tai-khoan" class="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-80 transition-opacity">
-              <img src="${user.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8'}" class="w-9 h-9 rounded-full object-cover ring-2 ring-primary-container shrink-0" />
+              <img src="${escapeHtml(safeUrl(user.avatar || '/favicon.svg'))}" class="w-9 h-9 rounded-full object-cover ring-2 ring-primary-container shrink-0" />
               <div class="min-w-0">
-                <span class="font-label-md text-sm font-bold truncate block text-on-surface">${user.name}</span>
+                <span class="font-label-md text-sm font-bold truncate block text-on-surface">${escapeHtml(user.name)}</span>
                 <span class="text-[11px] text-primary block">${user.role === 'admin' ? 'Quản Trị Viên' : 'Tài Khoản Cá Nhân'}</span>
               </div>
             </a>

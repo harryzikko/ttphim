@@ -1,0 +1,100 @@
+/* Mobile web: consistent touch geometry, safe areas and tablet density. */
+:root {
+  --mobile-header-height: calc(57px + max(env(safe-area-inset-top, 0px), 12px));
+  --mobile-nav-height: calc(64px + max(env(safe-area-inset-bottom, 0px), 12px));
+  --mobile-gutter: 16px;
+  --mobile-card-width: clamp(112px, 30vw, 156px);
+}
+html, body { width: 100%; min-width: 0; }
+body { -webkit-user-select: auto; user-select: auto; }
+body > main[class] { padding-bottom: calc(var(--mobile-nav-height) + 24px); }
+body:has(> .mobile-app-header) > main { padding-top: var(--mobile-header-height); }
+.mobile-app-header { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.mobile-app-header > div { height: 56px; min-height: 56px; padding-inline: var(--mobile-gutter); }
+.mobile-app-header button, .mobile-app-header a[aria-label] { min-width: 44px; min-height: 44px; }
+.mobile-app-header .material-symbols-outlined { line-height: 1; }
+.mobile-app-header #m-cast-btn { display: none; }
+.mobile-app-nav { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.mobile-app-nav > div { max-width: 680px; margin-inline: auto; }
+.mobile-app-nav a { min-height: 56px; min-width: 56px; }
+.mobile-app-nav .material-symbols-outlined { line-height: 1; }
+:is(button, a, input, select):focus-visible { outline: 2px solid #ffb4aa; outline-offset: 3px; }
+body input[class], body select[class], body textarea[class] { font-size: 16px; -webkit-user-select: text; user-select: text; }
+.bottom-sheet-content { padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); overscroll-behavior: contain; }
+.bottom-sheet-content button, .bottom-sheet-content select { min-height: 44px; }
+#m-quick-pills button { min-height: 44px; }
+.mobile-poster-card { width: var(--mobile-card-width); scroll-snap-align: start; }
+.mobile-poster-rail { scroll-snap-type: x proximity; scroll-padding-inline: var(--mobile-gutter); }
+.mobile-poster-card h3 { margin-top: 8px; font-size: 12px; line-height: 1.4; }
+.mobile-poster-card img { aspect-ratio: 2 / 3; }
+#m-spotlight-section {
+  width: calc(100% - 2 * var(--mobile-gutter)); margin: 12px var(--mobile-gutter) 8px;
+  min-height: 0; border: 1px solid #ffffff1c; border-radius: 18px;
+}
+#m-spotlight-section .m-hero-content {
+  min-height: clamp(440px, 142vw, 650px); padding: 260px 18px 64px;
+  align-items: center; text-align: center;
+}
+#m-spotlight-bg { height: 100%; }
+#m-spotlight-bg .hero-artwork-image { mask-image: none; -webkit-mask-image: none; }
+#m-spotlight-bg::before { opacity: .4; }
+#m-spotlight-bg::after { background: linear-gradient(0deg, #11131c 0%, #11131ceb 13%, #11131c80 30%, transparent 56%); }
+#m-spotlight-rank { font-size: 10px; letter-spacing: .14em; margin-bottom: 8px; }
+#m-spotlight-title { font-size: clamp(24px, 6.8vw, 36px); line-height: 1.12; text-transform: none; letter-spacing: -.025em; }
+#m-spotlight-badges { margin: 12px 0 18px; gap: 5px; justify-content: center; }
+#m-spotlight-badges > span { background: #11131c99; font-size: 10px; }
+#m-spotlight-section .m-hero-actions { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 44px; gap: 8px; }
+#m-spotlight-section .m-hero-actions :is(a, button) { height: 44px; min-height: 44px; border-radius: 8px; font-size: 13px; }
+#m-spotlight-section .m-hero-navigation { position: absolute; bottom: 12px; left: 18px; width: calc(100% - 36px); margin: 0; justify-content: space-between; }
+#m-spotlight-section .m-hero-navigation button { width: 44px; height: 44px; border: 0; background: #11131c99; border-radius: 50%; }
+#m-spotlight-section .m-hero-progress { display: none; }
+#m-detail-action-deck { gap: 8px; }
+#m-detail-action-deck button { min-height: 52px; }
+#m-server-pills button, #m-episode-grid a, #m-episode-grid button { min-height: 44px; }
+@media (min-width: 768px), (orientation: landscape) {
+  #m-spotlight-section .m-hero-content { min-height: clamp(360px, 55vw, 580px); padding: 160px 36px 70px; align-items: flex-start; text-align: left; }
+  #m-spotlight-title { max-width: 65%; font-size: clamp(32px, 4.4vw, 52px); }
+  #m-spotlight-bg::after { background: linear-gradient(90deg, #11131cc9, #11131c35 60%, transparent), linear-gradient(0deg, #11131c, #11131c45 48%, transparent 80%); }
+  #m-spotlight-badges { justify-content: flex-start; }
+  #m-spotlight-section .m-hero-actions { width: min(420px, 100%); }
+  #m-spotlight-section .m-hero-navigation { left: auto; right: 24px; bottom: 20px; width: 100px; }
+}
+@media (min-width: 768px) {
+  :root { --mobile-gutter: 28px; --mobile-card-width: clamp(148px, 18vw, 200px); }
+  .mobile-app-header > div { max-width: 1440px; margin-inline: auto; }
+  main > div { max-width: 1440px; margin-inline: auto; }
+  .mobile-poster-card h3 { font-size: 14px; }
+  #m-quick-pills { justify-content: center; }
+}
+@media (orientation: landscape) and (max-height: 550px) {
+  #m-spotlight-section .m-hero-content { min-height: 350px; padding-top: 120px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+body:has(#m-player-wrapper) > main { padding-top: 0; padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); }
+@media (min-width: 768px) { #m-rail-top10 > a > div { width: var(--mobile-card-width); } }
+#movieGrid, #watchlistGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#movieGrid > [role] { grid-column: 1 / -1; }
+.remove-fav-btn, .remove-history-btn, #clearListBtn, #clearSearchBtn, #closeFilterSheetBtn, #closeEpDrawerBtn { min-width: 44px; min-height: 44px; }
+#watchlistGrid a[href*="/xem-phim/"] { min-height: 44px; }
+#tabBtnWatchlist, #tabBtnHistory, #tabBtnDownloads, .m-chip { min-height: 44px; }
+#clearListBtn[hidden] { display: none; }
+.mobile-app-header #headerCastBtn { display: none; }
+.bottom-sheet-content { max-height: 85dvh; }
+#filterSheetBackdrop .bottom-sheet-content > div:last-child { position: sticky; bottom: 0; padding-block: 12px; background: #181a24; z-index: 1; }
+@media (min-width: 768px) {
+  #movieGrid, #watchlistGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .bottom-sheet-content { left: max(0px, calc((100% - 640px) / 2)); right: max(0px, calc((100% - 640px) / 2)); }
+}
+@media (min-width: 1024px) { #movieGrid, #watchlistGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (orientation: landscape) and (max-height: 550px) {
+  #m-player-wrapper:not(:fullscreen) { height: calc(100dvh - max(env(safe-area-inset-top, 0px), 12px)); aspect-ratio: auto; }
+}
+@media (prefers-reduced-motion: no-preference) { .mobile-poster-card { transition: opacity 160ms ease; } }
+#m-account-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#m-legacy-playback-group:not(:has(button, a, input, select)) { display: none; }
+div:has(> #userAvatar[hidden]) { background: #282933 url('/images/avatar-default.svg') center / contain no-repeat; }
+#userAvatar[hidden] { display: none; }
+#m-action-download:disabled { opacity: .5; cursor: not-allowed; }
+#m-open-episodes { min-height: 44px; }

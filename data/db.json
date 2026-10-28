@@ -1,14 +1,24 @@
 {
   "users": [
     {
-      "id": "usr_admin_1791687990157",
-      "email": "admin@ttphim.vn",
-      "password": "scrypt$3305c4c81f4db69f3668570c21df0041$48596c98eab9409f6ef94fcf84dc416a0e6e3d58dcf0086b89611ccf0467299833e1b860c97833b1a3a77ea20b53bf3b8129d712b0c1b4036a8aa4b5e9a09c63",
-      "name": "Quản Trị Viên (Admin)",
+      "id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "email": "admin@cineviet.live",
+      "name": "Admin CineViet",
       "role": "admin",
-      "avatar": "",
-      "created_at": "2026-10-11T03:06:30.200Z",
-      "updated_at": "2026-10-11T03:07:52.581Z"
+      "password": "scrypt$64f38cf84ab1c17740eb5bc7fe6a7294$5ceb94aad9cd5ae49c300803aade80d2e5cbfd839c22dd52fbe459a5e6393cedc6f085ff2af23b5c0e2df994ab367f2869d0aa7d6ef18f3cd65146cc20796c8e",
+      "avatar": "/images/avatars/vietnam-boy-v1.webp",
+      "token_version": 1,
+      "email_verified": false,
+      "created_at": "2026-10-24T20:41:35.142Z",
+      "session_policy": "tracked",
+      "email_verified_at": null,
+      "playback_preferences": {
+        "auto_next": true,
+        "playback_speed": 1,
+        "audio_language": "",
+        "subtitle_language": ""
+      },
+      "avatar_updated_at": "2026-10-26T16:33:21.184Z"
     }
   ],
   "watchlist": [],
@@ -168,8 +178,8 @@
   "ratings": [],
   "reports": [],
   "settings": {
-    "site_title": "TTPhim - Xem Phim Online Chuẩn Cinema 4K",
-    "announcement": "🔥 Chào mừng bạn đến với KKPhim! Trải nghiệm xem phim điện ảnh 4K không quảng cáo và âm thanh vòm sống động.",
+    "site_title": "CineViet - Xem Phim Online Chuẩn Cinema 4K",
+    "announcement": "🔥 Chào mừng bạn đến với CineViet! Trải nghiệm xem phim điện ảnh 4K không quảng cáo và âm thanh vòm sống động.",
     "announcement_active": false,
     "maintenance_mode": false,
     "featured_slugs": [
@@ -269,14 +279,117 @@
         "source": "kkphim",
         "source_name": "KKPhim Core"
       }
-    ]
+    ],
+    "advertising": {
+      "ads": [
+        {
+          "enabled": false,
+          "title": "",
+          "description": "",
+          "image_desktop": "",
+          "image_mobile": "",
+          "cta_label": "",
+          "start": "",
+          "end": "",
+          "focal_x": 50,
+          "focal_y": 50,
+          "slot": "header",
+          "href": "",
+          "new_tab": false
+        },
+        {
+          "enabled": true,
+          "title": "SĂN DEAL SHOPEE GIẢM 50% - 80%",
+          "description": "⚡ Flash Sale Khung Giờ Vàng • 🚨 Tự Động Báo Lỗi Giá • 🚚 Voucher Freeship 0Đ",
+          "image_desktop": "/images/banners/dealpulse-footer.png",
+          "image_mobile": "/images/banners/dealpulse-footer.png",
+          "cta_label": "Săn deal ngay",
+          "start": "",
+          "end": "",
+          "focal_x": 50,
+          "focal_y": 50,
+          "slot": "footer",
+          "href": "https://sandeal.dealpulse.vn/",
+          "new_tab": true
+        },
+        {
+          "enabled": false,
+          "title": "",
+          "description": "",
+          "image_desktop": "",
+          "image_mobile": "",
+          "cta_label": "",
+          "start": "",
+          "end": "",
+          "focal_x": 50,
+          "focal_y": 50,
+          "slot": "side_left",
+          "href": "",
+          "new_tab": false
+        },
+        {
+          "enabled": false,
+          "title": "",
+          "description": "",
+          "image_desktop": "",
+          "image_mobile": "",
+          "cta_label": "",
+          "start": "",
+          "end": "",
+          "focal_x": 50,
+          "focal_y": 50,
+          "slot": "side_right",
+          "href": "",
+          "new_tab": false
+        },
+        {
+          "enabled": false,
+          "title": "",
+          "description": "",
+          "image_desktop": "",
+          "image_mobile": "",
+          "cta_label": "",
+          "start": "",
+          "end": "",
+          "focal_x": 50,
+          "focal_y": 50,
+          "slot": "below_featured",
+          "href": "",
+          "new_tab": false
+        },
+        {
+          "enabled": false,
+          "title": "",
+          "description": "",
+          "image_desktop": "",
+          "image_mobile": "",
+          "cta_label": "",
+          "start": "",
+          "end": "",
+          "focal_x": 50,
+          "focal_y": 50,
+          "slot": "below_player",
+          "href": "",
+          "new_tab": false
+        }
+      ]
+    },
+    "popup_banner": {
+      "enabled": true,
+      "title": "ĐẠI TIỆC SĂN DEAL SHOPEE MALL",
+      "description": "Tự động tổng hợp Flash Sale khung giờ vàng, cảnh báo lỗi giá cực sốc & nhận voucher freeship 0Đ độc quyền!",
+      "image": "/images/banners/dealpulse-popup.png",
+      "href": "https://sandeal.dealpulse.vn/",
+      "new_tab": true,
+      "cooldown_hours": 12
+    }
   },
   "movie_views": {
     "12-gio-truy-sat": 12,
     "truy-sat-so-0": 9,
     "truy-sat-trong-vuon-nho": 1,
-    "truy-sat-2019": 44,
-    "bat-dau-voi-chi-ton-dan-dien": 2,
+    "truy-sat-2019": 46,
+    "bat-dau-voi-chi-ton-dan-dien": 7,
     "trai-tim-cua-ke-ky-sinh": 23,
     "mi-anh-than-bo-phan-1": 31,
     "truong-sinh-khe": 22,
@@ -286,13 +399,13 @@
     "loi-dinh-lenh": 1,
     "khong-the-thay-the-2026": 19,
     "khong-the-den-gan-anh-ay": 1,
-    "juliet-va-juliet": 14,
+    "juliet-va-juliet": 101,
     "chuyen-tinh-dao-thien-duong": 10,
     "battle-spirits-re-tuyet-gioi-thien-khong": 6,
     "truyen-kinh-di-my-phan-13": 4,
     "tiec-an-choi-dam-mau-4": 4,
     "tiec-an-choi-dam-mau-1": 12,
-    "phi-phong-quy-mau-rung-thieng": 4,
+    "phi-phong-quy-mau-rung-thieng": 10,
     "sieu-canh-sat-tam-linh-chojo": 3,
     "nour": 2,
     "phap-su-gian-lan-bi-sa-thai-tan-huong-cuoc-song-thu-hai": 6,
@@ -308,7 +421,7 @@
     "chuyen-ma-giang-duong-4": 1,
     "truy-sat-gai-goi": 2,
     "co-lang-truyen": 1,
-    "truy-sat-salazar": 4,
+    "truy-sat-salazar": 11,
     "mai": 1,
     "lat-mat-7-mot-dieu-uoc": 1,
     "tro-choi-con-muc": 1,
@@ -318,18 +431,1535 @@
     "-": 4,
     "50-": 2,
     "thu-thach-than-tuong": 7,
-    "yeu-het-long-chang-fanboy": 4,
-    "co-ve-nhu-gap-lai-nguoi-xua": 2,
-    "yeu-mot-nguoi-khac-yeu-mot-nguoi-khac-khong-phai-em": 2,
-    "yeu-mot-nguoi-khac-khong-phai-em": 1,
-    "thon-phe-tinh-khong": 1,
-    "my-nhan-du": 1,
-    "giac-quan-thu-sau-mat-trai": 1,
-    "the-gioi-phep-thuat-phan-2": 1,
-    "chim-vao-mat-em-phan-1": 8,
-    "tro-choi-bat-coc-phan-1": 4,
-    "cuoc-chien-sinh-ton": 2,
-    "dau-tay-ngot-ngao-phan-1": 2,
-    "ga-kim-thoa-ga-tram-vang": 4
-  }
+    "yeu-het-long-chang-fanboy": 8,
+    "tung-buoc-ben-nhau-tien-si-yeu-duong-phan-1": 12,
+    "su-huynh-a-su-huynh": 2,
+    "truy-sat-carter": 5,
+    "truy-lung-sat-thu": 2,
+    "ly-hung-mieu-gau-truc-ly": 24,
+    "phia-sau-doi-tra": 16,
+    "dich-nhan-kiet-bat-tu-quan": 4,
+    "thanh-pho-ruc-ro": 7,
+    "tro-choi-bat-coc-phan-1": 6,
+    "yeu-nhan-than-tham-ky-an-truong-an": 14,
+    "vua-hai-kich-2026": 8,
+    "than-y-co-dai-o-do-thi-do-thi-co-tien-y": 5,
+    "quy-quyet-ranh-gioi-vo-dinh": 7,
+    "chang-ai-tac-hop-phan-3": 4,
+    "van-gioi-doc-ton": 12,
+    "quang-am-chi-ngoai": 8,
+    "luyen-khi-muoi-van-nam": 4,
+    "chien-binh-anh-sang-teo": 4,
+    "danh-sach-tu-tu-phan-1": 4,
+    "danh-sach-tu-tu-phan-2": 21,
+    "yeu-mot-nguoi-khac": 7,
+    "ngoc-diem-thu": 17,
+    "lan-ranh-tu-chien": 4,
+    "xom-nho": 4,
+    "toi-dang-tim-kiem-thay-ma": 13,
+    "yeu-nham-canh-sat-thanh-tra-theer-yeu-dau-vo-sap-cuoi-cua-thanh-tra": 5,
+    "bac-si-x": 4,
+    "bang-dang-ki-cuc-bay-tien": 23,
+    "pham-nhan-tu-tien": 3,
+    "yeu-mot-nguoi-khac-yeu-mot-nguoi-khac-khong-phai-em": 3,
+    "loan-chien-lanh-chua-thu-cap": 3,
+    "undefined": 9,
+    "fixture": 58,
+    "tv-300146-1": 23,
+    "giao-trinh-tinh-yeu-bat-buoc": 5,
+    "fixture-onflix": 1,
+    "chim-vao-mat-em-phan-1": 52,
+    "van-co-cua-co-ay": 3,
+    "cineviet-audit-khong-ton-tai-73f92": 2,
+    "van-co-chi-ton-ly-van-tieu-truyen": 15,
+    "cuoc-chien-am-thuc": 11,
+    "my-nhan-du": 19,
+    "gia-thien": 16,
+    "tuyet-the-chien-hon": 27,
+    "chitose-kun-wa-ramune-bin-no-naka": 2,
+    "dau-pha-thuong-khung": 27,
+    "dau-pha-thuong-khung-phan-5": 33,
+    "dau-pha-thuong-khung-thieu-nien-tro-ve": 3,
+    "dau-pha-thuong-khung-ban-dac-biet-1-dinh-menh": 6,
+    "dau-pha-thuong-khung-phan-1": 3,
+    "dau-pha-thuong-khung-phan-3": 3,
+    "dau-pha-thuong-khung-phan-2": 3,
+    "dau-pha-thuong-khung-phan-4": 3,
+    "thuong-cong-chua": 3
+  },
+  "metrics": [
+    {
+      "hour": "2026-10-24T19",
+      "requests": 9,
+      "errors": 0,
+      "latency": [
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-24T20",
+      "requests": 197,
+      "errors": 0,
+      "latency": [
+        181,
+        1,
+        8,
+        3,
+        0,
+        2,
+        2,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 4,
+        "stall": 4,
+        "ready": 4,
+        "resume": 1
+      },
+      "startup_count": 4,
+      "startup_total_ms": 4198
+    },
+    {
+      "hour": "2026-10-24T21",
+      "requests": 14,
+      "errors": 0,
+      "latency": [
+        10,
+        2,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "end": 1,
+        "start": 1,
+        "stall": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 672
+    },
+    {
+      "hour": "2026-10-24T22",
+      "requests": 0,
+      "errors": 0,
+      "latency": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "end": 1,
+        "start": 1,
+        "stall": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 598
+    },
+    {
+      "hour": "2026-10-24T23",
+      "requests": 0,
+      "errors": 0,
+      "latency": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "end": 1,
+        "start": 1,
+        "stall": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 598
+    },
+    {
+      "hour": "2026-10-25T00",
+      "requests": 0,
+      "errors": 0,
+      "latency": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "end": 1,
+        "start": 1,
+        "stall": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 737
+    },
+    {
+      "hour": "2026-10-25T01",
+      "requests": 0,
+      "errors": 0,
+      "latency": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "end": 1,
+        "start": 1,
+        "stall": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 501
+    },
+    {
+      "hour": "2026-10-25T02",
+      "requests": 25,
+      "errors": 0,
+      "latency": [
+        23,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "end": 2,
+        "start": 3,
+        "stall": 3,
+        "ready": 3
+      },
+      "startup_count": 3,
+      "startup_total_ms": 2492
+    },
+    {
+      "hour": "2026-10-25T03",
+      "requests": 154,
+      "errors": 0,
+      "latency": [
+        147,
+        5,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 2,
+        "stall": 2,
+        "ready": 2,
+        "end": 1
+      },
+      "startup_count": 2,
+      "startup_total_ms": 1814
+    },
+    {
+      "hour": "2026-10-25T04",
+      "requests": 85,
+      "errors": 0,
+      "latency": [
+        81,
+        0,
+        3,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 1,
+        "stall": 1,
+        "resume": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 5978
+    },
+    {
+      "hour": "2026-10-25T05",
+      "requests": 47,
+      "errors": 0,
+      "latency": [
+        44,
+        0,
+        1,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-25T06",
+      "requests": 24,
+      "errors": 0,
+      "latency": [
+        20,
+        0,
+        1,
+        0,
+        2,
+        1,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-25T07",
+      "requests": 26,
+      "errors": 0,
+      "latency": [
+        26,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 1,
+        "stall": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 971
+    },
+    {
+      "hour": "2026-10-25T08",
+      "requests": 65,
+      "errors": 0,
+      "latency": [
+        62,
+        2,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 5,
+        "stall": 5,
+        "resume": 3,
+        "ready": 5,
+        "end": 1
+      },
+      "startup_count": 5,
+      "startup_total_ms": 6821
+    },
+    {
+      "hour": "2026-10-25T09",
+      "requests": 201,
+      "errors": 0,
+      "latency": [
+        191,
+        7,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 4,
+        "stall": 4,
+        "resume": 2,
+        "ready": 4
+      },
+      "startup_count": 4,
+      "startup_total_ms": 3772
+    },
+    {
+      "hour": "2026-10-25T10",
+      "requests": 231,
+      "errors": 0,
+      "latency": [
+        220,
+        5,
+        2,
+        2,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 1,
+        "stall": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 919
+    },
+    {
+      "hour": "2026-10-25T11",
+      "requests": 400,
+      "errors": 0,
+      "latency": [
+        390,
+        2,
+        4,
+        3,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-25T12",
+      "requests": 276,
+      "errors": 0,
+      "latency": [
+        268,
+        5,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 2,
+        "stall": 2,
+        "ready": 2,
+        "resume": 1
+      },
+      "startup_count": 2,
+      "startup_total_ms": 1911
+    },
+    {
+      "hour": "2026-10-25T13",
+      "requests": 95,
+      "errors": 0,
+      "latency": [
+        90,
+        2,
+        1,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-25T14",
+      "requests": 359,
+      "errors": 0,
+      "latency": [
+        355,
+        2,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-25T15",
+      "requests": 98,
+      "errors": 0,
+      "latency": [
+        92,
+        3,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 16,
+        "stall": 2,
+        "resume": 2,
+        "ready": 2
+      },
+      "startup_count": 2,
+      "startup_total_ms": 22807
+    },
+    {
+      "hour": "2026-10-25T16",
+      "requests": 122,
+      "errors": 0,
+      "latency": [
+        118,
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 2,
+        "stall": 2,
+        "resume": 2,
+        "ready": 2
+      },
+      "startup_count": 2,
+      "startup_total_ms": 2289
+    },
+    {
+      "hour": "2026-10-25T17",
+      "requests": 79,
+      "errors": 0,
+      "latency": [
+        77,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 2,
+        "stall": 2,
+        "resume": 2,
+        "ready": 2
+      },
+      "startup_count": 2,
+      "startup_total_ms": 2079
+    },
+    {
+      "hour": "2026-10-26T04",
+      "requests": 170,
+      "errors": 0,
+      "latency": [
+        166,
+        1,
+        2,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 1,
+        "stall": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 2536
+    },
+    {
+      "hour": "2026-10-26T05",
+      "requests": 96,
+      "errors": 0,
+      "latency": [
+        90,
+        1,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-26T07",
+      "requests": 44,
+      "errors": 0,
+      "latency": [
+        41,
+        0,
+        0,
+        2,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-26T08",
+      "requests": 48,
+      "errors": 0,
+      "latency": [
+        46,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-26T09",
+      "requests": 2,
+      "errors": 0,
+      "latency": [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-26T11",
+      "requests": 148,
+      "errors": 0,
+      "latency": [
+        136,
+        5,
+        1,
+        3,
+        1,
+        2,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 5,
+        "stall": 5,
+        "ready": 5,
+        "resume": 4
+      },
+      "startup_count": 5,
+      "startup_total_ms": 7367
+    },
+    {
+      "hour": "2026-10-26T12",
+      "requests": 82,
+      "errors": 0,
+      "latency": [
+        81,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 3,
+        "stall": 3,
+        "resume": 1,
+        "ready": 3
+      },
+      "startup_count": 3,
+      "startup_total_ms": 4670
+    },
+    {
+      "hour": "2026-10-26T13",
+      "requests": 181,
+      "errors": 0,
+      "latency": [
+        171,
+        1,
+        1,
+        3,
+        0,
+        1,
+        0,
+        4,
+        0
+      ],
+      "playback": {
+        "start": 3,
+        "stall": 3,
+        "resume": 2,
+        "ready": 3
+      },
+      "startup_count": 3,
+      "startup_total_ms": 19789
+    },
+    {
+      "hour": "2026-10-26T14",
+      "requests": 73,
+      "errors": 0,
+      "latency": [
+        67,
+        0,
+        0,
+        0,
+        1,
+        2,
+        2,
+        1,
+        0
+      ],
+      "playback": {
+        "start": 1,
+        "stall": 1,
+        "resume": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 1126
+    },
+    {
+      "hour": "2026-10-26T15",
+      "requests": 50,
+      "errors": 0,
+      "latency": [
+        50,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-26T16",
+      "requests": 151,
+      "errors": 0,
+      "latency": [
+        142,
+        0,
+        1,
+        2,
+        4,
+        2,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-26T17",
+      "requests": 132,
+      "errors": 0,
+      "latency": [
+        120,
+        2,
+        4,
+        3,
+        0,
+        3,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-26T18",
+      "requests": 18,
+      "errors": 0,
+      "latency": [
+        18,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-26T19",
+      "requests": 24,
+      "errors": 0,
+      "latency": [
+        23,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-26T20",
+      "requests": 110,
+      "errors": 0,
+      "latency": [
+        99,
+        0,
+        4,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-27T00",
+      "requests": 4,
+      "errors": 0,
+      "latency": [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-27T02",
+      "requests": 11,
+      "errors": 0,
+      "latency": [
+        11,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-27T13",
+      "requests": 41,
+      "errors": 0,
+      "latency": [
+        38,
+        1,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-27T14",
+      "requests": 46,
+      "errors": 0,
+      "latency": [
+        46,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-27T15",
+      "requests": 287,
+      "errors": 0,
+      "latency": [
+        269,
+        12,
+        2,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-27T16",
+      "requests": 278,
+      "errors": 0,
+      "latency": [
+        246,
+        12,
+        12,
+        4,
+        1,
+        3,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 3,
+        "stall": 3,
+        "ready": 3,
+        "resume": 1
+      },
+      "startup_count": 3,
+      "startup_total_ms": 4233
+    },
+    {
+      "hour": "2026-10-27T17",
+      "requests": 185,
+      "errors": 0,
+      "latency": [
+        174,
+        4,
+        3,
+        3,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 2,
+        "stall": 2,
+        "ready": 2,
+        "resume": 1
+      },
+      "startup_count": 2,
+      "startup_total_ms": 2114
+    },
+    {
+      "hour": "2026-10-27T18",
+      "requests": 70,
+      "errors": 0,
+      "latency": [
+        69,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 2,
+        "stall": 2,
+        "resume": 2,
+        "ready": 2
+      },
+      "startup_count": 2,
+      "startup_total_ms": 1148
+    },
+    {
+      "hour": "2026-10-27T19",
+      "requests": 38,
+      "errors": 0,
+      "latency": [
+        36,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 1,
+        "stall": 1,
+        "resume": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 1137
+    },
+    {
+      "hour": "2026-10-28T02",
+      "requests": 129,
+      "errors": 0,
+      "latency": [
+        125,
+        2,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-28T03",
+      "requests": 79,
+      "errors": 0,
+      "latency": [
+        69,
+        3,
+        4,
+        2,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 1,
+        "stall": 1,
+        "resume": 1,
+        "ready": 1
+      },
+      "startup_count": 1,
+      "startup_total_ms": 1690
+    },
+    {
+      "hour": "2026-10-28T04",
+      "requests": 19,
+      "errors": 0,
+      "latency": [
+        19,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-28T05",
+      "requests": 206,
+      "errors": 0,
+      "latency": [
+        187,
+        1,
+        4,
+        9,
+        4,
+        1,
+        0,
+        0,
+        0
+      ],
+      "playback": {
+        "start": 5,
+        "stall": 5,
+        "resume": 4,
+        "ready": 5
+      },
+      "startup_count": 5,
+      "startup_total_ms": 3550
+    },
+    {
+      "hour": "2026-10-28T08",
+      "requests": 106,
+      "errors": 0,
+      "latency": [
+        88,
+        2,
+        5,
+        5,
+        3,
+        3,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-28T09",
+      "requests": 4,
+      "errors": 0,
+      "latency": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        3,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-28T10",
+      "requests": 70,
+      "errors": 0,
+      "latency": [
+        63,
+        0,
+        1,
+        3,
+        0,
+        2,
+        1,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    }
+  ],
+  "audit_log": [
+    {
+      "id": "bcfc2b97-cfbb-48df-8061-2d0a617b1b8a",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.result",
+      "target_id": "/api/admin/comments/cmt_1792897281828_rtrw",
+      "detail": {
+        "request_id": "0c70570b-311f-4f6e-bcc7-a377bbbc3aa0",
+        "status": 200,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-25T04:05:01.722Z"
+    },
+    {
+      "id": "c740c6a7-9c81-4778-8284-f2896d7347db",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.request",
+      "target_id": "/api/admin/comments/cmt_1792897281828_rtrw",
+      "detail": {
+        "request_id": "0c70570b-311f-4f6e-bcc7-a377bbbc3aa0",
+        "method": "DELETE",
+        "phase": "started"
+      },
+      "created_at": "2026-10-25T04:05:01.706Z"
+    },
+    {
+      "id": "e457801d-4500-49a3-b047-96663e90b3da",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.result",
+      "target_id": "/api/admin/comments/cmt_1792901072797_2ez3",
+      "detail": {
+        "request_id": "911371dc-4b86-40e1-93cb-91892cfb5053",
+        "status": 200,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-25T04:04:59.850Z"
+    },
+    {
+      "id": "2ad585e8-0466-462d-82e2-2bc95ce6f08d",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.request",
+      "target_id": "/api/admin/comments/cmt_1792901072797_2ez3",
+      "detail": {
+        "request_id": "911371dc-4b86-40e1-93cb-91892cfb5053",
+        "method": "DELETE",
+        "phase": "started"
+      },
+      "created_at": "2026-10-25T04:04:59.835Z"
+    },
+    {
+      "id": "8a56ac09-beaa-47a6-ae75-64aa13d650b5",
+      "actor_id": "audit-admin",
+      "action": "admin.result",
+      "target_id": "/api/admin/sources/sync",
+      "detail": {
+        "request_id": "b1bf8418-dc52-42f2-8914-cec7f629a567",
+        "status": 200,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-25T03:11:19.241Z"
+    },
+    {
+      "id": "3375a1eb-f003-46f7-a79b-4f23dfb72a62",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.result",
+      "target_id": "/api/admin/advertising",
+      "detail": {
+        "request_id": "293f20fa-8209-4dbd-ae9f-805617bbe6a9",
+        "status": 400,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-24T20:45:47.292Z"
+    },
+    {
+      "id": "fc62ef8d-f05f-4d4b-a803-5b9c5e10dd2a",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.request",
+      "target_id": "/api/admin/advertising",
+      "detail": {
+        "request_id": "293f20fa-8209-4dbd-ae9f-805617bbe6a9",
+        "method": "POST",
+        "phase": "started"
+      },
+      "created_at": "2026-10-24T20:45:47.273Z"
+    },
+    {
+      "id": "6376ce51-3c68-4d37-8e0d-31a0d8a9b57b",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.result",
+      "target_id": "/api/admin/settings",
+      "detail": {
+        "request_id": "fe52d442-e6d0-4599-8247-40ab22d44aa2",
+        "status": 200,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-24T20:44:26.194Z"
+    },
+    {
+      "id": "bc594810-0df0-468f-9ed0-8471dbe81242",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.request",
+      "target_id": "/api/admin/settings",
+      "detail": {
+        "request_id": "fe52d442-e6d0-4599-8247-40ab22d44aa2",
+        "method": "POST",
+        "phase": "started"
+      },
+      "created_at": "2026-10-24T20:44:26.184Z"
+    },
+    {
+      "id": "6e25ce50-0270-463d-b4f5-4a4d55c4aaa5",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.result",
+      "target_id": "/api/admin/settings",
+      "detail": {
+        "request_id": "9cc654e6-e2d5-42d5-9894-8d65879781b0",
+        "status": 200,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-24T20:44:19.006Z"
+    },
+    {
+      "id": "9269927e-ed2a-436e-a44a-3a1015efebc2",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.request",
+      "target_id": "/api/admin/settings",
+      "detail": {
+        "request_id": "9cc654e6-e2d5-42d5-9894-8d65879781b0",
+        "method": "POST",
+        "phase": "started"
+      },
+      "created_at": "2026-10-24T20:44:18.991Z"
+    },
+    {
+      "id": "caf80d54-a06f-4edc-bb4d-9e5f9fc468f1",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.result",
+      "target_id": "/api/admin/comments/cmt_1792608877059_ntwd",
+      "detail": {
+        "request_id": "f9a00232-322e-45fe-bd63-806eb39188cb",
+        "status": 200,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-24T20:43:28.310Z"
+    },
+    {
+      "id": "42b38e29-7e97-4faa-8b48-2f5518dc8c00",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.request",
+      "target_id": "/api/admin/comments/cmt_1792608877059_ntwd",
+      "detail": {
+        "request_id": "f9a00232-322e-45fe-bd63-806eb39188cb",
+        "method": "DELETE",
+        "phase": "started"
+      },
+      "created_at": "2026-10-24T20:43:28.293Z"
+    },
+    {
+      "id": "6251ef9c-cce1-446c-80cc-1f6c7d2b6fdb",
+      "actor_id": "audit-admin",
+      "action": "admin.result",
+      "target_id": "/api/admin/sources/sync",
+      "detail": {
+        "request_id": "771ffc8b-0e7e-4f15-8045-2784e71b65f8",
+        "status": 200,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-24T20:24:03.423Z"
+    }
+  ],
+  "identity_tokens": [],
+  "identity_challenges": [],
+  "identity_sessions": [
+    {
+      "id": "e8d64d82-d432-46d1-8b48-80c80968b473",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "7533d0db1ad0f31477683859f01fc5508a919330c8f58e6027c853a3346e666e",
+      "version": 1,
+      "created_at": 1792900955237,
+      "expires_at": 1795492955237,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "6040e1c7-cb8b-44a4-a5a3-ecffcf578f94",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "3c78825af6bcd337ca5e54c7aee5e7cb0cf9e5ec3d9814e85483e5a9f166ddd0",
+      "version": 1,
+      "created_at": 1792920470401,
+      "expires_at": 1795512470401,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "30cfae62-d045-44e8-8352-214a28ebf157",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "d420eb00650ff139c3b6e802a9f59849f645ed7fb871b91c687a7ded7bc41d06",
+      "version": 1,
+      "created_at": 1792931872238,
+      "expires_at": 1795523872238,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "e323df17-bce1-4ff8-ae76-221de7321a44",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "37065aa5c7370ccb610aa988002532f69253e3fbf894993b6f8169ad79c5b7cb",
+      "version": 1,
+      "created_at": 1793029959052,
+      "expires_at": 1795621959052,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "d7d6663f-77bb-452e-a6eb-93eddb03a3ea",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "208f46dc4ffbeb2b78d333e8e766923d9652b4811733944753f0e4d05bb8b580",
+      "version": 1,
+      "created_at": 1793109483463,
+      "expires_at": 1795701483463,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "8e1fd07d-d29d-4c10-bafa-3076ed6c0a9e",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "355fd055757991c112f66c04e2e37a6d7ad9aab8a95553b7ee622c3dd60e5f87",
+      "version": 1,
+      "created_at": 1793113947348,
+      "expires_at": 1795705947348,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "5f06e3d4-1e85-4947-bc0a-21673ec12054",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "d251efc44abacbfc7834d6f316e45542dd2f677c95b9cbfe87fca8983a98ddee",
+      "version": 1,
+      "created_at": 1793114450023,
+      "expires_at": 1795706450023,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "2c7cf940-04c0-4de8-a85e-b9c70faad9c2",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "3761fb9fe38ce4afc0bf4c035b7a4ec95f9a2f6d56d1bc367916e5310e436414",
+      "version": 1,
+      "created_at": 1793117776420,
+      "expires_at": 1795709776420,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "eee939f9-f8cb-4a21-956d-7574ec9b686f",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "4b2cb563575620886bfb4db589febe5b2c1c068157bdc84767472f656e1803f8",
+      "version": 1,
+      "created_at": 1793121713703,
+      "expires_at": 1795713713703,
+      "device": "SmokeTest",
+      "ip": ""
+    },
+    {
+      "id": "17c4ca26-a11e-433f-a030-f2e3d64b644a",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "0bc9232d24e4ee68b948744dad0507eaf3062146fe087bd761392b4800d9b58b",
+      "version": 1,
+      "created_at": 1793121723412,
+      "expires_at": 1795713723412,
+      "device": "SmokeTest",
+      "ip": ""
+    },
+    {
+      "id": "89cb371a-16fa-4956-950c-73385aa1510b",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "07b8ef64ee2bb8e3158676f0962872653035b6865386c4f33b98f13e93c9b5e8",
+      "version": 1,
+      "created_at": 1793121733590,
+      "expires_at": 1795713733590,
+      "device": "test",
+      "ip": ""
+    },
+    {
+      "id": "e5c9363a-63fd-499a-83f4-6386b5ebe448",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "3ba96c5b21f0bafdcf2cccdc0ec5072e8e134903d7e6a32947a9244b2cfeabca",
+      "version": 1,
+      "created_at": 1793121823305,
+      "expires_at": 1795713823305,
+      "device": "Smoke",
+      "ip": ""
+    },
+    {
+      "id": "4a64cf0c-db86-4cb0-8e7d-937267ad11be",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "8287c1e1c7fe697330bb31000b5878fc9cb218c68a0e80427d5d9a0a8bfea7e4",
+      "version": 1,
+      "created_at": 1793121864203,
+      "expires_at": 1795713864203,
+      "device": "SmokeTest",
+      "ip": ""
+    }
+  ],
+  "identity_limits": [],
+  "follows": [],
+  "follow_notifications": [],
+  "follow_checks": [],
+  "sessions": []
 }

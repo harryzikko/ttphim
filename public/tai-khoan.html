@@ -10,39 +10,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
   
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            'background': '#0B0B0C',
-            'surface': '#121214',
-            'surface-container-low': '#161619',
-            'surface-container': '#1B1B1E',
-            'surface-container-high': '#242428',
-            'surface-container-highest': '#2D2D32',
-            'on-surface': '#F2F2F2',
-            'on-surface-variant': '#A1A1AA',
-            'primary': '#E50914',
-            'primary-container': '#E50914',
-            'on-primary': '#FFFFFF',
-            'on-primary-container': '#FFFFFF',
-            'secondary': '#E2B616',
-            'secondary-container': '#E2B616',
-            'error': '#FF453A',
-            'success': '#30D158'
-          },
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            display: ['"Space Grotesk"', 'sans-serif']
-          }
-        }
-      }
-    };
-  </script>
+  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=13f90e24c6b4">
+
   <link rel="stylesheet" href="/css/custom.css">
+<link rel="stylesheet" href="/css/site-footer.css?v=1.0.0">
+<link rel="stylesheet" href="/css/avatar-upload.css?v=1.1.0">
 </head>
 <body class="bg-background font-sans text-on-surface antialiased min-h-screen flex flex-col selection:bg-primary selection:text-white">
 
@@ -51,7 +23,7 @@
     <div class="h-20 w-full px-6 lg:px-12 flex items-center justify-between gap-4">
       <div class="flex items-center gap-8">
         <a class="flex items-center gap-2 group" data-path="trang-chu" href="/">
-          <span class="font-display font-extrabold text-2xl tracking-wider uppercase text-on-surface">CINE<span class="text-primary-container">VIET</span></span>
+          <span class="font-display font-extrabold text-2xl tracking-wider uppercase text-on-surface">Cine<span class="text-primary-container">Viet</span></span>
         </a>
         <nav class="hidden xl:flex items-center gap-1" data-active-classes="bg-surface-container text-on-surface font-semibold rounded-lg">
           <a class="px-2.5 py-1.5 text-on-surface-variant hover:text-on-surface transition-colors font-semibold text-sm whitespace-nowrap" data-path="trang-chu" href="/">Trang Chủ</a>
@@ -158,7 +130,7 @@
         <div class="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <div class="relative group">
             <img id="profile-avatar-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-primary-container shadow-2xl" />
-            <button id="btn-change-avatar" class="absolute bottom-0 right-0 p-2 rounded-full bg-surface-container-highest hover:bg-primary text-on-surface hover:text-white transition-colors shadow-lg cursor-pointer" title="Đổi ảnh đại diện">
+            <button id="btn-change-avatar" type="button" aria-label="Đổi ảnh đại diện" class="absolute bottom-0 right-0 p-2 rounded-full bg-surface-container-highest hover:bg-primary text-on-surface hover:text-white transition-colors shadow-lg cursor-pointer" title="Đổi ảnh đại diện">
               <span class="material-symbols-outlined text-[18px]">photo_camera</span>
             </button>
           </div>
@@ -200,7 +172,7 @@
           <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">badge</span> Thông Tin Cá Nhân</span>
         </button>
         <button class="account-tab-btn px-5 py-2.5 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold text-sm transition-all whitespace-nowrap cursor-pointer" data-tab="tab-security">
-          <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">lock_reset</span> Đổi Mật Khẩu</span>
+          <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">security</span> Bảo Mật Tài Khoản</span>
         </button>
       </div>
 
@@ -224,16 +196,7 @@
               <p class="text-[11px] text-on-surface-variant mt-1">Email dùng để đăng nhập và nhận thông báo gia hạn</p>
             </div>
 
-            <!-- Avatar Selection Presets -->
-            <div>
-              <label class="block text-xs uppercase font-bold text-on-surface-variant mb-2">Chọn Ảnh Đại Diện Nhanh</label>
-              <div class="flex items-center gap-3 pt-1" id="avatar-presets">
-                <img class="avatar-option w-12 h-12 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform ring-2 ring-transparent" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8" />
-                <img class="avatar-option w-12 h-12 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform ring-2 ring-transparent" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSbujeZINk45JTMl1uHDHy58dzZtklTE0t5uPEhCwlICLLPGtijYtFO9JeqSqDGusRdB1gt7qycyJ5OX6kz4PYsmWLL5tvWy-spdqpz_DrG4qLJz8bQgtQlXHllA2zvsiuNrLj_cdZxocwgDBP1kYO7DK8ESLeW9ehVKs4rk50GYzAAygACch82GxO5zi10RYSftDRhD9PgHoAOvOFxw2ZKO2w05zb0jDbKL3RAg4" />
-                <img class="avatar-option w-12 h-12 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform ring-2 ring-transparent" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmV0kJ3rLlFchh-aGILVOr-pQbdtHs2qQKQtkeKftGRHjg2nb7ii3xkFe2aJA7-Gldl5BqHuj4L_uiVmqQyW9CCgKPrUz_MCzKjGtUsI1R3dM0r3vXdhkgOsKaL_SVbs9gl7b2sTWQGr3VphY1X_pUChBkXZ-KPQtC6HeaIV7uxpjuEKEltMKcvR78AOcVjnQlk989xeMDULyOev-eHEjgdEO-N14MVTh2oQR_E3A" />
-                <img class="avatar-option w-12 h-12 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform ring-2 ring-transparent" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBU7pLbePV5REiuUUszeFgpK_nXIMbhtJkS-JfY3YiY48zc9WJAzafC9AAlmfbOYqgCEsz8DySHL2wbWQwJOYL5EyVtzDzxzr_yFOsuHThBn95wHSZiHkFD_HOz8inAH39oWBVBGY7aeVXhQ1Va8EsMxI4UFacIWHPpaIRKLVKPR8f47S1gT7iSOaPfTW1lIK6XvgX6IUOY0TTahILGoTOH5RWFOWT-iaWLkb5AmtY" />
-              </div>
-            </div>
+            <div id="avatar-upload-controls"></div>
 
             <div class="pt-4">
               <button id="btn-save-profile" class="px-6 py-3 rounded-full bg-primary hover:bg-primary/90 text-white font-bold text-sm shadow-lg shadow-primary/30 transition-all cursor-pointer">
@@ -246,6 +209,43 @@
 
       <!-- ================= 2. TAB: ĐỔI MẬT KHẨU ================= -->
       <section id="tab-security" class="account-pane hidden space-y-6">
+        <p id="security-status" class="text-sm text-secondary" role="status" aria-live="polite"></p>
+        <div class="rounded-3xl bg-surface-container border border-surface-container-highest/60 p-6 sm:p-8 space-y-4">
+          <h2 class="font-display font-bold text-xl">Xác minh email</h2>
+          <p id="email-verification-state" class="text-sm text-on-surface-variant">Đang tải...</p>
+          <button id="btn-resend-verification" type="button" class="px-5 py-3 rounded-full bg-primary text-white font-bold text-sm">Gửi lại email xác minh</button>
+        </div>
+        <div class="rounded-3xl bg-surface-container border border-surface-container-highest/60 p-6 sm:p-8 space-y-4">
+          <h2 class="font-display font-bold text-xl">Xác thực hai bước (MFA)</h2>
+          <p id="mfa-state" class="text-sm text-on-surface-variant">Đang tải...</p>
+          <p class="text-sm text-on-surface-variant">Dùng ứng dụng xác thực tương thích TOTP. Bật hoặc tắt MFA sẽ đăng xuất các thiết bị khác.</p>
+          <label class="block text-sm" for="mfa-password">Mật khẩu hiện tại</label>
+          <input id="mfa-password" type="password" autocomplete="current-password" maxlength="256" class="w-full max-w-xl p-3 rounded-xl bg-surface-container-high"/>
+          <button id="btn-mfa-setup" type="button" class="block px-5 py-3 rounded-full bg-primary text-white font-bold text-sm">Thiết lập MFA</button>
+          <div id="mfa-enrollment" class="hidden space-y-3">
+            <p class="text-sm">Nhập khóa này vào ứng dụng xác thực, hoặc mở liên kết trên thiết bị của bạn. Không chia sẻ khóa này.</p>
+            <code id="mfa-secret" class="block break-all p-3 bg-surface-container-high rounded-xl"></code>
+            <a id="mfa-uri" class="text-primary underline break-all">Mở ứng dụng xác thực</a>
+          </div>
+          <label class="block text-sm" for="mfa-code">Mã 6 số (hoặc mã khôi phục khi tắt MFA)</label>
+          <input id="mfa-code" type="text" autocomplete="one-time-code" maxlength="64" class="w-full max-w-xl p-3 rounded-xl bg-surface-container-high"/>
+          <button id="btn-mfa-confirm" type="button" class="hidden px-5 py-3 rounded-full bg-primary text-white font-bold text-sm">Xác nhận bật MFA</button>
+          <button id="btn-mfa-disable" type="button" class="hidden px-5 py-3 rounded-full bg-surface-container-high text-primary font-bold text-sm">Tắt MFA</button>
+          <div id="mfa-recovery" class="hidden space-y-3">
+            <p class="text-sm text-secondary font-bold">Lưu các mã khôi phục ở nơi an toàn ngay bây giờ. Mỗi mã dùng một lần và chỉ hiển thị lần này.</p>
+            <pre id="mfa-recovery-codes" class="whitespace-pre-wrap break-all p-4 rounded-xl bg-surface-container-high"></pre>
+            <button id="btn-recovery-saved" type="button" class="text-primary underline">Tôi đã lưu mã an toàn</button>
+          </div>
+        </div>
+        <div class="rounded-3xl bg-surface-container border border-surface-container-highest/60 p-6 sm:p-8 space-y-4">
+          <h2 class="font-display font-bold text-xl">Thiết bị và phiên đăng nhập</h2>
+          <p class="text-sm text-on-surface-variant">Phiên đăng nhập hết hạn sau 30 ngày. Thu hồi nếu bạn không nhận ra thiết bị.</p>
+          <div class="flex flex-wrap gap-3">
+            <button id="btn-refresh-sessions" type="button" class="text-primary underline">Làm mới danh sách</button>
+            <button id="btn-revoke-others" type="button" class="text-primary underline">Đăng xuất tất cả thiết bị khác</button>
+          </div>
+          <ul id="security-sessions" class="space-y-3" aria-live="polite"></ul>
+        </div>
         <div class="rounded-3xl bg-surface-container border border-surface-container-highest/60 p-6 sm:p-8 space-y-6">
           <div>
             <h2 class="font-display font-bold text-xl text-on-surface">Đổi Mật Khẩu Đăng Nhập</h2>
@@ -260,12 +260,12 @@
 
             <div>
               <label class="block text-xs uppercase font-bold text-on-surface-variant mb-2">Mật Khẩu Mới</label>
-              <input id="input-new-password" class="w-full px-4 py-3 rounded-xl bg-surface-container-high border border-surface-container-highest/80 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Tối thiểu 6 ký tự..." type="password"/>
+              <input id="input-new-password" class="w-full px-4 py-3 rounded-xl bg-surface-container-high border border-surface-container-highest/80 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Từ 6 đến 256 ký tự..." type="password" minlength="6" maxlength="256"/>
             </div>
 
             <div>
               <label class="block text-xs uppercase font-bold text-on-surface-variant mb-2">Xác Nhận Mật Khẩu Mới</label>
-              <input id="input-confirm-password" class="w-full px-4 py-3 rounded-xl bg-surface-container-high border border-surface-container-highest/80 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Nhập lại mật khẩu mới..." type="password"/>
+              <input id="input-confirm-password" class="w-full px-4 py-3 rounded-xl bg-surface-container-high border border-surface-container-highest/80 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Nhập lại mật khẩu mới..." type="password" maxlength="256"/>
             </div>
 
             <div class="pt-4">
@@ -280,9 +280,20 @@
     </div>
   </main>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/header.js"></script>
-  <script src="/js/account.js"></script>
+  <script src="/js/api.js?v=3.6.0"></script>
+  <script src="/js/header.js?v=3.1.0"></script>
+  <script src="/js/account.js?v=1.3.0"></script>
+  <script src="/js/avatar-upload.js?v=1.1.0"></script>
+  <link rel="stylesheet" href="/css/playback-options.css?v=1.0.0">
+  <script src="/js/player-preferences.js?v=1.0.0"></script>
+<footer class="cv-footer" aria-label="Thông tin CineViet">
+  <div class="cv-footer-inner">
+    <div class="cv-footer-intro"><a class="cv-footer-brand" href="/" aria-label="CineViet - Trang chủ">Cine<span>Viet</span></a><p>Khám phá phim hay. Lưu câu chuyện bạn thích. Xem tiếp khi thuận tiện.</p><a class="cv-footer-email" href="mailto:admin@cineviet.live">admin@cineviet.live</a><span class="cv-footer-note">Hỗ trợ · Góp ý · Yêu cầu bản quyền</span></div>
+    <nav class="cv-footer-nav" aria-label="Liên kết cuối trang"><div class="cv-footer-group"><h2>Khám phá</h2><ul><li><a href="/kham-pha?type=phim-bo">Phim bộ</a></li><li><a href="/kham-pha?type=phim-le">Phim lẻ</a></li><li><a href="/kham-pha?type=chieu-rap">Chiếu rạp</a></li><li><a href="/kham-pha?type=song-ngu">Song Ngữ</a></li><li><a href="/kham-pha?type=hoat-hinh">Anime &amp; hoạt hình</a></li><li><a href="/kham-pha?type=tv-shows">TV Show</a></li></ul></div><div class="cv-footer-group"><h2>Thư viện của bạn</h2><ul><li><a href="/danh-sach?tab=watchlist">Yêu thích</a></li><li><a href="/danh-sach?tab=continue">Xem tiếp</a></li><li><a href="/danh-sach?tab=history">Lịch sử xem</a></li><li><a href="/tai-khoan">Tài khoản</a></li></ul></div><div class="cv-footer-group"><h2>CineViet &amp; hỗ trợ</h2><ul><li><a href="/gioi-thieu">Giới thiệu</a></li><li><a href="/tro-giup">Trợ giúp</a></li><li><a href="/lien-he">Liên hệ &amp; báo lỗi</a></li><li><a href="/dieu-khoan">Điều khoản sử dụng</a></li><li><a href="/quyen-rieng-tu">Quyền riêng tư</a></li><li><a href="/ban-quyen">Bản quyền</a></li></ul></div></nav>
+    <div class="cv-footer-bottom"><p>© 2026 CineViet</p><p>Chất lượng và khả năng phát phụ thuộc nguồn, thiết bị và kết nối. Nội dung bên thứ ba thuộc các chủ thể quyền tương ứng.</p><button type="button" class="cv-footer-top" data-footer-top hidden>Về đầu trang <span aria-hidden="true">↑</span></button></div>
+  </div>
+</footer>
+<script defer src="/js/site-footer.js?v=1.0.0"></script>
 </body>
 </html>
 

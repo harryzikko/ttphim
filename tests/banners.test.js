@@ -156,3 +156,85 @@ test('server-rendered watch page retains below-player ad after player hydration'
   assert.ok(rendered.includes('<!-- banner:below_player -->'));
   doc.defaultView.close();
 });
+
+test('admin preview CSS selects every slot ratio and mobile copy from mode, not viewport media queries', () => {
+  const css = fs.readFileSync(path.join(__dirname, '../public/css/editorial.css'), 'utf8');
+  const dom = new JSDOM(`<style>${css}</style><div class="banner-preview" data-kind="ad"><div class="preview-visual"><div class="preview-copy"><strong>Partner</strong><p>A short message</p><span>Learn more</span></div></div></div>`);
+  const { window } = dom;
+  const preview = window.document.querySelector('.banner-preview');
+  const visual = preview.querySelector('.preview-visual');
+  const title = preview.querySelector('strong'), description = preview.querySelector('p');
+  const desktopRatios = { header: '6/1', footer: '6/1', below_featured: '4/1', below_player: '5/1', side_left: '160/600', side_right: '160/600' };
+  for (const slot of slots) {
+    preview.dataset.slot = slot;
+    preview.dataset.mode = 'desktop';
+    assert.equal(window.getComputedStyle(visual).aspectRatio, desktopRatios[slot], `desktop ${slot}`);
+    assert.notEqual(window.getComputedStyle(description).display, 'none', `desktop description ${slot}`);
+    if (slot.startsWith('side_')) continue;
+    preview.dataset.mode = 'mobile';
+    const featured = slot === 'below_featured';
+    assert.equal(window.getComputedStyle(visual).aspectRatio, featured ? '3/2' : '3/1', `mobile ${slot}`);
+    assert.equal(window.getComputedStyle(title).fontSize, featured ? '22px' : '16px', `mobile title ${slot}`);
+    assert.equal(window.getComputedStyle(description).display, featured ? 'block' : 'none', `mobile description ${slot}`);
+    assert.equal(window.getComputedStyle(description).fontSize, '12px');
+    assert.equal(window.getComputedStyle(preview.querySelector('span')).fontSize, '12px');
+  }
+  // JSDOM does not evaluate viewport media queries; reject responsive overrides explicitly.
+  const checkMedia = rules => {
+    for (const rule of rules) {
+      if (rule.media) assert.doesNotMatch(rule.cssText, /\.banner-preview[^{}]*\{[^{}]*(?:aspect-ratio|font-size|display\s*:)/);
+      if (rule.cssRules) checkMedia(rule.cssRules);
+    }
+  };
+  checkMedia(window.document.styleSheets[0].cssRules);
+  window.close();
+});
+
+test('admin mobile sides render explanation only and restore preview without changing saved configuration', async () => {
+  const dom = new JSDOM(fs.readFileSync(path.join(__dirname, '../public/admin.html'), 'utf8'), { url: 'http://localhost/admin', runScripts: 'outside-only' });
+  const { window } = dom;
+  const callbacks = [];
+  const originalAdd = window.document.addEventListener.bind(window.document);
+  window.document.addEventListener = (event, callback, options) => event === 'DOMContentLoaded' ? callbacks.push(callback) : originalAdd(event, callback, options);
+  const config = ads({ advertising: { ads: slots.map(slot => ({ ...ad, slot, focal_x: 25, focal_y: 75 })) } });
+  let saved = null;
+  window.API = { request: async (endpoint, options) => {
+    if (options) saved = JSON.parse(options.body);
+    return { status: true, data: structuredClone(config) };
+  } };
+  window.eval(fs.readFileSync(path.join(__dirname, '../public/js/admin-banners.js'), 'utf8'));
+  callbacks.forEach(callback => callback());
+  window.document.querySelector('[data-tab="tab-banners"]').click();
+  await new Promise(resolve => setImmediate(resolve));
+  const preview = window.document.getElementById('banner-preview');
+  const choice = window.document.getElementById('banner-preview-choice');
+  const choose = slot => { choice.value = slot; choice.dispatchEvent(new window.Event('change')); };
+  for (const slot of ['side_left', 'side_right']) {
+    choose(slot);
+    window.document.querySelector('[data-preview="mobile"]').click();
+    assert.equal(preview.hidden, true);
+    assert.equal(preview.children.length, 0, 'no fake mobile advert or image request');
+    const explanation = window.document.getElementById('banner-preview-state');
+    assert.match(explanation.textContent, /Ẩn trên mobile/);
+    assert.match(explanation.textContent, /1600 px/);
+    assert.equal(explanation.hidden, false);
+    window.document.querySelector('[data-preview="desktop"]').click();
+    assert.equal(preview.hidden, false);
+    assert.equal(preview.querySelector('img').src, ad.image_desktop);
+    assert.equal(preview.querySelector('img').style.objectPosition, '25% 75%');
+  }
+  window.document.querySelector('[data-preview="mobile"]').click();
+  choose('below_featured');
+  assert.equal(preview.hidden, false, 'switching slot restores the mobile preview');
+  assert.equal(preview.querySelector('img').src, ad.image_mobile);
+  assert.equal(preview.querySelector('.preview-copy p').textContent, ad.description);
+  choose('header');
+  const mobileImage = window.document.querySelector('#banner-ads [data-slot="header"] [data-field="image_mobile"]');
+  mobileImage.value = ''; mobileImage.dispatchEvent(new window.Event('input'));
+  assert.equal(preview.querySelector('img').src, ad.image_desktop, 'missing mobile image falls back to desktop');
+  mobileImage.value = ad.image_mobile; mobileImage.dispatchEvent(new window.Event('input'));
+  window.document.querySelector('#banner-save').click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(saved, config, 'preview mode, visibility and ratios never enter persisted configuration');
+  window.close();
+});

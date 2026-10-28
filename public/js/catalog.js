@@ -1,19 +1,24 @@
-// TTPhim - Explore & Filter Catalog Controller (Real API Data Binding)
+// CineViet - Explore & Filter Catalog Controller
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[TTPhim] Initializing Catalog Page with live API data...');
-  const urlParams = new URLSearchParams(window.location.search);
-  
-  // State
-  let currentFilter = {
-    type: urlParams.get('type') || 'all',
-    category: urlParams.get('category') || 'all',
-    country: urlParams.get('country') || 'all',
-    year: urlParams.get('year') || 'all',
-    sort: urlParams.get('sort') || 'recent',
-    keyword: urlParams.get('keyword') || urlParams.get('q') || '',
-    page: parseInt(urlParams.get('page'), 10) || 1,
-    limit: 30
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const safeUrl = value => {
+    try { const url = new URL(value, window.location.href); return /^https?:$/.test(url.protocol) ? url.href : '/favicon.svg'; } catch (_) { return '/favicon.svg'; }
   };
+  const pathSegment = value => encodeURIComponent(String(value ?? '')).replace(/'/g, '%27');
+  console.log('[CineViet] Initializing Catalog Page with live API data...');
+  const readFilters = () => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      type: params.get('type') || 'all', category: params.get('category') || 'all',
+      country: params.get('country') || 'all', year: params.get('year') || 'all',
+      format: params.get('format') || 'all', sort: params.get('sort') || 'updated',
+      keyword: params.get('keyword') || params.get('q') || '',
+      page: Math.max(1, parseInt(params.get('page'), 10) || 1), limit: 30
+    };
+  };
+  let currentFilter = readFilters();
+  let requestId = 0;
+  const metadata = { categories: [], countries: [] };
 
   // Find the exact catalog grid container in kham-pha.html
   const gridContainer = document.querySelector('section[aria-label="Danh sách phim tìm kiếm"]') || 
@@ -31,30 +36,52 @@ document.addEventListener('DOMContentLoaded', async () => {
   const applyBtn = document.getElementById('btn-apply-filters');
   const genreChipsContainer = document.getElementById('genre-chips-container');
   const genreCountEl = document.getElementById('selected-genre-count');
-  const countDisplay = document.querySelector('div.font-body-sm.text-on-surface-variant:has(.text-primary)') ||
+  const countDisplay = document.getElementById('catalog-results-count') ||
                        document.querySelector('div.text-outline.font-label-badge:has(.text-primary)');
   const paginationContainer = document.getElementById('catalog-pagination') ||
                               document.querySelector('nav[aria-label="Điều hướng phân trang"]');
-  const activeTagsContainer = document.querySelector('div.flex.items-center.justify-between.flex-wrap:has(.text-outline) div.flex.items-center.gap-2');
+  const activeTagsContainer = document.getElementById('catalog-active-tags') || document.querySelector('div.flex.items-center.justify-between.flex-wrap:has(.text-outline) div.flex.items-center.gap-2');
 
+  const statusEl = document.createElement('p');
+  statusEl.className = 'text-on-surface-variant text-sm py-3';
+  statusEl.setAttribute('role', 'status');
+  gridContainer?.before(statusEl);
+  function syncControls() {
+    window.CatalogLayout?.update(currentFilter, metadata);
+    for (const [element, key] of [[searchInput, 'keyword'], [countrySelect, 'country'], [yearSelect, 'year'], [formatSelect, 'format'], [sortSelect, 'sort']]) {
+      if (!element) continue;
+      const value = currentFilter[key];
+      if (element.tagName === 'SELECT' && ![...element.options].some(option => option.value === value)) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        element.append(option);
+      }
+      element.value = value;
+    }
+    updateTypePills();
+    updateGenreChips();
+  }
+  window.addEventListener('popstate', () => { currentFilter = readFilters(); syncControls(); fetchAndRender(false); });
   // Load Categories & Countries for dropdowns and chips
   try {
     const meta = await API.getCategories();
+    if (meta) Object.assign(metadata, meta);
     if (meta && meta.countries && countrySelect) {
       countrySelect.innerHTML = `<option value="all">Tất cả quốc gia</option>` + 
-        meta.countries.map(c => `<option value="${c.slug}" ${currentFilter.country === c.slug ? 'selected' : ''}>${c.name}</option>`).join('');
+        meta.countries.map(c => `<option value="${escapeHtml(c.slug)}" ${currentFilter.country === c.slug ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
     }
 
     if (meta && meta.categories && genreChipsContainer) {
       genreChipsContainer.innerHTML = meta.categories.map(cat => `
-        <button class="genre-chip px-3 py-1 rounded-full ${currentFilter.category === cat.slug ? 'bg-primary-container text-on-primary-container font-bold shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest'} font-label-md text-label-md transition-all cursor-pointer" data-genre="${cat.slug}" type="button">
-          ${cat.name}
+        <button class="genre-chip px-3 py-1 rounded-full ${currentFilter.category === cat.slug ? 'bg-primary-container text-on-primary-container font-bold shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest'} font-label-md text-label-md transition-all cursor-pointer" data-genre="${escapeHtml(cat.slug)}" type="button">
+          ${escapeHtml(cat.name)}
         </button>
       `).join('');
       updateGenreChips();
     }
   } catch (e) {
-    console.warn('[TTPhim] Failed to fetch metadata:', e);
+    console.warn('[CineViet] Failed to fetch metadata:', e);
   }
 
   function updateGenreChips() {
@@ -65,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const g = chip.dataset.genre;
       if (currentFilter.category === g) {
         chip.className = 'genre-chip px-3 py-1 rounded-full bg-primary-container text-on-primary-container font-bold shadow-sm transition-all cursor-pointer';
-        activeName = chip.innerText.trim();
+        activeName = chip.textContent.trim();
       } else {
         chip.className = 'genre-chip px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-all cursor-pointer';
       }
@@ -101,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Type buttons active state
   function updateTypePills() {
     typeButtons.forEach(btn => {
-      const text = btn.innerText.toLowerCase();
+      const text = btn.textContent.toLowerCase();
       let match = false;
       if (currentFilter.type === 'all' && text.includes('tất cả')) match = true;
       else if (currentFilter.type === 'phim-bo' && text.includes('bộ')) match = true;
@@ -109,10 +136,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       else if (currentFilter.type === 'hoat-hinh' && (text.includes('hoạt hình') || text.includes('anime'))) match = true;
       else if (currentFilter.type === 'tv-shows' && text.includes('tv shows')) match = true;
       else if ((currentFilter.type === 'chieu-rap' || currentFilter.type === 'phim-chieu-rap') && text.includes('chiếu rạp')) match = true;
+      else if (currentFilter.type === 'song-ngu' && text.includes('song ngữ')) match = true;
 
       if (match) {
+        btn.setAttribute('aria-pressed', 'true');
         btn.className = 'filter-type-btn active px-3.5 py-1.5 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md transition-all shadow-sm cursor-pointer';
       } else {
+        btn.setAttribute('aria-pressed', 'false');
         btn.className = 'filter-type-btn px-3.5 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-all cursor-pointer';
       }
     });
@@ -120,13 +150,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   typeButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      const text = btn.innerText.toLowerCase();
+      const text = btn.textContent.toLowerCase();
       if (text.includes('tất cả')) currentFilter.type = 'all';
       else if (text.includes('bộ')) currentFilter.type = 'phim-bo';
       else if (text.includes('lẻ')) currentFilter.type = 'phim-le';
       else if (text.includes('hoạt hình') || text.includes('anime')) currentFilter.type = 'hoat-hinh';
       else if (text.includes('tv shows')) currentFilter.type = 'tv-shows';
       else if (text.includes('chiếu rạp')) currentFilter.type = 'chieu-rap';
+      else if (text.includes('song ngữ')) currentFilter.type = 'song-ngu';
       
       currentFilter.page = 1;
       updateTypePills();
@@ -173,7 +204,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         category: 'all',
         country: 'all',
         year: 'all',
-        sort: 'recent',
+        format: 'all', sort: 'updated', limit: 30,
         keyword: '',
         page: 1
       };
@@ -184,13 +215,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (sortSelect) sortSelect.value = 'updated';
       updateTypePills();
       updateGenreChips();
-      window.showToast('Đã đặt lại toàn bộ bộ lọc!');
+      window.showToast?.('Đã đặt lại toàn bộ bộ lọc!');
       fetchAndRender();
     });
   }
 
   if (applyBtn) {
     applyBtn.addEventListener('click', () => {
+      if (searchInput) currentFilter.keyword = searchInput.value.trim();
       currentFilter.page = 1;
       fetchAndRender();
     });
@@ -222,10 +254,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateActiveFilterTags() {
     if (!activeTagsContainer) return;
     const tags = [];
-    if (currentFilter.type !== 'all') tags.push({ label: `Loại: ${currentFilter.type}`, key: 'type' });
-    if (currentFilter.category !== 'all') tags.push({ label: `Thể loại: ${currentFilter.category}`, key: 'category' });
-    if (currentFilter.country !== 'all') tags.push({ label: `Quốc gia: ${currentFilter.country}`, key: 'country' });
+    const typeNames = { 'phim-bo': 'Phim bộ', 'phim-le': 'Phim lẻ', 'hoat-hinh': 'Anime', 'chieu-rap': 'Chiếu rạp', 'phim-chieu-rap': 'Chiếu rạp', 'tv-shows': 'TV Show', 'song-ngu': 'Song Ngữ' };
+    const metaName = (items, slug) => items.find(item => item.slug === slug)?.name || slug;
+    if (currentFilter.type !== 'all') tags.push({ label: typeNames[currentFilter.type] || currentFilter.type, key: 'type' });
+    if (currentFilter.category !== 'all') tags.push({ label: metaName(metadata.categories, currentFilter.category), key: 'category' });
+    if (currentFilter.country !== 'all') tags.push({ label: metaName(metadata.countries, currentFilter.country), key: 'country' });
     if (currentFilter.year !== 'all') tags.push({ label: `Năm: ${currentFilter.year}`, key: 'year' });
+    if (currentFilter.format !== 'all') tags.push({ label: `Định dạng: ${currentFilter.format}`, key: 'format' });
     if (currentFilter.keyword) tags.push({ label: `Từ khóa: "${currentFilter.keyword}"`, key: 'keyword' });
 
     if (tags.length === 0) {
@@ -240,8 +275,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       <span class="text-outline font-label-badge text-label-badge uppercase">Đang áp dụng:</span>
       ${tags.map(t => `
         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface text-label-badge font-label-badge">
-          ${t.label}
-          <button class="hover:text-primary-container cursor-pointer btn-remove-tag" data-key="${t.key}" type="button">
+          ${escapeHtml(t.label)}
+          <button aria-label="${escapeHtml('Bỏ lọc ' + t.label)}" class="hover:text-primary-container cursor-pointer btn-remove-tag" data-key="${t.key}" type="button">
             <span class="material-symbols-outlined text-[14px]">close</span>
           </button>
         </span>
@@ -256,24 +291,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentFilter.page = 1;
         updateTypePills();
         updateGenreChips();
+        syncControls();
         fetchAndRender();
       });
     });
   }
 
 
-  async function fetchAndRender() {
-    // Update URL query string
+  async function fetchAndRender(writeHistory = true) {
+    const id = ++requestId;
     const params = new URLSearchParams();
-    if (currentFilter.type !== 'all') params.set('type', currentFilter.type);
-    if (currentFilter.category !== 'all') params.set('category', currentFilter.category);
-    if (currentFilter.country !== 'all') params.set('country', currentFilter.country);
-    if (currentFilter.year !== 'all') params.set('year', currentFilter.year);
-    if (currentFilter.sort !== 'recent') params.set('sort', currentFilter.sort);
-    if (currentFilter.keyword) params.set('keyword', currentFilter.keyword);
-    if (currentFilter.page > 1) params.set('page', currentFilter.page);
-
-    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+    for (const [key, value] of Object.entries(currentFilter)) {
+      if (key !== 'limit' && value && value !== 'all' && !(key === 'page' && value === 1)) params.set(key, value);
+    }
+    const url = `${window.location.pathname}${params.size ? `?${params}` : ''}`;
+    if (writeHistory && url !== window.location.pathname + window.location.search) window.history.pushState(null, '', url);
+    syncControls();
+    updateActiveFilterTags();
+    if (paginationContainer) paginationContainer.style.display = 'none';
+    statusEl.textContent = 'Đang tải kết quả…';
 
     if (gridContainer) {
       gridContainer.innerHTML = Array(15).fill(0).map(() => `
@@ -286,31 +322,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-      console.log('[TTPhim] Fetching catalog with filter:', currentFilter);
-      const data = await API.getCatalog(currentFilter);
-      console.log('[TTPhim] Catalog received:', data?.items?.length, 'items');
-      
-      renderGrid(data.items || []);
+      console.log('[CineViet] Fetching catalog with filter:', currentFilter);
+      const data = await API.getCatalog({ ...currentFilter });
+      if (id !== requestId) return;
+      if (!data || data.error || !Array.isArray(data.items)) throw new Error('provider_unavailable');
+      const items = data.items;
+      statusEl.textContent = [data.searchInfo?.message, data.searchInfo?.partial ? 'Một phần nguồn tạm lỗi; hãy thử lại.' : ''].filter(Boolean).join(' ');
+      renderGrid(items);
       renderPagination(data.pagination);
       updateActiveFilterTags();
 
       // Update count display
       if (countDisplay && data.pagination) {
         countDisplay.innerHTML = `
-          Hiển thị <span class="text-on-surface font-semibold">${data.items?.length || 0}</span> trên tổng số <span class="text-primary font-bold">${data.pagination.totalItems || 12450}</span> phim
+          Hiển thị <span class="text-on-surface font-semibold">${items.length}</span> trên tổng số <span class="text-primary font-bold">${Number(data.pagination.totalItems) || 0}</span> phim${data.searchInfo?.limited ? ' trong phạm vi đã tra cứu' : ''}
         `;
       }
     } catch (e) {
-      console.error('[TTPhim] Error loading catalog:', e);
+      if (id !== requestId) return;
+      statusEl.textContent = '';
+      if (countDisplay) countDisplay.textContent = 'Chưa tải được kết quả';
+      console.error('[CineViet] Error loading catalog:', e);
       if (gridContainer) {
-        gridContainer.innerHTML = `<div class="col-span-full py-16 text-center text-on-surface-variant font-headline-sm">Lỗi tải danh sách phim. Vui lòng thử lại.</div>`;
+        gridContainer.innerHTML = `<div class="col-span-full py-16 text-center text-on-surface-variant font-headline-sm" role="alert">Chưa thể kết nối nguồn phim. Bộ lọc và từ khóa vẫn được giữ.<br><button type="button" data-search-action="retry" class="mt-3 px-4 py-2 rounded bg-primary-container text-white">Thử lại</button></div>`;
       }
     }
   }
 
   function renderGrid(items) {
     if (!gridContainer) {
-      console.error('[TTPhim] gridContainer not found in DOM!');
+      console.error('[CineViet] gridContainer not found in DOM!');
       return;
     }
 
@@ -319,7 +360,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="col-span-full py-20 flex flex-col items-center justify-center gap-3 text-center text-on-surface-variant">
           <span class="material-symbols-outlined text-[64px] text-surface-variant">search_off</span>
           <h3 class="font-headline-sm text-on-surface font-bold">Không tìm thấy bộ phim nào phù hợp</h3>
-          <p class="font-body-md text-on-surface-variant">Thử điều chỉnh lại bộ lọc hoặc từ khóa tìm kiếm</p>
+          <p class="font-body-md text-on-surface-variant">Thử tên tiếng Việt không dấu, tên gốc hoặc bỏ bớt bộ lọc. Không tự thay bằng phim không liên quan.</p>
+          <button type="button" data-search-action="relax" class="px-4 py-2 rounded bg-surface-container-high">Bỏ bộ lọc, giữ từ khóa</button>
+          <button type="button" data-search-action="retry" class="px-4 py-2 rounded bg-primary-container text-white">Thử lại</button>
         </div>
       `;
       return;
@@ -352,42 +395,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       return clean;
     };
 
-    gridContainer.innerHTML = items.map(movie => {
-      const isSongNgu = Boolean(
-        movie.has_song_ngu ||
-        movie.source === 'vicdn' ||
-        (typeof movie.slug === 'string' && movie.slug.startsWith('tv-')) ||
-        (typeof movie.lang === 'string' && /song\s*ngữ/i.test(movie.lang)) ||
-        (typeof movie.quality === 'string' && /song\s*ngữ/i.test(movie.quality)) ||
-        (typeof movie.source_name === 'string' && /vicdn|song\s*ngữ/i.test(movie.source_name))
-      );
-      const songNguBadge = isSongNgu ? `
-        <span class="badge-song-ngu">
-          <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-        </span>` : '';
-      const langFmt = formatLangBadge(movie.lang);
-      const subBadge = (langFmt && (!isSongNgu || !/song\s*ngữ/i.test(langFmt)))
-        ? `<span class="badge-glass-sub">${langFmt}</span>` : '';
-
-      return `
-      <article class="movie-card group relative flex flex-col bg-surface-container rounded-xl overflow-hidden cursor-pointer border border-white/5" onclick="window.location.href='/phim/${movie.slug}'">
+    gridContainer.innerHTML = items.map(movie => `
+      <a href="/phim/${pathSegment(movie.slug)}" class="movie-card group relative flex flex-col bg-surface-container rounded-xl overflow-hidden cursor-pointer border border-white/5">
         <!-- 2:3 Aspect ratio poster container -->
         <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
-          <img src="${movie.poster_url || movie.thumb_url}" alt="${movie.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" />
+          <img src="${escapeHtml(safeUrl(movie.poster_url || movie.thumb_url))}" alt="${escapeHtml(movie.name)}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" />
           
           <!-- Badges -->
           <div class="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10 items-start pointer-events-none">
-            ${songNguBadge}
-            ${subBadge}
+            ${movie.has_song_ngu ? `
+              <span class="badge-song-ngu">
+                <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
+              </span>` : ''}
+            ${movie.lang ? `<span class="badge-glass-sub">${escapeHtml(formatLangBadge(movie.lang))}</span>` : ''}
           </div>
           <div class="absolute top-2.5 right-2.5 z-10 pointer-events-none">
-            <span class="badge-glass-quality">${movie.quality || 'FHD'}</span>
+            <span class="badge-glass-quality">${escapeHtml(movie.quality || 'FHD')}</span>
           </div>
 
           <!-- Bottom Gradient & Episode -->
           <div class="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/80 to-transparent flex items-end justify-between z-10">
-            <span class="font-label-badge text-[11px] text-amber-300 font-semibold truncate max-w-[110px]">${movie.episode_current || movie.time || 'Trọn Bộ'}</span>
-            <span class="px-1.5 py-0.2 rounded bg-surface-container-high/90 text-on-surface-variant font-label-badge text-[10px]">${movie.year}</span>
+            <span class="font-label-badge text-[11px] text-amber-300 font-semibold truncate max-w-[110px]">${escapeHtml(movie.episode_current || movie.time || 'Chưa có thông tin tập')}</span>
+            <span class="px-1.5 py-0.2 rounded bg-surface-container-high/90 text-on-surface-variant font-label-badge text-[10px]">${escapeHtml(movie.year)}</span>
           </div>
 
           <!-- Hover Overlay CTA (Cinematic Play Button) -->
@@ -401,17 +430,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         <!-- Metadata -->
         <div class="p-3 flex flex-col gap-1 flex-1 justify-between">
           <div>
-            <h3 class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate">${movie.name}</h3>
-            <p class="font-body-sm text-[12px] text-on-surface-variant truncate">${movie.origin_name || movie.name}</p>
+            <h3 class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate">${escapeHtml(movie.name)}</h3>
+            <p class="font-body-sm text-[12px] text-on-surface-variant truncate">${escapeHtml(movie.origin_name || movie.name)}</p>
           </div>
           <div class="flex items-center justify-between text-on-surface-variant font-label-badge text-[11px] pt-1.5 border-t border-surface-container-highest">
             <span>${getMovieTypeBadge(movie)}</span>
-            <span class="text-secondary flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">star</span> 8.9</span>
+            ${Number(movie.imdb_rating) > 0 ? `<span class="text-secondary flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">star</span> ${escapeHtml(movie.imdb_rating)}</span>` : ''}
           </div>
         </div>
-      </article>
-    `;
-    }).join('');
+      </a>
+    `).join('');
   }
 
   function renderPagination(pagination) {
@@ -521,6 +549,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  gridContainer?.addEventListener('click', event => {
+    const action = event.target.closest('[data-search-action]')?.dataset.searchAction;
+    if (!action) return;
+    if (action === 'relax') {
+      for (const key of ['type', 'category', 'country', 'year', 'format']) currentFilter[key] = 'all';
+      currentFilter.page = 1;
+    }
+    fetchAndRender(action !== 'retry');
+  });
+  syncControls();
   // Initial load
   updateTypePills();
   fetchAndRender();

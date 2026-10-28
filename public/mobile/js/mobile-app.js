@@ -1,4 +1,4 @@
-// CineViet Mobile App - Core Framework for iOS & Android
+﻿// TTPhim Mobile App - Core Framework for iOS & Android
 const MobileApp = {
   activeTab: 'home',
 
@@ -7,6 +7,7 @@ const MobileApp = {
     this.setupActiveTab();
     this.setupPWAInstallPrompt();
     this.setupHeaderActions();
+    this.setupSheets();
   },
 
   registerServiceWorker() {
@@ -22,6 +23,7 @@ const MobileApp = {
     let tab = 'home';
     if (path.includes('/kham-pha')) tab = 'explore';
     else if (path.includes('/danh-sach') || path.includes('/tai-ve')) tab = 'list';
+    if (path.includes('/danh-sach') && new URLSearchParams(location.search).get('tab') === 'downloads') tab = 'downloads';
     else if (path.includes('/tai-khoan')) tab = 'profile';
 
     this.activeTab = tab;
@@ -29,12 +31,14 @@ const MobileApp = {
     navLinks.forEach((link) => {
       const dataTab = link.getAttribute('data-tab');
       if (dataTab === tab) {
+        link.setAttribute('aria-current', 'page');
         link.classList.add('text-primary-container');
         link.classList.remove('text-on-surface-variant');
         const icon = link.querySelector('.material-symbols-outlined');
         if (icon) icon.style.fontVariationSettings = "'FILL' 1";
       } else {
         link.classList.remove('text-primary-container');
+        link.removeAttribute('aria-current');
         link.classList.add('text-on-surface-variant');
         const icon = link.querySelector('.material-symbols-outlined');
         if (icon) icon.style.fontVariationSettings = "'FILL' 0";
@@ -52,19 +56,17 @@ const MobileApp = {
     }
 
     // Cast button
-    const castBtn = document.getElementById('m-cast-btn');
+    const castBtn = document.getElementById('m-cast-btn') || document.getElementById('headerCastBtn');
     if (castBtn) {
       castBtn.onclick = () => {
-        this.toast('Đang dò thiết bị Chromecast & AirPlay...', 'info');
+        this.toast('Truyền màn hình chưa được hỗ trợ trên trình duyệt này.', 'info');
       };
     }
 
     // Notification button
-    const notifBtn = document.getElementById('m-notif-btn');
+    const notifBtn = document.getElementById('m-notif-btn') || document.getElementById('headerNotifBtn');
     if (notifBtn) {
-      notifBtn.onclick = () => {
-        this.toast('Bạn không có thông báo mới nào', 'info');
-      };
+      notifBtn.onclick = () => this.openNotifications();
     }
 
     // Profile button
@@ -74,6 +76,92 @@ const MobileApp = {
         window.location.href = '/mobile/tai-khoan';
       };
     }
+  },
+
+  setupSheets() {
+    const sheets = [...document.querySelectorAll('.bottom-sheet-backdrop')];
+    if (!sheets.length) return;
+    let locked = false, scrollY = 0, restoreFocus = null, previous;
+    const sync = () => {
+      sheets.forEach(sheet => {
+        sheet.inert = !sheet.classList.contains('active');
+        sheet.setAttribute('aria-hidden', String(sheet.inert));
+      });
+      const active = sheets.find(sheet => sheet.classList.contains('active'));
+      if (active && !locked) {
+        locked = true; scrollY = window.scrollY; restoreFocus = document.activeElement;
+        previous = { position: document.body.style.position, top: document.body.style.top, width: document.body.style.width, overflow: document.documentElement.style.overflow };
+        Object.assign(document.body.style, { position: 'fixed', top: `-${scrollY}px`, width: '100%' });
+        document.documentElement.style.overflow = 'hidden';
+        active.querySelector('button, input, select, [tabindex]')?.focus();
+      } else if (!active && locked) {
+        locked = false;
+        Object.assign(document.body.style, { position: previous.position, top: previous.top, width: previous.width });
+        document.documentElement.style.overflow = previous.overflow;
+        if (scrollY) window.scrollTo(0, scrollY);
+        restoreFocus?.focus({ preventScroll: true });
+      }
+    };
+    sheets.forEach(sheet => {
+      const content = sheet.querySelector('.bottom-sheet-content');
+      content?.setAttribute('role', 'dialog'); content?.setAttribute('aria-modal', 'true');
+      content?.setAttribute('aria-label', sheet.id === 'epDrawerBackdrop' ? 'Chọn tập phim' : 'Bộ lọc phim');
+      new MutationObserver(sync).observe(sheet, { attributes: true, attributeFilter: ['class'] });
+      sheet.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); sheet.querySelector('#closeFilterSheetBtn, #closeEpDrawerBtn')?.click(); }
+        if (event.key === 'Tab') {
+          const items = [...sheet.querySelectorAll('button:not(:disabled), input, select, a[href]')].filter(el => el.getClientRects().length);
+          const first = items[0], last = items[items.length - 1];
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        }
+      });
+      sheet.addEventListener('touchmove', event => { if (event.target === sheet) event.preventDefault(); }, { passive: false });
+    });
+    sync();
+  },
+
+  async openNotifications() {
+    if (document.getElementById('m-notifications-dialog')) return;
+    const dialog = document.createElement('dialog'); dialog.id = 'm-notifications-dialog';
+    dialog.setAttribute('aria-label', 'Thông báo phim');
+    dialog.style.cssText = 'position:fixed;inset:12px;margin:auto;width:min(420px,calc(100% - 24px));max-height:80vh;padding:18px;border:1px solid #424958;border-radius:16px;background:#191d28;color:#eef0f5;z-index:1000;overflow:auto';
+    const heading = document.createElement('h2'); heading.textContent = 'Thông báo'; heading.style.cssText = 'font-size:18px;font-weight:700;margin:0 0 10px';
+    const help = document.createElement('p'); help.textContent = 'Kiểm tra tập mới khi mở bảng; dữ liệu có thể trễ theo cache nguồn.'; help.style.cssText = 'font-size:12px;color:#b3bdce;margin:0 0 12px';
+    const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Đóng'; close.style.cssText = 'min-height:44px;padding:8px 16px;border:1px solid #505b70;border-radius:8px;margin-bottom:12px'; close.onclick = () => dialog.close();
+    const list = document.createElement('div'); list.setAttribute('role', 'status'); list.textContent = 'Đang kiểm tra thông báo…';
+    dialog.append(heading, help, close, list); document.body.appendChild(dialog); dialog.addEventListener('close', () => dialog.remove()); dialog.showModal();
+    const load = async () => {
+      list.textContent = 'Đang kiểm tra thông báo…';
+      try {
+        const items = await API.getNotifications();
+        if (!dialog.isConnected) return;
+        list.replaceChildren();
+        if (!items.length) { list.textContent = 'Chưa có thông báo mới. Bạn có thể theo dõi phim từ trang chi tiết.'; return; }
+        items.forEach(item => {
+          const button = document.createElement('button'); button.type = 'button';
+          button.style.cssText = `display:block;text-align:left;width:100%;padding:12px;margin:8px 0;border:1px solid ${item.type === 'follow_episode' && !item.read ? '#a92236' : '#343e50'};border-radius:10px;background:#242b39;color:#fff;min-height:44px`;
+          const title = document.createElement('strong'); title.textContent = `${item.type === 'follow_episode' && !item.read ? '● ' : ''}${item.title || 'Thông báo'}`;
+          const message = document.createElement('p'); message.textContent = item.message || ''; message.style.cssText = 'font-size:12px;color:#c2cbd9;margin-top:5px'; button.append(title, message);
+          button.onclick = async () => {
+            if (button.disabled) return; button.disabled = true;
+            try {
+              if (item.type === 'follow_episode' && !item.read) { const result = await API.markFollowNotificationRead(item.id); if (!result?.status) throw Error(); item.read = true; }
+              const url = new URL(item.url || '/mobile', location.origin);
+              if (url.origin !== location.origin || !/^https?:$/.test(url.protocol)) throw Error();
+              if (/^\/(phim|xem-phim)\//.test(url.pathname)) url.pathname = '/mobile' + url.pathname;
+              location.href = url.pathname + url.search;
+            } catch (_) { button.disabled = false; this.toast('Chưa thể mở thông báo. Vui lòng thử lại.', 'error'); }
+          };
+          list.appendChild(button);
+        });
+      } catch (_) {
+        if (!dialog.isConnected) return;
+        list.textContent = 'Không thể tải thông báo. ';
+        const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Thử lại'; retry.style.minHeight = '44px'; retry.onclick = load; list.appendChild(retry);
+      }
+    };
+    await load();
   },
 
   setupPWAInstallPrompt() {
@@ -114,7 +202,7 @@ const MobileApp = {
           <span class="material-symbols-outlined text-white text-[22px]">play_arrow</span>
         </div>
         <div class="min-w-0">
-          <p class="font-bold text-[13px] leading-tight truncate">Cài đặt App CineViet</p>
+          <p class="font-bold text-[13px] leading-tight truncate">Cài đặt CineViet</p>
           <p class="text-[11px] text-on-surface-variant truncate mt-0.5">${isIOS ? 'Bấm Chia sẻ rồi chọn "Thêm vào MH chính"' : 'Xem phim mượt hơn, toàn màn hình'}</p>
         </div>
       </div>
@@ -185,7 +273,7 @@ const MobileApp = {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: title || 'CineViet',
+          title: title || 'TTPhim',
           url: url || window.location.href
         });
       } catch (e) {}

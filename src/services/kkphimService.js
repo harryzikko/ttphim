@@ -2,6 +2,10 @@ const config = require('../config');
 const vicdnService = require('./vicdnService');
 const nguoncService = require('./nguoncService');
 
+function searchText(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+}
+
 function removeAccents(str) {
   if (!str) return '';
   return String(str)
@@ -32,11 +36,36 @@ function extractTmdbId(movie) {
   return null;
 }
 
+function extractSeasonIdentifier(item) {
+  if (!item) return '';
+  const text = `${item.slug || ''} ${item.name || ''} ${item.origin_name || ''} ${item.original_name || ''}`;
+  const m = text.match(/(?:phần|mùa|season|ss|part)\s*(\d+)/i) ||
+            text.match(/-phan-(\d+)/i) ||
+            text.match(/-season-(\d+)/i) ||
+            text.match(/-ss-(\d+)/i);
+  if (m) return `season_${m[1]}`;
+  const sp = text.match(/bản đặc biệt\s*(\d+)?/i) || text.match(/-ban-dac-biet-(\d+)?/i);
+  if (sp) return `special_${sp[1] || '1'}`;
+  return 'season_none';
+}
+
 function isSameMovie(a, b) {
   if (!a || !b) return false;
   if (a.slug && b.slug && a.slug === b.slug) return true;
 
-  // 1. TMDB ID match
+  // Medium isolation: Anime and Non-anime are never the same movie
+  if ((a.type === 'hoathinh') !== (b.type === 'hoathinh')) return false;
+
+  // Season isolation: Different numbered seasons are never the same movie
+  const seasonA = extractSeasonIdentifier(a);
+  const seasonB = extractSeasonIdentifier(b);
+  if (seasonA !== seasonB) {
+    const isSeason1Candidate = (seasonA === 'season_1' && seasonB === 'season_none') ||
+                               (seasonA === 'season_none' && seasonB === 'season_1');
+    if (!isSeason1Candidate) return false;
+  }
+
+  // 1. TMDB ID match (only if valid positive ID)
   const tmdbA = extractTmdbId(a);
   const tmdbB = extractTmdbId(b);
   if (tmdbA && tmdbB && tmdbA === tmdbB) return true;
@@ -59,10 +88,10 @@ function isSameMovie(a, b) {
   if (normNameA && normOriginB && normNameA === normOriginB) return true;
   if (normOriginA && normNameB && normOriginA === normNameB) return true;
 
-  // 4. Slugs stripped of season/year suffix
+  // 4. Slugs stripped of year suffix (do not strip season)
   if (a.slug && b.slug) {
-    const slugCleanA = removeAccents(a.slug.replace(/-\d{4}$/, '').replace(/-phan-\d+$/, '').replace(/-/g, ' '));
-    const slugCleanB = removeAccents(b.slug.replace(/-\d{4}$/, '').replace(/-phan-\d+$/, '').replace(/-/g, ' '));
+    const slugCleanA = removeAccents(a.slug.replace(/-\d{4}$/, '').replace(/-/g, ' '));
+    const slugCleanB = removeAccents(b.slug.replace(/-\d{4}$/, '').replace(/-/g, ' '));
     if (slugCleanA && slugCleanB && slugCleanA === slugCleanB) return true;
   }
 
@@ -110,7 +139,8 @@ class KKPhimService {
     this.totalFetchedAt = 0;
     this.sourceStatus = 'unknown';
     this.pendingRequests = new Map();
-    for (const name of ['getHomeData', 'getMovieDetail']) {
+    this.metadataState = new Map();
+    for (const name of ['getHomeData', 'getMovieDetail', 'getCategoriesAndCountries']) {
       const load = this[name].bind(this);
       this[name] = (...args) => this.singleFlight(`${name}:${JSON.stringify(args)}`, () => load(...args));
     }
@@ -162,11 +192,6 @@ class KKPhimService {
 
     const hasSongNgu = Boolean(
       item.has_song_ngu || 
-      (typeof item.lang === 'string' && /song\s*ngữ/i.test(item.lang)) ||
-      (typeof item.quality === 'string' && /song\s*ngữ/i.test(item.quality)) ||
-      item.source === 'vicdn' ||
-      (typeof item.slug === 'string' && item.slug.startsWith('tv-')) ||
-      (typeof item.source_name === 'string' && /vicdn|song\s*ngữ/i.test(item.source_name)) ||
       (vicdnService && vicdnService.hasBilingualMatch(item))
     );
 
@@ -174,13 +199,13 @@ class KKPhimService {
       id: item._id || item.id || item.slug,
       name: item.name,
       slug: item.slug,
-      origin_name: item.origin_name || '',
+      origin_name: item.origin_name || item.original_name || '',
       poster_url: resolveUrl(item.poster_url),
       thumb_url: resolveUrl(item.thumb_url || item.poster_url),
-      year: item.year || (item.modified?.time ? new Date(item.modified.time).getFullYear() : 2024),
+      year: item.year || null,
       time: item.time || '',
-      quality: item.quality || 'FHD',
-      lang: item.lang || 'Vietsub',
+      quality: item.quality || '',
+      lang: item.lang || '',
       episode_current: item.episode_current || '',
       episode_total: item.episode_total || '',
       chieurap: item.chieurap === true || item.chieurap === 'true' || item.chieurap === 1,
@@ -188,6 +213,8 @@ class KKPhimService {
       category: Array.isArray(item.category) ? item.category : [],
       country: Array.isArray(item.country) ? item.country : [],
       content: item.content ? item.content.replace(/<[^>]*>?/gm, '').trim() : '',
+      view: Number(item.view) || 0,
+      imdb_rating: Number(item.imdb?.vote_average) || null,
       tmdb: item.tmdb || null,
       has_song_ngu: hasSongNgu
     };
@@ -209,7 +236,7 @@ class KKPhimService {
       });
       // Keep the deadline active while the response body is downloading too.
       if (!res.ok) {
-        throw new Error(`API request failed with status ${res.status}: ${url}`);
+        throw Object.assign(new Error(`API request failed with status ${res.status}: ${url}`), { status: res.status === 404 ? 404 : 503, upstreamStatus: res.status });
       }
       return await res.json();
     } finally {
@@ -244,19 +271,22 @@ class KKPhimService {
 
     try {
       const [latestRes, seriesRes, singleRes, animeRes, tvshowsRes] = await Promise.all([
-        this.fetchJson('/danh-sach/phim-moi-cap-nhat?page=1').catch(() => ({ items: [] })),
+        this.fetchJson('/v1/api/danh-sach/phim-moi-cap-nhat?page=1')
+          .catch(() => this.fetchJson('/danh-sach/phim-moi-cap-nhat?page=1'))
+          .catch(() => ({ data: { items: [] } })),
         this.fetchJson('/v1/api/danh-sach/phim-bo?page=1&limit=16').catch(() => ({ data: { items: [] } })),
         this.fetchJson('/v1/api/danh-sach/phim-le?page=1&limit=16').catch(() => ({ data: { items: [] } })),
         this.fetchJson('/v1/api/danh-sach/hoat-hinh?page=1&limit=16').catch(() => ({ data: { items: [] } })),
         this.fetchJson('/v1/api/danh-sach/tv-shows?page=1&limit=16').catch(() => ({ data: { items: [] } }))
       ]);
 
-      if (latestRes && latestRes.pagination?.totalItems) {
-        this.totalMovies = latestRes.pagination.totalItems;
-        this.totalPages = latestRes.pagination.totalPages;
+      const latestPagination = latestRes.data?.params?.pagination || latestRes.pagination;
+      if (latestPagination?.totalItems) {
+        this.totalMovies = latestPagination.totalItems;
+        this.totalPages = latestPagination.totalPages;
       }
 
-      const latestItems = (latestRes.items || []).map(i => this.normalizeMovieItem(i));
+      const latestItems = (latestRes.data?.items || latestRes.items || []).map(i => this.normalizeMovieItem(i, latestRes.data?.APP_DOMAIN_CDN_IMAGE));
       const seriesItems = (seriesRes.data?.items || []).map(i => this.normalizeMovieItem(i, seriesRes.data?.APP_DOMAIN_CDN_IMAGE));
       const singleItems = (singleRes.data?.items || []).map(i => this.normalizeMovieItem(i, singleRes.data?.APP_DOMAIN_CDN_IMAGE));
       const animeItems = (animeRes.data?.items || []).map(i => this.normalizeMovieItem(i, animeRes.data?.APP_DOMAIN_CDN_IMAGE));
@@ -278,7 +308,7 @@ class KKPhimService {
           pinnedCandidates = settings.featured_slugs.slice(0, 10).map(s => {
             if (typeof s === 'object' && s && s.slug) return s;
             return { slug: String(s) };
-          });
+          }).filter(item => !item.source || ['kkphim', 'vicdn'].includes(item.source));
         }
       } catch(e) {}
       // Ranking metadata does not depend on spotlight details; start both groups together.
@@ -288,7 +318,7 @@ class KKPhimService {
       // Tuyệt đối KHÔNG tự ý lấy phim chiếu rạp, phim bộ hay bất kỳ nguồn nào khác khi chưa ghim!
       const spotlightCandidates = pinnedCandidates;
 
-      // Fetch details for spotlights (hỗ trợ cả 3 nguồn: KKPhim, ViCDN Song Ngữ, NguonC)
+      // Fetch spotlight details from KKPhim or ViCDN.
       const spotlightList = await Promise.all(spotlightCandidates.slice(0, 10).map(async item => {
         try {
           const detail = await this.getMovieDetail(item.slug);
@@ -298,6 +328,10 @@ class KKPhimService {
               name: detail.movie.name || item.name || item.slug,
               slug: detail.movie.slug || item.slug,
               origin_name: detail.movie.origin_name || item.origin_name || '',
+              type: detail.movie.type || item.type || '',
+              tmdb: detail.movie.tmdb || item.tmdb || null,
+              tmdb_id: detail.movie.tmdb_id || item.tmdb_id || item.tmdbId || null,
+              tmdb_type: detail.movie.tmdb_type || item.tmdb_type || item.tmdbType || null,
               poster_url: detail.movie.poster_url || item.poster_url || '',
               thumb_url: detail.movie.thumb_url || detail.movie.poster_url || item.thumb_url || item.poster_url || '',
               year: detail.movie.year || item.year || 2026,
@@ -323,6 +357,10 @@ class KKPhimService {
             name: item.name || item.slug,
             slug: item.slug,
             origin_name: item.origin_name || '',
+            type: item.type || '',
+            tmdb: item.tmdb || null,
+            tmdb_id: item.tmdb_id || item.tmdbId || null,
+            tmdb_type: item.tmdb_type || item.tmdbType || null,
             poster_url: item.poster_url || '',
             thumb_url: item.thumb_url || item.poster_url || '',
             year: item.year || 2026,
@@ -388,13 +426,7 @@ class KKPhimService {
         const totalView = apiView + localView;
         return {
           ...item,
-          has_song_ngu: Boolean(
-            item.has_song_ngu || 
-            detail?.has_song_ngu || 
-            (typeof item.lang === 'string' && /song\s*ngữ/i.test(item.lang)) ||
-            (detail && typeof detail.lang === 'string' && /song\s*ngữ/i.test(detail.lang)) ||
-            (vicdnService && vicdnService.hasBilingualMatch(item))
-          ),
+          has_song_ngu: Boolean(item.has_song_ngu || detail?.has_song_ngu || (vicdnService && vicdnService.hasBilingualMatch(item))),
           quality: detail?.quality || item.quality || 'FHD',
           year: detail?.year || item.year || 2026,
           real_views: totalView,
@@ -457,15 +489,17 @@ class KKPhimService {
             }
           } catch (kkErr) {}
 
-          try {
-            const nguoncServers = await nguoncService.getServers(viCdnDirect.movie);
-            if (nguoncServers && nguoncServers.length > 0) {
-              viCdnDirect.episodes.push(...nguoncServers);
-              console.log(`[ViCDN+NguonC] Attached ${nguoncServers.length} NguonC server(s) to "${viCdnDirect.movie.name}"`);
-            }
-          } catch(e) {}
           this.cache.set(cacheKey, viCdnDirect, config.CACHE_TTL.DETAIL);
           return viCdnDirect;
+        }
+      }
+
+      // If slug is explicitly NguonC (starts with nc-)
+      if (slug.startsWith('nc-')) {
+        const nguoncDirect = await nguoncService.getMovieDetail(slug);
+        if (nguoncDirect) {
+          this.cache.set(cacheKey, nguoncDirect, config.CACHE_TTL.DETAIL);
+          return nguoncDirect;
         }
       }
 
@@ -476,38 +510,23 @@ class KKPhimService {
         // Fallback 1: check if slug exists directly in ViCDN
         const viCdnDirect = await vicdnService.getMovieDetail(slug);
         if (viCdnDirect) {
-          try {
-            const nguoncServers = await nguoncService.getServers(viCdnDirect.movie);
-            if (nguoncServers && nguoncServers.length > 0) {
-              viCdnDirect.episodes.push(...nguoncServers);
-            }
-          } catch(e) {}
           this.cache.set(cacheKey, viCdnDirect, config.CACHE_TTL.DETAIL);
           return viCdnDirect;
         }
 
         // Fallback 2: check if slug exists directly in NguonC
-        const nguonCDirect = await nguoncService.getMovieDetail(slug);
-        if (nguonCDirect) {
-          try {
-            const bilingualServer = await vicdnService.getBilingualServer(nguonCDirect.movie);
-            if (bilingualServer && bilingualServer.server_data && bilingualServer.server_data.length > 0) {
-              nguonCDirect.episodes.push(bilingualServer);
-              nguonCDirect.movie.has_song_ngu = true;
-              if (!nguonCDirect.movie.lang.toLowerCase().includes('song ngữ')) {
-                nguonCDirect.movie.lang = `${nguonCDirect.movie.lang} + Song Ngữ`;
-              }
-            }
-          } catch(e) {}
-          this.cache.set(cacheKey, nguonCDirect, config.CACHE_TTL.DETAIL);
-          return nguonCDirect;
+        const nguoncDirect = await nguoncService.getMovieDetail(slug);
+        if (nguoncDirect) {
+          this.cache.set(cacheKey, nguoncDirect, config.CACHE_TTL.DETAIL);
+          return nguoncDirect;
         }
 
         throw err;
       }
 
       if (!data || !data.movie) {
-        throw new Error('Movie not found');
+        const absent = data?.status === false && /not found|not available|không tồn tại|không tìm thấy/i.test(String(data.msg || data.message || ''));
+        throw Object.assign(new Error('Movie not found'), { status: absent ? 404 : 503 });
       }
 
       const m = data.movie;
@@ -540,6 +559,8 @@ class KKPhimService {
         category: Array.isArray(m.category) ? m.category : [],
         country: Array.isArray(m.country) ? m.country : [],
         tmdb: m.tmdb || null,
+        tmdb_id: m.tmdb_id || m.tmdbId || null,
+        tmdb_type: m.tmdb_type || m.tmdbType || null,
         imdb: m.imdb || null,
         alternative_names: m.alternative_names || []
       };
@@ -571,10 +592,10 @@ class KKPhimService {
         console.warn(`[ViCDN] Error merging bilingual server for ${slug}:`, vicdnErr.message);
       }
 
-      // Merge NguonC Servers if available!
+      // Merge NguonC Server(s) if available!
       try {
-        const nguoncServers = await nguoncService.getServers(movie);
-        if (nguoncServers && nguoncServers.length > 0) {
+        const nguoncServers = await nguoncService.getNguoncServers(movie);
+        if (Array.isArray(nguoncServers) && nguoncServers.length > 0) {
           episodes.push(...nguoncServers);
           console.log(`[KKPhim+NguonC] Attached ${nguoncServers.length} NguonC server(s) to "${movie.name}"`);
         }
@@ -608,202 +629,175 @@ class KKPhimService {
     }
   }
 
-  async getCatalog({ type, category, country, year, sort, page = 1, keyword, limit = 30 }) {
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 30;
-
+  async getCatalog({ type, category, country, year, format, sort, page = 1, keyword = '', limit = 30 } = {}) {
+    const pageNum = Math.max(1, Math.min(10000, parseInt(page, 10) || 1));
+    const limitNum = Math.max(1, Math.min(60, parseInt(limit, 10) || 30));
+    const filters = { type, category, country, year, format, sort };
+    const trimmed = String(keyword).trim().slice(0, 200);
+    if (type === 'song-ngu') return vicdnService.getCatalog({ ...filters, page: pageNum, limit: limitNum, keyword: trimmed });
+    const active = value => value && value !== 'all';
+    const matches = item => {
+      const query = searchText(trimmed);
+      if (trimmed && !query) return false;
+      if (query && ![item.name, item.origin_name, item.original_name, item.slug].some(value => searchText(value).includes(query))) return false;
+      if (!require('./catalogFormat')(item, format)) return false;
+      const types = { 'phim-bo': 'series', 'phim-le': 'single', 'hoat-hinh': 'hoathinh', 'tv-shows': 'tvshows' };
+      if (active(type) && (['chieu-rap', 'phim-chieu-rap'].includes(type) ? !item.chieurap : item.type !== type && item.type !== types[type])) return false;
+      if (active(category) && !(item.category || []).some(value => removeAccents(value.slug || value.name) === removeAccents(category))) return false;
+      if (active(country) && !(item.country || []).some(value => removeAccents(value.slug || value.name) === removeAccents(country))) return false;
+      return !active(year) || (year === 'pre-2020' ? Number(item.year) > 0 && Number(item.year) < 2020 : String(item.year) === String(year));
+    };
+    const params = new URLSearchParams();
+    if (active(category)) params.set('category', category);
+    if (active(country)) params.set('country', country);
+    if (active(year) && year !== 'pre-2020') params.set('year', year);
+    if (active(type)) params.set('type', type === 'chieu-rap' ? 'phim-chieu-rap' : type);
+    params.set('sort_field', ['year', 'released'].includes(sort) ? 'year' : ['view', 'views'].includes(sort) ? 'view' : sort === 'rating' ? 'imdb.vote_average' : 'modified.time');
+    params.set('sort_type', 'desc');
+    const bounded = !!trimmed || active(format) || [type, category, country, year].filter(active).length > 1 || year === 'pre-2020';
+    const cacheKey = `search_v4:${JSON.stringify({ trimmed, ...filters })}`;
+    const paginate = snapshot => ({
+      items: snapshot.items.slice((pageNum - 1) * limitNum, pageNum * limitNum),
+      pagination: { totalItems: snapshot.items.length, totalItemsPerPage: limitNum, currentPage: pageNum, totalPages: Math.max(1, Math.ceil(snapshot.items.length / limitNum)) },
+      searchInfo: snapshot.searchInfo
+    });
     try {
-      let endpoint = '';
-      let isV1 = true;
-
-      if (keyword && keyword.trim()) {
-        const trimmed = keyword.trim();
-        const [kkRes, vicdnMatches, nguoncMatches] = await Promise.all([
-          this.fetchJson(`/v1/api/tim-kiem?keyword=${encodeURIComponent(trimmed)}&limit=${limitNum}&page=${pageNum}`).catch(() => null),
-          (pageNum === 1) ? Promise.resolve(vicdnService.searchViCdn(trimmed)) : Promise.resolve([]),
-          (pageNum === 1) ? nguoncService.search(trimmed).catch(() => []) : Promise.resolve([])
-        ]);
-
-        const cdn = kkRes?.data?.APP_DOMAIN_CDN_IMAGE || this.cdnUrl;
-        const kkItems = (kkRes?.data?.items || []).map(i => this.normalizeMovieItem(i, cdn));
-        const combined = [...kkItems];
-
-        for (const viItem of vicdnMatches) {
-          const existing = combined.find(item => isSameMovie(item, viItem));
-          if (existing) {
-            existing.has_song_ngu = true;
-          } else {
-            combined.push(viItem);
-          }
-        }
-
-        for (const nguonItem of nguoncMatches) {
-          const existing = combined.find(item => isSameMovie(item, nguonItem));
-          if (existing) {
-            if (!existing.has_song_ngu && vicdnService.hasBilingualMatch(nguonItem)) {
-              existing.has_song_ngu = true;
-            }
-          } else {
-            if (vicdnService.hasBilingualMatch(nguonItem)) {
-              nguonItem.has_song_ngu = true;
-            }
-            combined.push(nguonItem);
-          }
-        }
-
-        const totalItems = (kkRes?.data?.params?.pagination?.totalItems || kkItems.length) +
-          (combined.length - kkItems.length);
-        const pagination = {
-          totalItems,
-          totalItemsPerPage: limitNum,
-          currentPage: pageNum,
-          totalPages: Math.ceil(totalItems / limitNum) || 1
-        };
-
-        return { items: combined, pagination };
-      } else if (category && category !== 'all') {
-        endpoint = `/v1/api/the-loai/${category}?page=${pageNum}&limit=${limitNum}`;
-      } else if (country && country !== 'all') {
-        endpoint = `/v1/api/quoc-gia/${country}?page=${pageNum}&limit=${limitNum}`;
-      } else if (year && year !== 'all') {
-        endpoint = `/v1/api/nam/${year}?page=${pageNum}&limit=${limitNum}`;
-      } else if (type && type !== 'all') {
-        const typeSlug = (type === 'chieu-rap' || type === 'phim-chieu-rap') ? 'phim-chieu-rap' : type;
-        endpoint = `/v1/api/danh-sach/${typeSlug}?page=${pageNum}&limit=${limitNum}`;
-      } else {
-        endpoint = `/v1/api/danh-sach/phim-moi-cap-nhat?page=${pageNum}&limit=${limitNum}`;
-        isV1 = true;
-      }
-
-      const res = await this.fetchJson(endpoint);
-
-      let items = [];
-      let pagination = {
-        totalItems: 0,
-        totalItemsPerPage: limitNum,
-        currentPage: pageNum,
-        totalPages: 1
-      };
-
-      if (isV1) {
-        const cdn = res.data?.APP_DOMAIN_CDN_IMAGE || this.cdnUrl;
-        items = (res.data?.items || []).map(i => this.normalizeMovieItem(i, cdn));
-        if (res.data?.params?.pagination) {
-          pagination = {
-            totalItems: res.data.params.pagination.totalItems || items.length,
-            totalItemsPerPage: res.data.params.pagination.totalItemsPerPage || limitNum,
-            currentPage: res.data.params.pagination.currentPage || pageNum,
-            totalPages: res.data.params.pagination.totalPages || Math.ceil((res.data.params.pagination.totalItems || items.length) / limitNum) || 1
+      if (bounded) {
+        const cached = this.cache.get(cacheKey);
+        if (cached) return paginate(cached);
+        const snapshot = await this.singleFlight(cacheKey, async () => {
+          const combined = [];
+          let successes = 0;
+          let failures = 0;
+          let limited = false;
+          const merge = item => {
+            if (!matches(item)) return;
+            const existing = combined.find(value => isSameMovie(value, item));
+            if (existing) existing.has_song_ngu = existing.has_song_ngu || item.has_song_ngu;
+            else combined.push(item);
           };
-        }
-      } else {
-        items = (res.items || []).map(i => this.normalizeMovieItem(i));
-        if (res.pagination) {
-          pagination = res.pagination;
-        }
+          const load = async (query, latest = false) => {
+            for (let p = 1; p <= (latest ? 2 : 4); p++) {
+              const queryParams = new URLSearchParams(params);
+              queryParams.set('page', p);
+              queryParams.set('limit', 60);
+              if (query) queryParams.set('keyword', query);
+              try {
+                const browsePath = active(type) ? `danh-sach/${encodeURIComponent(type === 'chieu-rap' ? 'phim-chieu-rap' : type)}` : active(category) ? `the-loai/${encodeURIComponent(category)}` : active(country) ? `quoc-gia/${encodeURIComponent(country)}` : 'danh-sach/phim-moi-cap-nhat';
+                const res = await this.fetchJson(`/v1/api/${query && !latest ? 'tim-kiem' : browsePath}?${queryParams}`, { timeout: 2000 });
+                if (res.status === false || !Array.isArray(res.data?.items)) throw new Error('Invalid catalog response');
+                successes++;
+                res.data.items.forEach(item => merge(this.normalizeMovieItem(item, res.data.APP_DOMAIN_CDN_IMAGE)));
+                const pagination = res.data.params?.pagination || {};
+                const providerPageSize = Number(pagination.totalItemsPerPage) || res.data.items.length || 60;
+                const totalPages = Number(pagination.totalPages) || Math.ceil(Number(pagination.totalItems) / providerPageSize);
+                if (!res.data.items.length || (totalPages ? p >= totalPages : res.data.items.length < 60)) break;
+                limited = true;
+              } catch (_) { failures++; break; }
+            }
+          };
+          // Providers do not guarantee accent-insensitive lookup; query a folded variant too.
+          const folded = trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+          await load(trimmed);
+          if (trimmed && folded.toLowerCase() !== trimmed.toLowerCase()) await load(folded);
+          if (trimmed && !combined.length) { await load('', true); limited = true; }
+          if (trimmed) {
+            const bilingual = await vicdnService.searchViCdn(trimmed, { unlimited: true }).catch(() => { failures++; return []; });
+            if (vicdnService.searchSyncUnavailable) failures++;
+            bilingual.forEach(merge);
+          }
+          if ((!successes || failures) && !combined.length) throw new Error('Catalog provider unavailable');
+          if (['year', 'released'].includes(sort)) combined.sort((a, b) => (Number(b.year) || 0) - (Number(a.year) || 0));
+          else if (['view', 'views'].includes(sort)) combined.sort((a, b) => (b.view || 0) - (a.view || 0));
+          else if (sort === 'rating') combined.sort((a, b) => (b.imdb_rating || 0) - (a.imdb_rating || 0));
+          const searchInfo = {
+            limited: limited || !!trimmed, partial: failures > 0,
+            message: 'Kết quả trong phạm vi dữ liệu nhà cung cấp trả về và chỉ mục Song Ngữ đã đồng bộ; không phải toàn bộ kho phim.'
+          };
+          const result = { items: combined, searchInfo };
+          const keys = [...this.cache.cache.keys()].filter(key => key.startsWith('search_v4:'));
+          if (keys.length >= 100) this.cache.delete(keys[0]);
+          if (!failures && combined.length) this.cache.set(cacheKey, result, 60000);
+          return result;
+        });
+        return paginate(snapshot);
       }
-
-      // Sort logic if requested
-      if (sort === 'year') {
-        items.sort((a, b) => (b.year || 0) - (a.year || 0));
-      } else if (sort === 'view') {
-        // preserve or shuffle ranking
-      }
-
-      return { items, pagination };
+      let path = 'danh-sach/phim-moi-cap-nhat';
+      if (active(category)) path = `the-loai/${encodeURIComponent(category)}`;
+      else if (active(country)) path = `quoc-gia/${encodeURIComponent(country)}`;
+      else if (active(year)) path = `nam/${encodeURIComponent(year)}`;
+      else if (active(type)) path = `danh-sach/${encodeURIComponent(type === 'chieu-rap' ? 'phim-chieu-rap' : type)}`;
+      params.set('page', pageNum);
+      params.set('limit', limitNum);
+      const res = await this.fetchJson(`/v1/api/${path}?${params}`);
+      if (res.status === false || !Array.isArray(res.data?.items)) throw new Error('Invalid catalog response');
+      const items = res.data.items.map(item => this.normalizeMovieItem(item, res.data.APP_DOMAIN_CDN_IMAGE));
+      const pagination = res.data.params?.pagination || {};
+      const totalItems = Number(pagination.totalItems) || items.length;
+      return { items, pagination: { totalItems, totalItemsPerPage: limitNum, currentPage: pageNum, totalPages: Number(pagination.totalPages) || Math.max(1, Math.ceil(totalItems / limitNum)) } };
     } catch (err) {
-      console.error('Error in getCatalog:', err);
-      return {
-        items: [],
-        pagination: { totalItems: 0, totalItemsPerPage: limitNum, currentPage: pageNum, totalPages: 1 }
-      };
+      console.warn('[Catalog] Provider unavailable:', err.message);
+      return { items: [], error: 'provider_unavailable', searchInfo: { unavailable: true }, pagination: { totalItems: 0, totalItemsPerPage: limitNum, currentPage: pageNum, totalPages: 1 } };
     }
+  }
+
+  async getMetadataList(name, endpoint) {
+    const cacheKey = `metadata_${name}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) return { items: cached, available: true };
+
+    const previous = this.metadataState.get(name);
+    if (previous && Date.now() < previous.retryAt) {
+      return { items: previous.items || [], available: previous.items !== null, error: 'provider_unavailable' };
+    }
+
+    return this.singleFlight(cacheKey, async () => {
+      try {
+        const response = await this.fetchJson(endpoint);
+        if (response?.status === false || !Array.isArray(response?.data?.items)) {
+          throw new Error('Invalid metadata response');
+        }
+        const items = response.data.items.map(item => ({ id: item._id || item.id, name: item.name, slug: item.slug }));
+        this.cache.set(cacheKey, items, config.CACHE_TTL.CATEGORIES);
+        this.metadataState.set(name, { items, retryAt: 0 });
+        return { items, available: true };
+      } catch (error) {
+        // Keep each last successful list independently; failures retry after 30 seconds, not 24 hours.
+        const items = previous?.items ?? null;
+        this.metadataState.set(name, { items, retryAt: Date.now() + 30000 });
+        return { items: items || [], available: items !== null, error: 'provider_unavailable' };
+      }
+    });
   }
 
   async getCategoriesAndCountries() {
-    const cacheKey = 'metadata_cats_countries';
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
-    try {
-      const [catsRes, countriesRes] = await Promise.all([
-        this.fetchJson('/v1/api/the-loai').catch(() => ({ data: { items: [] } })),
-        this.fetchJson('/v1/api/quoc-gia').catch(() => ({ data: { items: [] } }))
-      ]);
-
-      const categories = (catsRes.data?.items || []).map(c => ({
-        id: c._id || c.id,
-        name: c.name,
-        slug: c.slug
-      }));
-
-      const countries = (countriesRes.data?.items || []).map(c => ({
-        id: c._id || c.id,
-        name: c.name,
-        slug: c.slug
-      }));
-
-      const result = { categories, countries };
-      this.cache.set(cacheKey, result, config.CACHE_TTL.CATEGORIES);
-      return result;
-    } catch (err) {
-      console.error('Error fetching categories & countries:', err);
-      return { categories: [], countries: [] };
+    const [categories, countries] = await Promise.all([
+      this.getMetadataList('categories', '/v1/api/the-loai'),
+      this.getMetadataList('countries', '/v1/api/quoc-gia')
+    ]);
+    const result = { categories: categories.items, countries: countries.items };
+    const errors = {};
+    const stale = [];
+    for (const [name, metadata] of Object.entries({ categories, countries })) {
+      if (!metadata.error) continue;
+      errors[name] = metadata.error;
+      if (metadata.available) stale.push(name);
     }
+    if (Object.keys(errors).length) {
+      Object.assign(result, {
+        error: 'provider_unavailable',
+        partial: categories.available || countries.available,
+        errors,
+        stale
+      });
+    }
+    return result;
   }
 
   async quickSearch(keyword) {
-    if (!keyword || !keyword.trim()) return [];
-    try {
-      const trimmed = keyword.trim();
-      const [kkRes, vicdnMatches, nguoncMatches] = await Promise.all([
-        this.fetchJson(`/v1/api/tim-kiem?keyword=${encodeURIComponent(trimmed)}&limit=8`).catch(() => null),
-        Promise.resolve(vicdnService.searchViCdn(trimmed)),
-        nguoncService.search(trimmed).catch(() => [])
-      ]);
-
-      const cdn = kkRes?.data?.APP_DOMAIN_CDN_IMAGE || this.cdnUrl;
-      const kkItems = (kkRes?.data?.items || []).map(i => this.normalizeMovieItem(i, cdn));
-      const combined = [...kkItems];
-
-      // 1. Merge ViCDN matches:
-      for (const viItem of vicdnMatches) {
-        const existing = combined.find(item => isSameMovie(item, viItem));
-        if (existing) {
-          existing.has_song_ngu = true;
-          if (!existing.quality || existing.quality === 'FHD') {
-            existing.quality = 'FHD • Song Ngữ';
-          }
-        } else {
-          combined.push(viItem);
-        }
-      }
-
-      // 2. Merge NguonC matches:
-      for (const nguonItem of nguoncMatches) {
-        const existing = combined.find(item => isSameMovie(item, nguonItem));
-        if (existing) {
-          if (!existing.has_song_ngu && vicdnService.hasBilingualMatch(nguonItem)) {
-            existing.has_song_ngu = true;
-            if (!existing.quality || existing.quality === 'FHD') {
-              existing.quality = 'FHD • Song Ngữ';
-            }
-          }
-        } else {
-          if (vicdnService.hasBilingualMatch(nguonItem)) {
-            nguonItem.has_song_ngu = true;
-            if (!nguonItem.quality || nguonItem.quality === 'HD' || nguonItem.quality === 'FHD') {
-              nguonItem.quality = 'FHD • Song Ngữ';
-            }
-          }
-          combined.push(nguonItem);
-        }
-      }
-
-      return combined.slice(0, 8);
-    } catch (e) {
-      return [];
-    }
+    if (!keyword || !String(keyword).trim()) return [];
+    const result = await this.getCatalog({ keyword, page: 1, limit: 8 });
+    return result.items;
   }
 
   async searchMovies(keyword, page = 1, limit = 30) {
@@ -815,5 +809,9 @@ class KKPhimService {
   }
 }
 
-module.exports = new KKPhimService();
+const kkphimInstance = new KKPhimService();
+kkphimInstance.isSameMovie = isSameMovie;
+kkphimInstance.extractSeasonIdentifier = extractSeasonIdentifier;
+
+module.exports = kkphimInstance;
 

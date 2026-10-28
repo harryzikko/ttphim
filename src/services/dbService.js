@@ -1,7 +1,20 @@
 const fs = require('fs').promises;
 const path = require('path');
 const config = require('../config');
-const { hashPassword, verifyPassword, publicUser } = require('./passwordService');
+const { hashPassword, verifyPassword, passwordValid, publicUser } = require('./passwordService');
+const lockfile = require('proper-lockfile');
+const { validateDatabase } = require('./dbSchema');
+const sessionEvents = require('./sessionEvents');
+
+async function atomicReplace(source, destination) {
+  for (let attempt = 0; ; attempt++) {
+    try { return await fs.rename(source, destination); }
+    catch (error) {
+      if (process.platform !== 'win32' || !['EPERM', 'EACCES', 'EBUSY'].includes(error.code) || attempt >= 7) throw error;
+      await new Promise(resolve => setTimeout(resolve, Math.min(200, 10 * 2 ** attempt)));
+    }
+  }
+}
 
 function formatEpBadge(epName) {
   if (!epName) return 'Tập 01';
@@ -21,14 +34,24 @@ function formatEpBadge(epName) {
 class DbService {
   constructor() {
     this.dbPath = config.DB_PATH;
+    this.store = config.DATABASE_URL ? new (require('./postgresStore').PostgresStore)(config.DATABASE_URL) : null;
     this.cache = null;
     this.operationQueue = Promise.resolve();
     // Serialize complete read-modify-write operations, not just file writes.
     for (const name of Object.getOwnPropertyNames(DbService.prototype)) {
-      if (['constructor', 'read', 'write'].includes(name)) continue;
+      if (['constructor', 'read', 'write', 'close'].includes(name)) continue;
       const operation = this[name].bind(this);
       this[name] = (...args) => {
-        const result = this.operationQueue.then(() => operation(...args));
+        const result = this.operationQueue.then(async () => {
+          if (this.store) return this.store.transaction(() => operation(...args));
+          await fs.mkdir(path.dirname(this.dbPath), { recursive: true });
+          const release = await lockfile.lock(this.dbPath, {
+            realpath: false, stale: 30000, update: 10000,
+            retries: { retries: 100, minTimeout: 10, maxTimeout: 100, factor: 1.2, randomize: true }
+          });
+          try { return await operation(...args); }
+          finally { await release(); }
+        });
         this.operationQueue = result.catch(() => {});
         return result;
       };
@@ -36,15 +59,17 @@ class DbService {
   }
 
   async read() {
+    if (this.store) return validateDatabase(await this.store.read());
     try {
       const data = await fs.readFile(this.dbPath, 'utf8');
       if (data && data.trim()) {
-        this.cache = JSON.parse(data);
+        this.cache = validateDatabase(JSON.parse(data));
         return this.cache;
       }
       throw new Error('Database file is empty');
     } catch (err) {
       if (err.code === 'ENOENT') {
+        if (config.IS_PRODUCTION) throw new Error('Production database must be provisioned before startup');
         const initial = { users: [], watchlist: [], history: [], comments: [] };
         await this.write(initial);
         return initial;
@@ -54,15 +79,28 @@ class DbService {
   }
 
   async write(data) {
+    if (this.store) return this.store.write(validateDatabase(data));
     const tmpPath = `${this.dbPath}.${require('crypto').randomUUID()}.tmp`;
     try {
-      await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf8');
-      await fs.rename(tmpPath, this.dbPath);
+      await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+      await atomicReplace(tmpPath, this.dbPath);
       this.cache = data;
     } finally {
       await fs.unlink(tmpPath).catch(() => {});
     }
     return data;
+  }
+
+  async mutate(update) {
+    const data = await this.read();
+    const result = await update(data);
+    await this.write(data);
+    return result;
+  }
+
+  async close() {
+    await this.operationQueue;
+    await this.store?.close();
   }
 
   // --- User operations ---
@@ -87,7 +125,9 @@ class DbService {
     return publicUser(user);
   }
 
-  async createUser({ email, password, name }) {
+  async createUser({ email, password, name, gender }) {
+    if (!passwordValid(password)) throw new Error('Mật khẩu cần 6–256 ký tự');
+    if (!require('./defaultAvatars').validGender(gender)) throw new Error('Giới tính không hợp lệ');
     const db = await this.read();
     if (db.users.some(u => u.email.toLowerCase() === email.trim().toLowerCase())) {
       throw new Error('Email này đã được sử dụng');
@@ -97,7 +137,8 @@ class DbService {
       email: email.trim(),
       password: await hashPassword(password),
       name: name || email.split('@')[0],
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8',
+      ...(gender != null && { gender }),
+      avatar: require('./defaultAvatars').avatarForGender(gender),
       role: 'user',
       created_at: new Date().toISOString()
     };
@@ -110,13 +151,32 @@ class DbService {
     const db = await this.read();
     const index = db.users.findIndex(u => u.id === id);
     if (index === -1) return null;
-    const safeUpdates = { ...updates };
-    delete safeUpdates.id;
+    const allowed = new Set(['name', 'avatar', 'email', 'password', 'role', 'is_vip', 'vip_tier', 'vip_level', 'vip_expire_date', 'days_left', 'max_devices']);
+    const safeUpdates = Object.fromEntries(Object.entries(updates).filter(([key]) => allowed.has(key)));
+    if (safeUpdates.role && !['user', 'admin'].includes(safeUpdates.role)) throw new Error('Invalid role');
+    if (safeUpdates.role && safeUpdates.role !== 'admin' && db.users[index].role === 'admin' && db.users.filter(item => item.role === 'admin' && !item.blocked).length <= 1) {
+      throw new Error('Cannot demote the last active administrator');
+    }
     if (Object.hasOwn(safeUpdates, 'password')) {
+      if (!passwordValid(safeUpdates.password)) throw new Error('Mật khẩu cần 6–256 ký tự');
       safeUpdates.password = await hashPassword(safeUpdates.password);
+      safeUpdates.token_version = (db.users[index].token_version || 0) + 1;
+    }
+    if (Object.hasOwn(safeUpdates, 'role') && safeUpdates.role !== db.users[index].role) {
+      safeUpdates.token_version = (db.users[index].token_version || 0) + 1;
+    }
+    if (Object.hasOwn(safeUpdates, 'email')) {
+      if (typeof safeUpdates.email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeUpdates.email.trim())) throw new Error('Invalid email');
+      safeUpdates.email = safeUpdates.email.trim().toLowerCase();
+      if (db.users.some(user => user.id !== id && user.email.toLowerCase() === safeUpdates.email)) throw new Error('Email is already in use');
+      if (safeUpdates.email !== db.users[index].email.toLowerCase()) {
+        safeUpdates.email_verified = false; safeUpdates.email_verified_at = null;
+        safeUpdates.token_version = (db.users[index].token_version || 0) + 1;
+      }
     }
     db.users[index] = { ...db.users[index], ...safeUpdates };
     await this.write(db);
+    if (Object.hasOwn(safeUpdates, 'token_version')) sessionEvents.emit('revoked', id);
     return db.users[index];
   }
 
@@ -186,7 +246,8 @@ class DbService {
         year: movieData.year || new Date().getFullYear(),
         quality: movieData.quality || 'FHD',
         lang: movieData.lang || 'Vietsub',
-        category: movieData.category || 'Điện ảnh',
+        type: ['single', 'series', 'tv', 'movie', 'phim-bo', 'phim-le', 'hoathinh', 'tvshows'].includes(movieData.type) ? movieData.type : '',
+        category: Array.isArray(movieData.category) ? movieData.category.filter(item => typeof item === 'string' && item.length <= 100).slice(0, 20) : (typeof movieData.category === 'string' ? movieData.category.slice(0, 100) : ''),
         added_at: new Date().toISOString()
       };
       db.watchlist.unshift(item);
@@ -219,6 +280,8 @@ class DbService {
     if (!db.history) db.history = [];
 
     const existingIndex = db.history.findIndex(h => h.user_id === userId && h.movie_slug === data.movie_slug);
+    const previous = existingIndex >= 0 ? db.history[existingIndex] : null;
+    const progressed = Number(data.current_time) > 0 && Number(data.duration) > 0 && (!previous || (data.episode_slug || 'tap-1') !== previous.episode_slug || Math.round(Number(data.current_time)) !== previous.current_time);
     const historyItem = {
       id: existingIndex > -1 ? db.history[existingIndex].id : 'hist_' + Date.now(),
       user_id: userId,
@@ -227,12 +290,15 @@ class DbService {
       origin_name: data.origin_name || '',
       poster_url: data.poster_url || '',
       thumb_url: data.thumb_url || '',
+      category: (Array.isArray(data.category) ? data.category : (existingIndex >= 0 && Array.isArray(db.history[existingIndex].category) ? db.history[existingIndex].category : [])).filter(item => typeof item === 'string' && item.length <= 100).slice(0, 20),
+      type: ['single', 'series', 'tv', 'movie', 'phim-bo', 'phim-le', 'hoathinh', 'tvshows'].includes(data.type) ? data.type : (existingIndex >= 0 ? db.history[existingIndex].type || '' : ''),
       episode_slug: data.episode_slug || 'tap-1',
       server_name: typeof data.server_name === 'string' ? data.server_name : '',
       episode_name: formatEpBadge(data.episode_name),
       current_time: Math.round(data.current_time || 0),
       duration: Math.round(data.duration || 0),
-      progress_percent: data.duration > 0 ? Math.min(100, Math.max(1, Math.round(((data.current_time || 0) / data.duration) * 100))) : 5,
+      progress_percent: data.duration > 0 ? Math.min(100, Math.max(0, Math.round(((data.current_time || 0) / data.duration) * 100))) : 0,
+      continue_hidden: previous?.continue_hidden === true && !progressed,
       updated_at: new Date().toISOString()
     };
 
@@ -253,6 +319,15 @@ class DbService {
     return historyItem;
   }
 
+  async setContinueVisibility(userId, movieSlug, hidden) {
+    const db = await this.read();
+    const item = (db.history || []).find(record => record.user_id === userId && record.movie_slug === movieSlug);
+    if (!item) throw Object.assign(new Error('Không tìm thấy lịch sử của phim trong tài khoản này'), { status: 404 });
+    item.continue_hidden = hidden;
+    await this.write(db);
+    return { user_id: userId, movie_slug: movieSlug, continue_hidden: hidden };
+  }
+
   async removeFromHistory(userId, movieSlug) {
     const db = await this.read();
     db.history = (db.history || []).filter(h => !(h.user_id === userId && h.movie_slug === movieSlug));
@@ -268,32 +343,45 @@ class DbService {
   }
 
   // --- Comments operations ---
-  async getComments(movieSlug) {
+  async getComments(movieSlug, viewerId = null) {
     try {
       const db = await this.read();
-      const list = (db.comments || []).filter(c => c.movie_slug === movieSlug || c.movie_slug === 'default');
+      const reactionView = item => {
+        const { liked_by, reaction_base, ...result } = item;
+        const owner = db.users.find(user => user.id === item.user_id);
+        return { ...result, ...(owner ? { user_avatar: require('./defaultAvatars').avatarFor(owner) } : {}), liked: Boolean(viewerId && Array.isArray(liked_by) && liked_by.includes(viewerId)) };
+      };
+      const list = (db.comments || []).filter(c => !c.hidden && c.movie_slug === movieSlug);
       return list.map(c => ({
-        ...c,
-        replies: c.replies || []
+        ...reactionView(c),
+        user_role: db.users.find(user => user.id === c.user_id)?.role === 'admin' ? 'admin' : 'user',
+        content: require('./commentFormatting').removeTimestampPrefix(c.content, c.timestamp_tag),
+        replies: (c.replies || []).filter(reply => !reply.hidden).map(reactionView)
       }));
     } catch (e) {
       return [];
     }
   }
 
-  async addComment({ movieSlug, userName, userAvatar, isVip, content, timestampTag, rating, isSpoil }) {
+  async addComment({ movieSlug, userId, userName, userAvatar, isVip, content, timestampTag, episodeSlug, rating, isSpoil }) {
     const db = await this.read();
     if (!db.comments) db.comments = [];
+    if (userId) {
+      const recent = db.comments.filter(item => item.user_id === userId && Date.now() - Date.parse(item.created_at) < 60000);
+      if (recent.length >= 5 || recent.some(item => item.content === content.trim())) throw Object.assign(new Error('Comment rate exceeded'), { status: 429 });
+    }
 
     const newComment = {
       id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       movie_slug: movieSlug,
+      user_id: userId || null,
       user_name: userName || 'Khán giả KKPhim',
-      user_avatar: userAvatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPbHo0WbRHUQwGQOjadraD_tAk7XQUGjJQPQDSvK5RZfRCVSUufHkI5ytr1RnoudWNDKzqxm86HwkNOfZhdJ6gH5wUBF8Hu6sx3uE-8dvCv61CH5Sl6_6rcVCCUeOGM4Ub3reCBWB2-ittRPKQslAi-yOnv0WlNzjOskqtQAYGefgmgohy9WNwv1lISujIp8aIK3M0rynROP6yxRZcTMSyWswRJsdzf7K4DhDzjq8',
+      user_avatar: userAvatar || '/images/avatar-default.svg',
       is_vip: Boolean(isVip),
       content: content.trim(),
       timestamp_tag: timestampTag || null,
-      rating: rating ? parseInt(rating, 10) : 5,
+      episode_slug: episodeSlug || null,
+      rating: rating == null ? null : Math.min(5, Math.max(1, Number.parseInt(rating, 10))),
       is_spoil: Boolean(isSpoil),
       likes: 0,
       created_at: new Date().toISOString(),
@@ -305,18 +393,22 @@ class DbService {
     return newComment;
   }
 
-  async addReply(commentId, { userName, userAvatar, content }) {
+  async addReply(commentId, { userId, userName, userAvatar, content }) {
     const db = await this.read();
     if (!db.comments) db.comments = [];
 
     const comment = db.comments.find(c => c.id === commentId);
-    if (!comment) return null;
+    if (!comment || comment.hidden) return null;
 
     if (!comment.replies) comment.replies = [];
+    if (userId && comment.replies.filter(item => item.user_id === userId && Date.now() - Date.parse(item.created_at) < 60000).length >= 5) {
+      throw Object.assign(new Error('Reply rate exceeded'), { status: 429 });
+    }
 
     const newReply = {
       id: 'rep_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       comment_id: commentId,
+      user_id: userId || null,
       user_name: userName || 'Khán giả KKPhim',
       user_avatar: userAvatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCSbujeZINk45JTMl1uHDHy58dzZtklTE0t5uPEhCwlICLLPGtijYtFO9JeqSqDGusRdB1gt7qycyJ5OX6kz4PYsmWLL5tvWy-spdqpz_DrG4qLJz8bQgtQlXHllA2zvsiuNrLj_cdZxocwgDBP1kYO7DK8ESLeW9ehVKs4rk50GYzAAygACch82GxO5zi10RYSftDRhD9PgHoAOvOFxw2ZKO2w05zb0jDbKL3RAg4',
       content: content.trim(),
@@ -329,58 +421,36 @@ class DbService {
     return newReply;
   }
 
-  async likeComment(commentId, action = 'like') {
+  async likeComment(commentId, action = 'like', userId) {
+    if (!userId || !['like', 'unlike'].includes(action)) throw Object.assign(new Error('Invalid reaction'), { status: 400 });
     const db = await this.read();
-    // Search in top-level comments
-    const comment = (db.comments || []).find(c => c.id === commentId);
-    if (comment) {
-      if (action === 'unlike') {
-        comment.likes = Math.max(0, (comment.likes || 1) - 1);
-      } else {
-        comment.likes = (comment.likes || 0) + 1;
-      }
-      await this.write(db);
-      return comment.likes;
+    let target;
+    for (const comment of db.comments || []) {
+      if (comment.hidden) continue;
+      if (comment.id === commentId) { target = comment; break; }
+      target = (comment.replies || []).find(reply => reply.id === commentId && !reply.hidden);
+      if (target) break;
     }
-
-    // Search in replies
-    for (const c of (db.comments || [])) {
-      const rep = (c.replies || []).find(r => r.id === commentId);
-      if (rep) {
-        if (action === 'unlike') {
-          rep.likes = Math.max(0, (rep.likes || 1) - 1);
-        } else {
-          rep.likes = (rep.likes || 0) + 1;
-        }
-        await this.write(db);
-        return rep.likes;
-      }
-    }
-
-    return 0;
+    if (!target) throw Object.assign(new Error('Comment not found'), { status: 404 });
+    const users = new Set(Array.isArray(target.liked_by) ? target.liked_by : []);
+    const base = Number.isFinite(target.reaction_base) ? Math.max(0, target.reaction_base) : Math.max(0, (Number(target.likes) || 0) - users.size);
+    if (action === 'like') users.add(userId); else users.delete(userId);
+    target.liked_by = [...users]; target.reaction_base = base; target.likes = base + users.size;
+    await this.write(db);
+    return target.likes;
   }
 
   // --- Ratings & Reviews ---
+  async getMovieRatings(movieSlug, userId = null) {
+    const db = await this.read();
+    return require('./ratingService').summarizeRatings(db.ratings, movieSlug, userId);
+  }
+
   async rateMovie(userId, movieSlug, score) {
     const db = await this.read();
-    if (!db.ratings) db.ratings = [];
-    const existing = db.ratings.find(r => r.user_id === userId && r.movie_slug === movieSlug);
-    if (existing) {
-      existing.score = score;
-      existing.updated_at = new Date().toISOString();
-    } else {
-      db.ratings.push({
-        id: 'rate_' + Date.now(),
-        user_id: userId,
-        movie_slug: movieSlug,
-        score: score,
-        created_at: new Date().toISOString()
-      });
-    }
+    const result = require('./ratingService').upsertRating(db, { movie_slug: movieSlug, user_id: userId, score });
     await this.write(db);
-    const movieRatings = db.ratings.filter(r => r.movie_slug === movieSlug);
-    const avg = (movieRatings.reduce((sum, r) => sum + r.score, 0) / movieRatings.length).toFixed(1);
-    return { score, avg, total: movieRatings.length };
+    return result;
   }
 
   // --- Error Reports ---
@@ -402,6 +472,7 @@ class DbService {
 
   // --- Change Password ---
   async changePassword(userId, oldPassword, newPassword) {
+    if (!passwordValid(newPassword)) return { status: false, message: 'Mật khẩu mới cần 6–256 ký tự' };
     const db = await this.read();
     const user = db.users.find(u => u.id === userId);
     if (!user) return { status: false, message: 'Người dùng không tồn tại' };
@@ -409,9 +480,21 @@ class DbService {
       return { status: false, message: 'Mật khẩu hiện tại không chính xác' };
     }
     user.password = await hashPassword(newPassword);
+    user.token_version = (user.token_version || 0) + 1;
     user.updated_at = new Date().toISOString();
     await this.write(db);
+    sessionEvents.emit('revoked', userId);
     return { status: true, message: 'Đổi mật khẩu thành công!' };
+  }
+
+  async revokeUserSessions(userId) {
+    const db = await this.read();
+    const user = db.users.find(item => item.id === userId);
+    if (!user) return false;
+    user.token_version = (user.token_version || 0) + 1;
+    await this.write(db);
+    sessionEvents.emit('revoked', userId);
+    return true;
   }
 
   // --- Batch Remove Watchlist ---
@@ -425,10 +508,7 @@ class DbService {
   // --- Admin Operations ---
   async getAllUsers() {
     const db = await this.read();
-    return (db.users || []).map(u => {
-      const { password, ...rest } = u;
-      return rest;
-    });
+    return (db.users || []).map(publicUser);
   }
 
   async getAllComments() {
@@ -469,20 +549,11 @@ class DbService {
     return newReport;
   }
 
-  async addRating({ movie_slug, episode_slug, score, user_id }) {
+  async addRating({ movie_slug, score, user_id }) {
     const db = await this.read();
-    if (!db.ratings) db.ratings = [];
-    const newRating = {
-      id: 'rate_' + Date.now(),
-      movie_slug,
-      episode_slug: episode_slug || 'all',
-      score: Math.min(10, Math.max(1, score)),
-      user_id: user_id || 'anonymous',
-      created_at: new Date().toISOString()
-    };
-    db.ratings.unshift(newRating);
+    const result = require('./ratingService').upsertRating(db, { movie_slug, score, user_id });
     await this.write(db);
-    return newRating;
+    return result;
   }
 
   async updateReportStatus(reportId, status = 'resolved') {
@@ -610,7 +681,9 @@ class DbService {
   }
 
   // Create User by Admin
-  async createUserByAdmin({ name, email, password, role = 'user' }) {
+  async createUserByAdmin({ name, email, password, role = 'user', gender }) {
+    if (!passwordValid(password)) throw new Error('Mật khẩu cần 6–256 ký tự');
+    if (!require('./defaultAvatars').validGender(gender)) throw new Error('Giới tính không hợp lệ');
     const db = await this.read();
     if (!db.users) db.users = [];
 
@@ -625,7 +698,8 @@ class DbService {
       password: await hashPassword(password),
       name: name ? name.trim() : email.split('@')[0],
       role: role || 'user',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDmV0kJ3rLlFchh-aGILVOr-pQbdtHs2qQKQtkeKftGRHjg2nb7ii3xkFe2aJA7-Gldl5BqHuj4L_uiVmqQyW9CCgKPrUz_MCzKjGtUsI1R3dM0r3vXdhkgOsKaL_SVbs9gl7b2sTWQGr3VphY1X_pUChBkXZ-KPQtC6HeaIV7uxpjuEKEltMKcvR78AOcVjnQlk989xeMDULyOev-eHEjgdEO-N14MVTh2oQR_E3A',
+      ...(gender != null && { gender }),
+      avatar: require('./defaultAvatars').avatarForGender(gender),
       created_at: new Date().toISOString()
     };
 
@@ -640,8 +714,13 @@ class DbService {
     if (userId === 'usr_admin_01') {
       throw new Error('Không thể xóa tài khoản Quản Trị Viên tối cao');
     }
+    const target = db.users.find(user => user.id === userId);
+    if (target?.role === 'admin' && db.users.filter(user => user.role === 'admin' && !user.blocked).length <= 1) throw new Error('Cannot delete the last active administrator');
+    db.identity_sessions = (db.identity_sessions || []).filter(session => session.user_id !== userId);
+    db.identity_tokens = (db.identity_tokens || []).filter(token => token.user_id !== userId);
     db.users = (db.users || []).filter(u => u.id !== userId);
     await this.write(db);
+    sessionEvents.emit('revoked', userId);
     return true;
   }
 

@@ -1,0 +1,65 @@
+/* Short phone labels never replace the existing desktop copy or data. */
+.home-title-phone, .home-phone-copy { display: none; }
+@media (max-width: 767px) {
+  .home-title-full { display: none; }
+  .home-title-phone { display: inline; }
+  #home-catalog-content { padding: 20px 16px 28px; }
+  #home-catalog-content > section { margin-top: 28px; }
+  #home-catalog-content > section:first-child { margin-top: 0; }
+  #home-catalog-content > section > * + * { margin-top: 12px; }
+  #home-catalog-content :is(#section-moi-cap-nhat, #section-chieu-rap, #section-phim-bo, #bang-xep-hang, #section-phim-le, #section-tv-shows, #section-hoat-hinh) > div:first-child {
+    display: flex; align-items: center; gap: 12px; min-height: 28px;
+  }
+  #home-catalog-content :is(#section-moi-cap-nhat, #section-chieu-rap, #section-phim-bo, #bang-xep-hang, #section-phim-le, #section-tv-shows, #section-hoat-hinh) > div:first-child > div:first-child { min-width: 0; gap: 0; }
+  #home-catalog-content :is(#section-moi-cap-nhat, #section-chieu-rap, #section-phim-bo, #bang-xep-hang, #section-phim-le, #section-tv-shows, #section-hoat-hinh) > div:first-child > div:first-child > :is(span, div:first-child:not(:last-child)) { display: none; }
+  #home-catalog-content section > div:first-child h2 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 750; letter-spacing: -.025em; }
+  #home-catalog-content section > div:first-child h2 .home-title-phone { white-space: nowrap; }
+  #home-catalog-content section > div:first-child h2 + span, #home-catalog-content section > div:first-child p { display: none; }
+  #home-catalog-content > section:not(#section-kham-pha-khu-vuc-the-loai) > div:first-child > div:last-child:has(> button) { flex-shrink: 0; gap: 0; }
+  #home-catalog-content > section:not(#section-kham-pha-khu-vuc-the-loai) > div:first-child > div:last-child > button { display: none; }
+  #home-catalog-content > section:not(#section-kham-pha-khu-vuc-the-loai) > div:first-child > div:last-child > a { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; margin: 0; white-space: nowrap; }
+  #home-catalog-content > section:not(#section-kham-pha-khu-vuc-the-loai) > div:first-child > div:last-child:has(> button):not(:has(> a)) { display: none; }
+  #section-moi-cap-nhat > div.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+  #section-moi-cap-nhat > div.grid > :nth-child(n+7), #m-rail-latest > :nth-child(n+7) { display: none; }
+  #section-moi-cap-nhat .movie-card > div:last-child { padding: 8px 2px 0; gap: 4px; }
+  #section-moi-cap-nhat .movie-card h3 { font-size: 12px; line-height: 18px; }
+  #section-moi-cap-nhat .movie-card { border: 0; background: transparent; }
+  #home-catalog-content [id^="rail-"] { gap: 12px; padding: 0 0 4px; scroll-snap-type: x proximity; }
+  #home-catalog-content [id^="rail-"] > .movie-card { width: clamp(128px, 40vw, 160px); background: transparent; border: 0; scroll-snap-align: start; }
+  #home-catalog-content [id^="rail-"] > .movie-card > div:last-child { padding: 8px 0 0; gap: 4px; }
+  #home-catalog-content .movie-card h3 { font-size: 12px; line-height: 18px; }
+  #home-catalog-content .movie-card [class*="group-hover:opacity-100"] { display: none; }
+  #home-catalog-content .movie-card :is(.badge-glass-quality, .badge-glass-cinema, .badge-glass-series, .badge-glass-sub, .badge-glass-tvshow, .badge-glass-anime, .badge-song-ngu) { font-size: 9px; box-shadow: none; }
+  #top10-rail { gap: 16px; padding: 2px 0 4px; scroll-snap-type: x proximity; }
+  #top10-rail .top10-item { align-items: flex-end; transform: none; scroll-snap-align: start; }
+  #top10-rail .top10-item > div:first-child { width: 34px; height: auto; padding: 0; }
+  #top10-rail .top10-item:nth-child(10) > div:first-child { width: 48px; }
+  #top10-rail .rank-num { font-size: 64px; line-height: 1; font-style: normal; background: none !important; color: #727887 !important; -webkit-text-fill-color: #727887 !important; -webkit-text-stroke: 0; text-shadow: none !important; filter: none; transform: none; }
+  #top10-rail .top10-item:nth-child(10) .rank-num { font-size: 48px; letter-spacing: -4px; }
+  #top10-rail .top10-item > div:last-child { width: clamp(128px, 40vw, 156px); border-radius: 8px; box-shadow: none; }
+  #top10-rail .top10-item > div:last-child [class*="group-hover:opacity-100"] { display: none; }
+  #top10-rail h4 { font-size: 12px; }
+  #section-kham-pha-khu-vuc-the-loai > div:first-child { gap: 12px; }
+  #section-kham-pha-khu-vuc-the-loai > div:first-child > div:last-child { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 10px; }
+  #section-kham-pha-khu-vuc-the-loai > div:first-child button { justify-content: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0 6px; border-radius: 8px; font-size: 12px; line-height: 18px; white-space: nowrap; box-shadow: none; }
+  #section-kham-pha-khu-vuc-the-loai :is(#explore-region-grid, #explore-genre-grid) { display: grid; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: min(78vw, 270px); gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 4px; }
+  #section-kham-pha-khu-vuc-the-loai :is(#explore-region-grid, #explore-genre-grid) > div { min-height: 166px; padding: 14px; border: 1px solid #ffffff18; border-radius: 10px; box-shadow: none; transform: none; scroll-snap-align: start; }
+  #section-kham-pha-khu-vuc-the-loai :is(#explore-region-grid, #explore-genre-grid) h3 { font-size: 15px; line-height: 20px; }
+  #section-kham-pha-khu-vuc-the-loai :is(#explore-region-grid, #explore-genre-grid) p { display: none; }
+  #section-kham-pha-khu-vuc-the-loai :is(#tab-panel-region, #tab-panel-genre) > div:first-child > a { min-height: 40px; font-size: 12px; }
+  #home-cinema-promo { padding: 18px; background: #191b24; border: 1px solid #ffffff12; }
+  #home-cinema-promo > div.absolute { display: none; }
+  #home-cinema-promo > div.relative { gap: 12px; }
+  #home-cinema-promo > div.relative > div:first-child { display: flex; flex-direction: column; gap: 8px; }
+  #home-cinema-promo > div.relative > div:first-child > div,
+  #home-cinema-promo > div.relative > div:first-child > p:not(.home-phone-copy) { display: none; }
+  #home-cinema-promo h2 { margin: 0; font-size: 18px; line-height: 25px; }
+  #home-cinema-promo .home-phone-copy { display: block; margin: 0; font-size: 13px; line-height: 20px; color: #c6c7d0; }
+  #home-cinema-promo > div.relative > div:last-child { align-items: stretch; }
+  #home-cinema-promo > div.relative > div:last-child > div { max-width: none; padding: 0; background: transparent; }
+  #home-cinema-promo > div.relative > div:last-child p { display: none; }
+  #home-cinema-promo a { margin: 0; border-radius: 8px; min-height: 44px; padding: 12px; box-shadow: none; }
+  #m-rail-latest { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; overflow: visible; }
+  #m-rail-latest > .mobile-poster-card { width: auto; min-width: 0; }
+  #m-rail-latest > .mobile-poster-card h3 { font-size: 12px; }
+}

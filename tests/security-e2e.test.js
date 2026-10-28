@@ -1,0 +1,94 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs/promises');
+const path = require('path');
+const os = require('os');
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
+
+test('browser account verification, reset, MFA, recovery and session revocation', { skip: process.env.SECURITY_E2E !== '1', timeout: 90000 }, async () => {
+  const { chromium } = require('playwright');
+  const db = require('../src/services/dbService');
+  const auth = require('../src/services/authService');
+  const { createIdentityService } = require('../src/services/identityService');
+  const { createIdentityRouter } = require('../src/routes/identityRoutes');
+  const directory = await fs.mkdtemp(path.join(process.env.PI_SCRATCH_DIR || os.tmpdir(), 'security-browser-'));
+  const originalPath = db.dbPath, originalKey = process.env.MFA_ENCRYPTION_KEY;
+  db.dbPath = path.join(directory, 'db.json');
+  process.env.MFA_ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
+  const outbox = [];
+  const service = createIdentityService({ mail: { assertReady() {}, async sendIdentityMail(message) { outbox.push(message); } }, secret: process.env.MFA_ENCRYPTION_KEY });
+  await fs.writeFile(db.dbPath, JSON.stringify({ users: [], watchlist: [], history: [], comments: [] }));
+  const app = express();
+  app.use(express.json()); app.use(cookieParser()); app.use(auth.authMiddleware);
+  app.use('/api/auth', createIdentityRouter({ service }));
+  app.get('/api/auth/me', (req, res) => res.json({ status: !!req.user, data: req.user || null }));
+  app.get('/api/user/library', auth.requireAuth, (req, res) => res.json({ status: true, data: { watchlist: [], history: [], continueWatching: [] } }));
+  app.get('/api/settings/announcement', (req, res) => res.json({ status: true, data: {} }));
+  app.get(['/dang-nhap', '/auth'], (req, res) => res.sendFile(path.join(__dirname, '../public/auth.html')));
+  app.get('/tai-khoan', (req, res) => res.sendFile(path.join(__dirname, '../public/tai-khoan.html')));
+  app.use(express.static(path.join(__dirname, '../public')));
+  const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const browser = await chromium.launch({ headless: true, ...(process.env.PLAYER_BROWSER_PATH ? { executablePath: process.env.PLAYER_BROWSER_PATH } : process.platform === 'win32' ? { executablePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' } : {}) });
+  try {
+    const context = await browser.newContext(); const page = await context.newPage();
+    await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
+    page.setDefaultTimeout(10000);
+    const errors = []; page.on('pageerror', error => { if (!error.message.includes('tailwind')) errors.push(error.message); });
+    async function post(endpoint, body) {
+      return page.evaluate(async ({ endpoint, body }) => {
+        const response = await fetch('/api/auth' + endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        return { status: response.status, body: await response.json() };
+      }, { endpoint, body });
+    }
+    await page.goto(base + '/auth');
+    const register = await post('/register', { email: 'browser@example.test', password: 'Browser-secret-2026!', name: 'Browser Account' });
+    assert.equal(register.status, 200); assert.equal(register.body.data.token, undefined);
+    const verify = outbox.find(message => message.purpose === 'verify'); assert.ok(verify);
+    await page.goto(base + '/auth?mode=verify#token=' + verify.token);
+    await page.locator('#securitySubmit').click();
+    await page.waitForFunction(() => document.body.innerText.includes('Email da duoc xac minh') || document.body.innerText.includes('đã được xác minh'));
+    assert.equal((await post('/verify-email', { token: verify.token })).status, 400);
+    await post('/forgot-password', { email: 'browser@example.test' }); await service.drainMail();
+    const reset = outbox.filter(message => message.purpose === 'reset').at(-1); assert.ok(reset);
+    const resetResult = await post('/reset-password', { token: reset.token, password: 'Browser-new-secret-2026!' });
+    assert.equal(resetResult.status, 200);
+    assert.equal((await post('/reset-password', { token: reset.token, password: 'Browser-new-secret-2026!' })).status, 400);
+    await page.goto(base + '/auth?redirect=%2Ftai-khoan');
+    await page.locator('#identityInput').fill('browser@example.test');
+    await page.locator('#passwordInput').fill('Browser-new-secret-2026!');
+    await page.locator('#submitBtn').click();
+    await page.waitForURL('**/tai-khoan');
+    await page.waitForFunction(() => document.getElementById('profile-name-display')?.textContent === 'Browser Account');
+    const setup = await post('/mfa/setup', { password: 'Browser-new-secret-2026!' }); assert.equal(setup.status, 200);
+    const OTPAuth = require('otpauth');
+    const otp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(setup.body.data.secret), digits: 6, period: 30 });
+    const enabled = await post('/mfa/confirm', { code: otp.generate() }); assert.equal(enabled.status, 200);
+    const recovery = enabled.body.data.recoveryCodes[0]; assert.ok(recovery);
+    await post('/logout', {});
+    await page.goto(base + '/auth?redirect=%2Ftai-khoan');
+    await page.locator('#identityInput').fill('browser@example.test'); await page.locator('#passwordInput').fill('Browser-new-secret-2026!');
+    const [challengeResponse] = await Promise.all([page.waitForResponse(response => response.url().endsWith('/api/auth/login')), page.locator('#submitBtn').click()]);
+    assert.equal((await challengeResponse.json()).data.mfaRequired, true);
+    await page.waitForFunction(() => !document.getElementById('securityCode').disabled && document.getElementById('securityTitle').textContent === 'Xác thực hai bước');
+    await page.locator('#securityCode').fill(recovery);
+    const [mfaResponse] = await Promise.all([page.waitForResponse(response => response.url().endsWith('/api/auth/login')), page.locator('#securitySubmit').click()]);
+    assert.equal(mfaResponse.status(), 200, JSON.stringify(await mfaResponse.json()));
+    await page.waitForURL('**/tai-khoan', { waitUntil: 'domcontentloaded' });
+    const sessions = await page.evaluate(async () => (await (await fetch('/api/auth/sessions')).json()).data);
+    assert.ok(sessions.some(session => session.current));
+    await page.evaluate(async () => { await fetch('/api/auth/sessions/revoke-others', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); });
+    const stored = await db.getRawDatabase();
+    assert.equal(stored.users[0].email_verified, true); assert.equal(stored.users[0].mfa.enabled, true);
+    assert.ok(!JSON.stringify(stored).includes(setup.body.data.secret)); assert.ok(!JSON.stringify(stored).includes(recovery));
+    assert.equal(errors.length, 0, errors.join('\n'));
+    await context.close();
+  } finally {
+    await browser.close(); await new Promise(resolve => server.close(resolve)); await db.operationQueue;
+    db.dbPath = originalPath;
+    if (originalKey === undefined) delete process.env.MFA_ENCRYPTION_KEY; else process.env.MFA_ENCRYPTION_KEY = originalKey;
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});

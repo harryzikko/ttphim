@@ -9,7 +9,7 @@ const text = (value, max, label) => {
 function url(value, image = false) {
   const clean = text(value, 2048, 'URL');
   if (!clean) return '';
-  if (!image && /^\/(?!\/|\\)/.test(clean) && !/[\x00-\x20\\]/.test(clean)) return clean;
+  if (/^\/(?!\/|\\)/.test(clean) && !/[\x00-\x20\\]/.test(clean)) return clean;
   try {
     const parsed = new URL(clean);
     if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password) throw new Error();
@@ -103,12 +103,19 @@ function renderAd(item, mobile = false) {
   if (!item || !active(item)) return '';
   const slot = ({ home_middle: 'below_featured', home_footer: 'footer' })[item.slot] || item.slot;
   if (mobile && ['side_left', 'side_right'].includes(slot)) return '';
-  return `<aside class="ad-placement ad-${slot}" data-ad-slot="${slot}" aria-label="Quảng cáo"><span class="ad-label">Quảng cáo</span><a class="ad-banner" href="${escape(item.href)}"${item.new_tab ? ' target="_blank" rel="sponsored noopener noreferrer"' : ' rel="sponsored"'}><picture>${item.image_mobile ? `<source media="(max-width: 640px)" srcset="${escape(item.image_mobile)}">` : ''}<img src="${escape(item.image_desktop)}" alt="${escape(item.title)}" loading="lazy" decoding="async" style="object-position:${item.focal_x ?? 50}% ${item.focal_y ?? 50}%"></picture><div class="ad-copy"><strong>${escape(item.title)}</strong>${item.description ? `<p>${escape(item.description)}</p>` : ''}<span>${escape(item.cta_label || 'Tìm hiểu thêm')}</span></div></a></aside>`;
+  const closeAction = "const f=this.closest('.ad-footer');if(f){f.classList.add('is-collapsed');f.style.setProperty('width','auto','important');f.querySelector('.ad-footer-reopen')?.style.setProperty('display','inline-flex','important');f.querySelector('.ad-banner')?.style.setProperty('display','none','important');f.querySelector('.ad-label')?.style.setProperty('display','none','important');this.style.setProperty('display','none','important');try{sessionStorage.setItem('hide_footer_ad','1')}catch(_){}}";
+  const reopenAction = "const f=this.closest('.ad-footer');if(f){f.classList.remove('is-collapsed');f.style.removeProperty('width');this.style.setProperty('display','none','important');f.querySelector('.ad-banner')?.style.removeProperty('display');f.querySelector('.ad-label')?.style.removeProperty('display');f.querySelector('.ad-footer-close')?.style.removeProperty('display');try{sessionStorage.removeItem('hide_footer_ad')}catch(_){}}";
+  const closeBtn = slot === 'footer' ? `<button type="button" class="ad-footer-close" aria-label="Đóng quảng cáo" title="Đóng quảng cáo" onclick="${closeAction}" style="position:absolute;top:-12px;right:-8px;width:28px;height:28px;border-radius:50%;background:#1e293b;border:2px solid #fff;color:#fff;font-size:14px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,0.8);line-height:1;padding:0;">✕</button>` : '';
+  const reopenBtn = slot === 'footer' ? `<button type="button" class="ad-footer-reopen" aria-label="Mở lại quảng cáo" title="Mở lại quảng cáo" onclick="${reopenAction}" style="display:none;align-items:center;padding:8px 18px;background:linear-gradient(135deg,#1e2433 0%,#111522 100%);border:1px solid rgba(255,107,0,0.65);border-radius:9999px;color:#ff9800;font:600 12px/1.2 Inter,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,0.7),0 0 14px rgba(255,87,34,0.3);cursor:pointer;margin:0 auto;transition:all .25s ease;">Hiện quảng cáo</button>` : '';
+  const footerAsideStyle = slot === 'footer' ? ' style="position:fixed!important;bottom:12px!important;left:50%!important;transform:translateX(-50%)!important;width:min(1100px,calc(100vw - 24px))!important;max-width:1100px!important;background:none!important;background-color:transparent!important;border:none!important;box-shadow:none!important;padding:0!important;margin:0!important;z-index:99999!important;"' : '';
+  const footerBannerStyle = slot === 'footer' ? ' style="display:block;width:100%;aspect-ratio:4/1;max-height:275px;border-radius:12px;overflow:hidden;position:relative;border:1.5px solid rgba(255,107,0,0.6);box-shadow:0 12px 36px rgba(0,0,0,0.9),0 0 30px rgba(255,87,34,0.35);"' : '';
+  const footerLabelStyle = slot === 'footer' ? ' style="position:absolute;top:6px;left:8px;background:rgba(0,0,0,0.75);border:1px solid rgba(255,107,0,0.5);border-radius:4px;padding:1px 6px;font:700 9px/1.2 Inter,sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:#ff9800;margin:0;pointer-events:none;z-index:10;"' : '';
+  return `<aside class="ad-placement ad-${slot}" data-ad-slot="${slot}" aria-label="Quảng cáo"${footerAsideStyle}><span class="ad-label"${footerLabelStyle}>Quảng cáo</span>${closeBtn}<a class="ad-banner" href="${escape(item.href)}"${item.new_tab ? ' target="_blank" rel="sponsored noopener noreferrer"' : ' rel="sponsored"'}${footerBannerStyle}><picture>${item.image_mobile ? `<source media="(max-width: 640px)" srcset="${escape(item.image_mobile)}">` : ''}<img src="${escape(item.image_desktop)}" alt="${escape(item.title)}" loading="lazy" decoding="async" style="object-position:${item.focal_x ?? 50}% ${item.focal_y ?? 50}%"></picture><div class="ad-copy"><strong>${escape(item.title)}</strong>${item.description ? `<p>${escape(item.description)}</p>` : ''}<span>${escape(item.cta_label || 'Tìm hiểu thêm')}</span></div></a>${reopenBtn}</aside>`;
 }
 function decorate(html, settings, mobile = false) {
   const ads = getAds(settings).ads;
   const render = slot => renderAd(ads.find(item => item.slot === slot), mobile);
-  if (!html.includes('/css/editorial.css')) html = html.replace('</head>', '<link rel="stylesheet" href="/css/editorial.css?v=1.1.0"></head>');
+  if (!html.includes('/css/editorial.css')) html = html.replace('</head>', '<link rel="stylesheet" href="/css/editorial.css?v=1.3.1"></head>');
   html = html.replace('<!-- banner:home_middle -->', '').replace('<!-- banner:home_footer -->', '');
   html = html.replace('<!-- banner:below_featured -->', render('below_featured'))
     .replace('<!-- banner:below_player -->', render('below_player'));

@@ -2,11 +2,29 @@
   "name": "ttphim",
   "version": "1.0.0",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=24.14.1 <25"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "test": "node --test tests/backend.test.js tests/frontend.test.js tests/performance.test.js tests/player.test.js tests/banners.test.js",
+    "test": "node --test tests/*.test.js",
+    "test:production": "node --test tests/production.test.js tests/frontend-security.test.js",
+    "test:identity": "node --test tests/identity.test.js tests/account.test.js",
+    "test:operations": "node --test tests/operations.test.js",
+    "test:postgres": "node scripts/test-postgres.cjs",
+    "test:player-e2e": "node scripts/player-e2e.cjs",
+    "test:security-e2e": "node scripts/security-e2e.cjs",
+    "db:migrate-postgres": "node scripts/migrate-postgres.cjs",
+    "backup:encrypted": "node scripts/backup-encrypted.cjs create",
+    "backup:verify": "node scripts/backup-encrypted.cjs verify",
+    "backup:extract": "node scripts/backup-encrypted.cjs extract",
+    "db:backup": "node scripts/database.cjs backup",
+    "db:verify": "node scripts/database.cjs verify",
     "build:home-css": "tailwindcss -c scripts/home-tailwind.config.cjs -i scripts/home-tailwind.css -o public/css/home-tailwind.css --minify && node scripts/build-mobile-home-css.cjs",
+    "build:site-css": "node scripts/build-site-css.cjs",
+    "check:site-css": "node scripts/build-site-css.cjs --check",
+    "build:css": "npm run build:home-css && npm run build:site-css",
     "cap:sync": "cap sync",
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios",
@@ -22,15 +40,23 @@
     "cors": "^2.8.6",
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
     "hls.js": "1.7.3",
-    "jsdom": "^29.1.1",
-    "morgan": "^1.12.1"
+    "morgan": "^1.12.1",
+    "nodemailer": "^10.2.1",
+    "otpauth": "^9.5.2",
+    "pg": "^8.23.1",
+    "proper-lockfile": "^4.1.2",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.3",
     "@capacitor/cli": "^7.6.9",
     "@capacitor/core": "^8.5.3",
     "@capacitor/ios": "^8.5.3",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.64.1",
     "tailwindcss": "^3.4.17"
   }
 }

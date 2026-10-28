@@ -177,6 +177,13 @@ class StorageService {
     final entries = (prefs.getStringList(key) ?? []).toSet()..add(episode);
     await prefs.setStringList(key, entries.toList());
   }
+  static Future<void> removeHistoryItem(String slug) async {
+    final scope = await _scope();
+    final prefs = await SharedPreferences.getInstance();
+    final key = _key('history', scope);
+    final items = _read(prefs, key)..removeWhere((entry) => entry['movie_slug'] == slug);
+    await _write(prefs, key, items);
+  }
   static Future<void> clearHistory() async {
     final scope = await _scope();
     if (scope != 'guest' && AppConfig.hasBackend) {

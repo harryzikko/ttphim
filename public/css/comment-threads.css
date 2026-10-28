@@ -1,0 +1,52 @@
+/* One visual language for movie discussion, without changing comment API/state. */
+.comment-compose-card { padding: 18px; border: 1px solid #ffffff0c; border-radius: 12px; background: #191b24; }
+.comment-compose-card h4 { margin: 0 0 14px; color: #e3e7ef; font-size: 16px; font-weight: 650; }
+.comment-author { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; font-size: 12px; color: #9ca5b6; }
+.comment-author img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+body :is(#detail-comment-textarea,#watch-comment-input,#m-comment-input) { display: block; width: 100%; min-width: 0; min-height: 108px; max-height: 300px; padding: 12px 14px; border: 1px solid #ffffff12; border-radius: 8px; background: #11131b; color: #e0e5ef; font: 400 14px/22px 'Inter', sans-serif; resize: vertical; }
+body :is(#detail-comment-textarea,#watch-comment-input,#m-comment-input)::placeholder { color: #757f92; }
+body :is(#detail-comment-textarea,#watch-comment-input,#m-comment-input):focus { outline: none; border-color: #7d5360; box-shadow: 0 0 0 2px #e509140b; }
+body #watch-comment-composer { padding: 0; border: 0; border-radius: 0; background: transparent; gap: 12px; }
+#watch-user-avatar { width: 32px; height: 32px; margin-top: 3px; }
+#detail-review-form .comment-compose-tools, .comment-compose-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 10px; padding-top: 8px; border-top: 1px solid #ffffff09; }
+body .comment-compose-tools :is(button,.comment-emoji-trigger) { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 40px; padding: 7px 9px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #aeb7c8; font: 500 12px/18px 'Inter', sans-serif; cursor: pointer; }
+.comment-compose-tools .material-symbols-outlined { font-size: 18px; }
+body .comment-compose-tools button:hover { background: #ffffff07; color: #fff; }
+body :is(#btn-submit-detail-comment,#watch-send-btn,#m-comment-send) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-left: auto; min-width: 76px; min-height: 40px; padding: 8px 14px; border: 0; border-radius: 7px; background: #e50914; color: #fff; font: 600 12px/18px 'Inter', sans-serif; box-shadow: none; cursor: pointer; }
+body :is(#btn-submit-detail-comment,#watch-send-btn,#m-comment-send):hover { background: #bf0b14; color: #fff; }
+body :is(#btn-submit-detail-comment,#watch-send-btn,#m-comment-send):disabled { opacity: .5; cursor: wait; }
+.comment-spoiler-input { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; margin: 0; padding: 7px 2px; color: #9da7b9; font-size: 12px; line-height: 18px; white-space: nowrap; cursor: pointer; }
+.comment-spoiler-input input { width: 15px; height: 15px; margin: 0; accent-color: #e50914; cursor: pointer; }
+.comment-spoiler-input:has(input:checked) { color: #e8b6a1; }
+.comment-episode-composer { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: #818c9f; font-size: 12px; }
+.comment-episode-composer select { flex: 1; min-width: 0; max-width: 240px; }
+.comment-scope-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 8px 0 0; padding: 12px 0; border-bottom: 1px solid #ffffff0c; color: #8b95a7; font-size: 12px; line-height: 20px; }
+.comment-scope-bar select,.comment-episode-composer select { min-height: 40px; max-width: 100%; padding: 8px 30px 8px 10px; border: 1px solid #ffffff12; border-radius: 7px; background: #ffffff04; color: #c6cede; font-size: 13px; line-height: 20px; }
+.comment-scope-count { margin-left: auto; color: #7f899d; font-size: 11px; }
+#watch-comment-count,#comment-count-badge { display: none; }
+body #watch-community { gap: 12px; }
+#watch-community > div:first-child h3 { font-size: 18px; }
+#watch-community > div:first-child > div:first-child > .material-symbols-outlined { display: none; }
+#watch-community > div:first-child > div:last-child { gap: 4px; }
+#watch-btn-sort-newest,#watch-btn-sort-featured,#btn-sort-newest,#btn-sort-featured { min-height: 36px; }
+.comment-episode-badge { display: inline-block; max-width: 100%; padding: 2px 7px; border-radius: 4px; background: #ffffff06; color: #8f9cb2; font-size: 10px; line-height: 18px; overflow-wrap: anywhere; }
+body :is(.spoiler-body,[data-comment-replies])[hidden] { display: none !important; }
+body :is(.spoiler-wrapper) { padding: 10px 12px; border: 1px solid #8c6b452e; border-radius: 8px; background: #8c6b4508; }
+:is(.btn-toggle-spoiler,.btn-toggle-watch-spoil,[data-spoiler-toggle]) { min-height: 40px; padding: 6px 10px; border-radius: 6px; color: #d1b8a1; font-size: 12px; cursor: pointer; }
+.spoiler-wrapper > div:first-child { flex-wrap: wrap; gap: 8px; }
+.comment-scope-bar select:focus-visible,.comment-episode-composer select:focus-visible,.comment-compose-tools button:focus-visible,[data-spoiler-toggle]:focus-visible { outline: 2px solid #f4c8cb; outline-offset: 2px; }
+@media (max-width: 767px) {
+  .comment-compose-card { padding: 14px; }
+  body :is(#detail-comment-textarea,#watch-comment-input,#m-comment-input) { font-size: 16px; min-height: 104px; }
+  .comment-scope-bar select,.comment-episode-composer select { min-height: 44px; font-size: 16px; }
+  .comment-scope-bar { gap: 8px; }
+  .comment-scope-bar label { width: 100%; font-size: 11px; }
+  .comment-scope-bar select { flex: 1; min-width: 0; }
+  body .comment-compose-tools :is(button,.comment-emoji-trigger),body :is(#btn-submit-detail-comment,#watch-send-btn,#m-comment-send),.comment-spoiler-input { min-height: 44px; }
+  .comment-compose-tools { gap: 4px 8px; }
+  .comment-compose-tools #watch-timetag-btn { order: 4; }
+  .comment-compose-tools #watch-timetag-clear { order: 5; }
+  body #watch-comment-composer > img { display: none; }
+  body #watch-comment-composer { display: block; }
+  #watch-btn-sort-newest,#watch-btn-sort-featured,#btn-sort-newest,#btn-sort-featured { min-height: 44px; }
+}

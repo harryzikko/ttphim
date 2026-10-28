@@ -1,0 +1,212 @@
+/* Only the movie detail/watch templates load these phone refinements. */
+#detail-episode-jump, #m-detail-episode-jump, #m-detail-poster, #detail-synopsis-toggle { display: none; }
+#detail-synopsis-toggle[hidden], #m-detail-poster[hidden] { display: none !important; }
+@media (max-width: 767px) {
+  body:has(#detail-hero), body:has(#m-detail-content-shell), body:has(#player-wrapper), body:has(#m-player-wrapper) { min-width: 0; }
+  body:has(#detail-hero) input[class], body:has(#detail-hero) textarea[class], body:has(#player-wrapper) input[class], body:has(#player-wrapper) textarea[class] { font-size: 16px; }
+  body:has(#detail-hero) > header > div, body:has(#player-wrapper) > header > div { padding-inline: 16px; }
+  #detail-hero { margin-top: 0; padding: 0 0 20px; }
+  #detail-hero > div.relative { padding: 14px 16px 0; }
+  #detail-breadcrumb { font-size: 11px; gap: 5px; margin-bottom: 16px; overflow: hidden; white-space: nowrap; }
+  #detail-breadcrumb a { flex-shrink: 0; }
+  #detail-hero-grid { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px 14px; }
+  #detail-poster-column { grid-column: 1; grid-row: 1 / span 2; align-self: start; }
+  #detail-poster-column > div:first-child { width: 88px; max-width: 88px; border-radius: 8px; box-shadow: none; }
+  #detail-poster-column > div:first-child > div, #detail-poster-column > div:last-child:not(:first-child) { display: none; }
+  #detail-info-column { display: contents; }
+  #detail-info-column > * { grid-column: 1 / -1; min-width: 0; margin: 0 !important; }
+  #detail-info-column > div:first-child { grid-column: 2; grid-row: 1; align-self: end; }
+  #detail-info-column > div:first-child > div:first-child { display: none; }
+  #detail-info-column h1 { font-size: 23px; line-height: 1.2; text-transform: none; overflow-wrap: anywhere; margin-bottom: 6px; }
+  #detail-info-column p.font-headline-sm { font-size: 12px; line-height: 18px; font-style: normal; overflow-wrap: anywhere; }
+  #detail-meta { grid-column: 2; grid-row: 2; align-self: start; gap: 5px; padding: 0; }
+  #detail-meta > span { padding: 3px 6px; font-size: 10px; line-height: 15px; }
+  #detail-rating-strip { grid-row: 5; padding: 10px 12px; border-radius: 8px; }
+  #detail-rating-strip .movie-rating-summary { gap: 12px; }
+  #detail-genres { grid-row: 6; gap: 6px; }
+  #detail-genres a { padding: 7px 10px; font-size: 11px; }
+  #detail-action-deck { grid-row: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0; }
+  #detail-action-deck > a { grid-column: 1 / -1; height: 48px; min-height: 48px; padding: 0 12px; border-radius: 8px; font-size: 14px; }
+  #detail-action-deck > button, #detail-action-deck .movie-follow-button { width: 100%; height: 48px; min-height: 48px; border-radius: 8px; padding: 0; }
+  #detail-action-deck > .movie-follow-control { width: 100%; min-width: 0; gap: 0; }
+  #detail-action-deck > #detail-download-btn { display: none; }
+  #detail-episode-jump, #m-detail-episode-jump { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; font-size: 13px; color: #e1e1ef; border-bottom: 1px solid #ffffff18; text-decoration: none; }
+  #detail-episode-jump { grid-row: 4; }
+  #detail-synopsis { grid-row: 7; padding-top: 4px; }
+  #detail-synopsis h3 { font-size: 16px; line-height: 22px; }
+  #synopsis-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 21px; cursor: auto; }
+  #synopsis-text[data-expanded="true"] { display: block; -webkit-line-clamp: unset; }
+  #detail-synopsis-toggle { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: #ffb4aa; }
+  #detail-cast-crew-section { grid-row: 8; padding-top: 12px; }
+  #detail-cast-crew-section .cast-crew-wrapper { padding: 12px; }
+  #detail-cast-crew-section .cast-crew-wrapper > div:first-child { flex-wrap: wrap; gap: 8px; }
+  #detail-cast-crew-section .cast-carousel { gap: 12px; }
+  #episode-selector { padding: 16px; scroll-margin-top: 92px; }
+  #episode-selector > div { padding: 12px; border-radius: 10px; box-shadow: none; }
+  #episode-selector h2 { font-size: 18px; line-height: 25px; }
+  #episode-selector > div > div:first-child { gap: 12px; margin-bottom: 12px; }
+  #episode-selector > div > div:first-child p { display: none; }
+  #episode-selector .server-btn, #episode-selector .range-tab, #btn-reverse-episodes, #btn-toggle-autonext { min-height: 44px; }
+  #episode-selector .server-btn { max-width: 100%; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+  #episode-range-container { min-width: 0; }
+  #episode-selector > div > div:nth-child(2) { padding: 8px; margin-bottom: 12px; }
+  #episode-selector > div > div.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  #episode-selector .grid > .col-span-full { grid-column: 1 / -1; }
+  #related-movies-section { padding: 20px 16px; }
+  #related-movies-section h2 { font-size: 18px; line-height: 24px; }
+  #related-movies-section > div:first-child p, #related-movies-section > div:first-child > div:last-child { display: none; }
+  #rail-similar { gap: 12px; }
+  #rail-similar > * { width: 132px; flex-shrink: 0; }
+  #detail-review-form textarea { min-height: 100px; }
+  #detail-review-form > div:last-child { gap: 8px; flex-wrap: wrap; }
+  #detail-review-form label { min-height: 44px; }
+  #btn-submit-detail-comment, #btn-sort-newest, #btn-sort-featured { min-height: 44px; }
+  #detail-comments-list { overflow-wrap: anywhere; }
+  #m-detail-art { display: none; }
+  #m-detail-content-shell { padding: 18px 16px 0; gap: 0; }
+  #m-detail-content-shell > div:first-child { display: grid; grid-template-columns: 88px minmax(0, 1fr); grid-template-rows: auto auto; gap: 8px 14px; min-height: 132px; }
+  #m-detail-poster:not([hidden]) { display: block; grid-column: 1; grid-row: 1 / span 2; width: 88px; height: 132px; object-fit: contain; border-radius: 8px; background: #191b24; }
+  #m-detail-title { grid-column: 2; grid-row: 1; align-self: end; font-size: 23px; line-height: 1.2; overflow-wrap: anywhere; }
+  #m-detail-subtitle { grid-column: 2; grid-row: 2; align-self: start; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+  #m-detail-play-btn { height: 48px; min-height: 48px; margin-top: 14px; padding: 0 12px; border-radius: 8px; font-size: 14px; box-shadow: none; }
+  #m-detail-action-deck { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; padding: 0; }
+  #m-detail-action-deck > #m-action-download { display: none; }
+  #m-detail-action-deck > button, #m-detail-action-deck .movie-follow-button { display: flex; align-items: center; justify-content: center; width: 100%; height: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 8px; background: #282933; }
+  #m-detail-action-deck > button > span { display: none; }
+  #m-detail-action-deck > button > div { width: 22px; height: 22px; min-height: 0; padding: 0; background: transparent; }
+  #m-detail-action-deck > .movie-follow-control { align-items: stretch; gap: 0; }
+  #m-detail-action-deck .material-symbols-outlined { font-size: 22px; line-height: 22px; width: 22px; height: 22px; }
+  #m-detail-episode-jump { margin-top: 8px; }
+  #m-detail-episodes { scroll-margin-top: 84px; }
+  #m-detail-episodes h3, #m-cast-section h3 { font-size: 16px; }
+  #m-episode-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  #m-episode-grid a { min-height: 44px; }
+  #m-server-pills { align-items: stretch; }
+  #m-server-pills button { min-height: 44px; max-width: 100%; white-space: normal; flex-shrink: 0; overflow-wrap: anywhere; }
+  #toggleContentBtn { min-height: 44px; }
+  #m-detail-content { font-size: 13px; line-height: 21px; }
+}
+
+#watch-mobile-jumps { display: none; }
+@media (max-width: 767px) {
+  #detail-hero #detail-action-deck { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  body #detail-action-deck > a { grid-column: 1 / -1; height: 48px; min-height: 48px; padding: 0 12px; border-radius: 8px; }
+  body #detail-action-deck > button, body #detail-action-deck .movie-follow-button { width: 100%; height: 48px; min-height: 48px; border-radius: 8px; padding: 0; }
+  body #detail-action-deck .movie-follow-button { flex: none; }
+  body #detail-action-deck > .movie-follow-control { width: 100%; }
+  body #m-detail-action-deck .movie-follow-button { width: 100%; height: 48px; min-height: 48px; border-radius: 8px; }
+  body #m-detail-action-deck > button > div { width: 22px; height: 22px; min-height: 0; }
+  body:has(#watch-main-content) input[class], body:has(#watch-main-content) textarea[class], #watch-comment-input { font-size: 16px; }
+  #top-watch-bar { padding: 6px 12px; }
+  #top-watch-bar > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  #top-watch-bar > div > div:first-child { min-width: 0; gap: 8px; }
+  #top-watch-bar a[data-path="chi-tiet-phim"] { width: 40px; height: 44px; padding: 0; justify-content: center; }
+  #top-watch-bar a[data-path="chi-tiet-phim"] > span:last-child { display: none; }
+  #top-watch-bar > div > div:first-child > div:last-child { flex: 1; min-width: 0; }
+  #top-watch-bar h1 { font-size: 14px; line-height: 20px; }
+  #top-watch-bar > div > div:first-child > div:last-child > span:last-child { display: none; }
+  #top-watch-bar button { min-width: 44px; min-height: 44px; padding: 0 8px; }
+  #top-watch-bar #btn-theater-toggle, #party-btn-badge { display: none; }
+  #watch-main-content { padding: 8px 0 24px; }
+  #player-grid-container { gap: 16px; }
+  #primary-player-column { gap: 12px; }
+  #player-viewport { border-radius: 0; box-shadow: none; }
+  #watch-source-actions, #watch-mobile-jumps, #watch-film-info, #watch-community, #watch-side-column, #watch-cast-crew-section { margin-inline: 16px; width: calc(100% - 32px); }
+  #watch-source-actions { flex-direction: column; align-items: stretch; padding: 8px; border-radius: 8px; gap: 8px; }
+  #server-pills-container { gap: 8px; }
+  #server-pills-container button { min-height: 44px; min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+  #watch-source-actions > div:last-child { display: flex; align-self: stretch; justify-content: flex-end; gap: 8px; }
+  #watch-source-actions > div:last-child button { min-width: 44px; min-height: 44px; padding: 0 10px; }
+  #watch-mobile-jumps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #watch-mobile-jumps a { display: flex; align-items: center; justify-content: center; min-height: 44px; border: 1px solid #ffffff20; border-radius: 8px; background: #1d1f29; color: #e1e1ef; font-size: 13px; }
+  #watch-side-column { gap: 12px; }
+  #right-rail-card { max-height: 600px; scroll-margin-top: 92px; box-shadow: none; }
+  #right-rail-card button, #right-rail-card .ep-item { min-height: 44px; }
+  #right-rail-card input { min-width: 0; }
+  #watch-film-info, #watch-community { padding: 14px; box-shadow: none; border-radius: 10px; }
+  #watch-film-info h2 { font-size: 20px; line-height: 27px; overflow-wrap: anywhere; }
+  #watch-film-info > div:first-child > div:last-child:not(:first-child) { display: none; }
+  #watch-film-info > div:last-child { gap: 8px; font-size: 12px; line-height: 19px; }
+  #watch-film-info > div:first-child > div:first-child > div:first-child > span:first-child { display: none; }
+  #watch-community > div:first-child { align-items: stretch; flex-direction: column; gap: 12px; }
+  #watch-community > div:first-child > div:first-child { flex-wrap: wrap; gap: 8px; }
+  #watch-community h3 { font-size: 17px; line-height: 24px; }
+  #watch-comment-count { white-space: nowrap; }
+  #watch-btn-sort-newest, #watch-btn-sort-featured, #watch-send-btn { min-height: 44px; }
+  #watch-comments-list { overflow-wrap: anywhere; }
+  #party-modal-card { max-height: calc(100dvh - 24px); }
+  #party-modal-card > div:first-child, #party-modal-card > div:nth-child(2) { flex-shrink: 0; padding: 10px 14px; }
+  #party-modal-card > div:first-child p { display: none; }
+  #party-modal-card > div:nth-child(2) { gap: 12px; }
+  #modal-pane-create, #modal-pane-join { min-height: 0; overflow-y: auto; padding: 14px; overscroll-behavior: contain; }
+  #party-modal-card button { min-height: 44px; }
+  #party-modal-card input[type="text"] { min-height: 44px; font-size: 16px; }
+  #player-controls-top { padding: 2px 8px; gap: 8px; }
+  #player-controls-top > div:first-child { padding: 0; flex: 1; min-width: 0; }
+  #player-controls-top > div:first-child > span:last-child { display: none; }
+  #player-controls-top > div:last-child { gap: 4px; }
+  #player-controls-top button { min-width: 44px; min-height: 44px; padding: 0 6px; font-size: 10px; }
+  #player-controls-bottom { padding: 16px 8px 4px; gap: 0; }
+  #player-controls-bottom > div:last-child { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; align-items: center; }
+  #player-controls-bottom > div:last-child > div, #player-controls-bottom div:has(> #player-btn-volume) { display: contents; }
+  #player-controls-bottom button { height: 44px; min-height: 44px; min-width: 0; width: 100%; padding: 0 2px; justify-content: center; }
+  #player-controls-bottom .material-symbols-outlined { font-size: 21px; line-height: 1; }
+  #player-controls-bottom #player-volume-slider, #player-controls-bottom #player-btn-pip { display: none; }
+  #player-time-display { order: 0; grid-column: 1 / 4; min-width: 0; padding: 0 2px; font-size: 11px; white-space: nowrap; }
+  #player-quality-btn { order: 1; grid-column: 4 / 6; }
+  #player-speed-btn { order: 2; grid-column: 6; }
+  #player-quality-btn .material-symbols-outlined, #player-speed-btn .material-symbols-outlined { display: none; }
+  #player-btn-play { order: 10; }
+  #player-btn-back10 { order: 11; }
+  #player-btn-forward10 { order: 12; }
+  #player-btn-next { order: 13; }
+  #player-btn-volume { order: 14; }
+  #player-btn-fullscreen { order: 15; }
+  #player-scrubber-container { height: 20px; }
+  #player-quality-menu, #player-speed-menu { top: 6px; bottom: auto; right: 8px; max-height: calc(100% - 12px); overflow-y: auto; overscroll-behavior: contain; }
+  #player-quality-menu button, #player-speed-menu button { min-height: 44px; }
+  #m-player-cast { display: none; }
+  #m-player-overlay { padding: 6px 8px; gap: 0; }
+  #m-player-overlay > div:first-child button { min-width: 44px; min-height: 44px; }
+  #m-player-overlay > div:nth-child(2) { gap: 20px; }
+  #m-player-overlay > div:last-child { gap: 0; }
+  #m-scrubber-wrap { height: 18px; }
+  #m-player-overlay > div:last-child > div:last-child button { min-width: 44px; min-height: 44px; }
+  #m-player-overlay > div:last-child > div:last-child > div:first-child > span:last-child { display: none; }
+  #m-watch-servers button, #m-watch-ep-list button, #m-info-fav-btn, #m-comment-send { min-width: 44px; min-height: 44px; }
+  #m-watch-servers button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+  #m-comment-input { font-size: 16px; }
+  #epDrawerBackdrop:not(.active) { visibility: hidden; }
+  #epDrawerBackdrop.active { visibility: visible; }
+}
+@media (orientation: landscape) and (max-height: 550px) and (max-width: 1023px) {
+  body:has(#watch-main-content) > header { display: none; }
+  body:has(#watch-main-content) > main { padding-top: 0; }
+  #top-watch-bar { padding-block: 0; }
+  #top-watch-bar > div { min-height: 44px; }
+  #watch-main-content { padding-top: 0; }
+  #player-viewport:not(:fullscreen) { height: calc(100dvh - 44px); aspect-ratio: auto; }
+  #player-viewport video, #player-viewport iframe { object-fit: contain; }
+}
+@media (max-width: 359px) {
+  #m-player-overlay > div:nth-child(2) { gap: 16px; }
+  #m-center-play-btn { width: 48px; height: 48px; padding: 0; }
+  #m-player-overlay > div:first-child { gap: 8px; }
+  #m-player-overlay > div:first-child > div:first-child { gap: 4px; min-width: 0; }
+  #m-player-movie-name { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { #detail-episode-jump, #m-detail-episode-jump { scroll-behavior: auto; } }
+@media (orientation: landscape) and (max-height: 550px) and (max-width: 1023px) {
+  #top-watch-bar { height: 44px; padding: 0 12px; }
+  #top-watch-bar > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; height: 44px; }
+  #top-watch-bar > div > div:first-child { gap: 8px; min-width: 0; }
+  #top-watch-bar > div > div:first-child > div:last-child { min-width: 0; flex: 1; }
+  #top-watch-bar > div > div:first-child > div:last-child > span:last-child, #top-watch-bar #btn-theater-toggle { display: none; }
+  #top-watch-bar h1 { font-size: 14px; line-height: 20px; }
+  #top-watch-bar button { min-height: 44px; }
+}
+@media (max-width: 1023px) {
+  #party-modal-card { max-height: calc(100dvh - 24px); }
+  #party-modal-card > div:first-child, #party-modal-card > div:nth-child(2) { flex-shrink: 0; }
+  #modal-pane-create, #modal-pane-join { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+}

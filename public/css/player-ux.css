@@ -28,8 +28,30 @@
 }
 .player-status button:first-of-type { background: #b80711; }
 .player-status button:focus-visible { outline: 3px solid #7df4ff; outline-offset: 3px; }
+.player-status.player-embed-help {
+  inset: auto 8px 64px auto;
+  max-width: min(360px, calc(100% - 16px));
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  pointer-events: none;
+}
+.player-embed-help button { pointer-events: auto; }
 #m-player-wrapper button, .server-pill-btn { min-height: 44px; min-width: 44px; }
 #m-scrubber-wrap { min-height: 24px; touch-action: none; }
 @media (prefers-reduced-motion: reduce) {
   .player-status, .player-status button { transition: none; }
 }
+
+.player-embed-notice, #embed-player-help, #m-embed-player-help { display: none !important; }
+.player-status.player-status-outside {
+  position: static; inset: auto; z-index: auto; width: 100%; max-width: none;
+  box-sizing: border-box; padding: 10px 12px; gap: 8px;
+  justify-content: flex-start; align-content: normal; text-align: left;
+  border: 1px solid #ffffff20; border-radius: 8px; background: #191b24;
+  pointer-events: auto; font-size: 12px;
+}
+.player-status-outside p { margin: 0; }
+.player-status-outside button { padding: 8px 12px; font-size: 12px; }
+#m-embed-player-help { margin: 8px 16px; }
+@media (max-width: 767px) { #embed-player-help { margin-inline: 16px; width: calc(100% - 32px); } }

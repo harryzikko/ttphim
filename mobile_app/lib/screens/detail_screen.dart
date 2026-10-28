@@ -28,6 +28,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   bool _isFavorite = false;
   int _selectedServerIndex = 0;
   bool _isDescriptionExpanded = false;
+  List<Map<String, dynamic>> _seasons = [];
+  int _selectedEpisodeTab = 0;
+  static const int _episodesPerChunk = 50;
 
   WatchHistoryItem? _lastHistory;
 
@@ -68,12 +71,96 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   Future<void> _fetchDetail() async {
     final res = await ApiService.getMovieDetail(widget.slug);
+    final seasons = await ApiService.getMovieSeasons(widget.slug);
     if (mounted) {
       setState(() {
         _detail = res;
+        _seasons = seasons;
         _isLoading = false;
       });
     }
+  }
+
+  String _getCurrentSeasonLabel() {
+    for (final s in _seasons) {
+      if (s['slug'] == widget.slug || s['is_current'] == true) {
+        return s['label']?.toString() ?? s['name']?.toString() ?? 'Chọn Phần';
+      }
+    }
+    return _seasons.isNotEmpty ? (_seasons.first['label']?.toString() ?? 'Chọn Phần') : 'Chọn Phần';
+  }
+
+  void _showSeasonSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141722),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.layers_rounded, color: AppTheme.primary, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Chọn Mùa / Phần Phim',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white54, size: 20),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: _seasons.length,
+                separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+                itemBuilder: (context, idx) {
+                  final s = _seasons[idx];
+                  final isCurrent = s['slug'] == widget.slug || s['is_current'] == true;
+                  final label = s['label']?.toString() ?? s['name']?.toString() ?? 'Phần ${idx + 1}';
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    title: Text(
+                      label,
+                      style: TextStyle(
+                        color: isCurrent ? AppTheme.primaryLight : Colors.white,
+                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    trailing: isCurrent
+                        ? const Icon(Icons.check_circle_rounded, color: AppTheme.primary, size: 20)
+                        : null,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      if (!isCurrent) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MovieDetailScreen(slug: s['slug'].toString()),
+                          ),
+                        );
+                      }
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _playEpisode(EpisodeItem episode, [ServerItem? targetServer]) {
@@ -359,11 +446,53 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         const Divider(color: AppTheme.border, height: 24),
 
                         // Episodes Section
-                        const Text(
-                          'Danh Sách Tập',
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        Row(
+                          children: [
+                            const Text(
+                              'Danh Sách Tập',
+                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            const Spacer(),
+                            if (_detail != null && _detail!.servers.isNotEmpty)
+                              Text(
+                                '${_detail!.servers[_selectedServerIndex].episodes.length} tập',
+                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                              ),
+                          ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
+
+                        // Netflix-Style Season Selector Button
+                        if (_seasons.length > 1) ...[
+                          GestureDetector(
+                            onTap: _showSeasonSelector,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.card,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.primary.withOpacity(0.5), width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.layers_rounded, color: AppTheme.primary, size: 18),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      _getCurrentSeasonLabel(),
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Icon(Icons.expand_more_rounded, color: AppTheme.textSecondary, size: 18),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
 
                         // Server Selector Tabs
                         if (_isLoading)
@@ -381,10 +510,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                                 children: List.generate(_detail!.servers.length, (sIdx) {
                                   final server = _detail!.servers[sIdx];
                                   final isSel = sIdx == _selectedServerIndex;
+                                  final sLabel = '${server.serverName} (${server.episodes.length})';
                                   return Padding(
                                     padding: const EdgeInsets.only(right: 8),
                                     child: ChoiceChip(
-                                      label: Text(server.serverName),
+                                      label: Text(sLabel),
                                       selected: isSel,
                                       selectedColor: AppTheme.primary,
                                       backgroundColor: AppTheme.card,
@@ -393,7 +523,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                                         fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                                         fontSize: 12,
                                       ),
-                                      onSelected: (_) => setState(() => _selectedServerIndex = sIdx),
+                                      onSelected: (_) => setState(() {
+                                        _selectedServerIndex = sIdx;
+                                        _selectedEpisodeTab = 0;
+                                      }),
                                     ),
                                   );
                                 }),
@@ -401,38 +534,95 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                             ),
                           const SizedBox(height: 12),
 
-                          // Episodes Grid
-                          GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4,
-                              childAspectRatio: 2.2,
-                              crossAxisSpacing: 8,
-                              mainAxisSpacing: 8,
-                            ),
-                            itemCount: _detail!.servers[_selectedServerIndex].episodes.length,
-                            itemBuilder: (context, eIdx) {
-                              final ep = _detail!.servers[_selectedServerIndex].episodes[eIdx];
-                              return OutlinedButton(
-                                onPressed: () => _playEpisode(ep),
-                                style: OutlinedButton.styleFrom(
-                                  backgroundColor: AppTheme.card,
-                                  side: const BorderSide(color: AppTheme.border),
-                                  padding: EdgeInsets.zero,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          // Smart Episode Chunk Tabs (for > 25 episodes)
+                          () {
+                            final currentEpisodes = _detail!.servers[_selectedServerIndex].episodes;
+                            final totalChunks = (currentEpisodes.length / _episodesPerChunk).ceil();
+                            if (totalChunks <= 1) return const SizedBox.shrink();
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: List.generate(totalChunks, (chunkIdx) {
+                                    final start = chunkIdx * _episodesPerChunk + 1;
+                                    final end = (chunkIdx + 1) * _episodesPerChunk > currentEpisodes.length
+                                        ? currentEpisodes.length
+                                        : (chunkIdx + 1) * _episodesPerChunk;
+                                    final isSel = chunkIdx == _selectedEpisodeTab;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: ChoiceChip(
+                                        label: Text('Tập $start - $end'),
+                                        selected: isSel,
+                                        selectedColor: AppTheme.surface,
+                                        backgroundColor: AppTheme.card,
+                                        side: BorderSide(color: isSel ? AppTheme.primary : AppTheme.border, width: isSel ? 1.5 : 0.5),
+                                        labelStyle: TextStyle(
+                                          color: isSel ? AppTheme.primaryLight : AppTheme.textSecondary,
+                                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                                          fontSize: 11,
+                                        ),
+                                        onSelected: (_) => setState(() => _selectedEpisodeTab = chunkIdx),
+                                      ),
+                                    );
+                                  }),
                                 ),
-                                child: Text(
-                                  ep.name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                              ),
+                            );
+                          }(),
+
+                          // Episodes Grid (Slice current chunk)
+                          () {
+                            final currentEpisodes = _detail!.servers[_selectedServerIndex].episodes;
+                            final totalChunks = (currentEpisodes.length / _episodesPerChunk).ceil();
+                            final displayedEpisodes = totalChunks > 1
+                                ? currentEpisodes.skip(_selectedEpisodeTab * _episodesPerChunk).take(_episodesPerChunk).toList()
+                                : currentEpisodes;
+
+                            return GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 4,
+                                childAspectRatio: 2.2,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                              ),
+                              itemCount: displayedEpisodes.length,
+                              itemBuilder: (context, eIdx) {
+                                final ep = displayedEpisodes[eIdx];
+                                final isWatched = _lastHistory?.episodeSlug == ep.slug;
+                                return OutlinedButton(
+                                  onPressed: () => _playEpisode(ep),
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor: isWatched ? AppTheme.primary.withOpacity(0.15) : AppTheme.card,
+                                    side: BorderSide(color: isWatched ? AppTheme.primary : AppTheme.border, width: isWatched ? 1.2 : 0.5),
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (isWatched) ...[
+                                        const Icon(Icons.play_arrow_rounded, color: AppTheme.primary, size: 14),
+                                        const SizedBox(width: 2),
+                                      ],
+                                      Text(
+                                        ep.name,
+                                        style: TextStyle(
+                                          color: isWatched ? AppTheme.primaryLight : Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: isWatched ? FontWeight.bold : FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          }(),
                         ] else
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 16),

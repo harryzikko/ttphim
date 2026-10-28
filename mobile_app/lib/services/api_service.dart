@@ -31,7 +31,7 @@ class ApiService {
       final token = await StorageService.getToken();
       if (token == null) return null;
       final result = await BackendService.request('/api/auth/me', token: token);
-      if (await StorageService.getToken() != token) return StorageService.getUser();
+      if (await StorageService.getToken() != token) return await StorageService.getUser();
       if (result?['status'] == true && result?['data'] is Map<String, dynamic>) {
         await StorageService.saveSession(token, result!['data'] as Map<String, dynamic>);
       } else if (result != null) { await StorageService.clearSession(); }
@@ -74,17 +74,6 @@ class ApiService {
       year: 2017,
       quality: 'HD',
       voteAverage: 8.8,
-    ),
-    Movie(
-      id: 'truy-lung-sat-thu',
-      name: 'Truy Lùng Sát Thủ',
-      slug: 'truy-lung-sat-thu',
-      originName: 'One in the Chamber',
-      posterUrl: 'https://img.nguonc.com/images/img-f7fdc0f999763d1d0881690ccc94c1eada35d759c6e3e8edc8f0775c6ceb2137.webp',
-      thumbUrl: 'https://img.nguonc.com/images/img-ffc9757228654e8673f01461da4dcdabceade4f5f44bb29d6fc106938e8af5dc.webp',
-      year: 2012,
-      quality: 'HD',
-      voteAverage: 8.5,
     ),
     Movie(
       id: 'truy-sat',
@@ -318,6 +307,17 @@ class ApiService {
     return null;
   }
 
+  /// Get multi-season / franchise parts for a movie (Netflix-style)
+  static Future<List<Map<String, dynamic>>> getMovieSeasons(String slug) async {
+    try {
+      final response = await _backend('/api/movies/${Uri.encodeComponent(slug)}/seasons');
+      if (response?['status'] == true && response?['data'] is List) {
+        return (response!['data'] as List).whereType<Map<String, dynamic>>().toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   /// Authorize Android TV session via QR Token or 6-digit PIN
   static Future<Map<String, dynamic>> authorizeTvSession(String codeOrToken) async {
     if (!AppConfig.hasBackend) return {'success': false, 'message': 'Chưa cấu hình BACKEND_URL khi build ứng dụng'};
@@ -356,10 +356,12 @@ class ApiService {
     } catch (_) { return null; }
   }
 
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(String email, String password, {String? challengeId, String? code}) async {
     if (!AppConfig.hasBackend) return {'status': false, 'message': 'Chưa cấu hình BACKEND_URL khi build ứng dụng'};
     try {
-      final response = await _backend('/api/auth/login', body: {'email': email, 'password': password});
+      final response = await _backend('/api/auth/login', body: challengeId == null
+          ? {'email': email, 'password': password}
+          : {'challengeId': challengeId, 'code': code});
       final data = response?['data'];
       if (response?['status'] == true && data is Map<String, dynamic> && data['token'] is String && data['user'] is Map<String, dynamic>) {
         await StorageService.saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);

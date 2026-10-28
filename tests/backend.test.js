@@ -14,7 +14,7 @@ const { verifyPassword } = require('../src/services/passwordService');
 // These regression tests intentionally do not contact movie providers.
 for (const service of ['kkphimService', 'vicdnService', 'nguoncService', 'partyService', 'personService', 'tmdbService']) {
   const id = require.resolve(`../src/services/${service}`);
-  require.cache[id] = { id, filename: id, loaded: true, exports: service === 'kkphimService' ? { clearHomeCache() {} } : {} };
+  require.cache[id] = { id, filename: id, loaded: true, exports: service === 'kkphimService' ? { clearHomeCache() {} } : service === 'vicdnService' ? { hasBilingualMatch: () => false } : service === 'nguoncService' ? { hasMatch: () => false } : {} };
 }
 const router = require('../src/routes/apiRoutes');
 const admin = { id: 'audit-admin', email: 'admin@example.test', name: 'Admin', role: 'admin', password: 'old-password' };
@@ -50,10 +50,10 @@ after(async () => {
 
 async function request(url, { method = 'GET', body, user, cookie } = {}) {
   const headers = { 'Content-Type': 'application/json' };
-  if (user) headers.Authorization = `Bearer ${generateToken(user)}`;
+  if (user) headers.Authorization = `Bearer ${(await require('../src/services/authService').issueSession(await db.findUserById(user.id))).token}`;
   if (cookie) headers.Cookie = cookie;
   const response = await fetch(base + url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-  return { status: response.status, body: await response.json(), cookie: response.headers.get('set-cookie') };
+  return { status: response.status, body: await response.json(), cookie: response.headers.get('set-cookie'), cache: response.headers.get('cache-control'), vary: response.headers.get('vary') };
 }
 
 async function savedDb() {
@@ -68,13 +68,27 @@ test('admin endpoints reject guests and ordinary users; admins retain access', a
   const response = await request('/admin/users', { user: admin });
   assert.equal(response.status, 200);
   assert.ok(response.body.data.every(user => !('password' in user)));
-  assert.equal((await request('/admin/backup', { user: admin })).status, 200);
+  assert.equal((await request('/admin/backup', { user: admin })).status, 410);
 });
 
 test('anonymous library/profile mutations are rejected without changing the database', async () => {
   const before = await fs.readFile(dbPath, 'utf8');
-  for (const [url, method] of [['/user/library', 'GET'], ['/user/watchlist/toggle', 'POST'], ['/user/watchlist/remove', 'POST'], ['/user/history', 'POST'], ['/user/history/clear', 'POST'], ['/user/password', 'POST'], ['/user/profile', 'POST']]) {
-    assert.equal((await request(url, { method, body: method === 'POST' ? { movie_slug: 'test', name: 'Injected' } : undefined })).status, 401);
+  for (const [url, method] of [
+    ['/user/library', 'GET'],
+    ['/user/watchlist/toggle', 'POST'],
+    ['/user/watchlist/remove', 'POST'],
+    ['/user/history', 'POST'],
+    ['/user/history/clear', 'POST'],
+    ['/user/password', 'POST'],
+    ['/user/profile', 'POST'],
+    ['/movies/test/rate', 'POST'],
+    ['/comments/test', 'POST'],
+    ['/comments/1/reply', 'POST'],
+    ['/party/create', 'POST'],
+    ['/party/test/join', 'POST'],
+    ['/party/test/chat', 'POST']
+  ]) {
+    assert.equal((await request(url, { method, body: method === 'POST' ? { movie_slug: 'test', name: 'Injected', content: 'test', score: 5 } : undefined })).status, 401);
   }
   assert.equal(await fs.readFile(dbPath, 'utf8'), before);
   assert.equal((await request('/user/watchlist/toggle', { method: 'POST', user: member, body: { movie_slug: 'test' } })).status, 200);
@@ -98,7 +112,7 @@ test('registration hashes passwords; login, cookie auth and profile never expose
   const profile = await request('/user/profile', { method: 'POST', user: stored, body: { name: 'Updated' } });
   assert.equal(profile.body.data.name, 'Updated');
   assert.ok(!('password' in profile.body.data));
-  assert.equal((await request('/auth/login', { method: 'POST', body: { ...credentials, password: 'wrong' } })).status, 400);
+  assert.equal((await request('/auth/login', { method: 'POST', body: { ...credentials, password: 'wrong' } })).status, 401);
 });
 
 test('legacy passwords migrate on login and password changes remain usable', async () => {
@@ -107,7 +121,7 @@ test('legacy passwords migrate on login and password changes remain usable', asy
   assert.ok((await savedDb()).users.find(user => user.id === member.id).password.startsWith('scrypt$'));
   const change = await request('/user/password', { method: 'POST', user: member, body: { old_password: member.password, new_password: 'new-password' } });
   assert.equal(change.body.status, true);
-  assert.equal((await request('/auth/login', { method: 'POST', body: { email: member.email, password: member.password } })).status, 400);
+  assert.equal((await request('/auth/login', { method: 'POST', body: { email: member.email, password: member.password } })).status, 401);
   assert.equal((await request('/auth/login', { method: 'POST', body: { email: member.email, password: 'new-password' } })).status, 200);
 });
 
@@ -116,6 +130,7 @@ test('admin creation and password reset hash passwords and omit them from respon
   assert.equal(created.status, 200);
   assert.ok(!('password' in created.body.data));
   const updated = await request(`/admin/users/${created.body.data.id}/update`, { method: 'POST', user: admin, body: { password: 'reset-password', id: 'tampered' } });
+  assert.equal(updated.status, 200, JSON.stringify(updated.body));
   assert.equal(updated.body.data.id, created.body.data.id);
   assert.ok(!('password' in updated.body.data));
   assert.equal((await request('/auth/login', { method: 'POST', body: { email: 'created@example.test', password: 'reset-password' } })).status, 200);
@@ -235,4 +250,204 @@ test('advertising API requires admin, preserves pins and hero, and protects revi
   assert.equal((await request('/admin/advertising', { method: 'POST', user: admin, body })).status, 409);
   assert.equal((await request('/admin/advertising', { method: 'POST', user: admin, body: { ...saved.body.data, ads: [{ ...body.ads[0], href: 'javascript:alert(1)' }] } })).status, 400);
   assert.equal((await request('/admin/settings', { method: 'POST', user: admin, body: { advertising: { ads: [] } } })).status, 400);
+});
+
+test('temporary Windows rename locks retry without losing or duplicating writes', { skip: process.platform !== 'win32' }, async () => {
+  const originalRename = fs.rename;
+  let attempts = 0;
+  fs.rename = async (...args) => {
+    if (++attempts <= 2) throw Object.assign(new Error('temporary Windows lock'), { code: 'EPERM' });
+    return originalRename(...args);
+  };
+  try {
+    assert.equal(await db.incrementMovieView('rename-retry'), 1);
+    assert.ok(attempts >= 3);
+    assert.equal((await savedDb()).movie_views['rename-retry'], 1);
+  } finally {
+    fs.rename = originalRename;
+  }
+});
+
+test('admin source stats, search and synchronization support all configured providers', async () => {
+  const primary = require('../src/services/kkphimService');
+  const bilingual = require('../src/services/vicdnService');
+  const nguonc = require('../src/services/nguoncService');
+  const originals = [Object.assign({}, primary), Object.assign({}, bilingual), Object.assign({}, nguonc)];
+  let syncs = 0;
+  Object.assign(primary, {
+    getTotalMovies: async () => 100,
+    fetchJson: async () => ({ data: { items: [{ slug: 'primary-film', name: 'Primary film' }] } }),
+    normalizeMovieItem: item => item
+  });
+  Object.assign(bilingual, {
+    getTotalMovies: async () => 20, allMovies: [{ slug: 'bilingual-film' }],
+    searchViCdn: async () => [{ slug: 'bilingual-film', name: 'Bilingual film' }],
+    syncCatalog: async () => { syncs++; }
+  });
+  Object.assign(nguonc, {
+    getTotalMovies: async () => 30, allMovies: [{ slug: 'nguonc-film' }],
+    searchNguonC: async () => [{ slug: 'nguonc-film', name: 'NguonC film', source: 'nguonc' }],
+    syncCatalog: async () => { syncs++; }
+  });
+  try {
+    const stats = await request('/admin/stats', { user: admin });
+    assert.equal(stats.status, 200);
+    assert.equal(stats.body.data.totalAllSources, 150);
+    assert.deepEqual(stats.body.data.sourceCounts, { kkphim: 100, vicdn: 20, nguonc: 30 });
+    const sources = await request('/admin/sources', { user: admin });
+    assert.equal(sources.status, 200);
+    assert.deepEqual(Object.keys(sources.body.data).sort(), ['kkphim', 'nguonc', 'total_all_sources', 'total_web_movies', 'vicdn']);
+    const search = await request('/admin/search-movie?keyword=test', { user: admin });
+    assert.equal(search.status, 200);
+    assert.deepEqual(search.body.data.map(item => item.source), ['kkphim', 'vicdn', 'nguonc']);
+    assert.equal((await request('/admin/search-movie?keyword=test&source=removed-provider', { user: admin })).status, 400);
+    const sync = await request('/admin/sources/sync', { method: 'POST', body: {}, user: admin });
+    assert.equal(sync.status, 200);
+    assert.deepEqual(sync.body.data, { vicdn_movies: 1, nguonc_movies: 1 });
+    assert.equal(syncs, 2);
+  } finally {
+    for (const provider of [primary, bilingual, nguonc]) for (const key of Object.keys(provider)) delete provider[key];
+    Object.assign(primary, originals[0]); Object.assign(bilingual, originals[1]); Object.assign(nguonc, originals[2]);
+  }
+});
+
+test('movie ratings use real unique account votes, a five-star scale and private user score', async () => {
+  const empty = await request('/movies/film/ratings');
+  assert.equal(empty.status, 200); assert.equal(empty.body.data.total, 0); assert.equal(empty.body.data.score_10, null);
+  assert.equal((await request('/movies/film/rate', { method: 'POST', body: { score: 5 } })).status, 401);
+  for (const score of [0, 6, 1.5, '5']) assert.equal((await request('/movies/film/rate', { method: 'POST', user: member, body: { score } })).status, 400);
+  const first = await request('/movies/film/rate', { method: 'POST', user: member, body: { score: 5 } });
+  assert.equal(first.body.data.score_10, 10); assert.equal(first.body.data.total, 1);
+  const changed = await request('/movies/film/rate', { method: 'POST', user: member, body: { score: 3 } });
+  assert.equal(changed.body.data.total, 1); assert.equal(changed.body.data.score_10, 6);
+  const publicResult = await request('/movies/film/ratings');
+  assert.equal(publicResult.body.data.user_score, null);
+  const privateResult = await request('/movies/film/ratings', { user: member });
+  assert.equal(privateResult.body.data.user_score, 3); assert.equal((await savedDb()).ratings.length, 1);
+});
+
+test('comments stay scoped to their film, timestamps render once, and unscored comments have no invented stars', async () => {
+  await db.mutate(data => { data.comments = [
+    { id:'legacy',movie_slug:'film',content:'[00:03] hi',timestamp_tag:'00:03',replies:[] },
+    { id:'sample',movie_slug:'default',content:'Demo comment',replies:[] }
+  ]; });
+  const list = await request('/comments/film');
+  assert.equal(list.body.data.length, 1); assert.equal(list.body.data[0].content, 'hi');
+  assert.equal((await savedDb()).comments[0].content, '[00:03] hi');
+  const invalid = await request('/comments/film', { method:'POST',user:member,body:{content:'Hello',timestamp_tag:'<script>'} });
+  assert.equal(invalid.status, 400);
+  assert.equal((await request('/comments/film', { method:'POST',user:member,body:{content:'Invalid',is_spoil:'false'} })).status, 400);
+  assert.equal((await request('/comments/film', { method:'POST',user:member,body:{content:123,is_spoil:false} })).status, 400);
+  const posted = await request('/comments/film', { method:'POST',user:member,body:{content:'Hello',timestamp_tag:'00:03',episode_slug:'tap-1',is_spoil:true} });
+  assert.equal(posted.status, 200); assert.equal(posted.body.data.rating, null); assert.equal(posted.body.data.episode_slug, 'tap-1');
+  assert.equal(posted.body.data.is_spoil, true);
+  assert.equal((await request('/movies/film/ratings')).body.data.total, 0);
+  const rated = await request('/comments/film', { method:'POST',user:member,body:{content:'Review',rating:4} });
+  assert.equal(rated.status, 200); assert.equal(rated.body.data.rating, null);
+  assert.equal(rated.body.data.is_spoil, false);
+  assert.ok(!rated.body.data.episode_slug);
+  assert.equal((await request('/movies/film/ratings')).body.data.total, 0);
+  await request('/movies/film/rate', { method:'POST',user:member,body:{score:2} });
+  await request('/comments/film', { method:'POST',user:member,body:{content:'Another comment',rating:5} });
+  const unchanged = (await request('/movies/film/ratings')).body.data;
+  assert.equal(unchanged.total, 1); assert.equal(unchanged.score_10, 4);
+});
+
+test('history retains explicit genre metadata and never invents five percent progress', async () => {
+  await db.saveHistory(member.id, { movie_slug:'film',movie_name:'Film',current_time:0,duration:0,category:['Hành động',null] });
+  const history = await db.getHistory(member.id);
+  assert.equal(history[0].progress_percent, 0);
+  assert.deepEqual(history[0].category, ['Hành động']);
+  await db.saveHistory(member.id, { movie_slug:'film',current_time:20,duration:100 });
+  assert.deepEqual((await db.getHistory(member.id))[0].category, ['Hành động']);
+});
+
+test('comment badges use the current account role rather than a stored or supplied label', async () => {
+  await db.mutate(data => { data.comments = [
+    { id:'admin-comment',movie_slug:'film',user_id:admin.id,content:'Admin comment',replies:[] },
+    { id:'spoof-comment',movie_slug:'film',user_id:member.id,user_role:'admin',content:'User comment',replies:[] }
+  ]; });
+  const comments = (await request('/comments/film')).body.data;
+  assert.equal(comments[0].user_role, 'admin');
+  assert.equal(comments[1].user_role, 'user');
+});
+
+test('hiding Continue Watching preserves history, is account-scoped and only new progress restores visibility', async () => {
+  await db.saveHistory(member.id,{movie_slug:'film',movie_name:'Film',episode_slug:'tap-2',current_time:120,duration:600,server_name:'Backup'});
+  assert.equal((await request('/user/history/visibility',{method:'POST',body:{movie_slug:'film',hidden:true}})).status,401);
+  assert.equal((await request('/user/history/visibility',{method:'POST',user:admin,body:{movie_slug:'film',hidden:true}})).status,404);
+  assert.equal((await request('/user/history/visibility',{method:'POST',user:member,body:{movie_slug:'film',hidden:'yes'}})).status,400);
+  const hidden=await request('/user/history/visibility',{method:'POST',user:member,body:{movie_slug:'film',hidden:true}});
+  assert.equal(hidden.status,200);assert.equal(hidden.body.data.user_id,member.id);
+  let library=(await request('/user/library',{user:member})).body.data;
+  assert.equal(library.continueWatching.length,0);assert.equal(library.history.length,1);
+  assert.equal(library.history[0].current_time,120);assert.equal(library.history[0].episode_slug,'tap-2');assert.equal(library.history[0].server_name,'Backup');
+  await db.saveHistory(member.id,{movie_slug:'film',episode_slug:'tap-2',current_time:120,duration:600});
+  assert.equal((await db.getHistory(member.id))[0].continue_hidden,true);
+  await request('/user/history/visibility',{method:'POST',user:member,body:{movie_slug:'film',hidden:false}});
+  library=(await request('/user/library',{user:member})).body.data;assert.equal(library.continueWatching.length,1);
+  await request('/user/history/visibility',{method:'POST',user:member,body:{movie_slug:'film',hidden:true}});
+  await db.saveHistory(member.id,{movie_slug:'film',episode_slug:'tap-2',current_time:121,duration:600});
+  assert.equal((await db.getHistory(member.id))[0].continue_hidden,false);
+});
+
+test('playback preferences require auth, validate PATCH and preserve own account state across sessions', async () => {
+  assert.equal((await request('/user/playback-preferences')).status,401);
+  const defaults=await request('/user/playback-preferences',{user:member});assert.equal(defaults.status,200);assert.equal(defaults.body.data.playback_speed,1);
+  const patch=await request('/user/playback-preferences',{method:'PATCH',user:member,body:{auto_next:false,playback_speed:1.5,audio_language:'vi',subtitle_language:'off'}});
+  assert.equal(patch.status,200);assert.equal(patch.body.data.auto_next,false);
+  assert.equal((await request('/user/playback-preferences',{user:member})).body.data.playback_speed,1.5);
+  assert.equal((await request('/user/playback-preferences',{user:admin})).body.data.playback_speed,1);
+  for(const body of [{playback_speed:9},{auto_next:'false'},{user_id:admin.id},{audio_language:'javascript:bad'}])assert.equal((await request('/user/playback-preferences',{method:'PATCH',user:member,body})).status,400);
+  const persisted=await savedDb();assert.equal(persisted.users.find(row=>row.id===member.id).playback_preferences.subtitle_language,'off');assert.equal(persisted.users.find(row=>row.id===admin.id).playback_preferences,undefined);
+});
+
+test('TMDb rating API uses provider movie identity and distinguishes upstream errors',async()=>{
+  const provider=require('../src/services/kkphimService'),tmdb=require('../src/services/tmdbService');
+  const originalDetail=provider.getMovieDetail,originalRating=tmdb.getMovieRating;
+  try{
+    provider.getMovieDetail=async()=>({movie:{slug:'film',tmdb:{id:550,type:'movie'}}});
+    tmdb.getMovieRating=async movie=>{assert.equal(movie.tmdb.id,550);return{source:'tmdb',tmdb_id:550,media_type:'movie',score_10:8.1,vote_count:1234};};
+    const ok=await request('/movies/film/tmdb-rating?tmdb_id=999');assert.equal(ok.status,200);assert.equal(ok.body.data.tmdb_id,550);assert.equal(ok.body.data.score_10,8.1);
+    tmdb.getMovieRating=async()=>{throw Error('unavailable');};assert.equal((await request('/movies/film/tmdb-rating')).status,502);
+    provider.getMovieDetail=async()=>null;assert.equal((await request('/movies/missing/tmdb-rating')).status,404);
+  }finally{if(originalDetail)provider.getMovieDetail=originalDetail;else delete provider.getMovieDetail;if(originalRating)tmdb.getMovieRating=originalRating;else delete tmdb.getMovieRating;}
+});
+
+test('account-owned reactions are idempotent, private, and cannot remove legacy or other account likes', async () => {
+  await db.mutate(data => { data.comments = [{ id:'reaction',movie_slug:'film',user_id:member.id,content:'Test',likes:4,replies:[{id:'reply',likes:0,content:'Reply'}] }]; });
+  assert.equal((await request('/comments/reaction/like', {method:'POST',user:member,body:{action:'unlike'}})).body.data.likes,4);
+  const liked = await request('/comments/reaction/like', {method:'POST',user:member,body:{action:'like'}});
+  assert.equal(liked.body.data.likes,5);
+  assert.equal((await request('/comments/reaction/like', {method:'POST',user:member,body:{action:'like'}})).body.data.likes,5);
+  assert.equal((await request('/comments/reaction/like', {method:'POST',user:admin,body:{action:'unlike'}})).body.data.likes,5);
+  const list = await request('/comments/film', {user:member});
+  assert.equal(list.body.data[0].liked,true); assert.equal(list.body.data[0].liked_by,undefined); assert.match(list.cache,/private.*no-store/);
+  assert.equal((await request('/comments/reaction/like', {method:'POST',user:member,body:{action:'unlike'}})).body.data.likes,4);
+  assert.equal((await request('/comments/reply/like', {method:'POST',user:member,body:{action:'like'}})).body.data.likes,1);
+  assert.equal((await request('/comments/reply/like', {method:'POST',user:member,body:{action:'like'}})).body.data.likes,1);
+  assert.equal((await request('/comments/reaction/like', {method:'POST',user:member,body:{action:'anything'}})).status,400);
+  assert.equal((await request('/comments/missing/like', {method:'POST',user:member,body:{action:'like'}})).status,404);
+  assert.match((await request('/admin/users',{user:admin})).cache,/private.*no-store/);
+});
+
+test('episode context persists without a timestamp and general comments stay general', async () => {
+  const posted=await request('/comments/film',{method:'POST',user:member,body:{content:'Episode discussion',episode_slug:'tap-2',is_spoil:true}});
+  assert.equal(posted.status,200); assert.equal(posted.body.data.episode_slug,'tap-2'); assert.equal(posted.body.data.timestamp_tag,null);
+  const general=await request('/comments/film',{method:'POST',user:member,body:{content:'General discussion',is_spoil:false}});
+  assert.equal(general.body.data.episode_slug,null);
+});
+
+test('password endpoint rejects more than 256 characters without changing password or revoking session', async () => {
+  const response = await request('/user/password', { method: 'POST', user: member, body: { old_password: member.password, new_password: 'x'.repeat(257) } });
+  assert.equal(response.status, 400); assert.equal(response.body.status, false); assert.equal(response.cookie, null);
+  const stored = (await savedDb()).users.find(user => user.id === member.id);
+  assert.equal(await verifyPassword(member.password, stored.password), true); assert.equal(stored.token_version || 0, 0);
+});
+
+test('account binding rejects stale owners on the mounted API before writing a profile', async () => {
+  const session = await require('../src/services/authService').issueSession(await db.findUserById(member.id));
+  const response = await fetch(base + '/user/profile', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}`, 'X-Account-ID': admin.id }, body: JSON.stringify({ name: 'stale admin draft' }) });
+  assert.equal(response.status, 409); assert.equal((await response.json()).code, 'ACCOUNT_CHANGED');
+  assert.equal((await savedDb()).users.find(user => user.id === member.id).name, member.name);
 });

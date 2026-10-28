@@ -1,22 +1,21 @@
-// CineViet - Actor & Director Profile Controller
+// TTPhim - Actor & Director Profile Controller
 document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const pathParts = window.location.pathname.split('/').filter(Boolean);
 
+  let personName = '';
   let personType = 'actor';
+
+  // Support /dien-vien/:name or /dao-dien/:name or ?name=...&type=...
   if (pathParts[0] === 'dao-dien' || urlParams.get('type') === 'director') {
     personType = 'director';
   }
 
-  const personId = urlParams.get('id') || '';
-  let personName = urlParams.get('name') || '';
-  const slugParam = pathParts[1] || '';
-
-  if (!personName && slugParam) {
-    personName = decodeURIComponent(slugParam.replace(/-/g, ' '));
-  }
-  if (!personName && !personId) {
-    personName = 'Chân Tử Đan'; // Fallback default example
+  // Always prioritize the explicit name parameter because it preserves exact Unicode characters (Thai, Vietnamese, Chinese, Korean)
+  if (urlParams.get('name')) {
+    personName = urlParams.get('name').trim();
+  } else if (pathParts[1]) {
+    personName = decodeURIComponent(pathParts[1].replace(/-/g, ' ')).trim();
   }
 
   // DOM Elements
@@ -31,12 +30,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   const gridEl = document.getElementById('person-movies-grid');
   const sortSelect = document.getElementById('film-sort-select');
 
+  if (!personName) {
+    if (nameEl) nameEl.textContent = 'Khám Phá Nghệ Sĩ';
+    if (bioEl) bioEl.textContent = 'Vui lòng chọn một diễn viên hoặc đạo diễn từ danh sách phim để xem tiểu sử và các tác phẩm điện ảnh xuất sắc.';
+    if (gridEl) {
+      gridEl.innerHTML = `
+        <div class="col-span-full py-16 text-center text-on-surface-variant flex flex-col items-center justify-center gap-3">
+          <span class="material-symbols-outlined text-[48px] text-primary-container">recent_actors</span>
+          <p class="text-base text-white font-semibold">Chưa chọn nghệ sĩ để hiển thị</p>
+          <p class="text-sm text-on-surface-variant max-w-md">Vui lòng nhấp vào tên diễn viên hoặc đạo diễn tại trang chi tiết phim hoặc trang xem phim để xem toàn bộ thông tin tiểu sử.</p>
+          <a href="/kham-pha" class="mt-2 px-5 py-2.5 rounded-full bg-primary-container text-white font-bold text-sm hover:brightness-110 transition-all shadow-md">
+            Khám phá kho phim CineViet
+          </a>
+        </div>
+      `;
+    }
+    return;
+  }
+
   let allMovies = [];
 
   try {
-    const querySlug = slugParam || personName;
-    const apiEndpoint = `/api/person/${encodeURIComponent(querySlug)}?id=${encodeURIComponent(personId)}&name=${encodeURIComponent(personName)}&type=${encodeURIComponent(personType)}`;
-    const res = await fetch(apiEndpoint);
+    const res = await fetch(`/api/person/${encodeURIComponent(personName)}?type=${personType}`);
     const json = await res.json();
 
     if (!json.status || !json.data) {
@@ -47,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     allMovies = movies || [];
 
     // Update document title
-    document.title = `${person.name} (${person.role}) - CineViet Cinema`;
+    document.title = `${person.name} (${person.role}) - CineViet`;
 
     // Render Person Meta
     if (nameEl) nameEl.textContent = person.name;
@@ -63,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ${person.type === 'director' ? 'Đạo diễn' : 'Diễn viên'}
       `;
     }
-    if (bioEl) bioEl.textContent = person.biography || person.bio || '';
+    if (bioEl) bioEl.textContent = person.bio;
     if (countEl) countEl.textContent = (movies || []).length;
     if (genreListEl && person.genres) {
       genreListEl.textContent = person.genres.length ? person.genres.join(', ') : 'Điện ảnh toàn cầu';
@@ -105,15 +120,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const quality = movie.quality || 'FHD';
       const episode = movie.episode_current || '';
 
-      const isSongNgu = Boolean(
-        movie.has_song_ngu ||
-        movie.source === 'vicdn' ||
-        (typeof movie.slug === 'string' && movie.slug.startsWith('tv-')) ||
-        (typeof movie.lang === 'string' && /song\s*ngữ/i.test(movie.lang)) ||
-        (typeof movie.quality === 'string' && /song\s*ngữ/i.test(movie.quality)) ||
-        (typeof movie.source_name === 'string' && /vicdn|song\s*ngữ/i.test(movie.source_name))
-      );
-
       return `
         <a href="/phim/${movie.slug}" class="group flex flex-col rounded-xl overflow-hidden bg-surface-container hover:bg-surface-container-high border border-white/5 hover:border-primary-container/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer">
           <div class="relative aspect-[2/3] w-full overflow-hidden bg-surface-container-highest">
@@ -121,11 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none"></div>
             
             <!-- Quality & Year Badges -->
-            <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none z-10">
-              ${isSongNgu ? `
-                <span class="badge-song-ngu">
-                  <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
-                </span>` : ''}
+            <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
               <span class="px-2 py-0.5 rounded bg-primary-container text-white text-[10px] font-bold uppercase shadow-md">${quality}</span>
               ${year ? `<span class="px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-white text-[10px] font-semibold">${year}</span>` : ''}
             </div>
@@ -151,7 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               ${movie.name}
             </h3>
             <p class="text-[11px] text-on-surface-variant truncate" title="${movie.origin_name || ''}">
-              ${movie.origin_name || movie.year || 'CineViet'}
+              ${movie.origin_name || movie.year || 'TTPHIM'}
             </p>
           </div>
         </a>

@@ -1,0 +1,58 @@
+/* Compact source controls, shared by ordinary and dedicated mobile movie pages. */
+body .episode-sources { display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; min-width: 0; padding: 0; border: 0; border-radius: 0; background: transparent; overflow: visible; }
+.episode-sources-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: start; gap: 12px; min-width: 0; }
+.episode-sources-label { padding-top: 13px; color: #939aa9; font-size: 12px; line-height: 18px; font-weight: 500; }
+.episode-sources-buttons { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+body .episode-sources :is(.episode-language-btn,.episode-source-btn) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; max-width: 100%; padding: 8px 14px; border: 1px solid #ffffff14; border-radius: 7px; background: #ffffff05; color: #adb4c2; font: 600 12px/18px 'Inter', sans-serif; text-align: left; white-space: normal; overflow-wrap: anywhere; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+body .episode-sources button[aria-pressed="true"] { border-color: #e5091480; background: #e5091417; color: #f4f5f8; }
+body .episode-sources button:hover:not(:disabled) { background: #ffffff0c; color: #fff; }
+body .episode-sources button:disabled { opacity: .4; cursor: not-allowed; }
+.episode-sources button:focus-visible { outline: 2px solid #f4c8cb; outline-offset: 3px; }
+.episode-source-count { flex-shrink: 0; padding-left: 8px; border-left: 1px solid #ffffff20; color: #9da6b8; font-size: 11px; font-weight: 500; }
+#episode-selector > div > div:first-child { display: flex; flex-direction: column; align-items: stretch; gap: 16px; margin-bottom: 16px; }
+#episode-selector h2 { font-size: 22px; line-height: 30px; }
+#episode-selector > div > div:first-child > div:first-child p { display: none; }
+#episode-selector > div > div:first-child > div:first-child .w-2\.5 { width: 3px; height: 20px; }
+#episode-selector > div > div:nth-child(2) { padding: 12px 0; margin-bottom: 14px; border-top: 1px solid #ffffff0c; background: transparent; border-radius: 0; }
+#episode-selector > div > div.grid, #m-episode-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+#episode-selector .episode-choice, #m-episode-grid .episode-choice { display: flex; align-items: center; gap: 14px; min-width: 0; min-height: 86px; padding: 10px; border: 1px solid #ffffff08; border-radius: 10px; background: #ffffff04; color: #dce1eb; text-decoration: none; text-align: left; transition: background .15s, border-color .15s; }
+#episode-selector .episode-choice:hover, #m-episode-grid .episode-choice:hover { border-color: #ffffff22; background: #ffffff09; color: #fff; }
+.episode-choice-copy { display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 0; }
+.episode-choice-label { display: block; font-size: 14px; line-height: 20px; font-weight: 650; overflow-wrap: anywhere; }
+.episode-choice-subtitle { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; color: #858e9f; font-size: 11px; line-height: 17px; font-weight: 400; }
+#episode-selector .episode-choice:focus-visible { outline: 2px solid #f4c8cb; outline-offset: 3px; }
+.episode-choice-play { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%; background: #ffffff06; color: #7f899c; font-size: 17px; }
+.episode-choice:hover .episode-choice-play { background: #e50914; color: #fff; }
+body #watch-source-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 16px; padding: 16px; box-shadow: none; background: #191b24; }
+#watch-source-actions > div:last-child { align-self: end; }
+body .episode-drawer-choice { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 80px; padding: 11px 12px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: #c2cad8; text-align: left; cursor: pointer; }
+body .episode-drawer-choice:hover { background: #ffffff05; }
+body .episode-drawer-choice.is-current { border-color: #e509141c; box-shadow: inset 3px 0 #e50914; background: linear-gradient(90deg, #e5091411, #ffffff02); color: #fff; }
+.episode-drawer-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.episode-drawer-label { font-size: 13px; line-height: 19px; font-weight: 650; overflow-wrap: anywhere; }
+.episode-drawer-status { color: #ed9b9f; font-size: 10px; line-height: 15px; }
+body .episode-thumb { display: block; flex: 0 0 auto; width: 112px; height: 63px; border-radius: 7px; object-fit: cover; background: #242832; }
+.episode-drawer-choice .episode-thumb { width: 96px; height: 54px; }
+.episode-drawer-choice:has(.episode-thumb) .episode-drawer-icon { display: none; }
+.is-current .episode-choice-play { color: #ef5962; background: #e5091415; }
+body .episode-mobile-choice { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px; min-height: 50px; text-align: left; }
+.episode-mobile-choice .episode-thumb { width: 56px; height: 32px; }
+#m-drawer-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+#m-episode-grid .episode-choice:focus-visible { outline: 2px solid #f4c8cb; outline-offset: 3px; }
+.episode-drawer-choice:focus-visible { outline: 2px solid #f4c8cb; outline-offset: -2px; }
+@media (min-width: 768px) and (max-width: 1099px) { #episode-selector > div > div.grid, #m-episode-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1099px) { body #watch-source-actions { grid-template-columns: minmax(0, 1fr); gap: 12px; } #watch-source-actions > div:last-child { justify-content: flex-end; padding-top: 10px; border-top: 1px solid #ffffff0c; } }
+@media (max-width: 767px) {
+  .episode-sources-row { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; }
+  .episode-sources-label { font-size: 11px; }
+  .episode-sources-buttons { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 3px; margin: -3px; }
+  body .episode-sources :is(.episode-language-btn,.episode-source-btn) { flex: 0 0 auto; max-width: calc(100vw - 116px); padding: 8px 10px; }
+  #episode-selector > div > div.grid, #m-episode-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #episode-selector .episode-choice, #m-episode-grid .episode-choice { gap: 8px; padding: 7px; min-height: 52px; border-radius: 8px; }
+  .episode-choice .episode-thumb { width: 64px; height: 36px; border-radius: 5px; }
+  .episode-choice-label { font-size: 12px; line-height: 18px; }
+  .episode-choice .episode-choice-subtitle, .episode-choice > .material-symbols-outlined { display: none; }
+  #episode-selector h2 { font-size: 18px; line-height: 26px; }
+  body #watch-source-actions { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { body .episode-sources button { transition: none; } }
