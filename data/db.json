@@ -24,6 +24,25 @@
   "watchlist": [],
   "history": [
     {
+      "id": "hist_1793212034279",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "movie_slug": "tro-choi-bat-coc-phan-1",
+      "movie_name": "Trò Chơi Bắt Cóc (Phần 1)",
+      "origin_name": "",
+      "poster_url": "https://phimimg.com/uploads/movies/20261008/tro-choi-bat-coc-phan-1-poster.webp",
+      "thumb_url": "",
+      "category": [],
+      "type": "",
+      "episode_slug": "tap-01",
+      "server_name": "Vietsub",
+      "episode_name": "Tập 01",
+      "current_time": 352,
+      "duration": 3885,
+      "progress_percent": 9,
+      "continue_hidden": false,
+      "updated_at": "2026-10-28T18:27:16.949Z"
+    },
+    {
       "id": "hist_1791617860736",
       "user_id": "usr_demo_01",
       "movie_slug": "nap-day-trai-tim",
@@ -440,10 +459,10 @@
     "phia-sau-doi-tra": 16,
     "dich-nhan-kiet-bat-tu-quan": 4,
     "thanh-pho-ruc-ro": 7,
-    "tro-choi-bat-coc-phan-1": 6,
+    "tro-choi-bat-coc-phan-1": 11,
     "yeu-nhan-than-tham-ky-an-truong-an": 14,
     "vua-hai-kich-2026": 8,
-    "than-y-co-dai-o-do-thi-do-thi-co-tien-y": 5,
+    "than-y-co-dai-o-do-thi-do-thi-co-tien-y": 6,
     "quy-quyet-ranh-gioi-vo-dinh": 7,
     "chang-ai-tac-hop-phan-3": 4,
     "van-gioi-doc-ton": 12,
@@ -1651,6 +1670,25 @@
       "playback": {},
       "startup_count": 0,
       "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-28T18",
+      "requests": 75,
+      "errors": 0,
+      "latency": [
+        69,
+        1,
+        1,
+        1,
+        0,
+        1,
+        2,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
     }
   ],
   "audit_log": [
@@ -1955,9 +1993,30 @@
       "expires_at": 1795713864203,
       "device": "SmokeTest",
       "ip": ""
+    },
+    {
+      "id": "2ad7ab93-693a-4b6f-8b68-4df23743b81b",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "fbf95e0c88f84a3cbbd088f45e2642c212fcaa03424a36d478dafdda26c088fd",
+      "version": 1,
+      "created_at": 1793211982288,
+      "expires_at": 1795803982288,
+      "device": "Dart/3.5 (dart:io)",
+      "ip": "192.168.100.77"
     }
   ],
-  "identity_limits": [],
+  "identity_limits": [
+    {
+      "id": "3911f5d7100521cd200d8032f73e30742dbd9c18e86a3d73a6165afc407492fc",
+      "count": 1,
+      "expires_at": 1793212882244
+    },
+    {
+      "id": "18124b8fc6c2e8e1a1208de2679ce54a0a86abfbd8cd5239902e354c4c323cd0",
+      "count": 1,
+      "expires_at": 1793212882244
+    }
+  ],
   "follows": [],
   "follow_notifications": [],
   "follow_checks": [],

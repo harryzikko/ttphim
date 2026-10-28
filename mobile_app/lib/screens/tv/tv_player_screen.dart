@@ -293,6 +293,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
         movieSlug: widget.movie.slug,
         movieName: widget.movie.name,
         posterUrl: widget.movie.posterUrl,
+        thumbUrl: widget.movie.thumbUrl,
         episodeSlug: _currentEpisode.slug,
         episodeName: _currentEpisode.name,
         positionSeconds: pos,

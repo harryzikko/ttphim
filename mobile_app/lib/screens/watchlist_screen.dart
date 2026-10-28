@@ -236,9 +236,9 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
               width: 55,
               height: 80,
               child: CachedNetworkImage(
-                imageUrl: item.posterUrl.startsWith('http')
+                imageUrl: item.bestImageUrl.isNotEmpty ? item.bestImageUrl : (item.posterUrl.startsWith('http')
                     ? item.posterUrl
-                    : 'https://phimimg.com/${item.posterUrl.startsWith('/') ? item.posterUrl.substring(1) : item.posterUrl}',
+                    : 'https://phimimg.com/${item.posterUrl.startsWith('/') ? item.posterUrl.substring(1) : item.posterUrl}'),
                 fit: BoxFit.cover,
                 errorWidget: (_, __, ___) => Container(color: AppTheme.card),
               ),

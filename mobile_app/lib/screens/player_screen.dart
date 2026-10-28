@@ -617,6 +617,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         movieSlug: _activeMovie.slug,
         movieName: _activeMovie.name,
         posterUrl: _activeMovie.posterUrl,
+        thumbUrl: _activeMovie.thumbUrl,
         episodeSlug: episode.slug,
         episodeName: episode.name,
         positionSeconds: pos,

@@ -443,7 +443,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fit: StackFit.expand,
                                 children: [
                                   CachedNetworkImage(
-                                    imageUrl: item.posterUrl,
+                                    imageUrl: item.bestImageUrl.isNotEmpty ? item.bestImageUrl : item.posterUrl,
                                     fit: BoxFit.cover,
                                     placeholder: (_, __) => Container(color: AppTheme.card),
                                     errorWidget: (_, __, ___) => const Icon(Icons.movie, color: AppTheme.textMuted),
