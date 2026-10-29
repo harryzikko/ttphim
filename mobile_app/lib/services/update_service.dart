@@ -156,17 +156,35 @@ class UpdateService {
           onSuccess();
           return;
         }
+      } on PlatformException catch (pe) {
+        debugPrint('[UpdateService] PlatformException: ${pe.code} - ${pe.message}');
+        if (pe.code == 'PERMISSION_REQUIRED') {
+          onError('Vui lòng bật quyền "Cài đặt ứng dụng không rõ nguồn" trong cài đặt máy, sau đó ấn Tải lại.');
+          return;
+        }
+        // Fall through to external launcher
       } catch (channelErr) {
         debugPrint('[UpdateService] MethodChannel failed, falling back to external launcher: $channelErr');
       }
 
-      // Fallback: Open URL externally if native channel fails
-      if (await canLaunchUrl(currentUri)) {
-        await launchUrl(currentUri, mode: LaunchMode.externalApplication);
-        onSuccess();
-      } else {
-        onError('Không thể khởi chạy trình cài đặt tệp APK');
-      }
+      // Fallback: Open URL externally in browser if native channel fails
+      try {
+        final launched = await launchUrl(currentUri, mode: LaunchMode.externalApplication);
+        if (launched) {
+          onSuccess();
+          return;
+        }
+      } catch (_) {}
+
+      try {
+        final launched = await launchUrl(currentUri, mode: LaunchMode.platformDefault);
+        if (launched) {
+          onSuccess();
+          return;
+        }
+      } catch (_) {}
+
+      onError('Không thể mở trình cài đặt tệp APK tự động. Vui lòng mở trình duyệt và truy cập: $cleanUrl');
     } catch (e) {
       client?.close();
       debugPrint('[UpdateService] Download error: $e');

@@ -1,3 +1,6 @@
+const path = require('path');
+const fs = require('fs');
+const fsPromises = fs.promises;
 const express = require('express');
 const router = express.Router();
 const kkphimService = require('../services/kkphimService');
@@ -942,6 +945,77 @@ router.post('/admin/app-update', async (req, res) => {
     res.json({ status: true, message: 'Đã lưu cấu hình cập nhật ứng dụng thành công!', data: app_update });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Lỗi lưu cấu hình cập nhật ứng dụng' });
+  }
+});
+
+// Admin upload package endpoint (APK / IPA)
+router.post('/admin/upload-app-package', async (req, res) => {
+  try {
+    const rawType = (req.query.type || req.headers['x-package-type'] || 'apk_mobile').toLowerCase();
+    const rawFilename = (req.query.filename || req.headers['x-filename'] || '').trim();
+
+    const lowerName = rawFilename.toLowerCase();
+    if (rawType === 'ios') {
+      if (rawFilename && !lowerName.endsWith('.ipa')) {
+        return res.status(400).json({ status: false, message: 'Gói cài đặt iOS phải có định dạng .ipa' });
+      }
+    } else {
+      if (rawFilename && !lowerName.endsWith('.apk')) {
+        return res.status(400).json({ status: false, message: 'Gói cài đặt Android phải có định dạng .apk' });
+      }
+    }
+    const ext = rawType === 'ios' ? '.ipa' : '.apk';
+
+    let sanitizedBase = rawFilename ? path.basename(rawFilename, ext).replace(/[^a-zA-Z0-9._-]/g, '_') : '';
+    if (!sanitizedBase) {
+      if (rawType === 'apk_mobile') sanitizedBase = 'TTPhim-Mobile-release';
+      else if (rawType === 'apk_tv') sanitizedBase = 'TTPhim-AndroidTV-release';
+      else sanitizedBase = 'TTPhim-iOS-release';
+    }
+    const finalFilename = `${sanitizedBase}${ext}`;
+
+    const downloadsDir = path.join(config.PUBLIC_DIR, 'downloads');
+    if (!fs.existsSync(downloadsDir)) {
+      await fsPromises.mkdir(downloadsDir, { recursive: true });
+    }
+
+    const targetPath = path.join(downloadsDir, finalFilename);
+    const writeStream = fs.createWriteStream(targetPath);
+
+    let bytesWritten = 0;
+    const MAX_SIZE = 300 * 1024 * 1024; // 300 MB limit
+
+    req.on('data', chunk => {
+      bytesWritten += chunk.length;
+      if (bytesWritten > MAX_SIZE) {
+        req.destroy(new Error('Kích thước tệp vượt quá giới hạn 300MB'));
+      }
+    });
+
+    await new Promise((resolve, reject) => {
+      req.pipe(writeStream);
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+      req.on('error', reject);
+    });
+
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const relativeUrl = `/downloads/${finalFilename}`;
+    const fullUrl = `${origin}${relativeUrl}`;
+
+    res.json({
+      status: true,
+      message: `Tải lên tệp ${finalFilename} thành công!`,
+      data: {
+        type: rawType,
+        filename: finalFilename,
+        url: relativeUrl,
+        full_url: fullUrl,
+        size: bytesWritten
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ status: false, message: err.message || 'Lỗi tải lên tệp cài đặt' });
   }
 });
 

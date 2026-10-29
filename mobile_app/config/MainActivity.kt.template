@@ -2,6 +2,8 @@ PACKAGE_DECLARATION
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -16,30 +18,56 @@ class MainActivity: FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "installApk") {
                 val filePath = call.argument<String>("filePath")
-                if (filePath != null) {
-                    try {
-                        val file = File(filePath)
-                        if (!file.exists()) {
-                            result.error("FILE_NOT_FOUND", "Tệp cài đặt không tồn tại: $filePath", null)
+                if (filePath.isNullOrBlank()) {
+                    result.error("INVALID_ARG", "Đường dẫn tệp APK trống", null)
+                    return@setMethodCallHandler
+                }
+
+                try {
+                    val file = File(filePath)
+                    if (!file.exists() || file.length() == 0L) {
+                        result.error("FILE_NOT_FOUND", "Tệp cài đặt APK không tồn tại hoặc bị lỗi: $filePath", null)
+                        return@setMethodCallHandler
+                    }
+
+                    // Check unknown sources installation permission on Android 8.0+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        if (!packageManager.canRequestPackageInstalls()) {
+                            try {
+                                val permIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                    data = Uri.parse("package:${applicationContext.packageName}")
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(permIntent)
+                            } catch (_: Exception) {}
+                            result.error("PERMISSION_REQUIRED", "Cần cấp quyền cài đặt ứng dụng không rõ nguồn", null)
                             return@setMethodCallHandler
                         }
-                        val uri: Uri = FileProvider.getUriForFile(
-                            this,
-                            "${applicationContext.packageName}.fileprovider",
-                            file
-                        )
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(uri, "application/vnd.android.package-archive")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                        startActivity(intent)
-                        result.success(true)
-                    } catch (e: Exception) {
-                        result.error("INSTALL_ERROR", e.message, null)
                     }
-                } else {
-                    result.error("INVALID_ARG", "Đường dẫn tệp trống", null)
+
+                    val uri: Uri = FileProvider.getUriForFile(
+                        this,
+                        "${applicationContext.packageName}.fileprovider",
+                        file
+                    )
+
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "application/vnd.android.package-archive")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+
+                    // Explicitly grant read URI permission to target intent handlers
+                    val resInfoList = packageManager.queryIntentActivities(intent, 0)
+                    for (resolveInfo in resInfoList) {
+                        val pkgName = resolveInfo.activityInfo.packageName
+                        grantUriPermission(pkgName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+
+                    startActivity(intent)
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.error("INSTALL_ERROR", e.message ?: "Lỗi khởi chạy trình cài đặt", null)
                 }
             } else {
                 result.notImplemented()

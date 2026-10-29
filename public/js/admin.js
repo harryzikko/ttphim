@@ -761,6 +761,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // --- In-App Update Package Upload Helpers ---
+  function setupPackageUpload(inputId, targetInputId, progressId, barId, statusId, type) {
+    const fileInput = document.getElementById(inputId);
+    const targetInput = document.getElementById(targetInputId);
+    const progressEl = document.getElementById(progressId);
+    const barEl = document.getElementById(barId);
+    const statusEl = document.getElementById(statusId);
+
+    if (!fileInput || !targetInput) return;
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        if (progressEl) progressEl.classList.remove('hidden');
+        if (barEl) barEl.style.width = '0%';
+        if (statusEl) statusEl.textContent = '0%';
+
+        const res = await API.uploadAppPackage(file, type, (percent) => {
+          if (barEl) barEl.style.width = `${percent}%`;
+          if (statusEl) statusEl.textContent = `${percent}%`;
+        });
+
+        if (res?.status && res.data?.url) {
+          targetInput.value = res.data.url;
+          if (statusEl) statusEl.textContent = 'Xong ✓';
+          if (window.showToast) {
+            window.showToast(`Đã tải lên tệp ${res.data.filename} thành công!`);
+          } else {
+            alert(`Đã tải lên tệp ${res.data.filename} thành công!`);
+          }
+        } else {
+          throw new Error(res?.message || 'Lỗi tải lên tệp');
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = 'Lỗi ✗';
+        if (window.showToast) {
+          window.showToast(err.message || 'Lỗi tải lên tệp', 'error');
+        } else {
+          alert(err.message || 'Lỗi tải lên tệp');
+        }
+      } finally {
+        fileInput.value = '';
+        setTimeout(() => {
+          if (progressEl) progressEl.classList.add('hidden');
+        }, 4000);
+      }
+    });
+  }
+
+  setupPackageUpload('upload-apk-mobile', 'setting-app-update-apk-mobile', 'upload-progress-apk-mobile', 'upload-bar-apk-mobile', 'upload-status-apk-mobile', 'apk_mobile');
+  setupPackageUpload('upload-apk-tv', 'setting-app-update-apk-tv', 'upload-progress-apk-tv', 'upload-bar-apk-tv', 'upload-status-apk-tv', 'apk_tv');
+  setupPackageUpload('upload-ipa-ios', 'setting-app-update-ios', 'upload-progress-ipa-ios', 'upload-bar-ipa-ios', 'upload-status-ipa-ios', 'ios');
+
   document.getElementById('btn-goto-banners')?.addEventListener('click', () => {
     document.querySelector('[data-tab="tab-banners"]')?.click();
   });

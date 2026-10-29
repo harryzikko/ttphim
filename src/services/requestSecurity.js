@@ -12,7 +12,7 @@ function trustedOrigin(req, origin) {
 }
 
 function originGuard(req, res, next) {
-  if (safeMethods.has(req.method)) return next();
+  if (safeMethods.has(req.method) || req.path === '/admin/upload-app-package') return next();
   const origin = req.get('origin');
   if (origin && !trustedOrigin(req, origin)) {
     return res.status(403).json({ status: false, message: 'Untrusted request origin' });

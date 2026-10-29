@@ -1808,13 +1808,32 @@
     },
     {
       "hour": "2026-10-29T12",
-      "requests": 56,
+      "requests": 68,
       "errors": 0,
       "latency": [
-        47,
-        7,
+        54,
+        9,
         0,
+        3,
+        0,
+        0,
+        1,
+        1,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-29T13",
+      "requests": 2,
+      "errors": 0,
+      "latency": [
         2,
+        0,
+        0,
+        0,
         0,
         0,
         0,
@@ -2168,18 +2187,28 @@
       "expires_at": 1795867582707,
       "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "7cb21562-b7da-4fb4-a633-eacad1551063",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "23d77743c7a43ba8be4b9f42bf141e45568751f34c8f35b62f7aad9c644af4ff",
+      "version": 1,
+      "created_at": 1793279381509,
+      "expires_at": 1795871381509,
+      "device": "Test script",
+      "ip": ""
     }
   ],
   "identity_limits": [
     {
       "id": "0eb68fa812ae9c40e8cf059756e45a14e0e1b726e111be9de7a77cdce94555dc",
       "count": 1,
-      "expires_at": 1793276482665
+      "expires_at": 1793280295915
     },
     {
       "id": "18124b8fc6c2e8e1a1208de2679ce54a0a86abfbd8cd5239902e354c4c323cd0",
       "count": 1,
-      "expires_at": 1793276482665
+      "expires_at": 1793280295915
     }
   ],
   "follows": [],

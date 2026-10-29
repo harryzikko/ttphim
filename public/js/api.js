@@ -433,6 +433,43 @@ const API = {
       body: JSON.stringify(data)
     });
   },
+  async uploadAppPackage(file, type, onProgress) {
+    return new Promise((resolve, reject) => {
+      const base = this.getBaseUrl();
+      const endpoint = '/api/admin/upload-app-package?type=' + encodeURIComponent(type) + '&filename=' + encodeURIComponent(file.name);
+      const finalUrl = (endpoint.startsWith('http') || !base) ? endpoint : (base + endpoint);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', finalUrl);
+      xhr.withCredentials = true;
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+
+      if (xhr.upload && typeof onProgress === 'function') {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            onProgress(percent);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300 && res.status) {
+            resolve(res);
+          } else {
+            reject(new Error(res.message || ('Lỗi tải lên (' + xhr.status + ')')));
+          }
+        } catch (e) {
+          reject(new Error('Phản hồi từ máy chủ không hợp lệ'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Lỗi kết nối mạng khi tải lên tệp'));
+      xhr.send(file);
+    });
+  },
 
   async updateAdminSettings(settings) {
     return this.request('/api/admin/settings', {

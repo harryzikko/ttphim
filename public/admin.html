@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/css/editorial.css?v=1.3.1">
   <script defer src="/js/admin-banners.js?v=1.2.0"></script>
   <script defer src="/js/admin-sources.js?v=1.1.0"></script>
-  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=24494511515e">
+  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=7ca6343e30f5">
   
   <link rel="stylesheet" href="/css/custom.css">
 </head>
@@ -1122,18 +1122,58 @@
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Link tải Android Mobile APK (Tự tải & cài đè)</label>
-                <input id="setting-app-update-apk-mobile" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://.../TTPhim-Mobile-release.apk" />
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-bold text-on-surface-variant uppercase">Android Mobile APK</label>
+                  <label class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-primary/20 text-primary text-xs font-semibold cursor-pointer transition-all border border-primary/20">
+                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                    <span>Tải lên APK</span>
+                    <input type="file" id="upload-apk-mobile" accept=".apk" class="hidden" />
+                  </label>
+                </div>
+                <input id="setting-app-update-apk-mobile" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="/downloads/TTPhim-Mobile-release.apk" />
+                <div id="upload-progress-apk-mobile" class="hidden mt-1.5 flex items-center gap-2">
+                  <div class="flex-1 bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+                    <div id="upload-bar-apk-mobile" class="bg-primary h-full transition-all duration-200" style="width: 0%"></div>
+                  </div>
+                  <span id="upload-status-apk-mobile" class="text-[11px] text-on-surface-variant font-mono">0%</span>
+                </div>
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Link tải Android TV APK (Tự tải & cài đè)</label>
-                <input id="setting-app-update-apk-tv" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://.../TTPhim-AndroidTV-release.apk" />
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-bold text-on-surface-variant uppercase">Android TV APK</label>
+                  <label class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-primary/20 text-primary text-xs font-semibold cursor-pointer transition-all border border-primary/20">
+                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                    <span>Tải lên APK</span>
+                    <input type="file" id="upload-apk-tv" accept=".apk" class="hidden" />
+                  </label>
+                </div>
+                <input id="setting-app-update-apk-tv" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="/downloads/TTPhim-AndroidTV-release.apk" />
+                <div id="upload-progress-apk-tv" class="hidden mt-1.5 flex items-center gap-2">
+                  <div class="flex-1 bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+                    <div id="upload-bar-apk-tv" class="bg-primary h-full transition-all duration-200" style="width: 0%"></div>
+                  </div>
+                  <span id="upload-status-apk-tv" class="text-[11px] text-on-surface-variant font-mono">0%</span>
+                </div>
               </div>
 
               <div class="md:col-span-2">
-                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Link cập nhật iOS (IPA / TestFlight / Web Link)</label>
-                <input id="setting-app-update-ios" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://.../TTPhim-iOS-IPA-Unsigned.ipa" />
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-bold text-on-surface-variant uppercase">iOS (File IPA / Link TestFlight / Web Link)</label>
+                  <label class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-primary/20 text-primary text-xs font-semibold cursor-pointer transition-all border border-primary/20">
+                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                    <span>Tải lên IPA</span>
+                    <input type="file" id="upload-ipa-ios" accept=".ipa" class="hidden" />
+                  </label>
+                </div>
+                <input id="setting-app-update-ios" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://... hoặc /downloads/TTPhim-iOS-release.ipa" />
+                <div id="upload-progress-ipa-ios" class="hidden mt-1.5 flex items-center gap-2">
+                  <div class="flex-1 bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+                    <div id="upload-bar-ipa-ios" class="bg-primary h-full transition-all duration-200" style="width: 0%"></div>
+                  </div>
+                  <span id="upload-status-ipa-ios" class="text-[11px] text-on-surface-variant font-mono">0%</span>
+                </div>
+                <p class="text-[11px] text-on-surface-variant mt-1">💡 Bấm nút <b>Tải lên</b> để upload file trực tiếp từ máy tính lên máy chủ, hoặc dán link Google Drive, GitHub Release vào ô trên.</p>
               </div>
 
               <div class="flex items-center gap-2 pt-2 md:col-span-2">
