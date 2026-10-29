@@ -204,294 +204,191 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           const SizedBox(height: 24),
 
-          // 2. Thư Viện Của Tôi (Danh Sách Yêu Thích)
+          // 2. Thư Viện Của Tôi (Gộp Yêu Thích & Đang Xem)
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 3.5,
-                    height: 15,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  Text(
-                    'Danh Sách Của Tôi (${_favorites.length})',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Container(
+                width: 3.5,
+                height: 15,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              TextButton(
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const WatchlistScreen(initialTabIndex: 0)),
-                  );
-                  _loadLibraryData();
-                },
-                child: const Text(
-                  'Xem tất cả',
-                  style: TextStyle(color: AppTheme.primaryLight, fontSize: 12),
+              const Text(
+                'Thư Viện Của Tôi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
-          _isLoadingLibrary
-              ? const SizedBox(
-                  height: 140,
-                  child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary)),
-                )
-              : _favorites.isEmpty
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.card,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _user == null
-                                  ? 'Đăng nhập tài khoản CineViet để lưu & đồng bộ danh sách yêu thích của bạn.'
-                                  : 'Chưa có phim nào trong danh sách yêu thích.\nThêm phim từ trang chi tiết để xem lại nhanh.',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: AppTheme.textMuted, fontSize: 12, height: 1.4),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.cardElevated,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WatchlistScreen()),
+                  );
+                  _loadLibraryData();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
                             ),
-                            if (_user == null) ...[
-                              const SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => const AccountScreen()),
-                                  );
-                                  _loadUser();
-                                  _loadLibraryData();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            child: const Icon(
+                              Icons.video_library_rounded,
+                              color: AppTheme.primary,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Xem & Quản Lý Thư Viện',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                                child: const Text('Đăng nhập ngay', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                              ),
-                            ],
-                          ],
-                        ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  _user == null
+                                      ? 'Đăng nhập để đồng bộ phim yêu thích & đang xem'
+                                      : '${_favorites.length} phim yêu thích • ${_history.length} phim đang xem',
+                                  style: const TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppTheme.textMuted,
+                            size: 22,
+                          ),
+                        ],
                       ),
-                    )
-                  : SizedBox(
-                      height: 160,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: _favorites.length,
-                        itemBuilder: (context, idx) {
-                          final movie = _favorites[idx];
-                          return GestureDetector(
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => MovieDetailScreen(slug: movie.slug, initialMovie: movie),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const WatchlistScreen(initialTabIndex: 0)),
+                                );
+                                _loadLibraryData();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1B202D),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white.withOpacity(0.06)),
                                 ),
-                              );
-                              _loadLibraryData();
-                            },
-                            child: Container(
-                              width: 105,
-                              margin: const EdgeInsets.only(right: 10),
-                              decoration: BoxDecoration(
-                                color: AppTheme.cardElevated,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.white.withOpacity(0.08)),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(7.2),
-                                child: Stack(
-                                  fit: StackFit.expand,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    CachedNetworkImage(
-                                      imageUrl: movie.fullPosterUrl,
-                                      fit: BoxFit.cover,
-                                      placeholder: (_, __) => Container(color: AppTheme.card),
-                                      errorWidget: (_, __, ___) => const Icon(Icons.movie, color: AppTheme.textMuted),
-                                    ),
-                                    Positioned(
-                                      bottom: 0,
-                                      left: 0,
-                                      right: 0,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          movie.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
-                                        ),
+                                    const Icon(Icons.favorite_rounded, color: Colors.redAccent, size: 15),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Yêu thích (${_favorites.length})',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                          );
-                        },
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const WatchlistScreen(initialTabIndex: 1)),
+                                );
+                                _loadLibraryData();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1B202D),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.history_rounded, color: AppTheme.gold, size: 16),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Đang xem (${_history.length})',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-
-          const SizedBox(height: 20),
-
-          // 3. Lịch Sử Xem (Watch History)
-          if (_history.isNotEmpty) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 3.5,
-                      height: 15,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.gold,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    Text(
-                      'Đang Xem Dở & Lịch Sử (${_history.length})',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                TextButton(
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const WatchlistScreen(initialTabIndex: 1)),
-                    );
-                    _loadLibraryData();
-                  },
-                  child: const Text(
-                    'Xem tất cả',
-                    style: TextStyle(color: AppTheme.primaryLight, fontSize: 12),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 140,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                itemCount: _history.length,
-                itemBuilder: (context, idx) {
-                  final item = _history[idx];
-                  final progress = item.progressPercentage;
-
-                  return GestureDetector(
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MovieDetailScreen(slug: item.movieSlug),
-                        ),
-                      );
-                      _loadLibraryData();
-                    },
-                    child: Container(
-                      width: 140,
-                      margin: const EdgeInsets.only(right: 10),
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardElevated,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white.withOpacity(0.08)),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(7.2),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  CachedNetworkImage(
-                                    imageUrl: item.bestImageUrl.isNotEmpty ? item.bestImageUrl : item.posterUrl,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(color: AppTheme.card),
-                                    errorWidget: (_, __, ___) => const Icon(Icons.movie, color: AppTheme.textMuted),
-                                  ),
-                                  Center(
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.6),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                                    ),
-                                  ),
-                                  if (progress > 0)
-                                    Positioned(
-                                      left: 0,
-                                      right: 0,
-                                      bottom: 0,
-                                      child: LinearProgressIndicator(
-                                        value: progress,
-                                        backgroundColor: Colors.white24,
-                                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
-                                        minHeight: 3,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(6.0),
-                              child: Text(
-                                item.movieName.isNotEmpty ? item.movieName : item.movieSlug,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
               ),
             ),
-            const SizedBox(height: 24),
-          ],
+          ),
+          const SizedBox(height: 24),
 
           // 4. Player Settings
           const Text(

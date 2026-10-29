@@ -289,7 +289,7 @@ class DbService {
       movie_name: data.movie_name,
       origin_name: data.origin_name || '',
       poster_url: data.poster_url || '',
-      thumb_url: data.thumb_url || '',
+      thumb_url: data.thumb_url || (data.poster_url && data.poster_url.includes('-poster.') ? data.poster_url.replace('-poster.', '-thumb.') : (previous?.thumb_url || '')),
       category: (Array.isArray(data.category) ? data.category : (existingIndex >= 0 && Array.isArray(db.history[existingIndex].category) ? db.history[existingIndex].category : [])).filter(item => typeof item === 'string' && item.length <= 100).slice(0, 20),
       type: ['single', 'series', 'tv', 'movie', 'phim-bo', 'phim-le', 'hoathinh', 'tvshows'].includes(data.type) ? data.type : (existingIndex >= 0 ? db.history[existingIndex].type || '' : ''),
       episode_slug: data.episode_slug || 'tap-1',

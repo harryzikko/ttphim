@@ -318,6 +318,7 @@ router.get('/user/library', async (req, res) => {
 
     const enrichSongNgu = (items) => (items || []).map(item => ({
       ...item,
+      thumb_url: item.thumb_url || (item.poster_url && item.poster_url.includes('-poster.') ? item.poster_url.replace('-poster.', '-thumb.') : (item.thumb_url || item.poster_url || '')),
       has_song_ngu: Boolean(item.has_song_ngu || vicdnService.hasBilingualMatch({ slug: item.movie_slug || item.slug, name: item.movie_name || item.name, origin_name: item.origin_name }))
     }));
 

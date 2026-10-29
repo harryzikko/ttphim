@@ -25,9 +25,16 @@ class WatchHistoryItem {
 
   double get progressPercentage => durationSeconds <= 0 ? 0 : (positionSeconds / durationSeconds).clamp(0.0, 1.0);
 
-  /// Get the best 16:9 landscape image URL for cards, falling back to poster
+  /// Get the best 16:9 landscape image URL for cards, falling back to thumb-converted poster
   String get bestImageUrl {
-    final url = thumbUrl.isNotEmpty ? thumbUrl : posterUrl;
+    String url = thumbUrl.trim();
+    if (url.isEmpty || url == posterUrl) {
+      if (posterUrl.contains('-poster.')) {
+        url = posterUrl.replaceAll('-poster.', '-thumb.');
+      } else if (url.isEmpty) {
+        url = posterUrl.trim();
+      }
+    }
     if (url.isEmpty) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     final clean = url.startsWith('/') ? url.substring(1) : url;
@@ -137,6 +144,8 @@ class StorageService {
     final scope = await _scope();
     final prefs = await SharedPreferences.getInstance();
     final key = _key('favorites', scope);
+    final tombstoneKey = _key('deleted_favorites', scope);
+    final deleted = (prefs.getStringList(tombstoneKey) ?? <String>[]).toSet();
     final items = _read(prefs, key);
     bool added;
     if (scope != 'guest' && AppConfig.hasBackend) {
@@ -149,9 +158,37 @@ class StorageService {
       added = response!['data']['added'] == true;
     } else { added = !items.any((item) => item['slug'] == movie.slug); }
     items.removeWhere((item) => item['slug'] == movie.slug);
-    if (added) items.insert(0, movie.toJson());
+    if (added) {
+      items.insert(0, movie.toJson());
+      if (deleted.remove(movie.slug)) {
+        await prefs.setStringList(tombstoneKey, deleted.toList());
+      }
+    } else {
+      deleted.add(movie.slug);
+      await prefs.setStringList(tombstoneKey, deleted.toList());
+    }
     await _write(prefs, key, items);
     return added;
+  }
+
+  static Future<void> removeFavorite(String slug) async {
+    final token = await getToken();
+    final scope = await _scope();
+    final prefs = await SharedPreferences.getInstance();
+    final key = _key('favorites', scope);
+    final items = _read(prefs, key)..removeWhere((item) => item['slug'] == slug);
+    await _write(prefs, key, items);
+
+    // Save tombstone in deleted_favorites
+    final tombstoneKey = _key('deleted_favorites', scope);
+    final deleted = (prefs.getStringList(tombstoneKey) ?? <String>[]).toSet()..add(slug);
+    await prefs.setStringList(tombstoneKey, deleted.toList());
+
+    if (scope != 'guest' && AppConfig.hasBackend && token != null) {
+      try {
+        await BackendService.request('/api/user/watchlist/remove', token: token, body: {'movie_slug': slug});
+      } catch (_) { /* Offline tombstone preserves deletion. */ }
+    }
   }
 
   static Future<bool> isFavorite(String slug) async => (await getFavorites()).any((movie) => movie.slug == slug);
@@ -162,16 +199,28 @@ class StorageService {
     // Re-check account after the network request, not just before it.
     final prefs = await SharedPreferences.getInstance();
     final key = _key('favorites', scope);
+    final tombstoneKey = _key('deleted_favorites', scope);
+    final deleted = (prefs.getStringList(tombstoneKey) ?? <String>[]).toSet();
+
     final library = await _library(scope);
     if (await _scope() != scope) return getFavorites();
     if (library?['watchlist'] is List) {
-      final movies = (library!['watchlist'] as List).whereType<Map<String, dynamic>>().map((item) => Movie.fromJson({
-        ...item, 'slug': item['movie_slug'], 'name': item['movie_name'],
-      })).toList();
+      final movies = (library!['watchlist'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map((item) => Movie.fromJson({
+                ...item,
+                'slug': item['movie_slug'],
+                'name': item['movie_name'],
+              }))
+          .where((movie) => !deleted.contains(movie.slug))
+          .toList();
       await _write(prefs, key, movies.map((movie) => movie.toJson()));
       return movies;
     }
-    return _read(prefs, key).map(Movie.fromJson).toList();
+    return _read(prefs, key)
+        .where((entry) => !deleted.contains(entry['slug']))
+        .map(Movie.fromJson)
+        .toList();
   }
 
   static Future<void> saveHistory(WatchHistoryItem item) async {

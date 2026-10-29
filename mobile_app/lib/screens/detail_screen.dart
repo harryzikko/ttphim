@@ -256,8 +256,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   backgroundColor: Colors.black.withOpacity(0.6),
                   child: IconButton(
                     icon: Icon(
-                      _isFavorite ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                      color: _isFavorite ? AppTheme.gold : Colors.white,
+                      _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                      color: _isFavorite ? Colors.redAccent : Colors.white,
                       size: 22,
                     ),
                     onPressed: _toggleFavorite,

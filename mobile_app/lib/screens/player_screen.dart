@@ -617,7 +617,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         movieSlug: _activeMovie.slug,
         movieName: _activeMovie.name,
         posterUrl: _activeMovie.posterUrl,
-        thumbUrl: _activeMovie.thumbUrl,
+        thumbUrl: _activeMovie.thumbUrl.isNotEmpty ? _activeMovie.thumbUrl : (_activeMovie.posterUrl.contains('-poster.') ? _activeMovie.posterUrl.replaceAll('-poster.', '-thumb.') : _activeMovie.posterUrl),
         episodeSlug: episode.slug,
         episodeName: episode.name,
         positionSeconds: pos,
@@ -1562,9 +1562,9 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           child: Row(
             children: [
               _buildToolChip(
-                icon: _isFavorite ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                label: _isFavorite ? 'Đã Lưu' : 'Lưu Phim',
-                color: _isFavorite ? AppTheme.gold : Colors.white70,
+                icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                label: _isFavorite ? 'Đã Thích' : 'Yêu Thích',
+                color: _isFavorite ? Colors.redAccent : Colors.white70,
                 onTap: () async {
                   final token = await StorageService.getToken();
                   if (token == null) {
