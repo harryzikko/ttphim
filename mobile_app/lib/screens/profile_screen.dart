@@ -11,6 +11,9 @@ import '../theme/app_theme.dart';
 import 'account_screen.dart';
 import 'detail_screen.dart';
 import 'watchlist_screen.dart';
+import '../models/app_update_info.dart';
+import '../services/update_service.dart';
+import '../widgets/update_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -25,6 +28,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Movie> _favorites = [];
   List<WatchHistoryItem> _history = [];
   bool _isLoadingLibrary = true;
+  AppUpdateInfo? _availableUpdate;
+  bool _isCheckingUpdate = false;
 
   @override
   void initState() {
@@ -35,6 +40,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUser();
     _loadLibraryData();
     SessionService.changes.addListener(_onSessionChanged);
+    _checkAppUpdateSilently();
+  }
+
+  void _checkAppUpdateSilently() {
+    UpdateService.checkUpdate().then((update) {
+      if (mounted && update != null) {
+        setState(() => _availableUpdate = update);
+        if (update.forceUpdate) {
+          UpdateDialog.show(context, update);
+        }
+      }
+    });
+  }
+
+  Future<void> _checkForUpdateManually() async {
+    if (_isCheckingUpdate) return;
+    setState(() => _isCheckingUpdate = true);
+    final update = await UpdateService.checkUpdate();
+    if (!mounted) return;
+    setState(() {
+      _isCheckingUpdate = false;
+      _availableUpdate = update;
+    });
+
+    if (update != null) {
+      UpdateDialog.show(context, update);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.greenAccent),
+              SizedBox(width: 10),
+              Text('Bạn đang sử dụng phiên bản mới nhất (v1.0.0)'),
+            ],
+          ),
+          backgroundColor: Color(0xFF1E2330),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
@@ -460,6 +506,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           const SizedBox(height: 24),
 
+          // Banner Thông Báo Có Bản Cập Nhật Mới
+          if (_availableUpdate != null) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2C140E), Color(0xFF1E1410)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0x66FF5722)),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x33FF5722), blurRadius: 10, offset: Offset(0, 2)),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF5722).withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.system_update_rounded, color: Color(0xFFFF9800), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Đã có phiên bản mới v${_availableUpdate!.latestVersion}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Chạm để tải về và cài đặt trực tiếp',
+                          style: TextStyle(color: Colors.white60, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => UpdateDialog.show(context, _availableUpdate!),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF5722),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Cập nhật', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // 6. Hệ Thống & Bộ Nhớ
           const Text(
             'Hệ Thống & Bộ Nhớ',
@@ -507,12 +612,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Phiên bản', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                    Text('1.0.0', style: TextStyle(color: AppTheme.primaryLight, fontWeight: FontWeight.w600, fontSize: 13)),
-                  ],
+                InkWell(
+                  onTap: _checkForUpdateManually,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Text('Phiên bản', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                            SizedBox(width: 6),
+                            Icon(Icons.sync_rounded, color: AppTheme.textMuted, size: 14),
+                          ],
+                        ),
+                        if (_isCheckingUpdate)
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                          )
+                        else if (_availableUpdate != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFF5722), Color(0xFFFF9800)],
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Có bản v${_availableUpdate!.latestVersion}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 13),
+                              ],
+                            ),
+                          )
+                        else
+                          const Text(
+                            '1.0.0 (Mới nhất ✓)',
+                            style: TextStyle(
+                              color: AppTheme.primaryLight,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Row(

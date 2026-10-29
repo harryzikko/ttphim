@@ -52,6 +52,13 @@ jobs:
           cp config/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/res/drawable
           cp config/tv_banner.xml android/app/src/main/res/drawable/tv_banner.xml
+          mkdir -p android/app/src/main/res/xml
+          cp config/file_paths.xml android/app/src/main/res/xml/file_paths.xml
+          MAIN_KT=$(find android/app/src/main/kotlin -name "MainActivity.kt" | head -n 1)
+          if [ -f "$MAIN_KT" ]; then
+            PKG=$(grep -m 1 "^package " "$MAIN_KT" | head -n 1)
+            sed "s|PACKAGE_DECLARATION|$PKG|g" config/MainActivity.kt.template > "$MAIN_KT"
+          fi
           if [ "${{ matrix.variant }}" = "Mobile" ]; then
             sed -i '/android.intent.category.LEANBACK_LAUNCHER/d' android/app/src/main/AndroidManifest.xml
             sed -i '/android:banner="@drawable\/tv_banner"/d' android/app/src/main/AndroidManifest.xml

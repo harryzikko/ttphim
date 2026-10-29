@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/css/editorial.css?v=1.3.1">
   <script defer src="/js/admin-banners.js?v=1.2.0"></script>
   <script defer src="/js/admin-sources.js?v=1.1.0"></script>
-  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=d6ea8a73df4e">
+  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=24494511515e">
   
   <link rel="stylesheet" href="/css/custom.css">
 </head>
@@ -1074,6 +1074,77 @@
               </button>
               <button id="btn-preview-app-ad-ipad-h" type="button" class="px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-secondary text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
                 <span class="material-symbols-outlined text-[18px]">tablet</span> Xem Thử iPad Ngang
+              </button>
+            </div>
+          </div>
+
+          <!-- In-App Version Update Management (Mobile APK, Android TV APK & iOS) -->
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4 lg:col-span-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-surface-container-highest/60 pb-3">
+              <div>
+                <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">system_update</span> Quản Lý Cập Nhật Ứng Dụng (In-App Auto Update)
+                </h3>
+                <p class="text-xs text-on-surface-variant mt-1">Cấu hình cập nhật phiên bản mới cho ứng dụng. Với Android (Mobile APK & Android TV APK), người dùng có thể tải trực tiếp trong app và cài đè lên bản cũ không mất dữ liệu. Với iOS, app sẽ hiển thị thông báo và dẫn link cập nhật.</p>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-high border border-surface-container-highest/40 md:col-span-2">
+                <div>
+                  <span class="text-sm font-bold text-on-surface block">Kích hoạt thông báo cập nhật phiên bản</span>
+                  <span class="text-xs text-on-surface-variant">Bật để ứng dụng tự động kiểm tra và thông báo khi có phiên bản mới hơn</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input id="setting-app-update-enabled" type="checkbox" class="sr-only peer">
+                  <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Phiên bản mới nhất (Version Name)</label>
+                <input id="setting-app-update-version" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Ví dụ: 1.0.1" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Mã build (Version Code - Số nguyên tăng dần)</label>
+                <input id="setting-app-update-build" type="number" min="1" max="999999" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Ví dụ: 2" />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Tiêu đề thông báo cập nhật</label>
+                <input id="setting-app-update-title" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Bản Cập Nhật CineViet Mới" />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Nhật ký thay đổi (Release Notes / Changelog)</label>
+                <textarea id="setting-app-update-notes" rows="3" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary resize-y" placeholder="• Tính năng mới 1&#10;• Tính năng mới 2"></textarea>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Link tải Android Mobile APK (Tự tải & cài đè)</label>
+                <input id="setting-app-update-apk-mobile" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://.../TTPhim-Mobile-release.apk" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Link tải Android TV APK (Tự tải & cài đè)</label>
+                <input id="setting-app-update-apk-tv" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://.../TTPhim-AndroidTV-release.apk" />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Link cập nhật iOS (IPA / TestFlight / Web Link)</label>
+                <input id="setting-app-update-ios" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://.../TTPhim-iOS-IPA-Unsigned.ipa" />
+              </div>
+
+              <div class="flex items-center gap-2 pt-2 md:col-span-2">
+                <input id="setting-app-update-force" type="checkbox" class="w-4 h-4 rounded text-primary border-surface-container-highest focus:ring-primary accent-primary cursor-pointer" />
+                <label for="setting-app-update-force" class="text-xs text-on-surface cursor-pointer font-medium">Bắt buộc cập nhật (Người dùng phải nâng cấp phiên bản mới để tiếp tục xem phim)</label>
+              </div>
+            </div>
+
+            <div class="pt-2 flex flex-wrap items-center gap-3">
+              <button id="btn-save-app-update" type="button" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-primary/20 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">save</span> Lưu Cấu Hình Cập Nhật Ứng Dụng
               </button>
             </div>
           </div>

@@ -688,6 +688,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (aErr) {
         console.warn('[TTPhim Admin] Failed to load app banner config:', aErr);
       }
+
+      // Load In-App Update config
+      try {
+        const appUpdate = currentSettings.app_update || (await API.getAdminAppUpdate()) || {};
+        const uEnabledEl = document.getElementById('setting-app-update-enabled');
+        const uVersionEl = document.getElementById('setting-app-update-version');
+        const uBuildEl = document.getElementById('setting-app-update-build');
+        const uTitleEl = document.getElementById('setting-app-update-title');
+        const uNotesEl = document.getElementById('setting-app-update-notes');
+        const uApkMobEl = document.getElementById('setting-app-update-apk-mobile');
+        const uApkTvEl = document.getElementById('setting-app-update-apk-tv');
+        const uIosEl = document.getElementById('setting-app-update-ios');
+        const uForceEl = document.getElementById('setting-app-update-force');
+
+        if (uEnabledEl) uEnabledEl.checked = appUpdate.enabled !== false;
+        if (uVersionEl) uVersionEl.value = appUpdate.latest_version || '1.0.1';
+        if (uBuildEl) uBuildEl.value = appUpdate.latest_build != null ? appUpdate.latest_build : 2;
+        if (uTitleEl) uTitleEl.value = appUpdate.title || 'Bản Cập Nhật CineViet Mới';
+        if (uNotesEl) uNotesEl.value = appUpdate.release_notes || '';
+        if (uApkMobEl) uApkMobEl.value = appUpdate.apk_mobile_url || '';
+        if (uApkTvEl) uApkTvEl.value = appUpdate.apk_tv_url || '';
+        if (uIosEl) uIosEl.value = appUpdate.ios_url || '';
+        if (uForceEl) uForceEl.checked = Boolean(appUpdate.force_update);
+      } catch (uErr) {
+        console.warn('[TTPhim Admin] Failed to load app update config:', uErr);
+      }
     } catch(e) {
       console.error('[TTPhim Admin] Failed to load settings:', e);
     }
@@ -900,6 +926,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-preview-app-ad-mobile')?.addEventListener('click', () => previewAppBanner('mobile'));
   document.getElementById('btn-preview-app-ad-ipad-v')?.addEventListener('click', () => previewAppBanner('ipad-v'));
   document.getElementById('btn-preview-app-ad-ipad-h')?.addEventListener('click', () => previewAppBanner('ipad-h'));
+
+  // --- In-App Update Save Handler ---
+  document.getElementById('btn-save-app-update')?.addEventListener('click', async () => {
+    const saveBtn = document.getElementById('btn-save-app-update');
+    try {
+      saveBtn.disabled = true;
+      const payload = {
+        enabled: document.getElementById('setting-app-update-enabled')?.checked || false,
+        latest_version: document.getElementById('setting-app-update-version')?.value.trim() || '1.0.1',
+        latest_build: Number(document.getElementById('setting-app-update-build')?.value) || 2,
+        title: document.getElementById('setting-app-update-title')?.value.trim() || '',
+        release_notes: document.getElementById('setting-app-update-notes')?.value.trim() || '',
+        apk_mobile_url: document.getElementById('setting-app-update-apk-mobile')?.value.trim() || '',
+        apk_tv_url: document.getElementById('setting-app-update-apk-tv')?.value.trim() || '',
+        ios_url: document.getElementById('setting-app-update-ios')?.value.trim() || '',
+        force_update: document.getElementById('setting-app-update-force')?.checked || false
+      };
+      const res = await API.updateAdminAppUpdate(payload);
+      if (res?.status) {
+        if (window.showToast) window.showToast('Đã lưu cấu hình cập nhật ứng dụng thành công!');
+        else alert('Đã lưu cấu hình cập nhật ứng dụng thành công!');
+      } else {
+        throw new Error(res?.message || 'Lỗi lưu cấu hình cập nhật');
+      }
+    } catch (err) {
+      if (window.showToast) window.showToast(err.message || 'Lỗi lưu cấu hình cập nhật', 'error');
+      else alert(err.message || 'Lỗi lưu cấu hình cập nhật');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
 
   document.getElementById('btn-save-settings')?.addEventListener('click', async () => {
     const ann = document.getElementById('setting-announcement')?.value.trim();

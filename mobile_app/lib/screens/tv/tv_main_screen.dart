@@ -7,6 +7,9 @@ import 'tv_detail_screen.dart';
 import 'tv_home_screen.dart';
 import 'tv_qr_login_screen.dart';
 import '../account_screen.dart';
+import '../../models/app_update_info.dart';
+import '../../services/update_service.dart';
+import '../../widgets/update_dialog.dart';
 
 class TvMainScreen extends StatefulWidget {
   const TvMainScreen({super.key});
@@ -18,6 +21,20 @@ class TvMainScreen extends StatefulWidget {
 class _TvMainScreenState extends State<TvMainScreen> {
   int _selectedNavIndex = 0;
   bool _isSidebarExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkTvUpdateSilently();
+  }
+
+  void _checkTvUpdateSilently() {
+    UpdateService.checkUpdate().then((update) {
+      if (mounted && update != null) {
+        UpdateDialog.show(context, update, isTv: true);
+      }
+    });
+  }
 
   final List<Map<String, dynamic>> _navItems = [
     {'title': 'Trang Chủ', 'icon': Icons.home_rounded},

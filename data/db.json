@@ -410,6 +410,17 @@
       "image_ipad_vertical": "/images/banners/banner_ipad_vertical.png",
       "image_ipad_landscape": "/images/banners/banner_ipad_portrait.png",
       "cooldown_hours": 0
+    },
+    "app_update": {
+      "enabled": true,
+      "latest_version": "1.0.1",
+      "latest_build": 2,
+      "force_update": false,
+      "title": "Bản Cập Nhật CineViet Mới",
+      "release_notes": "• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng",
+      "apk_mobile_url": "https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-Mobile-release.apk",
+      "apk_tv_url": "https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-AndroidTV-release.apk",
+      "ios_url": "https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-iOS-IPA-Unsigned.ipa"
     }
   },
   "movie_views": {
@@ -1750,6 +1761,44 @@
         0,
         0,
         1,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-29T10",
+      "requests": 7,
+      "errors": 0,
+      "latency": [
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-29T11",
+      "requests": 1,
+      "errors": 0,
+      "latency": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
         0,
         0
       ],

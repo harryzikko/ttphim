@@ -867,6 +867,69 @@ router.post('/admin/app-banner', async (req, res) => {
   }
 });
 
+// --- App Update Management (In-App Updates - Android & iOS) ---
+
+const defaultAppUpdate = {
+  enabled: true,
+  latest_version: '1.0.1',
+  latest_build: 2,
+  force_update: false,
+  title: 'Bản Cập Nhật CineViet Mới',
+  release_notes: '• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng',
+  apk_mobile_url: 'https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-Mobile-release.apk',
+  apk_tv_url: 'https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-AndroidTV-release.apk',
+  ios_url: 'https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-iOS-IPA-Unsigned.ipa'
+};
+
+// Public endpoint for mobile app
+router.get('/app-update', async (req, res) => {
+  try {
+    const settings = await dbService.getSettings();
+    const update = { ...defaultAppUpdate, ...(settings.app_update || {}) };
+    res.json({ status: true, data: update });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi tải thông tin cập nhật ứng dụng' });
+  }
+});
+
+// Admin get endpoint
+router.get('/admin/app-update', async (req, res) => {
+  try {
+    const settings = await dbService.getSettings();
+    const update = { ...defaultAppUpdate, ...(settings.app_update || {}) };
+    res.json({ status: true, data: update });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi tải cấu hình cập nhật ứng dụng' });
+  }
+});
+
+// Admin save endpoint
+router.post('/admin/app-update', async (req, res) => {
+  try {
+    const {
+      enabled, latest_version, latest_build, force_update,
+      title, release_notes, apk_mobile_url, apk_tv_url, ios_url
+    } = req.body || {};
+
+    const app_update = {
+      enabled: enabled === true || enabled === 'true',
+      latest_version: typeof latest_version === 'string' && latest_version.trim() ? latest_version.trim() : defaultAppUpdate.latest_version,
+      latest_build: Math.max(1, Number(latest_build) || 1),
+      force_update: force_update === true || force_update === 'true',
+      title: typeof title === 'string' && title.trim() ? title.trim() : defaultAppUpdate.title,
+      release_notes: typeof release_notes === 'string' ? release_notes.trim() : defaultAppUpdate.release_notes,
+      apk_mobile_url: typeof apk_mobile_url === 'string' && apk_mobile_url.trim() ? apk_mobile_url.trim() : defaultAppUpdate.apk_mobile_url,
+      apk_tv_url: typeof apk_tv_url === 'string' && apk_tv_url.trim() ? apk_tv_url.trim() : defaultAppUpdate.apk_tv_url,
+      ios_url: typeof ios_url === 'string' && ios_url.trim() ? ios_url.trim() : defaultAppUpdate.ios_url
+    };
+
+    await dbService.updateSettings({ app_update });
+    res.json({ status: true, message: 'Đã lưu cấu hình cập nhật ứng dụng thành công!', data: app_update });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi lưu cấu hình cập nhật ứng dụng' });
+  }
+});
+
 // Admin: Get Settings
 router.get('/admin/settings', async (req, res) => {
   try {

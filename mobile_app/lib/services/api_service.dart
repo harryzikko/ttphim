@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../models/app_banner_config.dart';
+import '../models/app_update_info.dart';
 import 'app_config.dart';
 import 'storage_service.dart';
 import 'backend_service.dart';
@@ -533,5 +534,17 @@ class ApiService {
       debugPrint('[ApiService] Failed to fetch app banner: $e');
     }
     return AppBannerConfig.defaults();
+  }
+  /// Fetch in-app update information from backend
+  static Future<AppUpdateInfo> getAppUpdate() async {
+    try {
+      final response = await _backend('/api/app-update');
+      if (response != null && response['status'] == true && response['data'] is Map<String, dynamic>) {
+        return AppUpdateInfo.fromJson(response['data'] as Map<String, dynamic>);
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Failed to fetch app update: $e');
+    }
+    return AppUpdateInfo.empty();
   }
 }

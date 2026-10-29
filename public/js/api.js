@@ -422,6 +422,18 @@ const API = {
     });
   },
 
+  async getAdminAppUpdate() {
+    const res = await this.request('/api/admin/app-update');
+    return res.data;
+  },
+
+  async updateAdminAppUpdate(data) {
+    return this.request('/api/admin/app-update', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
   async updateAdminSettings(settings) {
     return this.request('/api/admin/settings', {
       method: 'POST',
