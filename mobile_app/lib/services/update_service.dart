@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../models/app_update_info.dart';
 import 'api_service.dart';
+import 'app_config.dart';
 
 class UpdateService {
   static const String currentVersion = '1.0.0';
@@ -71,10 +72,47 @@ class UpdateService {
   }) async {
     http.Client? client;
     try {
-      final uri = Uri.parse(downloadUrl);
+      final cleanUrl = downloadUrl.trim();
+      if (cleanUrl.isEmpty) {
+        onError('Đường dẫn tải APK chưa được thiết lập');
+        return;
+      }
+
+      // Resolve relative path if provided (e.g. /downloads/app.apk)
+      Uri currentUri;
+      if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+        currentUri = Uri.parse(cleanUrl);
+      } else {
+        currentUri = AppConfig.backendUri(cleanUrl.startsWith('/') ? cleanUrl : '/$cleanUrl');
+      }
+
       client = http.Client();
-      final request = http.Request('GET', uri);
-      final response = await client.send(request);
+      http.StreamedResponse response;
+      int redirects = 0;
+
+      while (true) {
+        final request = http.Request('GET', currentUri);
+        response = await client.send(request);
+
+        if ([301, 302, 303, 307, 308].contains(response.statusCode) && response.headers.containsKey('location')) {
+          redirects++;
+          if (redirects > 5) {
+            onError('Quá nhiều lượt chuyển hướng khi tải');
+            client.close();
+            return;
+          }
+          final location = response.headers['location']!;
+          currentUri = currentUri.resolve(location);
+          continue;
+        }
+        break;
+      }
+
+      if (response.statusCode == 404) {
+        onError('Không tìm thấy tệp cập nhật (Mã lỗi 404). Vui lòng kiểm tra lại đường dẫn APK trên trang quản trị.');
+        client.close();
+        return;
+      }
 
       if (response.statusCode != 200) {
         onError('Máy chủ trả về mã lỗi ${response.statusCode}');
@@ -123,8 +161,8 @@ class UpdateService {
       }
 
       // Fallback: Open URL externally if native channel fails
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (await canLaunchUrl(currentUri)) {
+        await launchUrl(currentUri, mode: LaunchMode.externalApplication);
         onSuccess();
       } else {
         onError('Không thể khởi chạy trình cài đặt tệp APK');

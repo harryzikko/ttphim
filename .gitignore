@@ -54,3 +54,6 @@ mobile_app/android/local.properties
 mobile_app/android/.gradle/
 mobile_app/ios/Pods/
 mobile_app/ios/.symlinks/
+
+public/downloads/*.apk
+public/downloads/*.ipa

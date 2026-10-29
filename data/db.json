@@ -418,9 +418,9 @@
       "force_update": false,
       "title": "Bản Cập Nhật CineViet Mới",
       "release_notes": "• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng",
-      "apk_mobile_url": "https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-Mobile-release.apk",
-      "apk_tv_url": "https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-AndroidTV-release.apk",
-      "ios_url": "https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-iOS-IPA-Unsigned.ipa"
+      "apk_mobile_url": "/downloads/TTPhim-Mobile-release.apk",
+      "apk_tv_url": "/downloads/TTPhim-AndroidTV-release.apk",
+      "ios_url": "https://cineviet.live"
     }
   },
   "movie_views": {
@@ -1789,13 +1789,32 @@
     },
     {
       "hour": "2026-10-29T11",
-      "requests": 1,
+      "requests": 2,
       "errors": 0,
       "latency": [
-        1,
+        2,
         0,
         0,
         0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-29T12",
+      "requests": 56,
+      "errors": 0,
+      "latency": [
+        47,
+        7,
+        0,
+        2,
         0,
         0,
         0,
@@ -2139,18 +2158,28 @@
       "expires_at": 1795848643397,
       "device": "Unknown device",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "9cffd28e-320c-443e-85e0-ccbe6b0a111a",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "bcb69cbdd7a69347908194c01a37c42b888d2f15991f13b1f8cbda07f75e85a1",
+      "version": 1,
+      "created_at": 1793275582707,
+      "expires_at": 1795867582707,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
     }
   ],
   "identity_limits": [
     {
       "id": "0eb68fa812ae9c40e8cf059756e45a14e0e1b726e111be9de7a77cdce94555dc",
       "count": 1,
-      "expires_at": 1793257514698
+      "expires_at": 1793276482665
     },
     {
       "id": "18124b8fc6c2e8e1a1208de2679ce54a0a86abfbd8cd5239902e354c4c323cd0",
       "count": 1,
-      "expires_at": 1793257514698
+      "expires_at": 1793276482665
     }
   ],
   "follows": [],

@@ -876,9 +876,9 @@ const defaultAppUpdate = {
   force_update: false,
   title: 'Bản Cập Nhật CineViet Mới',
   release_notes: '• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng',
-  apk_mobile_url: 'https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-Mobile-release.apk',
-  apk_tv_url: 'https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-AndroidTV-release.apk',
-  ios_url: 'https://github.com/harryzikko/ttphim/releases/download/latest/TTPhim-iOS-IPA-Unsigned.ipa'
+  apk_mobile_url: '/downloads/TTPhim-Mobile-release.apk',
+  apk_tv_url: '/downloads/TTPhim-AndroidTV-release.apk',
+  ios_url: 'https://cineviet.live'
 };
 
 // Public endpoint for mobile app
@@ -886,7 +886,22 @@ router.get('/app-update', async (req, res) => {
   try {
     const settings = await dbService.getSettings();
     const update = { ...defaultAppUpdate, ...(settings.app_update || {}) };
-    res.json({ status: true, data: update });
+
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const resolveUrl = (url) => {
+      if (!url || typeof url !== 'string') return '';
+      const trimmed = url.trim();
+      if (trimmed.startsWith('/')) return `${origin}${trimmed}`;
+      return trimmed;
+    };
+
+    const resolved = {
+      ...update,
+      apk_mobile_url: resolveUrl(update.apk_mobile_url),
+      apk_tv_url: resolveUrl(update.apk_tv_url),
+    };
+
+    res.json({ status: true, data: resolved });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Lỗi tải thông tin cập nhật ứng dụng' });
   }
