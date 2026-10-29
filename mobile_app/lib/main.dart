@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'screens/main_navigation_screen.dart';
+import 'screens/app_banner_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/api_service.dart';
 import 'services/app_config.dart';
@@ -34,7 +34,7 @@ class TTPhimApp extends StatelessWidget {
       title: 'TTPhim',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const MainNavigationScreen(),
+      home: const AppBannerScreen(),
     );
   }
 }

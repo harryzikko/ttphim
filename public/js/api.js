@@ -410,6 +410,18 @@ const API = {
     });
   },
 
+  async getAdminAppBanner() {
+    const res = await this.request('/api/admin/app-banner');
+    return res.data;
+  },
+
+  async updateAdminAppBanner(data) {
+    return this.request('/api/admin/app-banner', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
   async updateAdminSettings(settings) {
     return this.request('/api/admin/settings', {
       method: 'POST',

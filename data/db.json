@@ -398,6 +398,18 @@
       "href": "https://sandeal.dealpulse.vn/",
       "new_tab": true,
       "cooldown_hours": 12
+    },
+    "app_banner": {
+      "enabled": true,
+      "title": "SĂN DEAL SHOPEE GIẢM SỐC 50% - 80%",
+      "description": "Tự động quét kho Flash Sale Shopee Mall, bắt trọn deal lỗi giá & nhận voucher Freeship 0Đ độc quyền!",
+      "href": "https://sandeal.dealpulse.vn/",
+      "cta_text": "SĂN DEAL NGAY BÂY GIỜ",
+      "countdown_seconds": 5,
+      "image_mobile_vertical": "/images/banners/banner_mobile_vertical.png",
+      "image_ipad_vertical": "/images/banners/banner_ipad_vertical.png",
+      "image_ipad_landscape": "/images/banners/banner_ipad_portrait.png",
+      "cooldown_hours": 0
     }
   },
   "movie_views": {
@@ -1728,10 +1740,10 @@
     },
     {
       "hour": "2026-10-29T06",
-      "requests": 1,
+      "requests": 10,
       "errors": 0,
       "latency": [
-        0,
+        9,
         0,
         0,
         0,
@@ -2068,18 +2080,28 @@
       "expires_at": 1795845088598,
       "device": "Dart/3.5 (dart:io)",
       "ip": "192.168.100.77"
+    },
+    {
+      "id": "1131c5c6-eb3c-4210-8f54-9b970bb054c4",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "8052aecbd6026c8477e14eeb332a636a2eae72cbc59e9702e56c7dc626925edc",
+      "version": 1,
+      "created_at": 1793256643397,
+      "expires_at": 1795848643397,
+      "device": "Unknown device",
+      "ip": "127.0.0.1"
     }
   ],
   "identity_limits": [
     {
-      "id": "3911f5d7100521cd200d8032f73e30742dbd9c18e86a3d73a6165afc407492fc",
+      "id": "0eb68fa812ae9c40e8cf059756e45a14e0e1b726e111be9de7a77cdce94555dc",
       "count": 1,
-      "expires_at": 1793253988559
+      "expires_at": 1793257514698
     },
     {
       "id": "18124b8fc6c2e8e1a1208de2679ce54a0a86abfbd8cd5239902e354c4c323cd0",
       "count": 1,
-      "expires_at": 1793253988559
+      "expires_at": 1793257514698
     }
   ],
   "follows": [],

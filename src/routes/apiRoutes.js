@@ -802,6 +802,71 @@ router.post('/admin/popup-banner', async (req, res) => {
   }
 });
 
+// --- App Open Interstitial Banner (Mobile & iPad) ---
+
+const defaultAppBanner = {
+  enabled: true,
+  title: 'SĂN DEAL SHOPEE GIẢM SỐC 50% - 80%',
+  description: 'Tự động quét kho Flash Sale Shopee Mall, bắt trọn deal lỗi giá & nhận voucher Freeship 0Đ độc quyền!',
+  href: 'https://sandeal.dealpulse.vn/',
+  cta_text: 'SĂN DEAL NGAY BÂY GIỜ',
+  countdown_seconds: 5,
+  image_mobile_vertical: '/images/banners/banner_mobile_vertical.png',
+  image_ipad_vertical: '/images/banners/banner_ipad_vertical.png',
+  image_ipad_landscape: '/images/banners/banner_ipad_portrait.png',
+  cooldown_hours: 0
+};
+
+// Public endpoint for mobile app
+router.get('/app-banner', async (req, res) => {
+  try {
+    const settings = await dbService.getSettings();
+    const banner = { ...defaultAppBanner, ...(settings.app_banner || {}) };
+    res.json({ status: true, data: banner });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi tải banner ứng dụng' });
+  }
+});
+
+// Admin get endpoint
+router.get('/admin/app-banner', async (req, res) => {
+  try {
+    const settings = await dbService.getSettings();
+    const banner = { ...defaultAppBanner, ...(settings.app_banner || {}) };
+    res.json({ status: true, data: banner });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi tải cấu hình banner ứng dụng' });
+  }
+});
+
+// Admin save endpoint
+router.post('/admin/app-banner', async (req, res) => {
+  try {
+    const {
+      enabled, title, description, href, cta_text, countdown_seconds,
+      image_mobile_vertical, image_ipad_vertical, image_ipad_landscape, cooldown_hours
+    } = req.body || {};
+
+    const app_banner = {
+      enabled: enabled === true || enabled === 'true',
+      title: typeof title === 'string' && title.trim() ? title.trim() : defaultAppBanner.title,
+      description: typeof description === 'string' ? description.trim() : defaultAppBanner.description,
+      href: typeof href === 'string' && href.trim() ? href.trim() : defaultAppBanner.href,
+      cta_text: typeof cta_text === 'string' && cta_text.trim() ? cta_text.trim() : defaultAppBanner.cta_text,
+      countdown_seconds: Math.max(1, Math.min(30, Number(countdown_seconds) || 5)),
+      image_mobile_vertical: typeof image_mobile_vertical === 'string' && image_mobile_vertical.trim() ? image_mobile_vertical.trim() : defaultAppBanner.image_mobile_vertical,
+      image_ipad_vertical: typeof image_ipad_vertical === 'string' && image_ipad_vertical.trim() ? image_ipad_vertical.trim() : defaultAppBanner.image_ipad_vertical,
+      image_ipad_landscape: typeof image_ipad_landscape === 'string' && image_ipad_landscape.trim() ? image_ipad_landscape.trim() : defaultAppBanner.image_ipad_landscape,
+      cooldown_hours: Math.max(0, Math.min(168, Number(cooldown_hours) || 0))
+    };
+
+    await dbService.updateSettings({ app_banner });
+    res.json({ status: true, message: 'Đã lưu cấu hình banner mở ứng dụng thành công!', data: app_banner });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi lưu cấu hình banner mở ứng dụng' });
+  }
+});
+
 // Admin: Get Settings
 router.get('/admin/settings', async (req, res) => {
   try {

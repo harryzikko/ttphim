@@ -660,6 +660,34 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (pErr) {
         console.warn('[TTPhim Admin] Failed to load popup banner config:', pErr);
       }
+
+      // Load App Open Interstitial Banner config
+      try {
+        const appBanner = currentSettings.app_banner || (await API.getAdminAppBanner()) || {};
+        const aEnabledEl = document.getElementById('setting-app-ad-enabled');
+        const aTitleEl = document.getElementById('setting-app-ad-title');
+        const aDescEl = document.getElementById('setting-app-ad-desc');
+        const aHrefEl = document.getElementById('setting-app-ad-href');
+        const aCtaEl = document.getElementById('setting-app-ad-cta');
+        const aCountdownEl = document.getElementById('setting-app-ad-countdown');
+        const aImgMobEl = document.getElementById('setting-app-ad-image-mobile');
+        const aImgIpadVEl = document.getElementById('setting-app-ad-image-ipad-v');
+        const aImgIpadHEl = document.getElementById('setting-app-ad-image-ipad-h');
+        const aCooldownEl = document.getElementById('setting-app-ad-cooldown');
+
+        if (aEnabledEl) aEnabledEl.checked = Boolean(appBanner.enabled);
+        if (aTitleEl) aTitleEl.value = appBanner.title || 'S\u0102N DEAL SHOPEE GI\u1ea2M S\u1ed0C 50% - 80%';
+        if (aDescEl) aDescEl.value = appBanner.description || '';
+        if (aHrefEl) aHrefEl.value = appBanner.href || 'https://sandeal.dealpulse.vn/';
+        if (aCtaEl) aCtaEl.value = appBanner.cta_text || 'S\u0102N DEAL NGAY B\u00c2Y GI\u1edc';
+        if (aCountdownEl) aCountdownEl.value = appBanner.countdown_seconds != null ? appBanner.countdown_seconds : 5;
+        if (aImgMobEl) aImgMobEl.value = appBanner.image_mobile_vertical || '/images/banners/banner_mobile_vertical.png';
+        if (aImgIpadVEl) aImgIpadVEl.value = appBanner.image_ipad_vertical || '/images/banners/banner_ipad_vertical.png';
+        if (aImgIpadHEl) aImgIpadHEl.value = appBanner.image_ipad_landscape || '/images/banners/banner_ipad_portrait.png';
+        if (aCooldownEl) aCooldownEl.value = appBanner.cooldown_hours != null ? appBanner.cooldown_hours : 0;
+      } catch (aErr) {
+        console.warn('[TTPhim Admin] Failed to load app banner config:', aErr);
+      }
     } catch(e) {
       console.error('[TTPhim Admin] Failed to load settings:', e);
     }
@@ -768,6 +796,110 @@ document.addEventListener('DOMContentLoaded', async () => {
       else alert('Đã xóa bộ đếm 12 giờ!');
     } catch (_) {}
   });
+
+  // --- App Open Interstitial Banner Handlers ---
+  document.getElementById('btn-save-app-ad')?.addEventListener('click', async () => {
+    const saveBtn = document.getElementById('btn-save-app-ad');
+    try {
+      saveBtn.disabled = true;
+      const payload = {
+        enabled: document.getElementById('setting-app-ad-enabled')?.checked || false,
+        title: document.getElementById('setting-app-ad-title')?.value.trim() || '',
+        description: document.getElementById('setting-app-ad-desc')?.value.trim() || '',
+        href: document.getElementById('setting-app-ad-href')?.value.trim() || '',
+        cta_text: document.getElementById('setting-app-ad-cta')?.value.trim() || '',
+        countdown_seconds: Number(document.getElementById('setting-app-ad-countdown')?.value) || 5,
+        image_mobile_vertical: document.getElementById('setting-app-ad-image-mobile')?.value.trim() || '',
+        image_ipad_vertical: document.getElementById('setting-app-ad-image-ipad-v')?.value.trim() || '',
+        image_ipad_landscape: document.getElementById('setting-app-ad-image-ipad-h')?.value.trim() || '',
+        cooldown_hours: Number(document.getElementById('setting-app-ad-cooldown')?.value) || 0
+      };
+      const res = await API.updateAdminAppBanner(payload);
+      if (res?.status) {
+        if (window.showToast) window.showToast('\u0110\u00e3 l\u01b0u c\u1ea5u h\u00ecnh banner m\u1edf \u1ee9ng d\u1ee5ng th\u00e0nh c\u00f4ng!');
+        else alert('\u0110\u00e3 l\u01b0u c\u1ea5u h\u00ecnh banner m\u1edf \u1ee9ng d\u1ee5ng th\u00e0nh c\u00f4ng!');
+      } else {
+        throw new Error(res?.message || 'L\u1ed7i l\u01b0u c\u1ea5u h\u00ecnh banner \u1ee9ng d\u1ee5ng');
+      }
+    } catch (err) {
+      if (window.showToast) window.showToast(err.message || 'L\u1ed7i l\u01b0u banner \u1ee9ng d\u1ee5ng', 'error');
+      else alert(err.message || 'L\u1ed7i l\u01b0u banner \u1ee9ng d\u1ee5ng');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  function previewAppBanner(type) {
+    let img = '';
+    let frameStyle = '';
+    const href = document.getElementById('setting-app-ad-href')?.value.trim() || 'https://sandeal.dealpulse.vn/';
+    const title = document.getElementById('setting-app-ad-title')?.value.trim() || 'Banner \u1ee8ng D\u1ee5ng';
+    const countdown = Number(document.getElementById('setting-app-ad-countdown')?.value) || 5;
+
+    if (type === 'mobile') {
+      img = document.getElementById('setting-app-ad-image-mobile')?.value.trim() || '/images/banners/banner_mobile_vertical.png';
+      frameStyle = 'width: min(340px, 88vw); aspect-ratio: 9 / 16;';
+    } else if (type === 'ipad-v') {
+      img = document.getElementById('setting-app-ad-image-ipad-v')?.value.trim() || '/images/banners/banner_ipad_vertical.png';
+      frameStyle = 'width: min(440px, 88vw); aspect-ratio: 3 / 4;';
+    } else {
+      img = document.getElementById('setting-app-ad-image-ipad-h')?.value.trim() || '/images/banners/banner_ipad_portrait.png';
+      frameStyle = 'width: min(640px, 92vw); aspect-ratio: 9 / 5;';
+    }
+
+    document.querySelector('.ad-app-preview-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'ad-app-preview-overlay fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4';
+    overlay.innerHTML = `
+      <div class="relative flex flex-col items-center justify-center" style="${frameStyle}">
+        <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl border border-white/20 bg-slate-950 flex items-center justify-center">
+          <a href="${href}" target="_blank" rel="noopener noreferrer" class="block w-full h-full">
+            <img src="${img}" alt="${title}" class="w-full h-full object-cover" />
+          </a>
+          <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
+            <span id="preview-countdown-pill" class="px-3.5 py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-white/25 text-white text-xs font-semibold shadow-lg">
+              B\u1ecf qua sau ${countdown}s
+            </span>
+            <button type="button" id="preview-close-btn" class="px-4 py-1.5 rounded-full bg-primary hover:bg-primary/90 text-white text-xs font-bold shadow-lg transition-all hidden cursor-pointer flex items-center gap-1">
+              B\u1ecf qua &#x2715;
+            </button>
+          </div>
+        </div>
+        <p class="text-white/60 text-xs mt-3 text-center">B\u1ea5m ngo\u00e0i v\u00f9ng ho\u1eb7c n\u00fat B\u1ecf qua \u0111\u1ec3 \u0111\u00f3ng b\u1ea3n xem th\u1eed.</p>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    let count = countdown;
+    const pill = overlay.querySelector('#preview-countdown-pill');
+    const closeBtn = overlay.querySelector('#preview-close-btn');
+    const timer = setInterval(() => {
+      count--;
+      if (count > 0) {
+        if (pill) pill.textContent = `B\u1ecf qua sau ${count}s`;
+      } else {
+        clearInterval(timer);
+        if (pill) pill.classList.add('hidden');
+        if (closeBtn) closeBtn.classList.remove('hidden');
+      }
+    }, 1000);
+
+    const closeOverlay = () => {
+      clearInterval(timer);
+      overlay.remove();
+    };
+
+    closeBtn?.addEventListener('click', (e) => { e.stopPropagation(); closeOverlay(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeOverlay();
+    });
+  }
+
+  document.getElementById('btn-preview-app-ad-mobile')?.addEventListener('click', () => previewAppBanner('mobile'));
+  document.getElementById('btn-preview-app-ad-ipad-v')?.addEventListener('click', () => previewAppBanner('ipad-v'));
+  document.getElementById('btn-preview-app-ad-ipad-h')?.addEventListener('click', () => previewAppBanner('ipad-h'));
 
   document.getElementById('btn-save-settings')?.addEventListener('click', async () => {
     const ann = document.getElementById('setting-announcement')?.value.trim();

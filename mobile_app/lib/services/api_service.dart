@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
+import '../models/app_banner_config.dart';
 import 'app_config.dart';
 import 'storage_service.dart';
 import 'backend_service.dart';
@@ -520,5 +521,17 @@ class ApiService {
       final host = Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
       return {'status': false, 'message': 'Không thể kết nối máy chủ ($host): ' + e.toString().replaceAll('Exception:', '').trim()};
     }
+  }
+  /// Fetch App Open Interstitial Banner config from backend
+  static Future<AppBannerConfig> getAppBanner() async {
+    try {
+      final response = await _backend('/api/app-banner');
+      if (response != null && response['status'] == true && response['data'] is Map<String, dynamic>) {
+        return AppBannerConfig.fromJson(response['data'] as Map<String, dynamic>);
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Failed to fetch app banner: $e');
+    }
+    return AppBannerConfig.defaults();
   }
 }

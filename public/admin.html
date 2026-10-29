@@ -990,6 +990,93 @@
               </button>
             </div>
           </div>
+
+          <!-- App Open Interstitial Banner (Mobile & iPad) -->
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4 lg:col-span-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-surface-container-highest/60 pb-3">
+              <div>
+                <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">phone_iphone</span> Banner Mở Ứng Dụng (App Open Interstitial - Mobile & iPad)
+                </h3>
+                <p class="text-xs text-on-surface-variant mt-1">Banner quảng cáo toàn màn hình hiển thị ngay khi mở ứng dụng CineViet trên điện thoại và máy tính bảng (iPad/Tablet). Đếm ngược 5 giây trước khi hiển thị nút tắt để vào app. Hỗ trợ tự động xoay theo màn hình dọc hoặc ngang trên iPad.</p>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-high border border-surface-container-highest/40 md:col-span-2">
+                <div>
+                  <span class="text-sm font-bold text-on-surface block">Kích hoạt banner mở ứng dụng</span>
+                  <span class="text-xs text-on-surface-variant">Bật để hiển thị banner toàn màn hình đếm ngược 5 giây khi người dùng mở app</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input id="setting-app-ad-enabled" type="checkbox" class="sr-only peer">
+                  <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Tiêu đề quảng cáo</label>
+                <input id="setting-app-ad-title" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="SĂN DEAL SHOPEE GIẢM SỐC 50% - 80%" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Chữ trên nút kêu gọi (CTA)</label>
+                <input id="setting-app-ad-cta" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="SĂN DEAL NGAY BÂY GIỜ" />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Mô tả phụ</label>
+                <input id="setting-app-ad-desc" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Tự động quét kho Flash Sale Shopee Mall, bắt trọn deal lỗi giá & nhận voucher Freeship 0Đ độc quyền!" />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Liên kết chuyển hướng khi nhấp vào banner</label>
+                <input id="setting-app-ad-href" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="https://sandeal.dealpulse.vn/" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Ảnh banner Mobile - Dọc (Tỷ lệ 9:16)</label>
+                <input id="setting-app-ad-image-mobile" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="/images/banners/banner_mobile_vertical.png" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Ảnh banner iPad / Tablet - Dọc (Tỷ lệ 3:4)</label>
+                <input id="setting-app-ad-image-ipad-v" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="/images/banners/banner_ipad_vertical.png" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Ảnh banner iPad / Tablet - Ngang (Tỷ lệ 9:5 / 16:9)</label>
+                <input id="setting-app-ad-image-ipad-h" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="/images/banners/banner_ipad_portrait.png" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Thời gian đếm ngược đóng banner (Giây)</label>
+                <input id="setting-app-ad-countdown" type="number" min="1" max="30" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="5" />
+                <span class="text-[11px] text-on-surface-variant mt-1 block">Mặc định: 5 giây (sau 5s sẽ hiện nút Bỏ qua / Đóng quảng cáo).</span>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Thời gian hiển thị lại (Số giờ)</label>
+                <input id="setting-app-ad-cooldown" type="number" min="0" max="168" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0" />
+                <span class="text-[11px] text-on-surface-variant mt-1 block">Đặt là 0 để hiển thị mỗi lần người dùng mở app.</span>
+              </div>
+            </div>
+
+            <div class="pt-2 flex flex-wrap items-center gap-3">
+              <button id="btn-save-app-ad" type="button" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-primary/20 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">save</span> Lưu Cấu Hình Banner Ứng Dụng
+              </button>
+              <button id="btn-preview-app-ad-mobile" type="button" class="px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-secondary text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">phone_android</span> Xem Thử Mobile
+              </button>
+              <button id="btn-preview-app-ad-ipad-v" type="button" class="px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-secondary text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">tablet_android</span> Xem Thử iPad Dọc
+              </button>
+              <button id="btn-preview-app-ad-ipad-h" type="button" class="px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-secondary text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">tablet</span> Xem Thử iPad Ngang
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
