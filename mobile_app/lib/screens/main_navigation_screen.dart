@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../models/app_update_info.dart';
+import '../services/update_service.dart';
+import '../widgets/update_dialog.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'explore_screen.dart';
@@ -16,6 +19,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   int _profileRefresh = 0;
   int _homeRefresh = 0;
+  static bool _hasPromptedUpdateOnStartup = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUpdateOnStartup();
+  }
+
+  void _checkUpdateOnStartup() {
+    if (_hasPromptedUpdateOnStartup) return;
+    _hasPromptedUpdateOnStartup = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+
+      try {
+        final update = await UpdateService.checkUpdate();
+        if (!mounted || update == null) return;
+        UpdateDialog.show(context, update);
+      } catch (e) {
+        debugPrint('[MainNavigationScreen] Error checking update on startup: $e');
+      }
+    });
+  }
 
   void _onTabTapped(int index) {
     setState(() {
