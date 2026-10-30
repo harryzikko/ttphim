@@ -44,10 +44,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _checkAppUpdateSilently() {
+    UpdateService.initVersion().then((_) {
+      if (mounted) setState(() {});
+    });
     UpdateService.checkUpdate().then((update) {
-      if (mounted && update != null) {
+      if (mounted) {
         setState(() => _availableUpdate = update);
-        if (update.forceUpdate) {
+        if (update != null && update.forceUpdate) {
           UpdateDialog.show(context, update);
         }
       }

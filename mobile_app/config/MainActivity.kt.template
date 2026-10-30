@@ -69,6 +69,20 @@ class MainActivity: FlutterActivity() {
                 } catch (e: Exception) {
                     result.error("INSTALL_ERROR", e.message ?: "Lỗi khởi chạy trình cài đặt", null)
                 }
+            } else if (call.method == "getAppVersion") {
+                try {
+                    val pInfo = packageManager.getPackageInfo(packageName, 0)
+                    val vName = pInfo.versionName ?: "1.0.0"
+                    val vCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        pInfo.longVersionCode.toInt()
+                    } else {
+                        @Suppress("DEPRECATION")
+                        pInfo.versionCode
+                    }
+                    result.success(mapOf("versionName" to vName, "versionCode" to vCode))
+                } catch (e: Exception) {
+                    result.error("VERSION_ERROR", e.message, null)
+                }
             } else {
                 result.notImplemented()
             }

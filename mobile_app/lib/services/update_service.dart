@@ -9,9 +9,33 @@ import 'api_service.dart';
 import 'app_config.dart';
 
 class UpdateService {
-  static const String currentVersion = '1.0.0';
-  static const int currentBuildNumber = 1;
+  static String _version = '1.0.1';
+  static int _buildNumber = 2;
+  static bool _versionInitialized = false;
+
+  static String get currentVersion => _version;
+  static int get currentBuildNumber => _buildNumber;
+
   static const MethodChannel _channel = MethodChannel('com.ttphim.app/updater');
+
+  /// Initialize real installed version from native package manager
+  static Future<void> initVersion() async {
+    if (_versionInitialized) return;
+    try {
+      final res = await _channel.invokeMethod('getAppVersion');
+      if (res is Map) {
+        final vName = res['versionName'];
+        final vCode = res['versionCode'];
+        if (vName is String && vName.trim().isNotEmpty) {
+          _version = vName.trim();
+        }
+        if (vCode is int && vCode > 0) {
+          _buildNumber = vCode;
+        }
+      }
+    } catch (_) {}
+    _versionInitialized = true;
+  }
 
   /// Compare two semantic version strings (e.g. "1.0.1" vs "1.0.0")
   static bool isNewerVersion(String latest, String current) {
@@ -33,6 +57,7 @@ class UpdateService {
   /// Check if a newer version is available from server
   static Future<AppUpdateInfo?> checkUpdate() async {
     try {
+      await initVersion();
       final info = await ApiService.getAppUpdate();
       if (!info.enabled) return null;
 
