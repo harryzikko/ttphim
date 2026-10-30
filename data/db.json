@@ -415,7 +415,7 @@
       "enabled": true,
       "latest_version": "1.0.1",
       "latest_build": 2,
-      "force_update": false,
+      "force_update": true,
       "title": "Bản Cập Nhật CineViet Mới",
       "release_notes": "• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng",
       "apk_mobile_url": "/downloads/TTPhim-Mobile-release.apk",
@@ -525,7 +525,9 @@
     "dau-pha-thuong-khung-phan-2": 3,
     "dau-pha-thuong-khung-phan-4": 3,
     "thuong-cong-chua": 3,
-    "an-mang-o-guil-vinec": 3
+    "an-mang-o-guil-vinec": 3,
+    "vision-hanh-trinh-tim-lai-ky-uc": 1,
+    "trong-giap-hiep-si-chuyen-sinh-bi-luu-day-tro-nen-vo-dich-nho-kien-thuc-ve-game": 1
   },
   "metrics": [
     {
@@ -1900,9 +1902,52 @@
       "playback": {},
       "startup_count": 0,
       "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-30T10",
+      "requests": 70,
+      "errors": 0,
+      "latency": [
+        53,
+        6,
+        2,
+        0,
+        2,
+        2,
+        5,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
     }
   ],
   "audit_log": [
+    {
+      "id": "9c007fbc-d0cf-40cf-8ce4-14d5dd7e3d9a",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.result",
+      "target_id": "/api/admin/app-update",
+      "detail": {
+        "request_id": "be8245b3-cc57-4bc7-bd8a-6e00e7b97af4",
+        "status": 200,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-30T10:50:34.660Z"
+    },
+    {
+      "id": "1eed213a-8580-44ee-9c0d-88df76c3182d",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.request",
+      "target_id": "/api/admin/app-update",
+      "detail": {
+        "request_id": "be8245b3-cc57-4bc7-bd8a-6e00e7b97af4",
+        "method": "POST",
+        "phase": "started"
+      },
+      "created_at": "2026-10-30T10:50:34.640Z"
+    },
     {
       "id": "bcfc2b97-cfbb-48df-8061-2d0a617b1b8a",
       "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
@@ -2254,18 +2299,28 @@
       "expires_at": 1795871381509,
       "device": "Test script",
       "ip": ""
+    },
+    {
+      "id": "aac3bb5c-82c2-404e-b278-0acd7a65c36e",
+      "user_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "sid_hash": "941426ff74a44b1c6ec2a1eb2f9b64a14189ce2b24aa565db77a871a9bfd6947",
+      "version": 1,
+      "created_at": 1793357419426,
+      "expires_at": 1795949419426,
+      "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1"
     }
   ],
   "identity_limits": [
     {
       "id": "0eb68fa812ae9c40e8cf059756e45a14e0e1b726e111be9de7a77cdce94555dc",
       "count": 1,
-      "expires_at": 1793280295915
+      "expires_at": 1793358319393
     },
     {
       "id": "18124b8fc6c2e8e1a1208de2679ce54a0a86abfbd8cd5239902e354c4c323cd0",
       "count": 1,
-      "expires_at": 1793280295915
+      "expires_at": 1793358319393
     }
   ],
   "follows": [],

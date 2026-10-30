@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'screens/tv/tv_main_screen.dart';
 import 'services/api_service.dart';
 import 'services/app_config.dart';
+import 'services/update_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -18,6 +19,7 @@ void main() async {
   ]);
 
   unawaited(ApiService.restoreSession());
+  unawaited(UpdateService.initVersion());
   runApp(const TTPhimTvApp());
 }
 

@@ -76,7 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Icon(Icons.check_circle_rounded, color: Colors.greenAccent),
               SizedBox(width: 10),
-              Text('Bạn đang sử dụng phiên bản mới nhất (v1.0.0)'),
+              Text('Bạn đang sử dụng phiên bản mới nhất (v${UpdateService.currentVersion})'),
             ],
           ),
           backgroundColor: Color(0xFF1E2330),
@@ -662,9 +662,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           )
                         else
-                          const Text(
-                            '1.0.0 (Mới nhất ✓)',
-                            style: TextStyle(
+                          Text(
+                            'v${UpdateService.currentVersion} (Mới nhất ✓)',
+                            style: const TextStyle(
                               color: AppTheme.primaryLight,
                               fontWeight: FontWeight.w600,
                               fontSize: 13,

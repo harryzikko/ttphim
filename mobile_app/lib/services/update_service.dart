@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/app_update_info.dart';
 import 'api_service.dart';
@@ -18,22 +19,33 @@ class UpdateService {
 
   static const MethodChannel _channel = MethodChannel('com.ttphim.app/updater');
 
-  /// Initialize real installed version from native package manager
+  /// Initialize real installed version from native package manager or PackageInfo
   static Future<void> initVersion() async {
     if (_versionInitialized) return;
     try {
-      final res = await _channel.invokeMethod('getAppVersion');
-      if (res is Map) {
-        final vName = res['versionName'];
-        final vCode = res['versionCode'];
-        if (vName is String && vName.trim().isNotEmpty) {
-          _version = vName.trim();
-        }
-        if (vCode is int && vCode > 0) {
-          _buildNumber = vCode;
-        }
+      final info = await PackageInfo.fromPlatform();
+      if (info.version.isNotEmpty) {
+        _version = info.version.trim();
       }
-    } catch (_) {}
+      final bCode = int.tryParse(info.buildNumber);
+      if (bCode != null && bCode > 0) {
+        _buildNumber = bCode;
+      }
+    } catch (_) {
+      try {
+        final res = await _channel.invokeMethod('getAppVersion');
+        if (res is Map) {
+          final vName = res['versionName'];
+          final vCode = res['versionCode'];
+          if (vName is String && vName.trim().isNotEmpty) {
+            _version = vName.trim();
+          }
+          if (vCode is int && vCode > 0) {
+            _buildNumber = vCode;
+          }
+        }
+      } catch (_) {}
+    }
     _versionInitialized = true;
   }
 

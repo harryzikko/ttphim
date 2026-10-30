@@ -22,6 +22,7 @@ dependencies:
   qr_flutter: ^4.1.0
   flutter_secure_storage: ^9.2.4
   flutter_cache_manager: ^3.4.1
+  package_info_plus: 8.1.0
 
 dependency_overrides:
   package_info_plus: 8.1.0
