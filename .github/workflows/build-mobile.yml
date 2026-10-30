@@ -10,6 +10,9 @@ on:
 env:
   BACKEND_URL: ${{ vars.BACKEND_URL || 'https://cineviet.live' }}
 
+permissions:
+  contents: write
+
 jobs:
   build-android:
     name: Build Android ${{ matrix.variant }} APK
@@ -43,9 +46,13 @@ jobs:
       - name: Prepare native platform
         working-directory: mobile_app
         run: |
+          mkdir -p ~/.android
+          cp config/debug.keystore ~/.android/debug.keystore
           cp pubspec.yaml /tmp/ttphim-pubspec.yaml
           cp pubspec.lock /tmp/ttphim-pubspec.lock
           flutter create --platforms=android --org "${{ matrix.organization }}" --project-name ttphim .
+          mkdir -p android/app
+          cp config/debug.keystore android/app/debug.keystore
           cp /tmp/ttphim-pubspec.yaml pubspec.yaml
           cp /tmp/ttphim-pubspec.lock pubspec.lock
           rm -f test/widget_test.dart
@@ -217,9 +224,35 @@ jobs:
           find Payload -type d -name _CodeSignature -prune -exec rm -rf {} +
           find Payload -name embedded.mobileprovision -delete
           find Payload -type f -exec sh -c 'file "$1" | grep -q "Mach-O" && codesign --remove-signature "$1" 2>/dev/null || true' sh {} \;
-          zip -r TTPhim-unsigned.ipa Payload
+          zip -r TTPhim-iOS-IPA-Unsigned.ipa Payload
       - uses: actions/upload-artifact@v4
         with:
           name: TTPhim-iOS-IPA-Unsigned
-          path: TTPhim-unsigned.ipa
+          path: TTPhim-iOS-IPA-Unsigned.ipa
           retention-days: 14
+
+  publish-release:
+    name: Publish Global GitHub Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Collect release files
+        run: |
+          mkdir -p release-files
+          find artifacts -type f \( -name "*.apk" -o -name "*.ipa" \) -exec cp {} release-files/ \;
+          ls -la release-files/
+      - name: Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "TTPhim Bản Cập Nhật Mới Nhất"
+          draft: false
+          prerelease: false
+          files: release-files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
