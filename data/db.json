@@ -413,8 +413,8 @@
     },
     "app_update": {
       "enabled": true,
-      "latest_version": "1.0.1",
-      "latest_build": 2,
+      "latest_version": "1.0.2",
+      "latest_build": 3,
       "force_update": true,
       "title": "Bản Cập Nhật CineViet Mới",
       "release_notes": "• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng",
@@ -1921,9 +1921,52 @@
       "playback": {},
       "startup_count": 0,
       "startup_total_ms": 0
+    },
+    {
+      "hour": "2026-10-30T11",
+      "requests": 6,
+      "errors": 0,
+      "latency": [
+        4,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "playback": {},
+      "startup_count": 0,
+      "startup_total_ms": 0
     }
   ],
   "audit_log": [
+    {
+      "id": "378e61e9-190a-4a80-8226-a8eb6d75220d",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.result",
+      "target_id": "/api/admin/app-update",
+      "detail": {
+        "request_id": "52890723-3971-486e-b22b-3b2a1d91a760",
+        "status": 200,
+        "phase": "finished"
+      },
+      "created_at": "2026-10-30T11:09:50.625Z"
+    },
+    {
+      "id": "53ce2d6b-391e-45ed-8eba-03e4834fbab0",
+      "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",
+      "action": "admin.request",
+      "target_id": "/api/admin/app-update",
+      "detail": {
+        "request_id": "52890723-3971-486e-b22b-3b2a1d91a760",
+        "method": "POST",
+        "phase": "started"
+      },
+      "created_at": "2026-10-30T11:09:50.590Z"
+    },
     {
       "id": "9c007fbc-d0cf-40cf-8ce4-14d5dd7e3d9a",
       "actor_id": "usr_634d0927-63e1-41be-a75a-a14a8c127493",

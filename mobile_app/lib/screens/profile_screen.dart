@@ -71,16 +71,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       UpdateDialog.show(context, update);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              Icon(Icons.check_circle_rounded, color: Colors.greenAccent),
-              SizedBox(width: 10),
+              const Icon(Icons.check_circle_rounded, color: Colors.greenAccent),
+              const SizedBox(width: 10),
               Text('Bạn đang sử dụng phiên bản mới nhất (v${UpdateService.currentVersion})'),
             ],
           ),
-          backgroundColor: Color(0xFF1E2330),
-          duration: Duration(seconds: 3),
+          backgroundColor: const Color(0xFF1E2330),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
