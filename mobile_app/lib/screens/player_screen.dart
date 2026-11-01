@@ -519,7 +519,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               _isPlayerInitializing = false;
               _errorMessage = null;
             });
-            _startHideControlsTimer();
+            _resetControlsTimer();
           }
           return;
         } catch (_) {
