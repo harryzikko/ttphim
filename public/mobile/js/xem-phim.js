@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderEpisodesHorizontal() {
     if (!epListContainer) return;
     epListContainer.innerHTML = '';
-    const hist = localHistory || movieData?.watchedHistory;
+    const hist = (typeof progressStore !== "undefined" && progressStore?.get ? progressStore.get() : null) || movieData?.watchedHistory;
     const watchedList = new Set(Array.isArray(hist?.watched_episodes) ? hist.watched_episodes : []);
     if (hist && (hist.progress_percent || 0) >= 85 && hist.episode_slug) watchedList.add(hist.episode_slug);
 
@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderEpisodesDrawer() {
     if (!drawerGrid) return;
     drawerGrid.innerHTML = '';
-    const hist = localHistory || movieData?.watchedHistory;
+    const hist = (typeof progressStore !== "undefined" && progressStore?.get ? progressStore.get() : null) || movieData?.watchedHistory;
     const watchedList = new Set(Array.isArray(hist?.watched_episodes) ? hist.watched_episodes : []);
     if (hist && (hist.progress_percent || 0) >= 85 && hist.episode_slug) watchedList.add(hist.episode_slug);
 

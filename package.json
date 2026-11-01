@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "test": "node --test tests/",
+    "test": "node scripts/test-runner.cjs",
     "test:production": "node --test tests/production.test.js tests/frontend-security.test.js",
     "test:identity": "node --test tests/identity.test.js tests/account.test.js",
     "test:operations": "node --test tests/operations.test.js",

@@ -275,7 +275,7 @@ function renderEpisodes(episodes = [], movieSlug, movie = {}) {
         if ((localMovie.progress_percent || 0) >= 85 && localMovie.episode_slug) watchedSet.add(localMovie.episode_slug);
       }
     } catch (_) {}
-    if (detailData && detailData.watchedHistory) {
+    if (typeof detailData !== "undefined" && detailData && detailData.watchedHistory) {
       if (Array.isArray(detailData.watchedHistory.watched_episodes)) detailData.watchedHistory.watched_episodes.forEach(s => watchedSet.add(s));
       if ((detailData.watchedHistory.progress_percent || 0) >= 85 && detailData.watchedHistory.episode_slug) watchedSet.add(detailData.watchedHistory.episode_slug);
     }

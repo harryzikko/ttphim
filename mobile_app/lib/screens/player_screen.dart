@@ -469,6 +469,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     await previous?.dispose();
     if (!isCurrent()) return;
 
+    VideoPlayerController? pendingController;
+
     // 0. Check if this episode is downloaded offline locally
     final downloaded = await DownloadService.getDownloadedEpisode(_activeMovie.slug, episode.slug);
     if (downloaded != null && downloaded.localFilePath.isNotEmpty) {
@@ -479,18 +481,33 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           final ctrl = VideoPlayerController.file(localFile);
           pendingController = ctrl;
           await ctrl.initialize().timeout(const Duration(seconds: 20));
-          if (!isCurrent()) return;
+          if (!isCurrent()) {
+            await ctrl.dispose();
+            return;
+          }
           await ctrl.setPlaybackSpeed(_currentSpeed);
-          if (!isCurrent()) return;
+          if (!isCurrent()) {
+            await ctrl.dispose();
+            return;
+          }
           await ctrl.setVolume(_volume);
-          if (!isCurrent()) return;
+          if (!isCurrent()) {
+            await ctrl.dispose();
+            return;
+          }
 
           // Check Watch History to Auto-Resume
           final history = await StorageService.getHistoryForMovie(_activeMovie.slug);
-          if (!isCurrent()) return;
+          if (!isCurrent()) {
+            await ctrl.dispose();
+            return;
+          }
           if (history != null && history.episodeSlug == episode.slug && history.positionSeconds > 15 && history.progressPercentage < 0.95) {
             await ctrl.seekTo(Duration(seconds: history.positionSeconds));
-            if (!isCurrent()) return;
+            if (!isCurrent()) {
+              await ctrl.dispose();
+              return;
+            }
           }
 
           _videoPlayerController = ctrl;
@@ -507,6 +524,10 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           return;
         } catch (_) {
           // If offline file playback fails, fallback to network stream below
+          if (pendingController != null && !identical(pendingController, _videoPlayerController)) {
+            await pendingController.dispose();
+            pendingController = null;
+          }
         }
       }
     }
@@ -543,7 +564,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     // 4. Play with native high-performance video engine
     _isEmbedMode = false;
 
-    VideoPlayerController? pendingController;
     try {
       final ctrl = VideoPlayerController.networkUrl(
         Uri.parse(streamUrl),
