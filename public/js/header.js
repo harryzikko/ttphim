@@ -1,4 +1,4 @@
-// TTPhim - Header & Global UI Controller
+// CineViet - Header & Global UI Controller
 (function() {
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const safeUrl = (value, fallback = '/favicon.svg') => {

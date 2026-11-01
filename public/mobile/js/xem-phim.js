@@ -1,4 +1,4 @@
-// TTPhim - Mobile Video Player Controller
+// CineViet - Mobile Video Player Controller
 document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const pathParts = window.location.pathname.split('/').filter(Boolean);

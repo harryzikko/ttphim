@@ -1,4 +1,4 @@
-// TTPhim - Auth Controller
+// CineViet - Auth Controller
 document.addEventListener('DOMContentLoaded', () => {
   function safeRedirect(value) {
     const target = String(value || '').trim();

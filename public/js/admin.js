@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
   } catch(e) {
-    console.error('[TTPhim Admin] Auth check error:', e);
+    console.error('[CineViet Admin] Auth check error:', e);
     window.location.href = '/dang-nhap';
     return;
   }
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
     } catch (e) {
-      console.error('[TTPhim Admin] Failed to load stats:', e);
+      console.error('[CineViet Admin] Failed to load stats:', e);
     }
   }
 
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       allUsers = await API.getAdminUsers();
       applyUserFilters();
     } catch(e) {
-      console.error('[TTPhim Admin] Failed to load users:', e);
+      console.error('[CineViet Admin] Failed to load users:', e);
     }
   }
 
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       allReports = await API.getAdminReports();
       applyReportFilters();
     } catch(e) {
-      console.error('[TTPhim Admin] Failed to load reports:', e);
+      console.error('[CineViet Admin] Failed to load reports:', e);
     }
   }
 
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       allComments = await API.getAdminComments();
       renderCommentsTable(allComments);
     } catch(e) {
-      console.error('[TTPhim Admin] Failed to load comments:', e);
+      console.error('[CineViet Admin] Failed to load comments:', e);
     }
   }
 
@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
       }
     } catch(e) {
-      console.error('[TTPhim Admin] Failed to load featured movies:', e);
+      console.error('[CineViet Admin] Failed to load featured movies:', e);
     }
   }
 
@@ -582,7 +582,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       });
     } catch(e) {
-      console.error('[TTPhim Admin] Search error:', e);
+      console.error('[CineViet Admin] Search error:', e);
       tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-error">Lỗi kết nối khi tìm phim</td></tr>`;
     }
   }
@@ -636,7 +636,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (newTabEl) newTabEl.checked = Boolean(footerAd.new_tab);
         }
       } catch (adErr) {
-        console.warn('[TTPhim Admin] Failed to load advertising:', adErr);
+        console.warn('[CineViet Admin] Failed to load advertising:', adErr);
       }
 
       // Load Popup Banner config
@@ -658,7 +658,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (pCooldownEl) pCooldownEl.value = popup.cooldown_hours != null ? popup.cooldown_hours : 12;
         if (pNewTabEl) pNewTabEl.checked = popup.new_tab !== false;
       } catch (pErr) {
-        console.warn('[TTPhim Admin] Failed to load popup banner config:', pErr);
+        console.warn('[CineViet Admin] Failed to load popup banner config:', pErr);
       }
 
       // Load App Open Interstitial Banner config
@@ -686,7 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (aImgIpadHEl) aImgIpadHEl.value = appBanner.image_ipad_landscape || '/images/banners/banner_ipad_portrait.png';
         if (aCooldownEl) aCooldownEl.value = appBanner.cooldown_hours != null ? appBanner.cooldown_hours : 0;
       } catch (aErr) {
-        console.warn('[TTPhim Admin] Failed to load app banner config:', aErr);
+        console.warn('[CineViet Admin] Failed to load app banner config:', aErr);
       }
 
       // Load In-App Update config
@@ -712,10 +712,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (uIosEl) uIosEl.value = appUpdate.ios_url || '';
         if (uForceEl) uForceEl.checked = Boolean(appUpdate.force_update);
       } catch (uErr) {
-        console.warn('[TTPhim Admin] Failed to load app update config:', uErr);
+        console.warn('[CineViet Admin] Failed to load app update config:', uErr);
       }
     } catch(e) {
-      console.error('[TTPhim Admin] Failed to load settings:', e);
+      console.error('[CineViet Admin] Failed to load settings:', e);
     }
   }
 
@@ -1159,7 +1159,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
     } catch(e) {
-      console.error('[TTPhim Admin] Failed to load analytics:', e);
+      console.error('[CineViet Admin] Failed to load analytics:', e);
     }
   }
 
@@ -1220,7 +1220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       window.renderAdminSources(sources);
     } catch(e) {
-      console.error('[TTPhim Admin] Failed to load sources:', e);
+      console.error('[CineViet Admin] Failed to load sources:', e);
     }
   }
 

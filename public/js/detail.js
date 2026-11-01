@@ -1,4 +1,4 @@
-// TTPhim - Movie Detail Page Controller (Real Data Binding)
+// CineViet - Movie Detail Page Controller (Real Data Binding)
 document.addEventListener('DOMContentLoaded', async () => {
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const safeUrl = (value, fallback = '/favicon.svg') => {
@@ -44,10 +44,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let detailData;
   try {
-    console.log('[TTPhim] Fetching movie detail for slug:', slug);
+    console.log('[CineViet] Fetching movie detail for slug:', slug);
     detailData = await API.getMovieDetail(slug);
   } catch (err) {
-    console.error('[TTPhim] Failed to fetch movie detail:', err);
+    console.error('[CineViet] Failed to fetch movie detail:', err);
     window.showToast?.('Không thể tải thông tin phim từ máy chủ. Vui lòng thử lại.', 'error');
     return;
   }
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   try { renderDetail(detailData); }
   catch (err) {
-    console.error('[TTPhim] Failed to initialize movie detail:', err);
+    console.error('[CineViet] Failed to initialize movie detail:', err);
     window.showToast?.('Không thể hiển thị đầy đủ trang phim. Vui lòng tải lại trang.', 'error');
   }
 

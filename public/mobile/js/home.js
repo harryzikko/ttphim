@@ -1,4 +1,4 @@
-﻿// TTPhim Mobile - Home Page Controller
+﻿// CineViet Mobile - Home Page Controller
 document.addEventListener('DOMContentLoaded', async () => {
   renderMobileContinueWatching();
   try {

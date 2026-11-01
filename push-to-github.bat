@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 >nul
-title TTPhim - Push to GitHub
+title CineViet - Push to GitHub
 echo ========================================================
-echo       🚀 PUSH DỰ ÁN TTPHIM LÊN GITHUB (HARRYZIKKO)
+echo       🚀 PUSH DỰ ÁN CINEVIET LÊN GITHUB (HARRYZIKKO)
 echo ========================================================
 echo.
 

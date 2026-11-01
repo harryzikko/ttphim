@@ -1,4 +1,4 @@
-// TTPhim - Watch Movie Player & Interactive Room Controller (Real Data Binding)
+// CineViet - Watch Movie Player & Interactive Room Controller (Real Data Binding)
 document.addEventListener('DOMContentLoaded', async () => {
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const safeUrl = (value, fallback = '/favicon.svg') => {
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load Movie Details
   try {
-    console.log('[TTPhim] Fetching movie for watch player, slug:', slug);
+    console.log('[CineViet] Fetching movie for watch player, slug:', slug);
     [movieData, user] = await Promise.all([API.getMovieDetail(slug), API.getMe()]);
     if (movieData && window.EpisodeSources) movieData.episodes = (movieData.episodes || []).map(server => ({ ...server, server_data: EpisodeSources.playable(server) }));
     if (window.PlayerPreferences) {
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initPage(movieData);
   } catch (err) {
-    console.error('[TTPhim] Failed to load movie for player:', err);
+    console.error('[CineViet] Failed to load movie for player:', err);
     if (window.showToast) window.showToast('Lỗi kết nối máy chủ phát phim', 'error');
     if (viewport) {
       viewport.replaceChildren();
@@ -2525,7 +2525,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ==========================================
-  // TTPhim - Real-Time Watch Party Controller
+  // CineViet - Real-Time Watch Party Controller
   // ==========================================
   function initWatchParty() {
     const tabEpisodes = document.getElementById('tab-btn-episodes');

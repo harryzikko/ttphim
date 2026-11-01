@@ -1,4 +1,4 @@
-// TTPhim - Library & Watchlist Controller (Real Data Binding)
+// CineViet - Library & Watchlist Controller (Real Data Binding)
 document.addEventListener('DOMContentLoaded', async () => {
   let libraryData = null;
   let activeTab = 'watchlist'; // 'continue', 'watchlist', 'history', 'downloaded'
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         message.textContent = 'Không thể tải thư viện. Vui lòng tải lại trang để thử lại.';
         targetGrid.append(message);
       }
-      console.error('[TTPhim] Error loading library:', e);
+      console.error('[CineViet] Error loading library:', e);
       if (window.showToast) window.showToast('Lỗi tải dữ liệu thư viện cá nhân', 'error');
     }
   }

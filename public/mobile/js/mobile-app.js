@@ -1,4 +1,4 @@
-﻿// TTPhim Mobile App - Core Framework for iOS & Android
+﻿// CineViet Mobile App - Core Framework for iOS & Android
 const MobileApp = {
   activeTab: 'home',
 
@@ -273,7 +273,7 @@ const MobileApp = {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: title || 'TTPhim',
+          title: title || 'CineViet',
           url: url || window.location.href
         });
       } catch (e) {}

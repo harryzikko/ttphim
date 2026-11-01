@@ -1,4 +1,4 @@
-﻿// TTPhim - Mobile Watchlist & Library Controller
+﻿// CineViet - Mobile Watchlist & Library Controller
 document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const initialTab = urlParams.get('tab') || 'watchlist';

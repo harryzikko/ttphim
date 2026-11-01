@@ -1,6 +1,6 @@
 {
   "appId": "com.ttphim.cinema",
-  "appName": "TTPhim",
+  "appName": "CineViet",
   "webDir": "public",
   "bundledWebRuntime": false,
   "server": {

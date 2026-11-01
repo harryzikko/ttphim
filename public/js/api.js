@@ -1,4 +1,4 @@
-// TTPhim - Client API SDK
+// CineViet - Client API SDK
 let confirmedAccountId = null;
 let accountIdentityChanged = false;
 const isPrivateAccountPage = () => /^\/(?:mobile\/)?(?:tai-khoan|danh-sach)(?:\.html)?\/?$/i.test(window.location?.pathname || '') || /^\/(?:tu-phim|danh-sach-cua-toi)\/?$/i.test(window.location?.pathname || '');
