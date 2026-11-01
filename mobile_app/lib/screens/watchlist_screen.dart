@@ -693,9 +693,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
     );
 
     if (confirm == true) {
-      for (final item in _downloads) {
-        await DownloadService.deleteDownload(item.movieSlug, item.episodeSlug);
-      }
+      await DownloadService.clearAllDownloads();
       _loadData();
     }
   }
@@ -811,7 +809,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
             ),
           ),
           onDismissed: (_) async {
-            await DownloadService.deleteDownload(item.movieSlug, item.episodeSlug);
+            await DownloadService.removeDownload(item.movieSlug, item.episodeSlug);
             _loadData();
           },
           child: InkWell(
@@ -888,7 +886,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
                     icon: const Icon(Icons.delete_outline_rounded, color: Colors.white54, size: 21),
                     tooltip: 'Xóa bản tải về',
                     onPressed: () async {
-                      await DownloadService.deleteDownload(item.movieSlug, item.episodeSlug);
+                      await DownloadService.removeDownload(item.movieSlug, item.episodeSlug);
                       _loadData();
                     },
                   ),

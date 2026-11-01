@@ -234,6 +234,9 @@ class DownloadService {
     }
   }
 
+  /// Alias for removeDownload
+  static Future<void> deleteDownload(String movieSlug, String episodeSlug) => removeDownload(movieSlug, episodeSlug);
+
   /// Clear all offline downloads
   static Future<void> clearAllDownloads() async {
     final all = await getDownloads();
