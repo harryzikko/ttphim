@@ -717,11 +717,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
       }
 
+      // Determine watched episodes for badge indicators
+      let watchedSet = new Set();
+      try {
+        const local = JSON.parse(localStorage.getItem('TTPhim_progress_guest') || '{}');
+        const localMovie = local[movie.slug];
+        if (localMovie) {
+          if (Array.isArray(localMovie.watched_episodes)) localMovie.watched_episodes.forEach(s => watchedSet.add(s));
+          if ((localMovie.progress_percent || 0) >= 85 && localMovie.episode_slug) watchedSet.add(localMovie.episode_slug);
+        }
+      } catch (_) {}
+      if (detailData && detailData.watchedHistory) {
+        if (Array.isArray(detailData.watchedHistory.watched_episodes)) detailData.watchedHistory.watched_episodes.forEach(s => watchedSet.add(s));
+        if ((detailData.watchedHistory.progress_percent || 0) >= 85 && detailData.watchedHistory.episode_slug) watchedSet.add(detailData.watchedHistory.episode_slug);
+      }
+
       // Slice current range
       const displayedEps = totalRanges > 1 ? allEps.slice(activeRangeIndex * chunkSize, (activeRangeIndex + 1) * chunkSize) : allEps;
       episodeGrid.innerHTML = displayedEps.map(ep => {
+        const isWatched = watchedSet.has(ep.slug);
         const epLabel = /full/i.test(ep.name) ? 'Bản Full' : `Tập ${cleanEpName(ep.name)}`;
-        return `<a class="episode-choice" data-episode-thumb href="/xem-phim/${pathSegment(movie.slug)}/${pathSegment(ep.slug)}?server=${activeServerIndex}" aria-label="Xem ${escapeHtml(epLabel)}"><span class="episode-choice-copy"><span class="episode-choice-label">${escapeHtml(epLabel)}</span><span class="episode-choice-subtitle">${escapeHtml(movie.name)}</span></span><span class="episode-choice-play material-symbols-outlined" aria-hidden="true">play_arrow</span></a>`;
+        return `<a class="episode-choice ${isWatched ? 'is-watched' : ''}" data-episode-thumb href="/xem-phim/${pathSegment(movie.slug)}/${pathSegment(ep.slug)}?server=${activeServerIndex}" aria-label="Xem ${escapeHtml(epLabel)}"><span class="episode-choice-copy"><span class="episode-choice-label flex items-center gap-1.5">${escapeHtml(epLabel)}${isWatched ? '<span class="material-symbols-outlined text-emerald-400 text-[14px]" title="Đã xem">check_circle</span>' : ''}</span><span class="episode-choice-subtitle">${escapeHtml(movie.name)}</span>${isWatched ? '<span class="episode-choice-watched-badge"><span class="material-symbols-outlined">check</span> Đã xem</span>' : ''}</span><span class="episode-choice-play material-symbols-outlined" aria-hidden="true">${isWatched ? 'check' : 'play_arrow'}</span></a>`;
       }).join('');
       window.EpisodeSources?.decorateThumbnails(episodeGrid, displayedEps, movie);
 
@@ -782,6 +798,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- Real Reviews & Star Ratings in Detail Page ---
   function initDetailReviewsAndRatings(movie, episodes = []) {
     window.MovieRatings?.mount(movie);
+    window.MovieReactions?.mount("#movie-reactions-container", movie.slug);
     const commentListContainer = document.getElementById('detail-comments-list') || document.querySelector('div.space-y-space-sm');
     const reviewForm = document.getElementById('detail-review-form') || document.querySelector('form[onsubmit="event.preventDefault();"]');
 

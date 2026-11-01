@@ -198,6 +198,11 @@
         if (!episode || !Number.isFinite(video.duration) || video.duration <= 0 || !Number.isFinite(video.currentTime) || video.currentTime <= 0) return Promise.resolve();
         const previous = read()[movie.slug];
         const progressed = !previous || previous.episode_slug !== episode.slug || Math.round(Number(previous.current_time)) !== Math.round(video.currentTime);
+        const percent = Math.min(100, Math.round(video.currentTime / video.duration * 100));
+        const watchedEps = Array.isArray(previous?.watched_episodes) ? [...previous.watched_episodes] : [];
+        if (percent >= 85 && !watchedEps.includes(episode.slug)) {
+          watchedEps.push(episode.slug);
+        }
         const data = {
           movie_slug: movie.slug, movie_name: movie.name, origin_name: movie.origin_name,
           poster_url: movie.poster_url, thumb_url: movie.thumb_url,
@@ -205,7 +210,8 @@
           category: Array.isArray(movie.category) ? movie.category.map(item => typeof item === 'string' ? item : item?.name).filter(item => typeof item === 'string').slice(0, 20) : [],
           episode_slug: episode.slug, episode_name: episode.name, server_name: server,
           current_time: video.currentTime, duration: video.duration,
-          progress_percent: Math.min(100, Math.round(video.currentTime / video.duration * 100)),
+          progress_percent: percent,
+          watched_episodes: watchedEps,
           continue_hidden: previous?.continue_hidden === true && !progressed,
           updated_at: new Date().toISOString()
         };

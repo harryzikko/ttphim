@@ -165,6 +165,30 @@ router.get('/movies/:slug/ratings', async (req, res) => {
   catch (_) { res.status(503).json({ status: false, message: 'Không thể tải đánh giá lúc này' }); }
 });
 
+// Movie Community Reactions
+router.get('/movies/:slug/reactions', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  try {
+    const { slug } = req.params;
+    if (!/^[a-zA-Z0-9_-]{1,200}$/.test(slug)) return res.status(400).json({ status: false, message: 'Slug không hợp lệ' });
+    res.json({ status: true, data: await dbService.getMovieReactions(slug, req.user?.id) });
+  } catch (_) {
+    res.status(503).json({ status: false, message: 'Không thể tải cảm xúc lúc này' });
+  }
+});
+
+router.post('/movies/:slug/reactions', requireAuth, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { reaction } = req.body || {};
+    if (!reaction || typeof reaction !== 'string') return res.status(400).json({ status: false, message: 'Vui lòng chọn cảm xúc' });
+    const result = await dbService.toggleMovieReaction(req.user.id, slug, reaction);
+    res.json({ status: true, data: result });
+  } catch (err) {
+    res.status(err.status || 500).json({ status: false, message: err.message || 'Lỗi ghi nhận cảm xúc' });
+  }
+});
+
 // Rate Movie / Episode
 router.post('/movies/:slug/rate', requireAuth, async (req, res) => {
   try {

@@ -4,6 +4,7 @@ import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
+import '../services/download_service.dart';
 import '../theme/app_theme.dart';
 import 'player_screen.dart';
 import 'person_screen.dart';
@@ -34,12 +35,15 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   static const int _episodesPerChunk = 50;
 
   WatchHistoryItem? _lastHistory;
+  Set<String> _downloadedEpisodes = {};
 
   @override
   void initState() {
     super.initState();
     _checkFavorite();
     _checkHistory();
+    _checkDownloads();
+    DownloadService.changes.addListener(_checkDownloads);
     _fetchDetail();
   }
 
@@ -203,6 +207,215 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+
+  Future<void> _checkDownloads() async {
+    final all = await DownloadService.getDownloads();
+    if (mounted) {
+      setState(() {
+        _downloadedEpisodes = all
+            .where((e) => e.movieSlug == widget.slug)
+            .map((e) => e.episodeSlug)
+            .toSet();
+      });
+    }
+  }
+
+  void _showDownloadOptions() {
+    if (_detail == null || _detail!.servers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đang tải thông tin phim...')),
+      );
+      return;
+    }
+
+    final currentServer = _detail!.servers[_selectedServerIndex];
+    final hasHlsInCurrent = DownloadService.serverSupportsOffline(currentServer);
+    
+    // Check if any server has HLS
+    ServerItem? hlsServer = hasHlsInCurrent ? currentServer : null;
+    if (hlsServer == null) {
+      for (final s in _detail!.servers) {
+        if (DownloadService.serverSupportsOffline(s)) {
+          hlsServer = s;
+          break;
+        }
+      }
+    }
+
+    if (hlsServer == null) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Row(
+            children: [
+              Icon(Icons.info_outline_rounded, color: AppTheme.gold, size: 22),
+              SizedBox(width: 8),
+              Text('Nguồn Web Embed', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            'Phim này hiện chỉ có nguồn Web Embed bên thứ ba (Web Player). Nguồn Embed chỉ hỗ trợ xem trực tuyến và không thể tải offline.\n\nCineViet sẽ hỗ trợ tải về ngay khi có nguồn HLS (M3U8) khả dụng.',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.5),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Đã hiểu'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final targetServer = hlsServer;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141722),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.download_rounded, color: Color(0xFF10B981), size: 22),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Tải Tập Phim Xem Offline',
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Nguồn: ${targetServer.serverName} (M3U8 HLS)',
+                            style: const TextStyle(color: Color(0xFF10B981), fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white54, size: 20),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(color: AppTheme.border, height: 1),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: targetServer.episodes.length,
+                    separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+                    itemBuilder: (context, idx) {
+                      final ep = targetServer.episodes[idx];
+                      final isDownloaded = _downloadedEpisodes.contains(ep.slug);
+                      final canDownload = DownloadService.canDownloadEpisode(ep);
+                      final isDownloading = DownloadService.activeDownloadProgress.containsKey('${widget.slug}_${ep.slug}');
+
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        title: Text(
+                          ep.name,
+                          style: TextStyle(
+                            color: isDownloaded ? const Color(0xFF10B981) : Colors.white,
+                            fontSize: 14,
+                            fontWeight: isDownloaded ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        subtitle: Text(
+                          isDownloaded
+                              ? 'Đã tải về • Sẵn sàng xem offline'
+                              : isDownloading
+                                  ? 'Đang tải xuống...'
+                                  : canDownload
+                                      ? 'HLS Stream • Hỗ trợ tải offline'
+                                      : 'Không hỗ trợ tải',
+                          style: TextStyle(
+                            color: isDownloaded
+                                ? const Color(0xFF10B981)
+                                : isDownloading
+                                    ? AppTheme.gold
+                                    : AppTheme.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                        trailing: isDownloaded
+                            ? IconButton(
+                                icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 24),
+                                tooltip: 'Xóa tập đã tải',
+                                onPressed: () async {
+                                  await DownloadService.removeDownload(widget.slug, ep.slug);
+                                  await _checkDownloads();
+                                  setModalState(() {});
+                                },
+                              )
+                            : isDownloading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2.5),
+                                  )
+                                : canDownload
+                                    ? IconButton(
+                                        icon: const Icon(Icons.download_rounded, color: Colors.white70, size: 22),
+                                        tooltip: 'Tải tập này',
+                                        onPressed: () async {
+                                          setModalState(() {});
+                                          try {
+                                            await DownloadService.downloadEpisode(
+                                              movie: _detail!.movie,
+                                              server: targetServer,
+                                              episode: ep,
+                                            );
+                                            await _checkDownloads();
+                                            if (context.mounted) {
+                                              setModalState(() {});
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Đã tải thành công ${ep.name}!'),
+                                                  backgroundColor: const Color(0xFF10B981),
+                                                ),
+                                              );
+                                            }
+                                          } catch (err) {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Lỗi tải: $err')),
+                                              );
+                                            }
+                                          }
+                                        },
+                                      )
+                                    : const SizedBox.shrink(),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -384,11 +597,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         Row(
                           children: [
                             Expanded(
+                              flex: 6,
                               child: ElevatedButton.icon(
                                 onPressed: () {
                                   if (_detail != null && _detail!.servers.isNotEmpty) {
                                     if (_lastHistory != null) {
-                                      // Search for matching server & episode from history
                                       for (var s in _detail!.servers) {
                                         for (var ep in s.episodes) {
                                           if (ep.slug == _lastHistory!.episodeSlug) {
@@ -420,6 +633,21 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.primary,
+                                  padding: const EdgeInsets.symmetric(vertical: 13),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 4,
+                              child: OutlinedButton.icon(
+                                onPressed: _showDownloadOptions,
+                                icon: const Icon(Icons.download_rounded, color: Color(0xFF10B981), size: 20),
+                                label: const Text('TẢI VỀ', style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13)),
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981).withOpacity(0.08),
+                                  side: const BorderSide(color: Color(0xFF10B981), width: 1.2),
                                   padding: const EdgeInsets.symmetric(vertical: 13),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
@@ -576,7 +804,46 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                                 }),
                               ),
                             ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
+
+                          // Server Capability Badge (HLS vs Embed)
+                          () {
+                            final currentServer = _detail!.servers[_selectedServerIndex];
+                            final isHls = DownloadService.serverSupportsOffline(currentServer);
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isHls ? const Color(0xFF10B981).withOpacity(0.12) : AppTheme.card,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isHls ? const Color(0xFF10B981).withOpacity(0.4) : AppTheme.border,
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isHls ? Icons.offline_pin_rounded : Icons.language_rounded,
+                                    size: 15,
+                                    color: isHls ? const Color(0xFF10B981) : AppTheme.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    isHls
+                                        ? 'Nguồn HLS Trực tiếp • Sẵn sàng tải xem Offline'
+                                        : 'Nguồn Web Embed • Chỉ phát trực tiếp Online',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: isHls ? FontWeight.w600 : FontWeight.normal,
+                                      color: isHls ? const Color(0xFF10B981) : AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }(),
 
                           // Smart Episode Chunk Tabs (for > 25 episodes)
                           () {

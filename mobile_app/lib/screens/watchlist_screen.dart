@@ -4,6 +4,7 @@ import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
+import '../services/download_service.dart';
 import '../services/session_service.dart';
 import '../theme/app_theme.dart';
 import 'detail_screen.dart';
@@ -29,6 +30,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
   late TabController _tabController;
   List<Movie> _favorites = [];
   List<WatchHistoryItem> _history = [];
+  List<DownloadedEpisode> _downloads = [];
   bool _isLoading = true;
   int _loadGeneration = 0;
 
@@ -36,20 +38,22 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 2,
+      length: 3,
       vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 1),
+      initialIndex: widget.initialTabIndex.clamp(0, 2),
     );
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) setState(() {});
     });
     SessionService.changes.addListener(_loadData);
+    DownloadService.changes.addListener(_loadData);
     _loadData();
   }
 
   @override
   void dispose() {
     SessionService.changes.removeListener(_loadData);
+    DownloadService.changes.removeListener(_loadData);
     _tabController.dispose();
     super.dispose();
   }
@@ -68,10 +72,12 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
     });
     final favs = await StorageService.getFavorites();
     final hist = await StorageService.getHistory();
+    final dl = await DownloadService.getDownloads();
     if (mounted && generation == _loadGeneration) {
       setState(() {
         _favorites = favs;
         _history = hist;
+        _downloads = dl;
         _isLoading = false;
       });
     }
@@ -243,6 +249,12 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
               icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.textSecondary),
               tooltip: 'Xóa toàn bộ lịch sử xem',
               onPressed: _clearHistory,
+            )
+          else if (_tabController.index == 2 && _downloads.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.textSecondary),
+              tooltip: 'Xóa toàn bộ phim đã tải',
+              onPressed: _clearAllDownloads,
             ),
         ],
         bottom: TabBar(
@@ -272,6 +284,16 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
                 ],
               ),
             ),
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.download_for_offline_rounded, color: Color(0xFF10B981), size: 18),
+                  const SizedBox(width: 6),
+                  Text('Tải Về (${_downloads.length})'),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -282,6 +304,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
               children: [
                 _buildFavoritesTab(),
                 _buildHistoryTab(),
+                _buildDownloadsTab(),
               ],
             ),
     );

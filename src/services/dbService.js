@@ -282,6 +282,19 @@ class DbService {
     const existingIndex = db.history.findIndex(h => h.user_id === userId && h.movie_slug === data.movie_slug);
     const previous = existingIndex >= 0 ? db.history[existingIndex] : null;
     const progressed = Number(data.current_time) > 0 && Number(data.duration) > 0 && (!previous || (data.episode_slug || 'tap-1') !== previous.episode_slug || Math.round(Number(data.current_time)) !== previous.current_time);
+    const progress_percent = data.duration > 0 ? Math.min(100, Math.max(0, Math.round(((data.current_time || 0) / data.duration) * 100))) : 0;
+    const epSlug = data.episode_slug || 'tap-1';
+    const watchedEps = Array.isArray(previous?.watched_episodes) ? [...previous.watched_episodes] : [];
+    if (progress_percent >= 85 && !watchedEps.includes(epSlug)) {
+      watchedEps.push(epSlug);
+    }
+    if (Array.isArray(data.watched_episodes)) {
+      for (const slug of data.watched_episodes) {
+        if (typeof slug === 'string' && slug.length <= 200 && !watchedEps.includes(slug)) {
+          watchedEps.push(slug);
+        }
+      }
+    }
     const historyItem = {
       id: existingIndex > -1 ? db.history[existingIndex].id : 'hist_' + Date.now(),
       user_id: userId,
@@ -292,12 +305,13 @@ class DbService {
       thumb_url: data.thumb_url || (data.poster_url && data.poster_url.includes('-poster.') ? data.poster_url.replace('-poster.', '-thumb.') : (previous?.thumb_url || '')),
       category: (Array.isArray(data.category) ? data.category : (existingIndex >= 0 && Array.isArray(db.history[existingIndex].category) ? db.history[existingIndex].category : [])).filter(item => typeof item === 'string' && item.length <= 100).slice(0, 20),
       type: ['single', 'series', 'tv', 'movie', 'phim-bo', 'phim-le', 'hoathinh', 'tvshows'].includes(data.type) ? data.type : (existingIndex >= 0 ? db.history[existingIndex].type || '' : ''),
-      episode_slug: data.episode_slug || 'tap-1',
+      episode_slug: epSlug,
       server_name: typeof data.server_name === 'string' ? data.server_name : '',
       episode_name: formatEpBadge(data.episode_name),
       current_time: Math.round(data.current_time || 0),
       duration: Math.round(data.duration || 0),
-      progress_percent: data.duration > 0 ? Math.min(100, Math.max(0, Math.round(((data.current_time || 0) / data.duration) * 100))) : 0,
+      progress_percent,
+      watched_episodes: watchedEps,
       continue_hidden: previous?.continue_hidden === true && !progressed,
       updated_at: new Date().toISOString()
     };
@@ -438,6 +452,19 @@ class DbService {
     target.liked_by = [...users]; target.reaction_base = base; target.likes = base + users.size;
     await this.write(db);
     return target.likes;
+  }
+
+  // --- Movie Community Reactions ---
+  async getMovieReactions(movieSlug, userId = null) {
+    const db = await this.read();
+    return require('./movieReactionService').summarizeReactions(db.movie_reactions || [], movieSlug, userId);
+  }
+
+  async toggleMovieReaction(userId, movieSlug, reaction) {
+    const db = await this.read();
+    const result = require('./movieReactionService').toggleReaction(db, { movie_slug: movieSlug, user_id: userId, reaction });
+    await this.write(db);
+    return result;
   }
 
   // --- Ratings & Reviews ---

@@ -332,15 +332,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderEpisodesHorizontal() {
     if (!epListContainer) return;
     epListContainer.innerHTML = '';
+    const hist = localHistory || movieData?.watchedHistory;
+    const watchedList = new Set(Array.isArray(hist?.watched_episodes) ? hist.watched_episodes : []);
+    if (hist && (hist.progress_percent || 0) >= 85 && hist.episode_slug) watchedList.add(hist.episode_slug);
+
     currentEpisodes.forEach((ep, idx) => {
       const isCur = idx === currentEpIndex;
+      const isWatched = !isCur && watchedList.has(ep.slug);
       const chip = document.createElement('button');
-      chip.className = `px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 transition-all ${
+      chip.className = `px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 ${
         isCur
           ? 'bg-primary-container text-white shadow-md shadow-primary-container/30 ring-1 ring-white/20'
-          : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+          : (isWatched ? 'bg-surface-container text-emerald-400 hover:bg-surface-container-high border border-emerald-500/20' : 'bg-surface-container text-on-surface hover:bg-surface-container-high')
       }`;
       chip.textContent = ep.name || `Tập ${idx + 1}`;
+      if (isWatched) {
+        const tick = document.createElement('span');
+        tick.className = 'material-symbols-outlined text-[13px] text-emerald-400';
+        tick.textContent = 'check_circle';
+        chip.appendChild(tick);
+      }
       chip.classList.add('episode-mobile-choice');
       if (isCur) chip.setAttribute('aria-current', 'true');
       if (window.EpisodeSources) chip.prepend(EpisodeSources.image(ep, movieData.movie));
@@ -359,15 +370,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderEpisodesDrawer() {
     if (!drawerGrid) return;
     drawerGrid.innerHTML = '';
+    const hist = localHistory || movieData?.watchedHistory;
+    const watchedList = new Set(Array.isArray(hist?.watched_episodes) ? hist.watched_episodes : []);
+    if (hist && (hist.progress_percent || 0) >= 85 && hist.episode_slug) watchedList.add(hist.episode_slug);
+
     currentEpisodes.forEach((ep, idx) => {
       const isCur = idx === currentEpIndex;
+      const isWatched = !isCur && watchedList.has(ep.slug);
       const btn = document.createElement('button');
-      btn.className = `p-2.5 rounded-xl text-xs font-bold text-center transition-all ${
+      btn.className = `p-2.5 rounded-xl text-xs font-bold text-center transition-all flex items-center justify-center gap-1.5 ${
         isCur
           ? 'bg-primary-container text-white shadow-md'
-          : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+          : (isWatched ? 'bg-surface-container text-emerald-400 hover:bg-surface-container-high border border-emerald-500/20' : 'bg-surface-container text-on-surface hover:bg-surface-container-high')
       }`;
       btn.textContent = ep.name || `Tập ${idx + 1}`;
+      if (isWatched) {
+        const tick = document.createElement('span');
+        tick.className = 'material-symbols-outlined text-[13px] text-emerald-400';
+        tick.textContent = 'check_circle';
+        btn.appendChild(tick);
+      }
       btn.classList.add('episode-mobile-choice');
       if (isCur) btn.setAttribute('aria-current', 'true');
       if (window.EpisodeSources) btn.prepend(EpisodeSources.image(ep, movieData.movie));
@@ -560,6 +582,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       seekFromEvent(e);
       scheduleHideOverlay();
     });
+  }
+
+  // Picture-in-Picture
+  const pipBtn = document.getElementById('m-pip-btn');
+  if (pipBtn) {
+    if (!document.pictureInPictureEnabled && !videoEl.requestPictureInPicture) {
+      pipBtn.style.display = 'none';
+    } else {
+      pipBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (document.pictureInPictureElement) {
+          document.exitPictureInPicture().catch(() => {});
+        } else if (videoEl.requestPictureInPicture) {
+          videoEl.requestPictureInPicture().catch(() => notify('Chưa mở được chế độ thu nhỏ.', 'error'));
+        }
+      });
+    }
   }
 
   // Speed selector

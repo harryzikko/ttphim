@@ -56,3 +56,12 @@ body .episode-mobile-choice { display: flex; align-items: center; gap: 8px; min-
   body #watch-source-actions { padding: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { body .episode-sources button { transition: none; } }
+
+/* Watched episode checkmark indicators */
+.episode-choice.is-watched { border-color: rgba(52, 211, 153, 0.25); background: rgba(52, 211, 153, 0.04); }
+.episode-choice.is-watched:hover { border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.08); }
+.episode-drawer-choice.is-watched { border-color: rgba(52, 211, 153, 0.18); }
+.episode-choice-watched-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; line-height: 16px; color: #34d399; font-weight: 500; }
+.episode-choice-watched-badge .material-symbols-outlined { font-size: 13px; line-height: 13px; }
+.episode-drawer-watched { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; line-height: 16px; color: #34d399; font-weight: 500; }
+.episode-drawer-watched .material-symbols-outlined { font-size: 13px; line-height: 13px; }

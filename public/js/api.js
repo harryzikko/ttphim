@@ -75,6 +75,22 @@ const API = {
     return res.data;
   },
 
+  async getMovieReactions(slug) {
+    try {
+      const res = await this.request(`/api/movies/${encodeURIComponent(slug)}/reactions`);
+      return res.status ? res.data : null;
+    } catch (_) {
+      return null;
+    }
+  },
+
+  async reactMovie(slug, reaction) {
+    return this.request(`/api/movies/${encodeURIComponent(slug)}/reactions`, {
+      method: 'POST',
+      body: JSON.stringify({ reaction })
+    });
+  },
+
   async getMovieSeasons(slug) {
     try {
       const res = await this.request(`/api/movies/${encodeURIComponent(slug)}/seasons`);

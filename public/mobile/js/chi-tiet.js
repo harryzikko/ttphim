@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.EpisodeSources) detailData.episodes = (detailData.episodes || []).map(server => ({ ...server, server_data: EpisodeSources.playable(server) }));
 
     renderMovieDetail(movie, detailData?.episodes || [], !!detailData?.inWatchlist);
+  window.MovieReactions?.mount("#movie-reactions-container", movie.slug);
     renderEpisodes(detailData?.episodes || [], movie.slug, movie);
     loadSimilarMovies(movie);
 
@@ -265,11 +266,27 @@ function renderEpisodes(episodes = [], movieSlug, movie = {}) {
       return;
     }
 
-    episodeGrid.innerHTML = items.map((ep, i) => `
-      <a data-episode-thumb href="/mobile/xem-phim/${encodeURIComponent(movieSlug)}/${encodeURIComponent(ep.slug)}?server=${activeServerIdx}" class="episode-choice">
-        <span class="episode-choice-copy"><span class="episode-choice-label">${escapeEpisode(ep.name || `Tập ${i + 1}`)}</span><span class="episode-choice-subtitle">${escapeEpisode(movie.name || '')}</span></span>
+    let watchedSet = new Set();
+    try {
+      const local = JSON.parse(localStorage.getItem('TTPhim_progress_guest') || '{}');
+      const localMovie = local[movieSlug];
+      if (localMovie) {
+        if (Array.isArray(localMovie.watched_episodes)) localMovie.watched_episodes.forEach(s => watchedSet.add(s));
+        if ((localMovie.progress_percent || 0) >= 85 && localMovie.episode_slug) watchedSet.add(localMovie.episode_slug);
+      }
+    } catch (_) {}
+    if (detailData && detailData.watchedHistory) {
+      if (Array.isArray(detailData.watchedHistory.watched_episodes)) detailData.watchedHistory.watched_episodes.forEach(s => watchedSet.add(s));
+      if ((detailData.watchedHistory.progress_percent || 0) >= 85 && detailData.watchedHistory.episode_slug) watchedSet.add(detailData.watchedHistory.episode_slug);
+    }
+
+    episodeGrid.innerHTML = items.map((ep, i) => {
+      const isWatched = watchedSet.has(ep.slug);
+      return `
+      <a data-episode-thumb href="/mobile/xem-phim/${encodeURIComponent(movieSlug)}/${encodeURIComponent(ep.slug)}?server=${activeServerIdx}" class="episode-choice ${isWatched ? 'is-watched' : ''}">
+        <span class="episode-choice-copy"><span class="episode-choice-label flex items-center gap-1.5">${escapeEpisode(ep.name || `Tập ${i + 1}`)}${isWatched ? '<span class="material-symbols-outlined text-emerald-400 text-[13px]" title="Đã xem">check_circle</span>' : ''}</span><span class="episode-choice-subtitle">${escapeEpisode(movie.name || '')}</span>${isWatched ? '<span class="episode-choice-watched-badge"><span class="material-symbols-outlined">check</span> Đã xem</span>' : ''}</span>
       </a>
-    `).join('');
+    `}).join('');
     window.EpisodeSources?.decorateThumbnails(episodeGrid, items, movie);
   }
 

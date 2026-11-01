@@ -148,8 +148,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Render Server Switches
     renderServerPills(allServers);
 
-    // Render Video Player
-    loadEpisode(currentEpisode, selection.resume);
+    // Render Video Player (support ?t= shared timestamp or selection resume)
+    const sharedTime = parseInt(urlParams.get('t'), 10);
+    const resumeTime = Number.isFinite(sharedTime) && sharedTime > 0 ? sharedTime : selection.resume;
+    loadEpisode(currentEpisode, resumeTime);
 
     // Render Episode Drawer Sidebar
     renderEpisodeDrawer(allServers[activeServerIndex]?.server_data || []);
@@ -479,6 +481,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span class="material-symbols-outlined text-[22px]">picture_in_picture_alt</span>
           </button>
 
+          <!-- Sleep Timer Button -->
+          <div class="relative">
+            <button id="player-btn-sleep" type="button" class="text-white/90 hover:text-white transition-colors cursor-pointer p-1.5 rounded-lg flex items-center justify-center relative" title="Hẹn giờ tắt">
+              <span class="material-symbols-outlined text-[21px]">timer</span>
+              <span id="player-sleep-dot" class="hidden absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400"></span>
+            </button>
+            <div id="player-sleep-menu" class="hidden absolute bottom-full right-0 mb-2 w-44 bg-[#161822]/95 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl p-2 z-50 text-xs">
+              <div class="text-[11px] font-bold text-white/50 px-2 py-1 uppercase tracking-wider">Hẹn giờ tắt</div>
+              <div class="space-y-0.5" id="player-sleep-options">
+                <button type="button" data-minutes="0" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white flex items-center justify-between cursor-pointer font-medium active-sleep">
+                  <span>Tắt hẹn giờ</span>
+                  <span class="material-symbols-outlined text-sm text-emerald-400 check-icon">check</span>
+                </button>
+                <button type="button" data-minutes="15" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white flex items-center justify-between cursor-pointer">
+                  <span>15 phút</span>
+                </button>
+                <button type="button" data-minutes="30" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white flex items-center justify-between cursor-pointer">
+                  <span>30 phút</span>
+                </button>
+                <button type="button" data-minutes="45" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white flex items-center justify-between cursor-pointer">
+                  <span>45 phút</span>
+                </button>
+                <button type="button" data-minutes="60" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white flex items-center justify-between cursor-pointer">
+                  <span>60 phút</span>
+                </button>
+                <button type="button" data-minutes="end" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white flex items-center justify-between cursor-pointer">
+                  <span>Hết tập này</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Fullscreen Toggle -->
           <button id="player-btn-fullscreen" class="text-white hover:text-primary transition-colors cursor-pointer p-1.5 rounded-lg flex items-center justify-center" title="Toàn màn hình (F)">
             <span class="material-symbols-outlined text-[24px]">fullscreen</span>
@@ -764,6 +798,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         video.requestPictureInPicture().catch(() => {});
       }
     };
+
+    // Sleep Timer Handler
+    const sleepBtn = bottomBar.querySelector('#player-btn-sleep');
+    const sleepMenu = bottomBar.querySelector('#player-sleep-menu');
+    const sleepDot = bottomBar.querySelector('#player-sleep-dot');
+    let sleepTimerId = null;
+    let sleepEndHandler = null;
+
+    if (sleepBtn && sleepMenu) {
+      sleepBtn.onclick = (e) => {
+        e.stopPropagation();
+        sleepMenu.classList.toggle('hidden');
+      };
+
+      document.addEventListener('click', (e) => {
+        if (!sleepBtn.contains(e.target) && !sleepMenu.contains(e.target)) {
+          sleepMenu.classList.add('hidden');
+        }
+      });
+
+      sleepMenu.querySelectorAll('button[data-minutes]').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const val = btn.dataset.minutes;
+          if (sleepTimerId) { clearTimeout(sleepTimerId); sleepTimerId = null; }
+          if (sleepEndHandler) { video.removeEventListener('ended', sleepEndHandler); sleepEndHandler = null; }
+
+          sleepMenu.querySelectorAll('button[data-minutes]').forEach(b => {
+            b.classList.remove('active-sleep', 'text-white', 'font-medium');
+            b.classList.add('text-white/80');
+            const chk = b.querySelector('.check-icon');
+            if (chk) chk.remove();
+          });
+          btn.classList.add('active-sleep', 'text-white', 'font-medium');
+          btn.classList.remove('text-white/80');
+          const checkSpan = document.createElement('span');
+          checkSpan.className = 'material-symbols-outlined text-sm text-emerald-400 check-icon';
+          checkSpan.textContent = 'check';
+          btn.appendChild(checkSpan);
+
+          if (val === '0') {
+            sleepDot.classList.add('hidden');
+            window.showToast?.('Đã tắt hẹn giờ', 'info');
+          } else if (val === 'end') {
+            sleepDot.classList.remove('hidden');
+            window.showToast?.('Đã bật hẹn giờ: Dừng phát khi hết tập này', 'info');
+            sleepEndHandler = () => {
+              video.pause();
+              sleepDot.classList.add('hidden');
+              window.showToast?.('Đã dừng phát theo hẹn giờ tắt (hết tập)', 'info');
+            };
+            video.addEventListener('ended', sleepEndHandler, { once: true });
+          } else {
+            const mins = parseInt(val, 10);
+            sleepDot.classList.remove('hidden');
+            window.showToast?.(`Đã bật hẹn giờ tắt sau ${mins} phút`, 'info');
+            sleepTimerId = setTimeout(() => {
+              video.pause();
+              sleepDot.classList.add('hidden');
+              window.showToast?.(`Đã dừng phát theo hẹn giờ tắt (${mins} phút)`, 'info');
+            }, mins * 60 * 1000);
+          }
+          sleepMenu.classList.add('hidden');
+        };
+      });
+    }
     fullscreenBtn.onclick = toggleFullscreen;
 
     // Time display toggle
@@ -1434,13 +1534,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const hist = progressStore?.get() || movieData?.watchedHistory;
+    const watchedList = new Set(Array.isArray(hist?.watched_episodes) ? hist.watched_episodes : []);
+    if (hist && (hist.progress_percent || 0) >= 85 && hist.episode_slug) {
+      watchedList.add(hist.episode_slug);
+    }
+
     listContainer.innerHTML = filteredEps.map(ep => {
       const isCurrent = currentEpisode && currentEpisode.slug === ep.slug;
+      const isWatched = !isCurrent && watchedList.has(ep.slug);
       return `
-        <button type="button" data-episode-thumb class="ep-item episode-drawer-choice ${isCurrent ? 'is-current' : ''}" data-slug="${escapeHtml(ep.slug)}" data-name="${escapeHtml(ep.name)}" ${isCurrent ? 'aria-current="true"' : ''}>
-          <span class="episode-drawer-icon material-symbols-outlined" aria-hidden="true">${isCurrent ? 'equalizer' : 'play_arrow'}</span>
-          <span class="episode-drawer-copy"><span class="episode-drawer-label">${escapeHtml(/full/i.test(ep.name) ? 'Bản Full' : `Tập ${cleanEpName(ep.name)}`)}</span><span class="episode-choice-subtitle">${escapeHtml(movieData.movie.name)}</span>${isCurrent ? '<span class="episode-drawer-status">Đang xem</span>' : ''}</span>
-          <span class="episode-choice-play material-symbols-outlined" aria-hidden="true">${isCurrent ? 'equalizer' : 'play_arrow'}</span>
+        <button type="button" data-episode-thumb class="ep-item episode-drawer-choice ${isCurrent ? 'is-current' : ''} ${isWatched ? 'is-watched' : ''}" data-slug="${escapeHtml(ep.slug)}" data-name="${escapeHtml(ep.name)}" ${isCurrent ? 'aria-current="true"' : ''}>
+          <span class="episode-drawer-icon material-symbols-outlined" aria-hidden="true">${isCurrent ? 'equalizer' : (isWatched ? 'check_circle' : 'play_arrow')}</span>
+          <span class="episode-drawer-copy"><span class="episode-drawer-label flex items-center gap-1.5">${escapeHtml(/full/i.test(ep.name) ? 'Bản Full' : `Tập ${cleanEpName(ep.name)}`)}${isWatched ? '<span class="material-symbols-outlined text-emerald-400 text-[14px]" title="Đã xem">check_circle</span>' : ''}</span><span class="episode-choice-subtitle">${escapeHtml(movieData.movie.name)}</span>${isCurrent ? '<span class="episode-drawer-status">Đang xem</span>' : (isWatched ? '<span class="episode-drawer-watched"><span class="material-symbols-outlined text-[12px]">check</span> Đã xem</span>' : '')}</span>
+          <span class="episode-choice-play material-symbols-outlined" aria-hidden="true">${isCurrent ? 'equalizer' : (isWatched ? 'check' : 'play_arrow')}</span>
         </button>
       `;
     }).join('');
@@ -1975,12 +2082,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function shareEpisode() {
-    const url = window.location.href;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
-      window.showToast('🔗 Đã sao chép liên kết tập phim vào bộ nhớ tạm!');
+    const video = viewport.querySelector('video');
+    const currentTime = video && Number.isFinite(video.currentTime) && video.currentTime > 5 ? Math.floor(video.currentTime) : 0;
+    const urlObj = new URL(window.location.href);
+    if (currentTime > 0) {
+      urlObj.searchParams.set('t', currentTime);
+    }
+    const finalUrl = urlObj.toString();
+    const min = Math.floor(currentTime / 60);
+    const sec = Math.floor(currentTime % 60).toString().padStart(2, '0');
+    const timeLabel = currentTime > 0 ? ` (tại ${min}:${sec})` : '';
+
+    if (navigator.share) {
+      navigator.share({
+        title: `${movieData?.movie?.name || 'Xem phim'} - CineViet`,
+        text: `Cùng xem ${movieData?.movie?.name || 'phim'}${timeLabel} trên CineViet!`,
+        url: finalUrl
+      }).catch(() => {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(finalUrl);
+      window.showToast?.(`🔗 Đã sao chép liên kết xem phim${timeLabel}!`);
     } else {
-      prompt('Sao chép đường dẫn xem phim:', url);
+      prompt('Sao chép đường dẫn xem phim:', finalUrl);
     }
   }
 
@@ -2011,7 +2134,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!commentsList) return;
     let commentRequest = 0;
-    const threadScope = window.CommentThreads?.scope({ list: commentsList, servers: movieData.episodes, current: () => currentEpisode?.slug || '', watch: true, onChange: () => loadAndRenderComments() });
+    window.MovieReactions?.mount("#movie-reactions-container", movieSlug);
+  const threadScope = window.CommentThreads?.scope({ list: commentsList, servers: movieData.episodes, current: () => currentEpisode?.slug || '', watch: true, onChange: () => loadAndRenderComments() });
     const spoilerCheck = input && window.CommentThreads?.spoilerInput(input);
     window.addEventListener('cineviet:episode-change', () => { resetTimeTag(); loadAndRenderComments(); });
 
