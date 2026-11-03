@@ -62,13 +62,30 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
       );
     }
 
-    // Load feeds
-    final featured = await ApiService.getFeaturedMovies();
-    final cinema = await ApiService.getCinemaMovies();
-    final singles = await ApiService.getSingleMovies();
-    final series = await ApiService.getSeriesMovies();
-    final tvshows = await ApiService.getTvShows();
-    final anime = await ApiService.getAnimeMovies();
+    // Fast-path: Show instant hero and trending rails
+    if (_trendingMovies.isEmpty) {
+      _trendingMovies = ApiService.defaultFeaturedMovies;
+      _spotlight = _trendingMovies.isNotEmpty ? _trendingMovies.first : null;
+      _isLoading = false;
+      if (mounted) setState(() {});
+    }
+
+    // Load feeds in parallel
+    final feeds = await Future.wait([
+      ApiService.getFeaturedMovies(),
+      ApiService.getCinemaMovies(),
+      ApiService.getSingleMovies(),
+      ApiService.getSeriesMovies(),
+      ApiService.getTvShows(),
+      ApiService.getAnimeMovies(),
+    ]);
+
+    final featured = feeds[0];
+    final cinema = feeds[1];
+    final singles = feeds[2];
+    final series = feeds[3];
+    final tvshows = feeds[4];
+    final anime = feeds[5];
 
     if (mounted) {
       setState(() {

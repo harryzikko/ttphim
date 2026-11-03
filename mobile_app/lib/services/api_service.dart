@@ -49,22 +49,55 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>?> _getHome() async {
-    if (_home != null && DateTime.now().difference(_homeFetchedAt!) < const Duration(minutes: 5)) return _home;
+    if (_home != null && _homeFetchedAt != null && DateTime.now().difference(_homeFetchedAt!) < const Duration(minutes: 5)) {
+      return _home;
+    }
+
+    // Fast-path: read from warm disk cache if available
+    if (_home == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cached = prefs.getString('cineviet_cached_home');
+        if (cached != null && cached.isNotEmpty) {
+          _home = json.decode(cached) as Map<String, dynamic>;
+          _homeFetchedAt = DateTime.now().subtract(const Duration(minutes: 4)); // mark warm, trigger refresh
+        }
+      } catch (_) {}
+    }
+
     if (_homePending != null) return _homePending;
+
     final pending = () async {
       try {
         final response = await _backend('/api/home');
         if (response?['status'] == true && response?['data'] is Map<String, dynamic>) {
           _home = response!['data'] as Map<String, dynamic>;
           _homeFetchedAt = DateTime.now();
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('cineviet_cached_home', json.encode(_home));
+          } catch (_) {}
           return _home;
         }
       } catch (_) {}
-      return null;
+      return _home;
     }();
+
     _homePending = pending;
-    try { return await pending; } finally { _homePending = null; }
+    try {
+      if (_home != null) {
+        // Return warm cache immediately and revalidate in background
+        unawaited(pending);
+        return _home;
+      }
+      return await pending;
+    } finally {
+      _homePending = null;
+    }
   }
+
+  static List<Movie> get defaultFeaturedMovies => List.unmodifiable(_defaultFeaturedMovies);
+  static List<Movie> get defaultTopRankings => List.unmodifiable(_defaultTopRankings);
 
   /// Default fallback list of pinned featured movies from website settings
   static final List<Movie> _defaultFeaturedMovies = [
@@ -301,9 +334,15 @@ class ApiService {
 
   /// Get newest updated movies (Trang Chủ)
   static Future<List<Movie>> getNewMovies({int page = 1}) async {
+    if (page == 1) {
+      final home = await _getHome();
+      if (home?['latest'] is List && (home!['latest'] as List).isNotEmpty) {
+        return (home['latest'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+      }
+    }
     try {
       final uri = Uri.parse('$baseUrl/danh-sach/phim-moi-cap-nhat?page=$page');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+      final res = await _client.get(uri).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
         return _parseMovieList(data);
@@ -314,9 +353,15 @@ class ApiService {
 
   /// Get Single Movies (Phim Lẻ)
   static Future<List<Movie>> getSingleMovies({int page = 1}) async {
+    if (page == 1) {
+      final home = await _getHome();
+      if (home?['singles'] is List && (home!['singles'] as List).isNotEmpty) {
+        return (home['singles'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+      }
+    }
     try {
       final uri = Uri.parse('$baseUrl/v1/api/danh-sach/phim-le?page=$page');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+      final res = await _client.get(uri).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
         return _parseMovieList(data);
@@ -327,9 +372,15 @@ class ApiService {
 
   /// Get TV Series (Phim Bộ)
   static Future<List<Movie>> getSeriesMovies({int page = 1}) async {
+    if (page == 1) {
+      final home = await _getHome();
+      if (home?['series'] is List && (home!['series'] as List).isNotEmpty) {
+        return (home['series'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+      }
+    }
     try {
       final uri = Uri.parse('$baseUrl/v1/api/danh-sach/phim-bo?page=$page');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+      final res = await _client.get(uri).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
         return _parseMovieList(data);
@@ -340,9 +391,15 @@ class ApiService {
 
   /// Get Anime & Animation (Hoạt Hình)
   static Future<List<Movie>> getAnimeMovies({int page = 1}) async {
+    if (page == 1) {
+      final home = await _getHome();
+      if (home?['anime'] is List && (home!['anime'] as List).isNotEmpty) {
+        return (home['anime'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+      }
+    }
     try {
       final uri = Uri.parse('$baseUrl/v1/api/danh-sach/hoat-hinh?page=$page');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+      final res = await _client.get(uri).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
         return _parseMovieList(data);
@@ -361,7 +418,7 @@ class ApiService {
     }
     try {
       final uri = Uri.parse('$baseUrl/v1/api/danh-sach/phim-chieu-rap?page=$page');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+      final res = await _client.get(uri).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
         return _parseMovieList(data);
@@ -380,7 +437,7 @@ class ApiService {
     }
     try {
       final uri = Uri.parse('$baseUrl/v1/api/danh-sach/tv-shows?page=$page');
-      final res = await _client.get(uri).timeout(const Duration(seconds: 15));
+      final res = await _client.get(uri).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
         return _parseMovieList(data);

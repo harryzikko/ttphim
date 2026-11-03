@@ -19,8 +19,8 @@ class BackendService {
     http.Response response;
     try {
       response = body == null
-          ? await client.get(uri, headers: headers).timeout(const Duration(seconds: 15))
-          : await client.post(uri, headers: headers, body: json.encode(body)).timeout(const Duration(seconds: 15));
+          ? await client.get(uri, headers: headers).timeout(const Duration(milliseconds: 3500))
+          : await client.post(uri, headers: headers, body: json.encode(body)).timeout(const Duration(milliseconds: 3500));
     } catch (e) {
       return {
         'status': false,

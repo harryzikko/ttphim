@@ -11,8 +11,9 @@ class AppConfig {
       'https://raw.githubusercontent.com/harryzikko/ttphim/main/mobile_app/config/endpoints.json';
 
   static const List<String> defaultMirrors = [
-    'http://192.168.100.77:3001',
+    'http://192.168.10.158:3001',
     'http://10.0.2.2:3001',
+    'http://127.0.0.1:3001',
     'https://cineviet.live',
   ];
 
@@ -47,25 +48,25 @@ class AppConfig {
     } catch (_) {}
   }
 
-  /// Automatically discovers which domain is currently alive and active
+  /// Automatically discovers which domain is currently alive and active in parallel
   static Future<String?> autoDiscoverActiveDomain() async {
     if (_hasDiscovered) return _activeUrl;
     _hasDiscovered = true;
 
-    final candidates = <String>[...defaultMirrors];
+    final candidates = <String>{...defaultMirrors};
 
-    // Fetch dynamic domain list from GitHub
+    // Fetch dynamic domain list from GitHub with a short timeout
     try {
-      final res = await http.get(Uri.parse(remoteConfigUrl)).timeout(const Duration(seconds: 4));
+      final res = await http.get(Uri.parse(remoteConfigUrl)).timeout(const Duration(seconds: 2));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
         if (data is Map<String, dynamic>) {
           if (data['active'] is String && (data['active'] as String).isNotEmpty) {
-            candidates.insert(0, (data['active'] as String).trim());
+            candidates.add((data['active'] as String).trim());
           }
           if (data['mirrors'] is List) {
             for (final m in data['mirrors']) {
-              if (m is String && m.isNotEmpty && !candidates.contains(m)) {
+              if (m is String && m.isNotEmpty) {
                 candidates.add(m.trim());
               }
             }
@@ -74,10 +75,18 @@ class AppConfig {
       }
     } catch (_) {}
 
-    // Test candidates sequentially for health
-    for (final candidate in candidates) {
+    // Test candidates in PARALLEL for near-instant health discovery
+    final pingFutures = candidates.map((candidate) async {
       final clean = candidate.trim().replaceAll(RegExp(r'/+$'), '');
       if (await _pingDomain(clean)) {
+        return clean;
+      }
+      return null;
+    }).toList();
+
+    final results = await Future.wait(pingFutures);
+    for (final clean in results) {
+      if (clean != null && clean.isNotEmpty) {
         _activeUrl = clean;
         try {
           final prefs = await SharedPreferences.getInstance();
@@ -91,8 +100,8 @@ class AppConfig {
 
   static Future<bool> _pingDomain(String domain) async {
     try {
-      final uri = Uri.parse('$domain/api/home');
-      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      final uri = Uri.parse('$domain/api/ready');
+      final res = await http.get(uri).timeout(const Duration(milliseconds: 2000));
       return res.statusCode == 200;
     } catch (_) {
       return false;

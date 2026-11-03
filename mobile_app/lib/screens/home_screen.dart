@@ -71,7 +71,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadAllContent() async {
     _loadContinueWatching();
-    setState(() => _isLoading = true);
+
+    // Fast initial render: show instant default/warm content so user never stares at an empty spinner
+    if (_featuredMovies.isEmpty) {
+      _featuredMovies = ApiService.defaultFeaturedMovies;
+      _rankingMovies = ApiService.defaultTopRankings;
+      _isLoading = false;
+      if (mounted) setState(() {});
+    }
 
     try {
       final results = await Future.wait([
@@ -87,14 +94,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() {
-          _featuredMovies = results[0];
-          _rankingMovies = results[1];
-          _cinemaMovies = results[2];
-          _newMovies = results[3];
-          _seriesMovies = results[4];
-          _tvShowsMovies = results[5];
-          _singleMovies = results[6];
-          _animeMovies = results[7];
+          if (results[0].isNotEmpty) _featuredMovies = results[0];
+          if (results[1].isNotEmpty) _rankingMovies = results[1];
+          if (results[2].isNotEmpty) _cinemaMovies = results[2];
+          if (results[3].isNotEmpty) _newMovies = results[3];
+          if (results[4].isNotEmpty) _seriesMovies = results[4];
+          if (results[5].isNotEmpty) _tvShowsMovies = results[5];
+          if (results[6].isNotEmpty) _singleMovies = results[6];
+          if (results[7].isNotEmpty) _animeMovies = results[7];
           _isLoading = false;
         });
       }
