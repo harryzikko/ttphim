@@ -1,11 +1,11 @@
 {
-  "version": 2,
+  "version": 3,
   "comment": "Dynamic Backend Discovery for CineViet App. Automatically discovered on startup.",
-  "active": "http://192.168.10.158:3001",
+  "active": "https://cineviet.live",
   "mirrors": [
+    "https://cineviet.live",
     "http://192.168.10.158:3001",
     "http://10.0.2.2:3001",
-    "http://127.0.0.1:3001",
-    "https://cineviet.live"
+    "http://127.0.0.1:3001"
   ]
 }

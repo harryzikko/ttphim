@@ -11,10 +11,10 @@ class AppConfig {
       'https://raw.githubusercontent.com/harryzikko/ttphim/main/mobile_app/config/endpoints.json';
 
   static const List<String> defaultMirrors = [
+    'https://cineviet.live',
     'http://192.168.10.158:3001',
     'http://10.0.2.2:3001',
     'http://127.0.0.1:3001',
-    'https://cineviet.live',
   ];
 
   static void setCustomUrl(String? url) {
@@ -53,7 +53,7 @@ class AppConfig {
     if (_hasDiscovered) return _activeUrl;
     _hasDiscovered = true;
 
-    final candidates = <String>{...defaultMirrors};
+    final candidates = <String>{};
 
     // Fetch dynamic domain list from GitHub with a short timeout
     try {
@@ -62,12 +62,12 @@ class AppConfig {
         final data = json.decode(utf8.decode(res.bodyBytes));
         if (data is Map<String, dynamic>) {
           if (data['active'] is String && (data['active'] as String).isNotEmpty) {
-            candidates.add((data['active'] as String).trim());
+            candidates.add((data['active'] as String).trim().replaceAll(RegExp(r'/+$'), ''));
           }
           if (data['mirrors'] is List) {
             for (final m in data['mirrors']) {
               if (m is String && m.isNotEmpty) {
-                candidates.add(m.trim());
+                candidates.add(m.trim().replaceAll(RegExp(r'/+$'), ''));
               }
             }
           }
@@ -75,9 +75,14 @@ class AppConfig {
       }
     } catch (_) {}
 
+    // Add default mirrors in priority order
+    for (final mirror in defaultMirrors) {
+      candidates.add(mirror.trim().replaceAll(RegExp(r'/+$'), ''));
+    }
+
     // Test candidates in PARALLEL for near-instant health discovery
-    final pingFutures = candidates.map((candidate) async {
-      final clean = candidate.trim().replaceAll(RegExp(r'/+$'), '');
+    final candidateList = candidates.toList();
+    final pingFutures = candidateList.map((clean) async {
       if (await _pingDomain(clean)) {
         return clean;
       }
