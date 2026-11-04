@@ -3,10 +3,15 @@
   'use strict';
   const applyClosedState = () => {
     try {
-      if (sessionStorage.getItem('hide_footer_ad') === '1' || sessionStorage.getItem('hide_partner_dock_v2') === '1') {
-        const f = document.querySelector('.cv-partner-dock, .cv-slot-footer, .ad-footer');
+      if (sessionStorage.getItem('hide_footer_ad') === '1') {
+        const f = document.querySelector('.cv-partner-dock, .ad-footer');
         if (f) {
-          f.style.setProperty('display', 'none', 'important');
+          f.classList.add('is-collapsed');
+          f.style.setProperty('width', 'auto', 'important');
+          f.querySelector('.cv-dock-reopen, .ad-footer-reopen')?.style.setProperty('display', 'inline-flex', 'important');
+          f.querySelector('.cv-partner-card, .ad-banner')?.style.setProperty('display', 'none', 'important');
+          f.querySelector('.cv-dock-badge, .ad-label')?.style.setProperty('display', 'none', 'important');
+          f.querySelector('.cv-dock-close, .ad-footer-close')?.style.setProperty('display', 'none', 'important');
         }
       }
     } catch (_) {}
