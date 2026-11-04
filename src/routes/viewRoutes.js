@@ -230,6 +230,10 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
             <svg id="icon-play-bar" width="20" height="20" viewBox="0 0 24 24" fill="#ffffff"><polygon points="6,4 20,12 6,20"/></svg>
             <svg id="icon-pause-bar" width="20" height="20" viewBox="0 0 24 24" fill="#ffffff" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
           </button>
+          <button id="btn-vol" class="bar-icon-btn" title="Âm lượng">
+            <svg id="icon-vol-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            <svg id="icon-vol-mute" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          </button>
           <span id="time-display" class="time-text">00:00 / 00:00</span>
         </div>
         <div class="bar-group">
@@ -241,6 +245,9 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
           </button>
           <button id="btn-settings" class="bar-icon-btn" title="Cài đặt tốc độ">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <button id="btn-pip" class="bar-icon-btn" title="Hình trong hình (PIP)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="10" width="8" height="8" rx="1"/></svg>
           </button>
           <button id="btn-fs" class="bar-icon-btn" title="Toàn màn hình">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
@@ -299,6 +306,10 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
     const btnSettings = document.getElementById('btn-settings');
     const settingsMenu = document.getElementById('settings-menu');
     const speedMenuList = document.getElementById('speed-menu-list');
+    const btnVol = document.getElementById('btn-vol');
+    const iconVolOn = document.getElementById('icon-vol-on');
+    const iconVolMute = document.getElementById('icon-vol-mute');
+    const btnPip = document.getElementById('btn-pip');
     const btnFs = document.getElementById('btn-fs');
 
     const streamUrl = '/api/stream/vicdn/' + encodeURIComponent('${videoId}') + '/master.m3u8';
@@ -426,6 +437,26 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
       if (willShow) settingsMenu.classList.add('show');
     };
 
+    // Volume & Mute
+    btnVol.onclick = (e) => {
+      e.stopPropagation();
+      video.muted = !video.muted;
+      iconVolOn.style.display = video.muted ? 'none' : 'block';
+      iconVolMute.style.display = video.muted ? 'block' : 'none';
+    };
+
+    // Picture in Picture
+    btnPip.onclick = async (e) => {
+      e.stopPropagation();
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else if (video.requestPictureInPicture) {
+          await video.requestPictureInPicture();
+        }
+      } catch (_) {}
+    };
+
     // Fullscreen
     btnFs.onclick = (e) => {
       e.stopPropagation();
@@ -442,14 +473,14 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
     // Build Settings Menu (Playback speed)
     const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
     function renderSpeedMenu() {
-      speedMenuList.innerHTML = speeds.map(s => `
-        <div class="menu-item ${s === activeSpeed ? 'active' : ''}" data-speed="${s}">
-          <span class="m-dot"></span>
-          <span>${s === 1 ? '1x (Chuẩn)' : s + 'x'}</span>
-        </div>
-      `).join('');
-      speedMenuList.querySelectorAll('.menu-item').forEach(el => {
-        el.onclick = () => {
+      speedMenuList.innerHTML = speeds.map(function(s) {
+        return '<div class="menu-item ' + (s === activeSpeed ? 'active' : '') + '" data-speed="' + s + '">' +
+          '<span class="m-dot"></span>' +
+          '<span>' + (s === 1 ? '1x (Chuẩn)' : s + 'x') + '</span>' +
+        '</div>';
+      }).join('');
+      speedMenuList.querySelectorAll('.menu-item').forEach(function(el) {
+        el.onclick = function() {
           activeSpeed = Number(el.dataset.speed);
           video.playbackRate = activeSpeed;
           renderSpeedMenu();
@@ -467,14 +498,14 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
         return;
       }
       btnAudio.style.display = 'flex';
-      audioMenuList.innerHTML = tracks.map((t, idx) => `
-        <div class="menu-item ${idx === activeAudioIdx ? 'active' : ''}" data-idx="${idx}">
-          <span class="m-dot"></span>
-          <span>${t.name || ('Audio ' + (idx + 1))}</span>
-        </div>
-      `).join('');
-      audioMenuList.querySelectorAll('.menu-item').forEach(el => {
-        el.onclick = () => {
+      audioMenuList.innerHTML = tracks.map(function(t, idx) {
+        return '<div class="menu-item ' + (idx === activeAudioIdx ? 'active' : '') + '" data-idx="' + idx + '">' +
+          '<span class="m-dot"></span>' +
+          '<span>' + (t.name || ('Audio ' + (idx + 1))) + '</span>' +
+        '</div>';
+      }).join('');
+      audioMenuList.querySelectorAll('.menu-item').forEach(function(el) {
+        el.onclick = function() {
           activeAudioIdx = Number(el.dataset.idx);
           if (hls) hls.audioTrack = activeAudioIdx;
           else if (video.audioTracks) {
@@ -491,15 +522,17 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
 
     // Render Subtitles Menu
     function renderSubMenu(tracks) {
-      const all = [{ name: '⭕ Tắt Phụ Đề', idx: -1 }].concat(tracks.map((t, i) => ({ name: '💬 ' + (t.name || t.lang || ('Phụ đề ' + (i+1))), idx: i })));
-      subMenuList.innerHTML = all.map(t => `
-        <div class="menu-item ${t.idx === activeSubIdx ? 'active' : ''}" data-idx="${t.idx}">
-          <span class="m-dot"></span>
-          <span>${t.name}</span>
-        </div>
-      `).join('');
-      subMenuList.querySelectorAll('.menu-item').forEach(el => {
-        el.onclick = () => {
+      const all = [{ name: '⭕ Tắt Phụ Đề', idx: -1 }].concat(tracks.map(function(t, i) {
+        return { name: '💬 ' + (t.name || t.lang || ('Phụ đề ' + (i+1))), idx: i };
+      }));
+      subMenuList.innerHTML = all.map(function(t) {
+        return '<div class="menu-item ' + (t.idx === activeSubIdx ? 'active' : '') + '" data-idx="' + t.idx + '">' +
+          '<span class="m-dot"></span>' +
+          '<span>' + t.name + '</span>' +
+        '</div>';
+      }).join('');
+      subMenuList.querySelectorAll('.menu-item').forEach(function(el) {
+        el.onclick = function() {
           activeSubIdx = Number(el.dataset.idx);
           if (hls) hls.subtitleTrack = activeSubIdx;
           else if (video.textTracks) {
@@ -530,8 +563,13 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
       hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
         if (data.subtitleTracks) renderSubMenu(data.subtitleTracks);
       });
-      hls.on(Hls.Events.SUBTITLE_TRACK_LOADED, (_, data) => {
-        // Track cue changes
+      hls.on(Hls.Events.CUE_ENTER, (_, data) => {
+        if (activeSubIdx !== -1 && data && data.text) {
+          subOverlay.innerHTML = data.text.replace(/\n/g, '<br>');
+        }
+      });
+      hls.on(Hls.Events.CUE_EXIT, () => {
+        subOverlay.textContent = '';
       });
       hls.on(Hls.Events.ERROR, (_, err) => {
         if (err.fatal) {
