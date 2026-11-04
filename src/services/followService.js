@@ -30,7 +30,7 @@ function snapshot(detail) {
     if (!Array.isArray(server?.server_data)) throw fault('Incomplete episode details', 502);
     for (const ep of server.server_data) {
       if (++count > MAX_EPISODES * 10) throw fault('Episode details too large', 502);
-      if (!ep || ![ep.link_m3u8, ep.link_embed].some(value => { try { return /^https?:$/.test(new URL(value).protocol); } catch (_) { return false; } })) continue;
+      if (!ep || ![ep.link_m3u8, ep.link_embed].some(value => { if (!value || typeof value !== 'string' || !value.trim()) return false; try { return /^https?:$/.test(new URL(value).protocol); } catch (_) { return false; } })) continue;
       const key = episodeKey(ep);
       if (!key) continue;
       if (!episodes.has(key)) episodes.set(key, { key, slug: text(ep.slug).slice(0, 200), name: text(ep.name).slice(0, 200) || text(ep.slug).slice(0, 200) });

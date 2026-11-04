@@ -2,7 +2,16 @@
 (() => {
   'use strict';
   const fold = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase();
-  const validUrl = value => { try { return /^https?:$/.test(new URL(value).protocol); } catch (_) { return false; } };
+  const validUrl = value => {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    try {
+      const loc = (typeof window !== 'undefined' && window.location?.href) ? window.location.href : '';
+      const base = (/^https?:/.test(loc)) ? loc : 'http://localhost';
+      return /^https?:$/.test(new URL(value, base).protocol);
+    } catch (_) {
+      return false;
+    }
+  };
   function playable(server) {
     const seen = new Set();
     return (server?.server_data || []).filter(ep => {

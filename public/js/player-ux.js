@@ -10,7 +10,8 @@
   }
   function selectInitial(servers, requestedEpisode, requestedServer, history) {
     const explicitServer = requestedServer !== null && requestedServer !== undefined && /^\d+$/.test(String(requestedServer));
-    let server = explicitServer ? Number(requestedServer) : Math.max(0, servers.findIndex(s => s.server_name === history?.server_name));
+    let songNguIdx = (!explicitServer && requestedServer && /^song[-_]?ngu$|^multi$/i.test(String(requestedServer))) ? servers.findIndex(s => s.is_song_ngu || s.server_type === 'song_ngu' || /song ngu/i.test(s.server_name)) : -1;
+    let server = explicitServer ? Number(requestedServer) : (songNguIdx >= 0 ? songNguIdx : Math.max(0, servers.findIndex(s => s.server_name === history?.server_name)));
     if (!servers[server]) server = 0;
     const target = requestedEpisode || history?.episode_slug;
     let index = (servers[server]?.server_data || []).findIndex(ep => episodeMatches(ep.slug, target) || episodeMatches(ep.name, target));

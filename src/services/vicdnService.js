@@ -11,7 +11,12 @@ let movieMatching; try { movieMatching = typeof require === 'function' ? require
 const isCompatibleMovie = (a, b) => movieMatching?.isCompatibleMovie ? movieMatching.isCompatibleMovie(a, b) : fallbackIsCompatible(a, b);
 // KKPhim - ViCDN Service (Multi-source Bilingual Dual-Audio Provider)
 const path = require('path');
-const crypto = require('crypto');
+let crypto;
+try {
+  if (typeof module !== 'undefined' && module.constructor?._load) {
+    crypto = module.constructor._load('crypto');
+  }
+} catch (_) {}
 
 class MemoryCache {
   constructor() {
@@ -425,12 +430,13 @@ class ViCDNService {
         const num = parts[0]?.trim() || '1';
         const url = parts[1]?.trim() || parts[0]?.trim();
         const videoId = url.replace(/^https?:\/\/[^/]+\//, '');
+        const isVicdn = /(?:vicdn\.cc|pages\.dev|^tv-|^movie-)/.test(url);
         return {
           name: num,
           slug: `tap-${num}`,
           filename: `Tập ${num}`,
-          link_embed: `/embed/vicdn/${videoId}`,
-          link_m3u8: `/api/stream/vicdn/${videoId}/master.m3u8`
+          link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
+          link_m3u8: isVicdn ? `/api/stream/vicdn/${videoId}/master.m3u8` : ''
         };
       });
 
@@ -493,12 +499,13 @@ class ViCDNService {
       const num = parts[0]?.trim() || '1';
       const url = parts[1]?.trim() || parts[0]?.trim();
       const videoId = url.replace(/^https?:\/\/[^/]+\//, '');
+      const isVicdn = /(?:vicdn\.cc|pages\.dev|^tv-|^movie-)/.test(url);
       return {
         name: num,
         slug: `tap-${num}`,
         filename: `Tập ${num}`,
-        link_embed: `/embed/vicdn/${videoId}`,
-        link_m3u8: `/api/stream/vicdn/${videoId}/master.m3u8`
+        link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
+        link_m3u8: isVicdn ? `/api/stream/vicdn/${videoId}/master.m3u8` : ''
       };
     });
 

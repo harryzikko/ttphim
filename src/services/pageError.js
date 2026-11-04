@@ -260,9 +260,19 @@ function episodeExists(data, episode, server) {
   };
   const episodeMatches = (a, b) => Boolean(a && b && key(a) === key(b));
   const all = data.episodes || [];
-  if (server != null && (!/^\d+$/.test(String(server)) || !all[Number(server)])) return false;
+  let srvIdx = null;
+  if (server != null && server !== '') {
+    if (/^\d+$/.test(String(server))) {
+      srvIdx = Number(server);
+    } else if (/^song[-_]?ngu$/i.test(String(server))) {
+      srvIdx = all.findIndex(s => s.is_song_ngu || s.server_type === 'song_ngu' || /song ngu/i.test(s.server_name));
+    } else {
+      return false;
+    }
+    if (srvIdx < 0 || !all[srvIdx]) return false;
+  }
   if (!episode) return true;
-  const selected = server != null ? [all[Number(server)]] : all;
+  const selected = srvIdx != null ? [all[srvIdx]] : all;
   return selected.some(source => (source.server_data || []).some(item => episodeMatches(item.slug, episode) || episodeMatches(item.name, episode)));
 }
 

@@ -2,7 +2,12 @@
   'use strict';
   function mediaUrl(value) {
     if (typeof value !== 'string' || !value.trim()) return '';
-    try { const url = new URL(value); return /^https?:$/.test(url.protocol) && !url.username && !url.password ? url.href : ''; }
+    try {
+      const loc = (typeof window !== 'undefined' && window.location?.href) ? window.location.href : '';
+      const base = (/^https?:/.test(loc)) ? loc : 'http://localhost';
+      const url = new URL(value, base);
+      return /^https?:$/.test(url.protocol) && !url.username && !url.password ? (value.startsWith('/') ? value : url.href) : '';
+    }
     catch (_) { return ''; }
   }
   const sourceKey = (engine, url) => `${engine}:${mediaUrl(url)}`;
