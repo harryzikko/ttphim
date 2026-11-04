@@ -143,6 +143,7 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
   <title>CineViet Player - Song Ngữ</title>
   <script src="/vendor/hls-1.7.3.min.js"></script>
   <style>
@@ -153,9 +154,9 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
     .loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); color: #fff; z-index: 10; font-size: 13px; gap: 10px; }
     .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #e50914; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .controls-overlay { position: absolute; top: 10px; right: 10px; z-index: 20; display: flex; gap: 8px; }
-    select.sel { background: rgba(20,20,25,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 16px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer; backdrop-filter: blur(8px); outline: none; }
-    select.sel:hover { background: rgba(229,9,20,0.9); border-color: rgba(229,9,20,1); }
+    .controls-overlay { position: absolute; top: 10px; right: 10px; z-index: 20; display: flex; gap: 8px; pointer-events: auto; }
+    select.sel { background: rgba(18,18,24,0.88); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 18px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; backdrop-filter: blur(10px); outline: none; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    select.sel:hover, select.sel:focus { background: rgba(229,9,20,0.95); border-color: rgba(229,9,20,1); color: #fff; }
   </style>
 </head>
 <body>
@@ -207,6 +208,26 @@ router.get('/embed/vicdn/:videoId', (req, res) => {
       video.addEventListener('loadedmetadata', () => {
         loader.style.display = 'none';
         video.play().catch(() => {});
+        if (video.audioTracks && video.audioTracks.length > 1) {
+          audioSel.innerHTML = Array.from(video.audioTracks).map((t, idx) => '<option value="' + idx + '"' + (t.enabled ? ' selected' : '') + '>🎙 ' + (t.label || t.language || ('Audio ' + (idx+1))) + '</option>').join('');
+          audioSel.style.display = 'block';
+          audioSel.onchange = () => {
+            const chosen = Number(audioSel.value);
+            for (let i = 0; i < video.audioTracks.length; i++) {
+              video.audioTracks[i].enabled = (i === chosen);
+            }
+          };
+        }
+        if (video.textTracks && video.textTracks.length > 0) {
+          subSel.innerHTML = '<option value="-1">Phụ đề: Tắt</option>' + Array.from(video.textTracks).map((t, idx) => '<option value="' + idx + '"' + (t.mode === 'showing' ? ' selected' : '') + '>💬 ' + (t.label || t.language || ('Sub ' + (idx+1))) + '</option>').join('');
+          subSel.style.display = 'block';
+          subSel.onchange = () => {
+            const chosen = Number(subSel.value);
+            for (let i = 0; i < video.textTracks.length; i++) {
+              video.textTracks[i].mode = (i === chosen) ? 'showing' : 'disabled';
+            }
+          };
+        }
       });
       video.addEventListener('error', () => {
         loader.innerHTML = '<span style="color:#ff5555">Lỗi phát video trên trình duyệt này.</span>';

@@ -438,6 +438,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function playStream(m3u8Url, embedUrl, ep, initialTime = 0) {
     loaderEl.classList.add('hidden');
     iframeEl.classList.add('hidden');
+    if (embedFsBtn) embedFsBtn.classList.add('hidden');
+    if (playerWrapper.classList.contains('m-web-fullscreen')) toggleWebFullscreen(false);
     overlayEl.hidden = false;
     videoEl.classList.remove('hidden');
     videoEl.playbackRate = speeds[currentSpeedIdx];
@@ -460,6 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     overlayEl.hidden = true;
     iframeEl.classList.remove('hidden');
     loaderEl.classList.add('hidden');
+    if (embedFsBtn) embedFsBtn.classList.remove('hidden');
     embedSession?.destroy();
     embedSession = PlayerUX.createEmbedSession({ iframe: iframeEl, url: embedUrl, onState: updateStatus,
       onFailure: message => offerRecovery(currentEpisodes[currentEpIndex], PlayerUX.selectInitial(allServers, epSlug, currentServerIndex, progressStore?.get()).resume, 'embed', message) });
