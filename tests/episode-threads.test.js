@@ -88,7 +88,7 @@ test('all four movie templates load grouped sources before their controllers and
   for (const file of ['public/chi-tiet.html', 'public/xem-phim.html', 'public/mobile/chi-tiet.html', 'public/mobile/xem-phim.html']) {
     const html = read(file);
     assert.match(html, /episode-sources\.css\?v=1\.2\.1/);
-    assert.match(html, /episode-sources\.js\?v=1\.2\.2/);
+    assert.match(html, /episode-sources\.js\?v=1\.3\.0/);
     assert.ok(html.indexOf('/js/episode-sources.js') < html.search(/src="\/(?:mobile\/)?js\/(?:detail|watch|chi-tiet|xem-phim)\.js/));
     if (!file.endsWith('mobile/chi-tiet.html')) assert.match(html, /comment-threads\.js\?v=1\.1\.0/);
   }

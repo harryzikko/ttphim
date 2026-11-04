@@ -92,6 +92,7 @@ router.get('/mobile/phim/:slug', async (req, res) => {
     if (!data?.movie) return sendPageError(res, { status: 404 });
     res.locals.seoMovie = data.movie;
     const [html, settings] = await Promise.all([fs.readFile(mobileFile('chi-tiet.html'), 'utf8'), dbService.getSettings()]);
+    res.set('Cache-Control', 'private, no-cache');
     res.send(bannerService.decorate(html, settings, true));
   } catch (error) { sendPageError(res, error); }
 });
@@ -103,6 +104,7 @@ async function mobileWatch(req, res) {
       res.locals.seoMovie = data.movie;
     }
     const [html, settings] = await Promise.all([fs.readFile(mobileFile('xem-phim.html'), 'utf8'), dbService.getSettings()]);
+    res.set('Cache-Control', 'private, no-cache');
     res.set('Cache-Control', 'private, no-cache');
     res.send(bannerService.decorate(html, settings, true));
   } catch (error) { sendPageError(res, error); }
@@ -277,6 +279,7 @@ router.get('/phim/:slug', async (req, res) => {
 
     const comments = await dbService.getComments(req.params.slug).catch(() => []);
     const rendered = templateService.renderDetail(rawHtml, movieData, comments);
+    res.set('Cache-Control', 'private, no-cache');
     res.send(bannerService.decorate(rendered, await dbService.getSettings()));
   } catch (err) {
     console.error('Error rendering detail view:', err);
