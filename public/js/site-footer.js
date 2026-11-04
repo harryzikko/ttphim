@@ -3,7 +3,7 @@
   'use strict';
   const applyClosedState = () => {
     try {
-      if (sessionStorage.getItem('hide_footer_ad') === '1') {
+      sessionStorage.removeItem('hide_footer_ad'); if (sessionStorage.getItem('hide_partner_dock_v2') === '1') {
         const f = document.querySelector('.cv-partner-dock, .ad-footer');
         if (f) {
           f.classList.add('is-collapsed');

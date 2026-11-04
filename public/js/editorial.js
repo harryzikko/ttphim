@@ -123,10 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Anti-Adblock: Protect and self-heal partner banners from aggressive ad blocker extensions
   const protectBanners = () => {
     const dock = document.querySelector('.cv-partner-dock, .ad-footer');
-    if (!dock || sessionStorage.getItem('hide_footer_ad') === '1') return;
+    if (!dock || sessionStorage.getItem('hide_partner_dock_v2') === '1') return;
     const cs = window.getComputedStyle(dock);
     if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') {
-      dock.removeAttribute('data-ad-slot');
       dock.classList.remove('ad-placement', 'ad-footer', 'ad-banner');
       dock.style.setProperty('display', 'block', 'important');
       dock.style.setProperty('visibility', 'visible', 'important');

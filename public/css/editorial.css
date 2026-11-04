@@ -206,7 +206,10 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
 }
 .ad-footer.is-collapsed .ad-banner,
 .ad-footer.is-collapsed .ad-label,
-.ad-footer.is-collapsed .ad-footer-close {
+.ad-footer.is-collapsed .ad-footer-close,
+.cv-partner-dock.is-collapsed .cv-partner-card,
+.cv-partner-dock.is-collapsed .cv-dock-badge,
+.cv-partner-dock.is-collapsed .cv-dock-close {
   display: none !important;
 }
 .ad-footer.is-collapsed .ad-footer-reopen, .cv-partner-dock.is-collapsed .cv-dock-reopen {
