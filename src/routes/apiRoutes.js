@@ -50,8 +50,7 @@ router.get('/health', (req, res) => {
 router.get('/stream/vicdn/:videoId/master.m3u8', async (req, res) => {
   try {
     const videoId = req.params.videoId;
-    const origin = `${req.protocol}://${req.get('host')}`;
-    const playlist = await vicdnService.getMasterPlaylist(videoId, origin);
+    const playlist = await vicdnService.getMasterPlaylist(videoId, '');
     if (!playlist) return res.status(404).type('text/plain').send('ViCDN stream not found');
     res.set('Content-Type', 'application/vnd.apple.mpegurl; charset=utf-8');
     res.set('Access-Control-Allow-Origin', '*');
