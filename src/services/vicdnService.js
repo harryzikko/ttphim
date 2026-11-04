@@ -11,6 +11,7 @@ let movieMatching; try { movieMatching = typeof require === 'function' ? require
 const isCompatibleMovie = (a, b) => movieMatching?.isCompatibleMovie ? movieMatching.isCompatibleMovie(a, b) : fallbackIsCompatible(a, b);
 // KKPhim - ViCDN Service (Multi-source Bilingual Dual-Audio Provider)
 const path = require('path');
+const crypto = require('crypto');
 
 class MemoryCache {
   constructor() {
@@ -423,12 +424,13 @@ class ViCDNService {
         const parts = epStr.split('|');
         const num = parts[0]?.trim() || '1';
         const url = parts[1]?.trim() || parts[0]?.trim();
+        const videoId = url.replace(/^https?:\/\/[^/]+\//, '');
         return {
           name: num,
           slug: `tap-${num}`,
           filename: `Tập ${num}`,
-          link_embed: url,
-          link_m3u8: ''
+          link_embed: `/embed/vicdn/${videoId}`,
+          link_m3u8: `/api/stream/vicdn/${videoId}/master.m3u8`
         };
       });
 
@@ -490,12 +492,13 @@ class ViCDNService {
       const parts = epStr.split('|');
       const num = parts[0]?.trim() || '1';
       const url = parts[1]?.trim() || parts[0]?.trim();
+      const videoId = url.replace(/^https?:\/\/[^/]+\//, '');
       return {
         name: num,
         slug: `tap-${num}`,
         filename: `Tập ${num}`,
-        link_embed: url,
-        link_m3u8: ''
+        link_embed: `/embed/vicdn/${videoId}`,
+        link_m3u8: `/api/stream/vicdn/${videoId}/master.m3u8`
       };
     });
 
@@ -624,6 +627,168 @@ class ViCDNService {
       }
     }
     return unlimited ? matches : matches.slice(0, 15);
+  }
+
+  decryptAesGcm(encText, secret = 'vicdn_cc_key') {
+    if (!encText || typeof encText !== 'string') return '';
+    const ivM = encText.match(/#ENC-AESGCM;iv=([0-9a-fA-F]+)/);
+    if (!ivM) return encText;
+    try {
+      const iv = Buffer.from(ivM[1], 'hex');
+      const lines = encText.trim().split('\n');
+      const b64 = lines[lines.length - 1];
+      const bin = Buffer.from(b64, 'base64');
+      const encD = bin.subarray(0, bin.length - 16);
+      const tag = bin.subarray(bin.length - 16);
+      const hash = crypto.createHash('sha256').update(secret).digest();
+      const decipher = crypto.createDecipheriv('aes-256-gcm', hash, iv);
+      decipher.setAuthTag(tag);
+      const dec = Buffer.concat([decipher.update(encD), decipher.final()]);
+      return dec.toString('utf8');
+    } catch (err) {
+      console.warn('[ViCDN] Decrypt error:', err.message);
+      return '';
+    }
+  }
+
+  async getStreamMetadata(videoId) {
+    if (!videoId) return null;
+    const cacheKey = `vicdn_stream_meta_${videoId}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const res = await fetch(`https://vicdn.cc/${videoId}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!res.ok) return null;
+      const html = await res.text();
+      let js = html;
+      const packerMatch = html.match(/eval\(function\(p,a,c,k,e,d\)[\s\S]+?\.split\('\|'\)\)\)/g);
+      if (packerMatch) {
+        for (const match of packerMatch) {
+          if (match.includes('AUDIO_SOURCES') || match.includes('VIDEO_ID')) {
+            try {
+              const fn = new Function('return ' + match.replace(/^eval/, ''));
+              js = fn();
+              break;
+            } catch (_) {}
+          }
+        }
+      }
+
+      const audioSources = {};
+      const audioMatches = js.matchAll(/AUDIO_SOURCES\.([a-zA-Z0-9_]+)\s*=\s*['"]([^'"]+)['"]/g);
+      for (const m of audioMatches) {
+        audioSources[m[1]] = m[2];
+      }
+
+      const vttVi = js.match(/VTT_VI_URL\s*=\s*['"]([^'"]+)['"]/)?.[1] || '';
+      const vttEn = js.match(/VTT_EN_URL\s*=\s*['"]([^'"]+)['"]/)?.[1] || '';
+
+      const data = { audioSources, vttVi, vttEn };
+      if (Object.keys(audioSources).length > 0) {
+        this.cache.set(cacheKey, data, 2 * 60 * 60 * 1000); // 2 hours
+      }
+      return data;
+    } catch (err) {
+      console.warn(`[ViCDN] getStreamMetadata error for ${videoId}:`, err.message);
+      return null;
+    }
+  }
+
+  async getMasterPlaylist(videoId, baseOrigin = '') {
+    const meta = await this.getStreamMetadata(videoId);
+    if (!meta || !meta.audioSources || !meta.audioSources.original) return null;
+
+    const base = baseOrigin || '';
+    let m3u8 = '#EXTM3U\n#EXT-X-VERSION:7\n\n';
+
+    m3u8 += `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Audio Gốc",DEFAULT=YES,AUTOSELECT=YES,URI="${base}/api/stream/vicdn/${videoId}/original.m3u8"\n`;
+    if (meta.audioSources.female) {
+      m3u8 += `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Thuyết Minh Nữ",DEFAULT=NO,AUTOSELECT=NO,URI="${base}/api/stream/vicdn/${videoId}/female.m3u8"\n`;
+    }
+    if (meta.audioSources.male) {
+      m3u8 += `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Thuyết Minh Nam",DEFAULT=NO,AUTOSELECT=NO,URI="${base}/api/stream/vicdn/${videoId}/male.m3u8"\n`;
+    }
+
+    if (meta.vttVi) {
+      m3u8 += `#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Tiếng Việt",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE="vi",URI="${base}/api/stream/vicdn/${videoId}/vi.vtt"\n`;
+    }
+    if (meta.vttEn) {
+      m3u8 += `#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Tiếng Anh",DEFAULT=NO,AUTOSELECT=NO,FORCED=NO,LANGUAGE="en",URI="${base}/api/stream/vicdn/${videoId}/en.vtt"\n`;
+    }
+
+    m3u8 += `\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080,AUDIO="audio"${meta.vttVi || meta.vttEn ? ',SUBTITLES="subs"' : ''}\n`;
+    m3u8 += `${base}/api/stream/vicdn/${videoId}/original.m3u8\n`;
+
+    return m3u8;
+  }
+
+  async getTrackPlaylist(videoId, track = 'original') {
+    const cacheKey = `vicdn_playlist_${videoId}_${track}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) return cached;
+
+    const meta = await this.getStreamMetadata(videoId);
+    if (!meta || !meta.audioSources) return null;
+    const url = meta.audioSources[track] || meta.audioSources.original;
+    if (!url) return null;
+
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Referer': `https://vicdn.cc/${videoId}`
+        },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!res.ok) return null;
+      const encText = await res.text();
+      let m3u8 = this.decryptAesGcm(encText);
+      if (!m3u8) return null;
+
+      // Rewrite blocked pages.dev domains to unblocked vicdn.cc CDN subdomains
+      m3u8 = m3u8.replace(/https:\/\/[^/]*?(x\d+)-vicdn-cc\.pages\.dev\//g, 'https://$1.vicdn.cc/');
+
+      this.cache.set(cacheKey, m3u8, 60 * 60 * 1000); // 1 hour cache
+      return m3u8;
+    } catch (err) {
+      console.warn(`[ViCDN] getTrackPlaylist error for ${videoId}/${track}:`, err.message);
+      return null;
+    }
+  }
+
+  async getSubtitle(videoId, lang = 'vi') {
+    const cacheKey = `vicdn_sub_${videoId}_${lang}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) return cached;
+
+    const meta = await this.getStreamMetadata(videoId);
+    if (!meta) return null;
+    const url = lang === 'en' ? meta.vttEn : meta.vttVi;
+    if (!url) return null;
+
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          'Referer': `https://vicdn.cc/${videoId}`
+        },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!res.ok) return null;
+      const encText = await res.text();
+      const vtt = this.decryptAesGcm(encText);
+      if (!vtt) return null;
+
+      this.cache.set(cacheKey, vtt, 6 * 60 * 60 * 1000); // 6 hours cache
+      return vtt;
+    } catch (err) {
+      console.warn(`[ViCDN] getSubtitle error for ${videoId}/${lang}:`, err.message);
+      return null;
+    }
   }
 }
 

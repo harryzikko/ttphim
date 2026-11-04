@@ -46,6 +46,68 @@ router.get('/health', (req, res) => {
   res.json({ status: true, message: 'KKPhim API is running', timestamp: new Date().toISOString() });
 });
 
+// ViCDN Direct Stream Endpoints (Bilingual HLS & Subtitles)
+router.get('/stream/vicdn/:videoId/master.m3u8', async (req, res) => {
+  try {
+    const videoId = req.params.videoId;
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const playlist = await vicdnService.getMasterPlaylist(videoId, origin);
+    if (!playlist) return res.status(404).type('text/plain').send('ViCDN stream not found');
+    res.set('Content-Type', 'application/vnd.apple.mpegurl; charset=utf-8');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(playlist);
+  } catch (err) {
+    res.status(500).type('text/plain').send('Stream error');
+  }
+});
+
+router.get('/stream/vicdn/:videoId/:track.m3u8', async (req, res) => {
+  try {
+    const { videoId, track } = req.params;
+    const playlist = await vicdnService.getTrackPlaylist(videoId, track);
+    if (!playlist) return res.status(404).type('text/plain').send('ViCDN track not found');
+    res.set('Content-Type', 'application/vnd.apple.mpegurl; charset=utf-8');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(playlist);
+  } catch (err) {
+    res.status(500).type('text/plain').send('Track error');
+  }
+});
+
+router.get('/stream/vicdn/:videoId/:lang.vtt', async (req, res) => {
+  try {
+    const { videoId, lang } = req.params;
+    const sub = await vicdnService.getSubtitle(videoId, lang);
+    if (!sub) return res.status(404).type('text/plain').send('ViCDN subtitle not found');
+    res.set('Content-Type', 'text/vtt; charset=utf-8');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(sub);
+  } catch (err) {
+    res.status(500).type('text/plain').send('Subtitle error');
+  }
+});
+
+router.get('/stream/vicdn/segment', async (req, res) => {
+  const target = req.query.url;
+  if (!target || (!target.includes('.vicdn.cc') && !target.includes('pages.dev'))) {
+    return res.status(400).send('Invalid url');
+  }
+  try {
+    const upstream = await fetch(target, { signal: AbortSignal.timeout(10000) });
+    if (!upstream.ok) return res.status(upstream.status).send('Upstream error');
+    res.set('Content-Type', 'video/mp4');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    const { Readable } = require('stream');
+    Readable.fromWeb(upstream.body).pipe(res);
+  } catch (err) {
+    res.status(502).send('Gateway timeout');
+  }
+});
+
 // Home Page Aggregated Feed
 router.get('/home', async (req, res) => {
   try {

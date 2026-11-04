@@ -132,6 +132,89 @@ router.get('/tv/xem-phim/:slug', (req, res) => res.sendFile(tvFile('xem-phim.htm
 router.get('/tv/tim-kiem', (req, res) => res.sendFile(tvFile('tim-kiem.html')));
 router.get(['/tv/dang-nhap', '/tv/qr-login'], (req, res) => res.sendFile(tvFile('dang-nhap.html')));
 
+router.get('/embed/vicdn/:videoId', (req, res) => {
+  const videoId = (req.params.videoId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.send(`<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>CineViet Player - Song Ngữ</title>
+  <script src="/vendor/hls-1.7.3.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    #player-wrap { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; }
+    video { width: 100%; height: 100%; object-fit: contain; }
+    .loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); color: #fff; z-index: 10; font-size: 13px; gap: 10px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #e50914; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .controls-overlay { position: absolute; top: 10px; right: 10px; z-index: 20; display: flex; gap: 8px; }
+    select.sel { background: rgba(20,20,25,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 16px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer; backdrop-filter: blur(8px); outline: none; }
+    select.sel:hover { background: rgba(229,9,20,0.9); border-color: rgba(229,9,20,1); }
+  </style>
+</head>
+<body>
+  <div id="player-wrap">
+    <div id="loader" class="loader"><div class="spinner"></div><span>Đang nạp luồng phát Song Ngữ HD...</span></div>
+    <video id="video" playsinline webkit-playsinline controls></video>
+    <div class="controls-overlay">
+      <select id="audio-sel" class="sel" title="Chọn giọng thuyết minh / audio gốc" style="display:none;"></select>
+      <select id="sub-sel" class="sel" title="Chọn phụ đề" style="display:none;"></select>
+    </div>
+  </div>
+  <script>
+    const video = document.getElementById('video');
+    const loader = document.getElementById('loader');
+    const audioSel = document.getElementById('audio-sel');
+    const subSel = document.getElementById('sub-sel');
+    const streamUrl = '/api/stream/vicdn/' + encodeURIComponent('${videoId}') + '/master.m3u8';
+
+    if (window.Hls && Hls.isSupported()) {
+      const hls = new Hls({ enableWorker: true, backBufferLength: 30, maxBufferLength: 30 });
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        loader.style.display = 'none';
+        video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_, data) => {
+        if (data.audioTracks && data.audioTracks.length > 1) {
+          audioSel.innerHTML = data.audioTracks.map((t, idx) => '<option value="' + idx + '">🎙 ' + (t.name || ('Audio ' + (idx+1))) + '</option>').join('');
+          audioSel.style.display = 'block';
+          audioSel.onchange = () => { hls.audioTrack = Number(audioSel.value); };
+        }
+      });
+      hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
+        if (data.subtitleTracks && data.subtitleTracks.length > 0) {
+          subSel.innerHTML = '<option value="-1">Phụ đề: Tắt</option>' + data.subtitleTracks.map((t, idx) => '<option value="' + idx + '">💬 ' + (t.name || t.lang) + '</option>').join('');
+          subSel.style.display = 'block';
+          subSel.value = '0';
+          subSel.onchange = () => { hls.subtitleTrack = Number(subSel.value); };
+        }
+      });
+      hls.on(Hls.Events.ERROR, (_, err) => {
+        if (err.fatal) {
+          loader.innerHTML = '<span style="color:#ff5555">Nguồn phát tạm thời gián đoạn. Vui lòng thử lại sau.</span>';
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
+      video.addEventListener('loadedmetadata', () => {
+        loader.style.display = 'none';
+        video.play().catch(() => {});
+      });
+      video.addEventListener('error', () => {
+        loader.innerHTML = '<span style="color:#ff5555">Lỗi phát video trên trình duyệt này.</span>';
+      });
+    }
+  </script>
+</body>
+</html>`);
+});
+
 // ==========================================
 // DESKTOP ROUTES
 // ==========================================
