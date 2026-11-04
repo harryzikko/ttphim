@@ -1,14 +1,14 @@
-let movieMatching;
-try {
-  movieMatching = require('./movieMatching');
-} catch (_) {
-  try {
-    movieMatching = require('./src/services/movieMatching');
-  } catch (_2) {
-    movieMatching = require('../src/services/movieMatching');
-  }
+let movieMatching; try { movieMatching = typeof require === 'function' ? require('./movieMatching') : null; } catch (_) {} if (!movieMatching) { try { movieMatching = typeof require === 'function' ? require('../src/services/movieMatching') : null; } catch (_) {} } const removeAccents = movieMatching?.removeAccents || (str => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^a-z0-9]/g, '')); const cleanTitle = movieMatching?.cleanTitle || (str => String(str || '')); function fallbackIsCompatible(a, b) {
+  if (!a || !b) return false;
+  const normA = (a.name || a.vname || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normB = (b.name || b.vname || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (normA && normB && normA === normB) return true;
+  const origA = (a.origin_name || a.original_name || a.ename || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const origB = (b.origin_name || b.original_name || b.ename || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (origA && origB && origA === origB) return true;
+  return false;
 }
-const { removeAccents, cleanTitle, isCompatibleMovie } = movieMatching;
+const isCompatibleMovie = (a, b) => movieMatching?.isCompatibleMovie ? movieMatching.isCompatibleMovie(a, b) : fallbackIsCompatible(a, b);
 // KKPhim - ViCDN Service (Multi-source Bilingual Dual-Audio Provider)
 const path = require('path');
 

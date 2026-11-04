@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const timeDurationEl = document.getElementById('m-time-duration');
   const speedBtn = document.getElementById('m-speed-btn');
   const fullscreenBtn = document.getElementById('m-fullscreen-btn');
+  const embedFsBtn = document.getElementById('m-embed-fs-btn');
+  const webFsExitBtn = document.getElementById('m-web-fs-exit-btn');
 
   const infoTitle = document.getElementById('m-info-title');
   const infoSub = document.getElementById('m-info-sub');
@@ -121,7 +123,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     iframeEl.src = 'about:blank';
     updateStatus('ready');
   }
-  window.addEventListener('pagehide', () => { saveProgress(true); cleanupPlayer(); clearInterval(historyTimer); clearTimeout(hideOverlayTimer); });
+  // Web Fullscreen (Pseudo-fullscreen) Controller
+  function toggleWebFullscreen(enable) {
+    if (!playerWrapper) return;
+    const isNow = playerWrapper.classList.contains('m-web-fullscreen');
+    const should = enable !== undefined ? Boolean(enable) : !isNow;
+    playerWrapper.classList.toggle('m-web-fullscreen', should);
+    document.body.classList.toggle('m-web-fs-active', should);
+    if (webFsExitBtn) {
+      webFsExitBtn.classList.toggle('hidden', !should);
+    }
+    if (embedFsBtn) {
+      const textSpan = embedFsBtn.querySelector('span:last-child');
+      const iconSpan = embedFsBtn.querySelector('.material-symbols-outlined');
+      if (textSpan) textSpan.textContent = should ? 'Thu nhỏ' : 'Phóng to (Giữ Song Ngữ)';
+      if (iconSpan) iconSpan.textContent = should ? 'fullscreen_exit' : 'aspect_ratio';
+    }
+    if (should) {
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      } catch (_) {}
+      notify('Toàn màn hình web (Vẫn giữ menu đổi giọng song ngữ)', 'info');
+    } else {
+      try {
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+      } catch (_) {}
+    }
+  }
+  window.addEventListener('pagehide', () => { toggleWebFullscreen(false); saveProgress(true); cleanupPlayer(); clearInterval(historyTimer); clearTimeout(hideOverlayTimer); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(true); });
 
   window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
@@ -614,15 +647,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  if (embedFsBtn) {
+    embedFsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleWebFullscreen();
+    });
+  }
+
+  if (webFsExitBtn) {
+    webFsExitBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleWebFullscreen(false);
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && playerWrapper?.classList.contains('m-web-fullscreen')) {
+      toggleWebFullscreen(false);
+    }
+  });
+
   // Fullscreen button
   if (fullscreenBtn) {
     fullscreenBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (videoEl.webkitEnterFullscreen && !videoEl.classList.contains('hidden')) {
-        videoEl.webkitEnterFullscreen();
-      } else if (playerWrapper.requestFullscreen) {
-        const request = playerWrapper.requestFullscreen();
-        request?.catch(() => notify('Trình duyệt chưa cho phép toàn màn hình.', 'error'));
+      if (playerWrapper?.classList.contains('m-web-fullscreen')) {
+        toggleWebFullscreen(false);
+        return;
+      }
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        return;
+      }
+      if (playerWrapper?.requestFullscreen) {
+        const req = playerWrapper.requestFullscreen();
+        req?.catch(() => toggleWebFullscreen(true));
+      } else if (playerWrapper?.webkitRequestFullscreen) {
+        playerWrapper.webkitRequestFullscreen();
+      } else {
+        toggleWebFullscreen(true);
       }
     });
   }

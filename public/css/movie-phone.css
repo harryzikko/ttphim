@@ -210,3 +210,33 @@
   #party-modal-card > div:first-child, #party-modal-card > div:nth-child(2) { flex-shrink: 0; }
   #modal-pane-create, #modal-pane-join { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 }
+
+/* Mobile Web Fullscreen / Pseudo Fullscreen for Bilingual & Embed Streams */
+#m-player-wrapper.m-web-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  z-index: 99999 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background: #000 !important;
+}
+#m-player-wrapper.m-web-fullscreen #m-iframe-player,
+#m-player-wrapper.m-web-fullscreen #m-video-player {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+}
+body.m-web-fs-active {
+  overflow: hidden !important;
+  touch-action: none !important;
+}

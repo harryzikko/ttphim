@@ -1,4 +1,4 @@
-const { isCompatibleMovie } = require('./movieMatching');
+let movieMatching; try { movieMatching = typeof require === 'function' ? require('./movieMatching') : null; } catch (_) {} const isCompatibleMovie = (a, b) => movieMatching?.isCompatibleMovie ? movieMatching.isCompatibleMovie(a, b) : fallbackIsCompatible(a, b);
 const config = require('../config');
 const vicdnService = require('./vicdnService');
 const nguoncService = require('./nguoncService');
@@ -50,8 +50,19 @@ function extractSeasonIdentifier(item) {
   return 'season_none';
 }
 
+function fallbackIsCompatible(a, b) {
+  if (!a || !b) return false;
+  const normA = (a.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normB = (b.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (normA && normB && normA === normB) return true;
+  const origA = (a.origin_name || a.original_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const origB = (b.origin_name || b.original_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (origA && origB && origA === origB) return true;
+  return false;
+}
 function isSameMovie(a, b) {
-  return isCompatibleMovie(a, b);
+  if (movieMatching?.isCompatibleMovie) return movieMatching.isCompatibleMovie(a, b);
+  return fallbackIsCompatible(a, b);
 }
 
 class MemoryCache {

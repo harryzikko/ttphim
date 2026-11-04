@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="/css/player-ux.css?v=1.2.0">
   <link rel="stylesheet" href="/css/comment-emoji-picker.css?v=1.0.0">
   <link rel="stylesheet" href="/css/player-recovery.css?v=1.0.0">
-  <link rel="stylesheet" href="/css/site-a29a5b4dfb9c.css?v=d021494cfeb8">
+  <link rel="stylesheet" href="/css/site-a29a5b4dfb9c.css?v=072e955c9e57">
 
   <link rel="stylesheet" href="/mobile/css/mobile.css" />
   <link rel="stylesheet" href="/mobile/css/responsive.css?v=1.0.0" />
@@ -47,7 +47,16 @@
         <video id="m-video-player" class="w-full h-full object-contain hidden" playsinline webkit-playsinline></video>
         
         <!-- Iframe Embed Fallback -->
-        <iframe id="m-iframe-player" class="w-full h-full border-0 hidden" allowfullscreen allow="autoplay; encrypted-media" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <iframe id="m-iframe-player" class="w-full h-full border-0 hidden" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <!-- Floating Web Fullscreen Toggle for Iframe/Embed Mode -->
+        <button id="m-embed-fs-btn" type="button" class="absolute top-2.5 right-2.5 z-30 pointer-events-auto bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-white text-xs font-semibold items-center gap-1.5 active:scale-95 shadow-xl cursor-pointer transition-all hidden select-none" aria-label="Phóng to giữ song ngữ">
+          <span class="material-symbols-outlined text-[16px]">aspect_ratio</span>
+          <span>Phóng to (Giữ Song Ngữ)</span>
+        </button>
+        <!-- Floating Web Fullscreen Exit Button -->
+        <button id="m-web-fs-exit-btn" type="button" class="absolute top-3 left-3 z-40 w-10 h-10 rounded-full bg-black/80 backdrop-blur-md text-white flex items-center justify-center border border-white/25 active:scale-90 shadow-2xl transition-opacity hidden" title="Thu nhỏ / Thoát toàn màn hình" aria-label="Thoát toàn màn hình">
+          <span class="material-symbols-outlined text-[22px]">fullscreen_exit</span>
+        </button>
 
         <!-- Loading Spinner -->
         <div id="m-player-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-30">

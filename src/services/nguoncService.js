@@ -1,4 +1,14 @@
-const { removeAccents, cleanTitle, isCompatibleMovie } = require('./movieMatching');
+let movieMatching; try { movieMatching = typeof require === 'function' ? require('./movieMatching') : null; } catch (_) {} function fallbackIsCompatible(a, b) {
+  if (!a || !b) return false;
+  const normA = (a.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normB = (b.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (normA && normB && normA === normB) return true;
+  const origA = (a.origin_name || a.original_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const origB = (b.origin_name || b.original_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (origA && origB && origA === origB) return true;
+  return false;
+}
+const isCompatibleMovie = (a, b) => movieMatching?.isCompatibleMovie ? movieMatching.isCompatibleMovie(a, b) : fallbackIsCompatible(a, b); const removeAccents = movieMatching?.removeAccents || (str => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^a-z0-9]/g, '')); const cleanTitle = movieMatching?.cleanTitle || (str => String(str || ''));
 // TTPhim - NguonC Service (Multi-source Streaming Provider)
 // Documentation: https://phim.nguonc.com/api-document
 

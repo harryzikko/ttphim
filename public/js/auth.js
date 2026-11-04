@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
   el('tabRegisterBtn')?.addEventListener('click', () => setMode(true));
   el('forgotPasswordLink')?.addEventListener('click', event => { event.preventDefault(); showFlow('forgot'); });
   el('securitySwitchReset')?.addEventListener('click', () => { showFlow('reset'); });
-  document.querySelectorAll('.security-toggle-pwd').forEach(btn => {
+  if (typeof document.querySelectorAll === 'function') document.querySelectorAll('.security-toggle-pwd').forEach(btn => {
     btn.addEventListener('click', () => {
       const targetId = btn.getAttribute('data-target');
       const input = el(targetId);
