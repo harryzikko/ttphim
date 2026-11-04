@@ -1,3 +1,4 @@
+const { removeAccents, cleanTitle, isCompatibleMovie } = require('./movieMatching');
 // TTPhim - NguonC Service (Multi-source Streaming Provider)
 // Documentation: https://phim.nguonc.com/api-document
 
@@ -41,26 +42,7 @@ function searchText(value) {
     .replace(/[^\p{L}\p{N}]/gu, '');
 }
 
-function removeAccents(str) {
-  if (!str) return '';
-  return String(str)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
-}
 
-function cleanTitle(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/\((?:phần|season|tập|ss)\s*\d+[^)]*\)/gi, '')
-    .replace(/\[[^\]]*\]/g, '')
-    .replace(/\b20\d{2}\b/g, '')
-    .replace(/\(\d{4}\)/g, '')
-    .trim();
-}
 
 function formatNguoncServerName(name, total = 1) {
   if (total <= 1) return 'NC';
@@ -288,28 +270,33 @@ class NguonCService {
       if (typeof movie.tmdb === 'object' && movie.tmdb.id) {
         tmdbId = String(movie.tmdb.id);
       } else if (typeof movie.tmdb === 'string' || typeof movie.tmdb === 'number') {
-        tmdbId = String(movie.tmdb);
+        const val = String(movie.tmdb).trim();
+        if (/^\d+$/.test(val) && Number(val) > 0) tmdbId = val;
       }
     }
     if (tmdbId && this.moviesByTmdb.has(tmdbId)) {
-      return this.moviesByTmdb.get(tmdbId);
+      const candidate = this.moviesByTmdb.get(tmdbId);
+      if (isCompatibleMovie(movie, candidate)) return candidate;
     }
 
     // 2. Direct slug
     const cleanSlug = (movie.slug || '').replace(/^nc-/, '');
     if (cleanSlug && this.moviesBySlug.has(cleanSlug)) {
-      return this.moviesBySlug.get(cleanSlug);
+      const candidate = this.moviesBySlug.get(cleanSlug);
+      if (isCompatibleMovie(movie, candidate)) return candidate;
     }
 
     // 3. Origin Name
     if (movie.origin_name) {
       const normOrigin = removeAccents(movie.origin_name);
       if (normOrigin && this.moviesByOriginName.has(normOrigin)) {
-        return this.moviesByOriginName.get(normOrigin);
+        const candidate = this.moviesByOriginName.get(normOrigin);
+        if (isCompatibleMovie(movie, candidate)) return candidate;
       }
       const cleanOrigin = removeAccents(cleanTitle(movie.origin_name));
       if (cleanOrigin && this.moviesByOriginName.has(cleanOrigin)) {
-        return this.moviesByOriginName.get(cleanOrigin);
+        const candidate = this.moviesByOriginName.get(cleanOrigin);
+        if (isCompatibleMovie(movie, candidate)) return candidate;
       }
     }
 
@@ -317,11 +304,13 @@ class NguonCService {
     if (movie.name) {
       const normName = removeAccents(movie.name);
       if (normName && this.moviesByName.has(normName)) {
-        return this.moviesByName.get(normName);
+        const candidate = this.moviesByName.get(normName);
+        if (isCompatibleMovie(movie, candidate)) return candidate;
       }
       const cleanNameStr = removeAccents(cleanTitle(movie.name));
       if (cleanNameStr && this.moviesByName.has(cleanNameStr)) {
-        return this.moviesByName.get(cleanNameStr);
+        const candidate = this.moviesByName.get(cleanNameStr);
+        if (isCompatibleMovie(movie, candidate)) return candidate;
       }
     }
 
@@ -329,8 +318,14 @@ class NguonCService {
     if (cleanSlug) {
       const cleanSlugStr = removeAccents(cleanSlug.replace(/-\d{4}$/, '').replace(/-/g, ' '));
       if (cleanSlugStr) {
-        if (this.moviesByOriginName.has(cleanSlugStr)) return this.moviesByOriginName.get(cleanSlugStr);
-        if (this.moviesByName.has(cleanSlugStr)) return this.moviesByName.get(cleanSlugStr);
+        if (this.moviesByOriginName.has(cleanSlugStr)) {
+          const candidate = this.moviesByOriginName.get(cleanSlugStr);
+          if (isCompatibleMovie(movie, candidate)) return candidate;
+        }
+        if (this.moviesByName.has(cleanSlugStr)) {
+          const candidate = this.moviesByName.get(cleanSlugStr);
+          if (isCompatibleMovie(movie, candidate)) return candidate;
+        }
       }
     }
 
@@ -338,12 +333,18 @@ class NguonCService {
     if (Array.isArray(movie.alternative_names)) {
       for (const alt of movie.alternative_names) {
         const normAlt = removeAccents(alt);
-        if (normAlt && (this.moviesByOriginName.has(normAlt) || this.moviesByName.has(normAlt))) {
-          return this.moviesByOriginName.get(normAlt) || this.moviesByName.get(normAlt);
+        if (normAlt) {
+          const c1 = this.moviesByOriginName.get(normAlt);
+          if (c1 && isCompatibleMovie(movie, c1)) return c1;
+          const c2 = this.moviesByName.get(normAlt);
+          if (c2 && isCompatibleMovie(movie, c2)) return c2;
         }
         const cleanAlt = removeAccents(cleanTitle(alt));
-        if (cleanAlt && (this.moviesByOriginName.has(cleanAlt) || this.moviesByName.has(cleanAlt))) {
-          return this.moviesByOriginName.get(cleanAlt) || this.moviesByName.get(cleanAlt);
+        if (cleanAlt) {
+          const c1 = this.moviesByOriginName.get(cleanAlt);
+          if (c1 && isCompatibleMovie(movie, c1)) return c1;
+          const c2 = this.moviesByName.get(cleanAlt);
+          if (c2 && isCompatibleMovie(movie, c2)) return c2;
         }
       }
     }
@@ -354,13 +355,7 @@ class NguonCService {
       try {
         const searchRes = await this.fetchJson(`/films/search?keyword=${encodeURIComponent(query)}&page=1`);
         if (searchRes && searchRes.status === 'success' && Array.isArray(searchRes.items) && searchRes.items.length > 0) {
-          const normTargetName = removeAccents(movie.name);
-          const normTargetOrigin = removeAccents(movie.origin_name);
-          const matched = searchRes.items.find(i => {
-            const iName = removeAccents(i.name);
-            const iOrigin = removeAccents(i.original_name);
-            return (normTargetName && iName === normTargetName) || (normTargetOrigin && iOrigin === normTargetOrigin);
-          }) || searchRes.items[0];
+          const matched = searchRes.items.find(i => isCompatibleMovie(movie, i));
           if (matched && matched.slug) {
             this.moviesBySlug.set(matched.slug, matched);
             return matched;
@@ -380,6 +375,16 @@ class NguonCService {
       const info = await this.fetchInfo(matched.slug);
       if (!info || !Array.isArray(info.episodes) || info.episodes.length === 0) {
         return [];
+      }
+
+      // Format & Episode count compatibility check:
+      // Multi-episode series (> 3 eps) must never be merged with a 1-episode standalone movie
+      const targetEpCount = (Array.isArray(movie.episodes) && movie.episodes[0]?.server_data?.length) ||
+                            parseInt(movie.episode_total, 10) || 0;
+      const totalEpItems = (info.episodes[0]?.items || []).length;
+      if (targetEpCount > 3 && totalEpItems <= 1) {
+        const firstEpName = String(info.episodes[0]?.items?.[0]?.name || '').toLowerCase();
+        if (firstEpName === 'full' || totalEpItems === 0) return [];
       }
 
       const totalServers = (info.episodes || []).length;

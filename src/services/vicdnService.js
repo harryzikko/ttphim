@@ -1,3 +1,14 @@
+let movieMatching;
+try {
+  movieMatching = require('./movieMatching');
+} catch (_) {
+  try {
+    movieMatching = require('./src/services/movieMatching');
+  } catch (_2) {
+    movieMatching = require('../src/services/movieMatching');
+  }
+}
+const { removeAccents, cleanTitle, isCompatibleMovie } = movieMatching;
 // KKPhim - ViCDN Service (Multi-source Bilingual Dual-Audio Provider)
 const path = require('path');
 
@@ -36,26 +47,7 @@ function searchText(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 }
 
-function removeAccents(str) {
-  if (!str) return '';
-  return String(str)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
-}
 
-function cleanTitle(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/\((?:phần|season|tập|ss)\s*\d+[^)]*\)/gi, '')
-    .replace(/\[[^\]]*\]/g, '')
-    .replace(/\b20\d{2}\b/g, '')
-    .replace(/\(\d{4}\)/g, '')
-    .trim();
-}
 
 class ViCDNService {
   constructor() {
@@ -270,55 +262,38 @@ class ViCDNService {
     if (!movie) return false;
     if (movie.has_song_ngu) return true;
 
-    // 1. Match by TMDB ID
+    // Check TMDB ID
     let tmdbId = null;
     if (movie.tmdb) {
-      if (typeof movie.tmdb === 'object' && movie.tmdb.id) {
-        tmdbId = String(movie.tmdb.id);
-      } else if (typeof movie.tmdb === 'string' || typeof movie.tmdb === 'number') {
-        tmdbId = String(movie.tmdb);
-      }
+      if (typeof movie.tmdb === 'object' && movie.tmdb.id) tmdbId = String(movie.tmdb.id);
+      else if (typeof movie.tmdb === 'string' || typeof movie.tmdb === 'number') tmdbId = String(movie.tmdb);
     }
     if (tmdbId && this.moviesByTmdb.has(tmdbId)) {
-      return true;
+      const c = this.moviesByTmdb.get(tmdbId);
+      if (isCompatibleMovie(movie, c)) return true;
     }
 
-    // 2. Match by direct slug
+    // Check slug
     if (movie.slug && this.moviesBySlug.has(movie.slug)) {
-      return true;
+      const c = this.moviesBySlug.get(movie.slug);
+      if (isCompatibleMovie(movie, c)) return true;
     }
 
-    // 3. Match by normalized English name (origin_name)
+    // Check Origin name
     if (movie.origin_name) {
       const normOrigin = removeAccents(movie.origin_name);
-      if (normOrigin && this.moviesByEname.has(normOrigin)) return true;
-      const cleanOrigin = removeAccents(cleanTitle(movie.origin_name));
-      if (cleanOrigin && this.moviesByEname.has(cleanOrigin)) return true;
-    }
-
-    // 4. Match by normalized Vietnamese name (name)
-    if (movie.name) {
-      const normName = removeAccents(movie.name);
-      if (normName && this.moviesByVname.has(normName)) return true;
-      const cleanNameStr = removeAccents(cleanTitle(movie.name));
-      if (cleanNameStr && this.moviesByVname.has(cleanNameStr)) return true;
-    }
-
-    // 5. Match by cleaned slug
-    if (movie.slug) {
-      const cleanSlug = removeAccents(movie.slug.replace(/-\d{4}$/, '').replace(/-/g, ' '));
-      if (cleanSlug && (this.moviesByEname.has(cleanSlug) || this.moviesByVname.has(cleanSlug))) {
-        return true;
+      if (normOrigin && this.moviesByEname.has(normOrigin)) {
+        const c = this.moviesByEname.get(normOrigin);
+        if (isCompatibleMovie(movie, c)) return true;
       }
     }
 
-    // 6. Match by alternative_names
-    if (Array.isArray(movie.alternative_names)) {
-      for (const alt of movie.alternative_names) {
-        const normAlt = removeAccents(alt);
-        if (normAlt && (this.moviesByEname.has(normAlt) || this.moviesByVname.has(normAlt))) return true;
-        const cleanAlt = removeAccents(cleanTitle(alt));
-        if (cleanAlt && (this.moviesByEname.has(cleanAlt) || this.moviesByVname.has(cleanAlt))) return true;
+    // Check Vietnamese name
+    if (movie.name) {
+      const normName = removeAccents(movie.name);
+      if (normName && this.moviesByVname.has(normName)) {
+        const c = this.moviesByVname.get(normName);
+        if (isCompatibleMovie(movie, c)) return true;
       }
     }
 
@@ -334,28 +309,33 @@ class ViCDNService {
       if (typeof movie.tmdb === 'object' && movie.tmdb.id) {
         tmdbId = String(movie.tmdb.id);
       } else if (typeof movie.tmdb === 'string' || typeof movie.tmdb === 'number') {
-        tmdbId = String(movie.tmdb);
+        const val = String(movie.tmdb).trim();
+        if (/^\d+$/.test(val) && Number(val) > 0) tmdbId = val;
       }
     }
 
     if (tmdbId && this.moviesByTmdb.has(tmdbId)) {
-      return this.moviesByTmdb.get(tmdbId);
+      const candidate = this.moviesByTmdb.get(tmdbId);
+      if (isCompatibleMovie(movie, candidate)) return candidate;
     }
 
     // 2. Match by direct slug if movie.slug is a ViCDN slug
     if (movie.slug && this.moviesBySlug.has(movie.slug)) {
-      return this.moviesBySlug.get(movie.slug);
+      const candidate = this.moviesBySlug.get(movie.slug);
+      if (isCompatibleMovie(movie, candidate)) return candidate;
     }
 
     // 3. Match by normalized English name (origin_name)
     if (movie.origin_name) {
       const normOrigin = removeAccents(movie.origin_name);
       if (normOrigin && this.moviesByEname.has(normOrigin)) {
-        return this.moviesByEname.get(normOrigin);
+        const candidate = this.moviesByEname.get(normOrigin);
+        if (isCompatibleMovie(movie, candidate)) return candidate;
       }
       const cleanOrigin = removeAccents(cleanTitle(movie.origin_name));
       if (cleanOrigin && this.moviesByEname.has(cleanOrigin)) {
-        return this.moviesByEname.get(cleanOrigin);
+        const candidate = this.moviesByEname.get(cleanOrigin);
+        if (isCompatibleMovie(movie, candidate)) return candidate;
       }
     }
 
@@ -363,11 +343,13 @@ class ViCDNService {
     if (movie.name) {
       const normName = removeAccents(movie.name);
       if (normName && this.moviesByVname.has(normName)) {
-        return this.moviesByVname.get(normName);
+        const candidate = this.moviesByVname.get(normName);
+        if (isCompatibleMovie(movie, candidate)) return candidate;
       }
       const cleanNameStr = removeAccents(cleanTitle(movie.name));
       if (cleanNameStr && this.moviesByVname.has(cleanNameStr)) {
-        return this.moviesByVname.get(cleanNameStr);
+        const candidate = this.moviesByVname.get(cleanNameStr);
+        if (isCompatibleMovie(movie, candidate)) return candidate;
       }
     }
 
@@ -375,8 +357,14 @@ class ViCDNService {
     if (movie.slug) {
       const cleanSlug = removeAccents(movie.slug.replace(/-\d{4}$/, '').replace(/-/g, ' '));
       if (cleanSlug) {
-        if (this.moviesByEname.has(cleanSlug)) return this.moviesByEname.get(cleanSlug);
-        if (this.moviesByVname.has(cleanSlug)) return this.moviesByVname.get(cleanSlug);
+        if (this.moviesByEname.has(cleanSlug)) {
+          const candidate = this.moviesByEname.get(cleanSlug);
+          if (isCompatibleMovie(movie, candidate)) return candidate;
+        }
+        if (this.moviesByVname.has(cleanSlug)) {
+          const candidate = this.moviesByVname.get(cleanSlug);
+          if (isCompatibleMovie(movie, candidate)) return candidate;
+        }
       }
     }
 
@@ -384,12 +372,18 @@ class ViCDNService {
     if (Array.isArray(movie.alternative_names)) {
       for (const alt of movie.alternative_names) {
         const normAlt = removeAccents(alt);
-        if (normAlt && (this.moviesByEname.has(normAlt) || this.moviesByVname.has(normAlt))) {
-          return this.moviesByEname.get(normAlt) || this.moviesByVname.get(normAlt);
+        if (normAlt) {
+          const c1 = this.moviesByEname.get(normAlt);
+          if (c1 && isCompatibleMovie(movie, c1)) return c1;
+          const c2 = this.moviesByVname.get(normAlt);
+          if (c2 && isCompatibleMovie(movie, c2)) return c2;
         }
         const cleanAlt = removeAccents(cleanTitle(alt));
-        if (cleanAlt && (this.moviesByEname.has(cleanAlt) || this.moviesByVname.has(cleanAlt))) {
-          return this.moviesByEname.get(cleanAlt) || this.moviesByVname.get(cleanAlt);
+        if (cleanAlt) {
+          const c1 = this.moviesByEname.get(cleanAlt);
+          if (c1 && isCompatibleMovie(movie, c1)) return c1;
+          const c2 = this.moviesByVname.get(cleanAlt);
+          if (c2 && isCompatibleMovie(movie, c2)) return c2;
         }
       }
     }
@@ -398,7 +392,7 @@ class ViCDNService {
     if (tmdbId) {
       const probeSlug = `tv-${tmdbId}-1`;
       const directInfo = await this.fetchInfo(probeSlug);
-      if (directInfo) {
+      if (directInfo && isCompatibleMovie(movie, directInfo)) {
         return directInfo;
       }
     }
@@ -414,6 +408,14 @@ class ViCDNService {
       // Fetch full info to get list_episodes
       const info = await this.fetchInfo(matched.slug);
       if (!info || !Array.isArray(info.list_episodes) || info.list_episodes.length === 0) {
+        return null;
+      }
+
+      // Check episode count compatibility
+      const targetEpCount = (Array.isArray(movie.episodes) && movie.episodes[0]?.server_data?.length) ||
+                            parseInt(movie.episode_total, 10) || 0;
+      const totalEpItems = info.list_episodes.length;
+      if (targetEpCount > 3 && totalEpItems <= 1) {
         return null;
       }
 

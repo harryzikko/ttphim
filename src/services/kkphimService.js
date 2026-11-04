@@ -1,3 +1,4 @@
+const { isCompatibleMovie } = require('./movieMatching');
 const config = require('../config');
 const vicdnService = require('./vicdnService');
 const nguoncService = require('./nguoncService');
@@ -50,52 +51,7 @@ function extractSeasonIdentifier(item) {
 }
 
 function isSameMovie(a, b) {
-  if (!a || !b) return false;
-  if (a.slug && b.slug && a.slug === b.slug) return true;
-
-  // Medium isolation: Anime and Non-anime are never the same movie
-  if ((a.type === 'hoathinh') !== (b.type === 'hoathinh')) return false;
-
-  // Season isolation: Different numbered seasons are never the same movie
-  const seasonA = extractSeasonIdentifier(a);
-  const seasonB = extractSeasonIdentifier(b);
-  if (seasonA !== seasonB) {
-    const isSeason1Candidate = (seasonA === 'season_1' && seasonB === 'season_none') ||
-                               (seasonA === 'season_none' && seasonB === 'season_1');
-    if (!isSeason1Candidate) return false;
-  }
-
-  // 1. TMDB ID match (only if valid positive ID)
-  const tmdbA = extractTmdbId(a);
-  const tmdbB = extractTmdbId(b);
-  if (tmdbA && tmdbB && tmdbA === tmdbB) return true;
-
-  // 2. Year check
-  const yearA = parseInt(a.year, 10) || 0;
-  const yearB = parseInt(b.year, 10) || 0;
-  const yearClose = !yearA || !yearB || Math.abs(yearA - yearB) <= 1;
-
-  if (!yearClose) return false;
-
-  // 3. Name & Original Name matching
-  const normNameA = removeAccents(cleanTitle(a.name));
-  const normNameB = removeAccents(cleanTitle(b.name));
-  const normOriginA = removeAccents(cleanTitle(a.origin_name || a.original_name));
-  const normOriginB = removeAccents(cleanTitle(b.origin_name || b.original_name));
-
-  if (normNameA && normNameB && normNameA === normNameB) return true;
-  if (normOriginA && normOriginB && normOriginA === normOriginB) return true;
-  if (normNameA && normOriginB && normNameA === normOriginB) return true;
-  if (normOriginA && normNameB && normOriginA === normNameB) return true;
-
-  // 4. Slugs stripped of year suffix (do not strip season)
-  if (a.slug && b.slug) {
-    const slugCleanA = removeAccents(a.slug.replace(/-\d{4}$/, '').replace(/-/g, ' '));
-    const slugCleanB = removeAccents(b.slug.replace(/-\d{4}$/, '').replace(/-/g, ' '));
-    if (slugCleanA && slugCleanB && slugCleanA === slugCleanB) return true;
-  }
-
-  return false;
+  return isCompatibleMovie(a, b);
 }
 
 class MemoryCache {
@@ -462,11 +418,7 @@ class KKPhimService {
                 const normName = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
                 const targetNorm = normName(viCdnDirect.movie.name);
                 const targetOriginNorm = normName(viCdnDirect.movie.origin_name);
-                const matchedItem = kkRes.data.items.find(i => {
-                  const iName = normName(i.name);
-                  const iOrigin = normName(i.origin_name);
-                  return (targetNorm && iName === targetNorm) || (targetOriginNorm && iOrigin === targetOriginNorm);
-                }) || kkRes.data.items[0];
+                const matchedItem = kkRes.data.items.find(i => isCompatibleMovie(viCdnDirect.movie, i));
 
                 if (matchedItem && matchedItem.slug) {
                   const kkDetail = await this.fetchJson(`/phim/${matchedItem.slug}`);

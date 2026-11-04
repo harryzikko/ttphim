@@ -28,7 +28,7 @@ test('Song Ngu navigation is inserted once immediately after cinema and marked a
 
 test('bilingual catalog paginates real indexed items and searches accents without contacting primary API', async () => {
   const source = read('src/services/vicdnService.js').replace('module.exports = new ViCDNService();', 'module.exports = Object.create(ViCDNService.prototype);');
-  const context = { module:{exports:{}}, require: name => name === './catalogFormat' ? require('../src/services/catalogFormat') : require(name), console, URL };
+  const context = { module:{exports:{}}, require: name => name === './catalogFormat' ? require('../src/services/catalogFormat') : name === './movieMatching' ? require('../src/services/movieMatching') : require(name), console, URL };
   vm.runInNewContext(source, context);
   const service = context.module.exports;
   service.isInitialized = true;
@@ -50,7 +50,7 @@ test('bilingual catalog paginates real indexed items and searches accents withou
 
 test('bilingual server labels omit provider branding without changing episode links',async()=>{
   const source=read('src/services/vicdnService.js').replace('module.exports = new ViCDNService();','module.exports = Object.create(ViCDNService.prototype);');
-  const context={module:{exports:{}},require,console,URL};vm.runInNewContext(source,context);
+  const context={module:{exports:{}},require: name => name === './movieMatching' ? require('../src/services/movieMatching') : require(name),console,URL};vm.runInNewContext(source,context);
   const service=context.module.exports;
   const info={slug:'tv-qa',vname:'QA',type:'tv',list_episodes:['1|https://player.example/episode-1']};
   service.findMatch=async()=>info;service.fetchInfo=async()=>info;
