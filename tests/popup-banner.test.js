@@ -7,7 +7,7 @@ const dbService = require('../src/services/dbService');
 test('popup banner default configuration is present and configurable', async () => {
   const settings = await dbService.getSettings();
   assert.ok(settings.popup_banner, 'popup_banner exists in settings');
-  assert.equal(settings.popup_banner.href, 'https://sandeal.dealpulse.vn/');
+  assert.equal(settings.popup_banner.href, 'https://aff.cineviet.live/');
   assert.equal(settings.popup_banner.image, '/images/banners/dealpulse-popup.png');
   assert.equal(settings.popup_banner.cooldown_hours, 12);
 });

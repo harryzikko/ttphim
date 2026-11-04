@@ -101,6 +101,9 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
   pointer-events: auto !important;
   opacity: 1 !important;
 }
+body:has(.mobile-app-nav) .cv-partner-dock {
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px) + 8px) !important;
+}
 .ad-footer[hidden], .cv-partner-dock[hidden] {
   display: none !important;
 }
