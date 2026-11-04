@@ -145,7 +145,8 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 10;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
   transition: all 0.2s ease;
   line-height: 1;
@@ -188,6 +189,8 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7), 0 0 14px rgba(255, 87, 34, 0.3);
   cursor: pointer;
   margin: 0 auto;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
   transition: all 0.25s ease;
   user-select: none;
 }

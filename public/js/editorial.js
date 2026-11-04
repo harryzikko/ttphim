@@ -1,17 +1,36 @@
 document.addEventListener('DOMContentLoaded', () => {
-  try {
-    if (sessionStorage.getItem('hide_footer_ad') === '1') {
+  const syncFooterAdState = () => {
+    try {
+      const isClosed = sessionStorage.getItem('hide_footer_ad') === '1';
       const f = document.querySelector('.cv-partner-dock, .ad-footer');
-      if (f) {
+      if (!f) return;
+      if (isClosed) {
         f.classList.add('is-collapsed');
         f.style.setProperty('width', 'auto', 'important');
-        f.querySelector('.cv-dock-reopen, .ad-footer-reopen')?.style.setProperty('display', 'inline-flex', 'important');
-        f.querySelector('.cv-partner-card, .ad-banner')?.style.setProperty('display', 'none', 'important');
-        f.querySelector('.cv-dock-badge, .ad-label')?.style.setProperty('display', 'none', 'important');
-        f.querySelector('.cv-dock-close, .ad-footer-close')?.style.setProperty('display', 'none', 'important');
+        const reopen = f.querySelector('.cv-dock-reopen, .ad-footer-reopen');
+        if (reopen) reopen.style.setProperty('display', 'inline-flex', 'important');
+        const card = f.querySelector('.cv-partner-card, .ad-banner');
+        if (card) card.style.setProperty('display', 'none', 'important');
+        const badge = f.querySelector('.cv-dock-badge, .ad-label');
+        if (badge) badge.style.setProperty('display', 'none', 'important');
+        const closeBtn = f.querySelector('.cv-dock-close, .ad-footer-close');
+        if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
+      } else {
+        f.classList.remove('is-collapsed');
+        f.style.removeProperty('width');
+        const reopen = f.querySelector('.cv-dock-reopen, .ad-footer-reopen');
+        if (reopen) reopen.style.setProperty('display', 'none', 'important');
+        const card = f.querySelector('.cv-partner-card, .ad-banner');
+        if (card) card.style.removeProperty('display');
+        const badge = f.querySelector('.cv-dock-badge, .ad-label');
+        if (badge) badge.style.removeProperty('display');
+        const closeBtn = f.querySelector('.cv-dock-close, .ad-footer-close');
+        if (closeBtn) closeBtn.style.setProperty('display', 'flex', 'important');
       }
-    }
-  } catch (_) {}
+    } catch (_) {}
+  };
+  syncFooterAdState();
+  window.addEventListener('pageshow', syncFooterAdState);
   document.body.classList.add(document.querySelector('.admin-nav-btn') ? 'editorial-admin' : 'editorial-home');
   if (document.body.classList.contains('editorial-admin')) return;
 
@@ -139,6 +158,13 @@ document.addEventListener('DOMContentLoaded', () => {
         card.style.setProperty('display', 'block', 'important');
         card.style.setProperty('visibility', 'visible', 'important');
         card.style.setProperty('opacity', '1', 'important');
+      }
+      const closeBtn = dock.querySelector('.cv-dock-close, .ad-footer-close');
+      if (closeBtn) {
+        closeBtn.classList.remove('ad-footer-close');
+        closeBtn.style.setProperty('display', 'flex', 'important');
+        closeBtn.style.setProperty('visibility', 'visible', 'important');
+        closeBtn.style.setProperty('opacity', '1', 'important');
       }
     }
   };

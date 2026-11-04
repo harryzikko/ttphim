@@ -3,21 +3,37 @@
   'use strict';
   const applyClosedState = () => {
     try {
-      if (sessionStorage.getItem('hide_footer_ad') === '1') {
-        const f = document.querySelector('.cv-partner-dock, .ad-footer');
-        if (f) {
-          f.classList.add('is-collapsed');
-          f.style.setProperty('width', 'auto', 'important');
-          f.querySelector('.cv-dock-reopen, .ad-footer-reopen')?.style.setProperty('display', 'inline-flex', 'important');
-          f.querySelector('.cv-partner-card, .ad-banner')?.style.setProperty('display', 'none', 'important');
-          f.querySelector('.cv-dock-badge, .ad-label')?.style.setProperty('display', 'none', 'important');
-          f.querySelector('.cv-dock-close, .ad-footer-close')?.style.setProperty('display', 'none', 'important');
-        }
+      const isClosed = sessionStorage.getItem('hide_footer_ad') === '1';
+      const f = document.querySelector('.cv-partner-dock, .ad-footer');
+      if (!f) return;
+      if (isClosed) {
+        f.classList.add('is-collapsed');
+        f.style.setProperty('width', 'auto', 'important');
+        const reopen = f.querySelector('.cv-dock-reopen, .ad-footer-reopen');
+        if (reopen) reopen.style.setProperty('display', 'inline-flex', 'important');
+        const card = f.querySelector('.cv-partner-card, .ad-banner');
+        if (card) card.style.setProperty('display', 'none', 'important');
+        const badge = f.querySelector('.cv-dock-badge, .ad-label');
+        if (badge) badge.style.setProperty('display', 'none', 'important');
+        const closeBtn = f.querySelector('.cv-dock-close, .ad-footer-close');
+        if (closeBtn) closeBtn.style.setProperty('display', 'none', 'important');
+      } else {
+        f.classList.remove('is-collapsed');
+        f.style.removeProperty('width');
+        const reopen = f.querySelector('.cv-dock-reopen, .ad-footer-reopen');
+        if (reopen) reopen.style.setProperty('display', 'none', 'important');
+        const card = f.querySelector('.cv-partner-card, .ad-banner');
+        if (card) card.style.removeProperty('display');
+        const badge = f.querySelector('.cv-dock-badge, .ad-label');
+        if (badge) badge.style.removeProperty('display');
+        const closeBtn = f.querySelector('.cv-dock-close, .ad-footer-close');
+        if (closeBtn) closeBtn.style.setProperty('display', 'flex', 'important');
       }
     } catch (_) {}
   };
   applyClosedState();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyClosedState, { once: true });
+  window.addEventListener('pageshow', applyClosedState);
 
   const mount = () => {
     const phone = window.matchMedia ? window.matchMedia('(max-width: 767px)') : { matches: false };
