@@ -1288,8 +1288,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const iframe = document.createElement('iframe');
     iframe.className = 'w-full h-full border-0 rounded-xl';
-    iframe.referrerPolicy = 'no-referrer-when-downgrade';
-    iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+    iframe.referrerPolicy = 'no-referrer';
+    iframe.setAttribute('referrerpolicy', 'no-referrer');
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
     iframe.allowFullscreen = true;
     container.appendChild(iframe);

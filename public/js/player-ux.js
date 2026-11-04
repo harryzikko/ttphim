@@ -243,8 +243,8 @@
     emit('embed', 'Đang mở server nhúng…');
     deadline = setTimeout(() => fail('Server nhúng phản hồi chậm. Hãy thử lại hoặc đổi server.'), timeout);
     try {
-      if (!iframe.getAttribute('referrerpolicy')) iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
-      iframe.referrerPolicy = 'no-referrer-when-downgrade';
+      if (!iframe.getAttribute('referrerpolicy')) iframe.setAttribute('referrerpolicy', 'no-referrer');
+      iframe.referrerPolicy = 'no-referrer';
     } catch (_) {}
     iframe.src = url;
     return { destroy() {
