@@ -797,15 +797,32 @@ class TemplateService {
     }
 
     // 9. Watch CTA Button
+    const hasPlayableEp = (episodes || []).some(s => (s.server_data || []).some(e => Boolean((e.slug || e.name) && (e.link_m3u8 || e.link_embed || e.slug))));
     const firstEpSlug = episodes?.[0]?.server_data?.[0]?.slug || 'tap-1';
     const rawEpName = episodes?.[0]?.server_data?.[0]?.name || '1';
     const firstEpLabel = (/full/i.test(rawEpName)) ? 'Bản Full' : `Tập ${cleanEpName(rawEpName)}`;
-    html = html.replace(
-      /<a class="flex items-center gap-space-xs px-space-xl py-3\.5 rounded-full bg-primary-container[^"]*" href="[^"]*">[\s\S]*?<\/a>/,
-      `<a class="flex items-center gap-space-xs px-space-xl py-3.5 rounded-full bg-primary-container text-on-primary-container font-headline-sm text-headline-sm shadow-[0_0_24px_rgba(229,9,20,0.5)] hover:bg-inverse-primary hover:scale-[1.02] active:scale-95 transition-all" href="/xem-phim/${movie.slug}/${firstEpSlug}?server=0">
+
+    let ctaButtonHtml;
+    if (hasPlayableEp) {
+      ctaButtonHtml = `<a class="flex items-center gap-space-xs px-space-xl py-3.5 rounded-full bg-primary-container text-on-primary-container font-headline-sm text-headline-sm shadow-[0_0_24px_rgba(229,9,20,0.5)] hover:bg-inverse-primary hover:scale-[1.02] active:scale-95 transition-all" href="/xem-phim/${movie.slug}/${firstEpSlug}?server=0">
         <span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
         <span>Xem Phim Ngay (${firstEpLabel})</span>
-      </a>`
+      </a>`;
+    } else if (movie.trailer_url) {
+      ctaButtonHtml = `<a class="flex items-center gap-space-xs px-space-xl py-3.5 rounded-full bg-primary-container text-on-primary-container font-headline-sm text-headline-sm shadow-[0_0_24px_rgba(229,9,20,0.5)] hover:bg-inverse-primary hover:scale-[1.02] active:scale-95 transition-all" href="${escapeHtml(movie.trailer_url)}" target="_blank" rel="noopener noreferrer">
+        <span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1;">smart_display</span>
+        <span>Xem Trailer (Đang Cập Nhật Bản Chiếu)</span>
+      </a>`;
+    } else {
+      ctaButtonHtml = `<div class="flex items-center gap-space-xs px-space-xl py-3.5 rounded-full bg-surface-container-highest text-on-surface-variant font-headline-sm text-headline-sm shadow-md cursor-default select-none">
+        <span class="material-symbols-outlined text-[26px]">schedule</span>
+        <span>Bản Phim Đang Cập Nhật</span>
+      </div>`;
+    }
+
+    html = html.replace(
+      /<a class="flex items-center gap-space-xs px-space-xl py-3\.5 rounded-full bg-primary-container[^"]*" href="[^"]*">[\s\S]*?<\/a>/,
+      ctaButtonHtml
     );
 
     // 10. Synopsis

@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el('tabWrapper')?.classList.add('hidden');
     el('securityFlow')?.classList.remove('hidden');
     const titles = { forgot: 'Quên mật khẩu', reset: 'Đặt lại mật khẩu', verify: 'Xác minh email', mfa: 'Xác thực hai bước' };
-    const help = { forgot: 'Nhập email của bạn. Nếu tài khoản tồn tại, bạn sẽ nhận được hướng dẫn.', reset: 'Liên kết chỉ dùng một lần, có hiệu lực 30 phút. Tất cả phiên cũ sẽ bị đăng xuất.', verify: 'Xác nhận email bằng liên kết trong thư. Liên kết có hiệu lực 24 giờ.', mfa: 'Nhập mã 6 số từ ứng dụng xác thực hoặc một mã khôi phục. Phiên xác minh có hiệu lực 5 phút.' };
+    const help = { forgot: 'Nhập email của bạn. Nếu tài khoản tồn tại, bạn sẽ nhận được hướng dẫn.', reset: 'Nhập mật khẩu mới cho tài khoản của bạn. Tất cả phiên cũ sẽ tự động đăng xuất.', verify: 'Xác nhận email bằng liên kết trong thư. Liên kết có hiệu lực 24 giờ.', mfa: 'Nhập mã 6 số từ ứng dụng xác thực hoặc một mã khôi phục. Phiên xác minh có hiệu lực 5 phút.' };
     if (el('securityTitle')) el('securityTitle').textContent = titles[mode];
     if (el('securityHelp')) el('securityHelp').textContent = help[mode];
     for (const [field, active] of [['Email', mode === 'forgot'], ['Password', mode === 'reset'], ['Confirm', mode === 'reset'], ['Code', mode === 'mfa']]) {
@@ -80,8 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const input = el(`security${field}`);
       if (input) { input.disabled = !active; input.required = active; }
     }
+    const tokenField = el('securityTokenField');
+    const tokenInput = el('securityToken');
+    if (tokenField && tokenInput) {
+      const showTokenInput = mode === 'reset' && !token;
+      tokenField.classList.toggle('hidden', !showTokenInput);
+      tokenInput.disabled = !showTokenInput;
+      tokenInput.required = showTokenInput;
+    }
+    if (el('securitySwitchReset')) {
+      el('securitySwitchReset').classList.toggle('hidden', mode === 'reset');
+    }
     if (el('securitySubmit')) el('securitySubmit').textContent = mode === 'verify' ? 'Xác minh email' : mode === 'reset' ? 'Lưu mật khẩu mới' : mode === 'forgot' ? 'Gửi hướng dẫn' : 'Xác nhận đăng nhập';
-    if ((mode === 'reset' || mode === 'verify') && !token) {
+    if (mode === 'verify' && !token) {
       status('Liên kết thiếu mã xác nhận. Vui lòng mở lại liên kết trong email.', true);
       if (el('securitySubmit')) el('securitySubmit').disabled = true;
     }
@@ -93,6 +104,18 @@ document.addEventListener('DOMContentLoaded', () => {
   el('tabLoginBtn')?.addEventListener('click', () => setMode(false));
   el('tabRegisterBtn')?.addEventListener('click', () => setMode(true));
   el('forgotPasswordLink')?.addEventListener('click', event => { event.preventDefault(); showFlow('forgot'); });
+  el('securitySwitchReset')?.addEventListener('click', () => { showFlow('reset'); });
+  document.querySelectorAll('.security-toggle-pwd').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-target');
+      const input = el(targetId);
+      if (!input) return;
+      const isPwd = input.type === 'password';
+      input.type = isPwd ? 'text' : 'password';
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (icon) icon.textContent = isPwd ? 'visibility' : 'visibility_off';
+    });
+  });
   el('securityBack')?.addEventListener('click', () => { token = ''; setMode(false); status('Bạn có thể đăng nhập hoặc yêu cầu liên kết mới.'); });
   el('togglePasswordBtn')?.addEventListener('click', () => {
     const input = el('passwordInput');
@@ -134,8 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
       let res;
       if (flow === 'forgot') res = await API.forgotPassword(el('securityEmail').value.trim());
       else if (flow === 'reset') {
+        const effectiveToken = token || el('securityToken')?.value.trim();
+        if (!effectiveToken) return status('Vui lòng nhập mã xác nhận khôi phục', true);
         if (el('securityPassword').value !== el('securityConfirm').value) return status('Mật khẩu xác nhận không trùng khớp', true);
-        res = await API.resetPassword(token, el('securityPassword').value);
+        res = await API.resetPassword(effectiveToken, el('securityPassword').value);
       } else if (flow === 'verify') res = await API.verifyEmail(token);
       else if (flow === 'mfa') {
         if (!challengeId || Date.now() >= challengeExpires) { setMode(false); return status('Phiên xác minh đã hết hạn. Vui lòng đăng nhập lại.', true); }

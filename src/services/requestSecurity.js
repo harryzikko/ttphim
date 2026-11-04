@@ -8,6 +8,13 @@ const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
 function trustedOrigin(req, origin) {
   if (typeof origin !== 'string' || origin === 'null') return false;
   if (config.ALLOWED_ORIGINS.includes(origin)) return true;
+  const host = req.get('host');
+  if (host) {
+    if (origin === `https://${host}` || origin === `http://${host}`) return true;
+    const proto = req.protocol || 'https';
+    if (origin === `${proto}://${host}`) return true;
+  }
+  if (origin === 'capacitor://localhost' || origin === 'http://localhost' || origin === 'ionic://localhost') return true;
   return !config.IS_PRODUCTION && origin === `${req.protocol}://${req.get('host')}`;
 }
 

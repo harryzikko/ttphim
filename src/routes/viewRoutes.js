@@ -222,7 +222,16 @@ async function handleWatchView(req, res) {
       dbService.getComments(slug)
     ]);
 
-    if (!movieData?.movie || !episodeExists(movieData, epSlug, serverParam)) return sendPageError(res, { status: 404 });
+    if (!movieData?.movie) return sendPageError(res, { status: 404 });
+    const hasEpisodes = (movieData.episodes || []).some(s => (s.server_data || []).some(e => Boolean((e.slug || e.name) && (e.link_m3u8 || e.link_embed || e.slug))));
+    if (!hasEpisodes) {
+      return sendPageError(res, {
+        status: 404,
+        title: 'Bản phim đang được cập nhật',
+        description: `Phim "${movieData.movie.name}" hiện chưa có tập phát sóng từ nhà cung cấp nguồn. Vui lòng quay lại sau hoặc xem trailer!`
+      });
+    }
+    if (!episodeExists(movieData, epSlug, serverParam)) return sendPageError(res, { status: 404 });
     res.locals.seoMovie = movieData.movie;
     dbService.incrementMovieView(slug).catch(() => {});
 
