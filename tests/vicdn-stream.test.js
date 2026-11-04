@@ -38,14 +38,14 @@ test('EpisodeSources treats relative ViCDN stream and embed URLs as playable', (
         name: '1',
         slug: 'tap-1',
         filename: 'Tập 1',
-        link_embed: 'https://vicdn.cc/tv-303745-1-1',
+        link_embed: '/embed/vicdn/tv-303745-1-1',
         link_m3u8: ''
       },
       {
         name: '2',
         slug: 'tap-2',
         filename: 'Tập 2',
-        link_embed: 'https://vicdn.cc/tv-303745-1-2',
+        link_embed: '/embed/vicdn/tv-303745-1-2',
         link_m3u8: ''
       }
     ]

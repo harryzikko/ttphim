@@ -429,11 +429,13 @@ class ViCDNService {
         const parts = epStr.split('|');
         const num = parts[0]?.trim() || '1';
         const url = parts[1]?.trim() || parts[0]?.trim();
+        const videoId = url.replace(/^https?:\/\/[^/]+\//, '');
+        const isVicdn = /(?:vicdn\.cc|pages\.dev|^tv-|^movie-)/.test(url);
         return {
           name: num,
           slug: `tap-${num}`,
           filename: `Tập ${num}`,
-          link_embed: url,
+          link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
           link_m3u8: ''
         };
       });
@@ -496,11 +498,13 @@ class ViCDNService {
       const parts = epStr.split('|');
       const num = parts[0]?.trim() || '1';
       const url = parts[1]?.trim() || parts[0]?.trim();
+      const videoId = url.replace(/^https?:\/\/[^/]+\//, '');
+      const isVicdn = /(?:vicdn\.cc|pages\.dev|^tv-|^movie-)/.test(url);
       return {
         name: num,
         slug: `tap-${num}`,
         filename: `Tập ${num}`,
-        link_embed: url,
+        link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
         link_m3u8: ''
       };
     });
