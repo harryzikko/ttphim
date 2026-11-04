@@ -4,14 +4,14 @@
   const applyClosedState = () => {
     try {
       if (sessionStorage.getItem('hide_footer_ad') === '1') {
-        const f = document.querySelector('.ad-footer');
+        const f = document.querySelector('.cv-partner-dock, .ad-footer');
         if (f) {
           f.classList.add('is-collapsed');
           f.style.setProperty('width', 'auto', 'important');
-          f.querySelector('.ad-footer-reopen')?.style.setProperty('display', 'inline-flex', 'important');
-          f.querySelector('.ad-banner')?.style.setProperty('display', 'none', 'important');
-          f.querySelector('.ad-label')?.style.setProperty('display', 'none', 'important');
-          f.querySelector('.ad-footer-close')?.style.setProperty('display', 'none', 'important');
+          f.querySelector('.cv-dock-reopen, .ad-footer-reopen')?.style.setProperty('display', 'inline-flex', 'important');
+          f.querySelector('.cv-partner-card, .ad-banner')?.style.setProperty('display', 'none', 'important');
+          f.querySelector('.cv-dock-badge, .ad-label')?.style.setProperty('display', 'none', 'important');
+          f.querySelector('.cv-dock-close, .ad-footer-close')?.style.setProperty('display', 'none', 'important');
         }
       }
     } catch (_) {}

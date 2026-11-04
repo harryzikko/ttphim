@@ -1,14 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
   try {
     if (sessionStorage.getItem('hide_footer_ad') === '1') {
-      const f = document.querySelector('.ad-footer');
+      const f = document.querySelector('.cv-partner-dock, .ad-footer');
       if (f) {
         f.classList.add('is-collapsed');
         f.style.setProperty('width', 'auto', 'important');
-        f.querySelector('.ad-footer-reopen')?.style.setProperty('display', 'inline-flex', 'important');
-        f.querySelector('.ad-banner')?.style.setProperty('display', 'none', 'important');
-        f.querySelector('.ad-label')?.style.setProperty('display', 'none', 'important');
-        f.querySelector('.ad-footer-close')?.style.setProperty('display', 'none', 'important');
+        f.querySelector('.cv-dock-reopen, .ad-footer-reopen')?.style.setProperty('display', 'inline-flex', 'important');
+        f.querySelector('.cv-partner-card, .ad-banner')?.style.setProperty('display', 'none', 'important');
+        f.querySelector('.cv-dock-badge, .ad-label')?.style.setProperty('display', 'none', 'important');
+        f.querySelector('.cv-dock-close, .ad-footer-close')?.style.setProperty('display', 'none', 'important');
       }
     }
   } catch (_) {}
@@ -119,4 +119,28 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (_) {}
   }
   initPopupBanner();
+
+  // Anti-Adblock: Protect and self-heal partner banners from aggressive ad blocker extensions
+  const protectBanners = () => {
+    const dock = document.querySelector('.cv-partner-dock, .ad-footer');
+    if (!dock || sessionStorage.getItem('hide_footer_ad') === '1') return;
+    const cs = window.getComputedStyle(dock);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') {
+      dock.removeAttribute('data-ad-slot');
+      dock.classList.remove('ad-placement', 'ad-footer', 'ad-banner');
+      dock.style.setProperty('display', 'block', 'important');
+      dock.style.setProperty('visibility', 'visible', 'important');
+      dock.style.setProperty('opacity', '1', 'important');
+      const card = dock.querySelector('.cv-partner-card, .ad-banner');
+      if (card) {
+        card.classList.remove('ad-banner');
+        card.style.setProperty('display', 'block', 'important');
+        card.style.setProperty('visibility', 'visible', 'important');
+        card.style.setProperty('opacity', '1', 'important');
+      }
+    }
+  };
+  protectBanners();
+  setTimeout(protectBanners, 350);
+  setTimeout(protectBanners, 1200);
 });

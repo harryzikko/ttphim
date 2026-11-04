@@ -81,9 +81,9 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
 .editorial-home #hero-content-deck [class*="bg-gradient"], .editorial-home #hero-content-deck [class*="shadow"] { box-shadow:none!important; }
 @media(max-width:640px) { .banner-workspace button { min-height:44px; } }
 /* Advertising placements are separate from featured movies. */
-.ad-header, .ad-footer, .ad-below_featured { max-width:1200px; margin:24px auto; padding:0 16px; }
+.ad-header, .ad-footer, .cv-partner-dock, .ad-below_featured, .cv-slot-below_featured { max-width:1200px; margin:24px auto; padding:0 16px; }
 .ad-header .ad-banner { aspect-ratio:6/1; max-height:200px; }
-.ad-footer {
+.ad-footer, .cv-partner-dock {
   position: fixed !important;
   bottom: 12px !important;
   left: 50% !important;
@@ -101,10 +101,10 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
   pointer-events: auto !important;
   opacity: 1 !important;
 }
-.ad-footer[hidden] {
+.ad-footer[hidden], .cv-partner-dock[hidden] {
   display: none !important;
 }
-.ad-footer .ad-banner {
+.ad-footer .ad-banner, .cv-partner-dock .cv-partner-card {
   display: block;
   width: 100%;
   aspect-ratio: 4/1;
@@ -117,19 +117,19 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
   background: #080d19;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
-.ad-footer .ad-banner:hover {
+.ad-footer .ad-banner:hover, .cv-partner-dock .cv-partner-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.95), 0 0 42px rgba(255, 87, 34, 0.45);
   border-color: rgba(255, 120, 20, 0.85);
 }
-.ad-footer .ad-banner picture, .ad-footer .ad-banner img {
+.ad-footer .ad-banner picture, .ad-footer .ad-banner img, .cv-partner-dock .cv-partner-card picture, .cv-partner-dock .cv-partner-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.ad-footer .ad-copy { opacity: 0; pointer-events: none; }
-.ad-footer-close {
+.ad-footer .ad-copy, .cv-partner-dock .cv-partner-copy { opacity: 0; pointer-events: none; }
+.ad-footer-close, .cv-dock-close {
   position: absolute;
   top: -12px;
   right: -8px;
@@ -151,13 +151,13 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
   line-height: 1;
   padding: 0;
 }
-.ad-footer-close:hover {
+.ad-footer-close:hover, .cv-dock-close:hover {
   background: #ef4444;
   border-color: #f87171;
   color: #ffffff;
   transform: scale(1.15);
 }
-.ad-footer .ad-label {
+.ad-footer .ad-label, .cv-partner-dock .cv-dock-badge {
   position: absolute;
   top: 6px;
   left: 8px;
@@ -175,7 +175,7 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
   z-index: 10;
 }
 /* Reopen button for footer ad */
-.ad-footer-reopen {
+.ad-footer-reopen, .cv-dock-reopen {
   display: none;
   align-items: center;
   justify-content: center;
@@ -191,14 +191,14 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
   transition: all 0.25s ease;
   user-select: none;
 }
-.ad-footer-reopen:hover {
+.ad-footer-reopen:hover, .cv-dock-reopen:hover {
   background: linear-gradient(135deg, #ff6b00 0%, #ea580c 100%);
   border-color: #ff9800;
   color: #ffffff;
   box-shadow: 0 6px 22px rgba(255, 87, 34, 0.6);
   transform: translateY(-2px);
 }
-.ad-footer.is-collapsed {
+.ad-footer.is-collapsed, .cv-partner-dock.is-collapsed {
   width: auto !important;
   max-width: 100% !important;
   display: flex !important;
@@ -209,11 +209,11 @@ body.editorial-home { --editorial-muted:#a3a6ae; }
 .ad-footer.is-collapsed .ad-footer-close {
   display: none !important;
 }
-.ad-footer.is-collapsed .ad-footer-reopen {
+.ad-footer.is-collapsed .ad-footer-reopen, .cv-partner-dock.is-collapsed .cv-dock-reopen {
   display: inline-flex !important;
 }
-body:has(.ad-footer) { padding-bottom: 280px; }
-body:has(.ad-footer.is-collapsed) { padding-bottom: 60px !important; }
+body:has(.ad-footer), body:has(.cv-partner-dock) { padding-bottom: 280px; }
+body:has(.ad-footer.is-collapsed), body:has(.cv-partner-dock.is-collapsed) { padding-bottom: 60px !important; }
 .ad-header-active #home-hero { margin-top:0!important; }
 .ad-below_player { margin:12px 0; }
 .ad-below_player .ad-banner { aspect-ratio:5/1; max-height:200px; }
@@ -247,17 +247,17 @@ body:has(.ad-footer.is-collapsed) { padding-bottom: 60px !important; }
 .banner-preview[data-mode="mobile"][data-slot="header"] .preview-copy p, .banner-preview[data-mode="mobile"][data-slot="footer"] .preview-copy p, .banner-preview[data-mode="mobile"][data-slot="below_player"] .preview-copy p { display:none; }
 @media(max-width:640px) {
   .ad-header .ad-banner, .ad-below_player .ad-banner { aspect-ratio:3/1; max-height:none; }
-  .ad-footer { width: calc(100vw - 16px) !important; bottom: 8px !important; }
-  .ad-footer .ad-banner { aspect-ratio: 4/1; max-height: 100px; border-radius: 8px; border-width: 1px; }
-  .ad-footer-close { top: -10px; right: -6px; width: 24px; height: 24px; font-size: 11px; }
-  .ad-footer .ad-label { top: -10px; left: 8px; font-size: 8px; padding: 1px 6px; }
-  .ad-footer-reopen { padding: 6px 14px; font-size: 11px; }
-  body:has(.ad-footer) { padding-bottom: 120px; }
-  body:has(.ad-footer.is-collapsed) { padding-bottom: 50px !important; }
+  .ad-footer, .cv-partner-dock { width: calc(100vw - 16px) !important; bottom: 8px !important; }
+  .ad-footer .ad-banner, .cv-partner-dock .cv-partner-card { aspect-ratio: 4/1; max-height: 100px; border-radius: 8px; border-width: 1px; }
+  .ad-footer-close, .cv-dock-close { top: -10px; right: -6px; width: 24px; height: 24px; font-size: 11px; }
+  .ad-footer .ad-label, .cv-partner-dock .cv-dock-badge { top: -10px; left: 8px; font-size: 8px; padding: 1px 6px; }
+  .ad-footer-reopen, .cv-dock-reopen { padding: 6px 14px; font-size: 11px; }
+  body:has(.ad-footer), body:has(.cv-partner-dock) { padding-bottom: 120px; }
+  body:has(.ad-footer.is-collapsed), body:has(.cv-partner-dock.is-collapsed) { padding-bottom: 50px !important; }
   .ad-header .ad-copy, .ad-below_player .ad-copy { padding:12px; }
   .ad-header .ad-copy strong, .ad-below_player .ad-copy strong { font-size:16px; }
   .ad-header .ad-copy p, .ad-below_player .ad-copy p { display:none; }
-  .ad-footer .ad-copy { display:none; }
+  .ad-footer .ad-copy, .cv-partner-dock .cv-partner-copy { display:none; }
 }
 
 /* Popup Modal Banner (DealPulse 12h) */
