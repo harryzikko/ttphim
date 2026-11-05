@@ -208,8 +208,9 @@
   #modal-pane-create, #modal-pane-join { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 }
 
-/* Mobile Web Fullscreen / Pseudo Fullscreen for Bilingual & Embed Streams */
-#m-player-wrapper.m-web-fullscreen {
+/* Mobile & Responsive Web Fullscreen / Pseudo Fullscreen for Bilingual & Embed Streams */
+#m-player-wrapper.m-web-fullscreen,
+#player-viewport.w-web-fullscreen {
   position: fixed !important;
   inset: 0 !important;
   top: 0 !important;
@@ -228,12 +229,15 @@
   background: #000 !important;
 }
 #m-player-wrapper.m-web-fullscreen #m-iframe-player,
-#m-player-wrapper.m-web-fullscreen #m-video-player {
+#m-player-wrapper.m-web-fullscreen #m-video-player,
+#player-viewport.w-web-fullscreen iframe,
+#player-viewport.w-web-fullscreen video {
   width: 100% !important;
   height: 100% !important;
   border-radius: 0 !important;
 }
-body.m-web-fs-active {
+body.m-web-fs-active,
+body.w-web-fs-active {
   overflow: hidden !important;
   touch-action: none !important;
 }

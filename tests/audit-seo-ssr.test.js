@@ -56,6 +56,7 @@ test('real view routes distinguish missing movie/episode from outage and expose 
     '../services/dbService':{getSettings:async()=>({}),getComments:async()=>[],incrementMovieView:async()=>1},
     '../services/homePageService':{renderHomePage:async()=>read('public/index.html')},
     '../services/bannerService':{decorate:html=>html},
+    '../services/vicdnService':require('../src/services/vicdnService'),
     '../services/pageError':require('../src/services/pageError'),
     '../services/seoService':seo
   };

@@ -191,6 +191,7 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
     .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #e50914; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .hidden-ui { opacity: 0 !important; pointer-events: none !important; }
+    #player-wrap.standalone-fs { position: fixed !important; inset: 0 !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; width: 100dvw !important; height: 100vh !important; height: 100dvh !important; z-index: 999999 !important; background: #000 !important; }
   </style>
 </head>
 <body>
@@ -462,17 +463,57 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
       } catch (_) {}
     };
 
+    let isEmbedFs = false;
+    function updateFsIcon(fs) {
+      isEmbedFs = fs;
+      if (fs) {
+        btnFs.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M10 10H4m6 0V4m0 6L3 3m14 7h6m-6 0V4m0 6l7-7"/></svg>';
+      } else {
+        btnFs.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+      }
+    }
+
+    window.addEventListener('message', function(ev) {
+      if (ev.data && ev.data.type === 'web-fullscreen-changed') {
+        updateFsIcon(Boolean(ev.data.isFullscreen));
+      }
+    });
+
     btnFs.onclick = function(e) {
       e.stopPropagation();
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        if (wrap.requestFullscreen) wrap.requestFullscreen();
-        else if (wrap.webkitRequestFullscreen) wrap.webkitRequestFullscreen();
-        else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'toggle-web-fullscreen' }, '*');
+        return;
+      }
+      if (!document.fullscreenElement && !document.webkitFullscreenElement && !wrap.classList.contains('standalone-fs')) {
+        if (wrap.requestFullscreen) {
+          wrap.requestFullscreen().catch(function() {
+            wrap.classList.add('standalone-fs');
+            updateFsIcon(true);
+          });
+        } else if (wrap.webkitRequestFullscreen) {
+          wrap.webkitRequestFullscreen();
+        } else {
+          wrap.classList.add('standalone-fs');
+          updateFsIcon(true);
+        }
       } else {
-        if (document.exitFullscreen) document.exitFullscreen();
-        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        if (wrap.classList.contains('standalone-fs')) {
+          wrap.classList.remove('standalone-fs');
+          updateFsIcon(false);
+        } else if (document.exitFullscreen) {
+          document.exitFullscreen().catch(function() {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
       }
     };
+    document.addEventListener('fullscreenchange', function() {
+      updateFsIcon(Boolean(document.fullscreenElement || document.webkitFullscreenElement));
+    });
+    document.addEventListener('webkitfullscreenchange', function() {
+      updateFsIcon(Boolean(document.fullscreenElement || document.webkitFullscreenElement));
+    });
 
     const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
     function renderSpeedMenu() {

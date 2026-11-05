@@ -76,6 +76,65 @@ document.addEventListener('DOMContentLoaded', async () => {
   const viewport = document.getElementById('player-viewport');
   setupCinemaAndTheaterModes();
 
+  // Web Fullscreen (Pseudo-fullscreen) Controller for Responsive/Mobile Player
+  function toggleWebFullscreen(enable) {
+    if (!viewport) return;
+    const isNow = viewport.classList.contains('w-web-fullscreen');
+    const should = enable !== undefined ? Boolean(enable) : !isNow;
+    viewport.classList.toggle('w-web-fullscreen', should);
+    document.body.classList.toggle('w-web-fs-active', should);
+
+    const embedFsBtn = viewport.querySelector('#btn-embed-fs');
+    if (embedFsBtn) {
+      const textSpan = embedFsBtn.querySelector('span:last-child');
+      const iconSpan = embedFsBtn.querySelector('.material-symbols-outlined');
+      if (textSpan) textSpan.textContent = should ? 'Thu nhỏ' : 'Phóng to (Giữ Song Ngữ)';
+      if (iconSpan) iconSpan.textContent = should ? 'fullscreen_exit' : 'aspect_ratio';
+    }
+    const exitBtn = viewport.querySelector('#btn-embed-fs-exit');
+    if (exitBtn) {
+      exitBtn.classList.toggle('hidden', !should);
+    }
+
+    const iframe = viewport.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'web-fullscreen-changed', isFullscreen: should }, '*');
+    }
+
+    if (should) {
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      } catch (_) {}
+      if (window.showToast) window.showToast('Toàn màn hình web (Vẫn giữ phụ đề song ngữ và chọn giọng)');
+    } else {
+      try {
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+      } catch (_) {}
+    }
+  }
+
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'toggle-web-fullscreen') {
+      toggleWebFullscreen();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && viewport?.classList.contains('w-web-fullscreen')) {
+      toggleWebFullscreen(false);
+    }
+  });
+
+  window.addEventListener('pagehide', () => {
+    if (viewport?.classList.contains('w-web-fullscreen')) {
+      toggleWebFullscreen(false);
+    }
+  });
+
   // Helper: Extract m3u8 from embed URL
   function extractM3u8FromEmbed(embedUrl) {
     if (!embedUrl) return null;
@@ -648,15 +707,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Helper: Toggle Fullscreen
     function toggleFullscreen() {
+      if (viewport?.classList.contains('w-web-fullscreen')) {
+        toggleWebFullscreen(false);
+        return;
+      }
       if (!document.fullscreenElement && !document.webkitFullscreenElement) {
         if (container.requestFullscreen) {
-          container.requestFullscreen();
+          container.requestFullscreen().catch(() => toggleWebFullscreen(true));
         } else if (container.webkitRequestFullscreen) {
           container.webkitRequestFullscreen();
+        } else {
+          toggleWebFullscreen(true);
         }
       } else {
         if (document.exitFullscreen) {
-          document.exitFullscreen();
+          document.exitFullscreen().catch(() => {});
         } else if (document.webkitExitFullscreen) {
           document.webkitExitFullscreen();
         }
@@ -1305,25 +1370,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     cleanupControls = () => { embedSession.destroy(); updateEmbedStatus('ready'); };
 
-    // Switch back to HLS pill (if link_m3u8 is present or extractable)
+    // Floating Quick Controls Bar (HLS Toggle + Web Fullscreen for Bilingual Stream)
+    const quickBar = document.createElement('div');
+    quickBar.className = 'absolute top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto';
+
     const canHls = ep.link_m3u8 || extractM3u8FromEmbed(ep.link_embed);
     if (canHls) {
       if (!ep.link_m3u8) ep.link_m3u8 = canHls;
-      const quickBar = document.createElement('div');
-      quickBar.className = 'absolute top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto';
-      quickBar.innerHTML = `
-        <button id="btn-toggle-engine" class="px-3 py-1.5 rounded-full bg-black/75 hover:bg-primary-container text-white hover:text-on-primary-container font-label-md text-xs backdrop-blur-md shadow-lg transition-all flex items-center gap-1 cursor-pointer border border-white/10" type="button" title="Đổi sang Player HLS chất lượng cao">
-          <span class="material-symbols-outlined text-[15px]">swap_horiz</span>
-          <span>Đổi sang Player HLS (Đồng bộ 100%)</span>
-        </button>
+      const toggleHlsBtn = document.createElement('button');
+      toggleHlsBtn.id = 'btn-toggle-engine';
+      toggleHlsBtn.type = 'button';
+      toggleHlsBtn.className = 'px-3 py-1.5 rounded-full bg-black/75 hover:bg-primary-container text-white hover:text-on-primary-container font-label-md text-xs backdrop-blur-md shadow-lg transition-all flex items-center gap-1 cursor-pointer border border-white/10';
+      toggleHlsBtn.title = 'Đổi sang Player HLS chất lượng cao';
+      toggleHlsBtn.innerHTML = `
+        <span class="material-symbols-outlined text-[15px]">swap_horiz</span>
+        <span>Đổi sang Player HLS (Đồng bộ 100%)</span>
       `;
-      container.appendChild(quickBar);
-      quickBar.querySelector('#btn-toggle-engine').onclick = () => {
+      toggleHlsBtn.onclick = () => {
         useEmbed = false;
         window.showToast('Đang chuyển sang Trình phát HLS tốc độ cao...');
         loadEpisode(ep, savedTime);
       };
+      quickBar.appendChild(toggleHlsBtn);
     }
+
+    // Always provide Floating Web-Fullscreen Button for Embed / ViCDN player
+    const isNowFs = viewport.classList.contains('w-web-fullscreen');
+    const fsBtn = document.createElement('button');
+    fsBtn.id = 'btn-embed-fs';
+    fsBtn.type = 'button';
+    fsBtn.className = 'px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-primary-container text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all';
+    fsBtn.title = 'Toàn màn hình (Giữ Song Ngữ & Thuyết minh)';
+    fsBtn.innerHTML = `
+      <span class="material-symbols-outlined text-[16px]">${isNowFs ? 'fullscreen_exit' : 'aspect_ratio'}</span>
+      <span>${isNowFs ? 'Thu nhỏ' : 'Phóng to (Giữ Song Ngữ)'}</span>
+    `;
+    fsBtn.onclick = () => toggleWebFullscreen();
+    quickBar.appendChild(fsBtn);
+    container.appendChild(quickBar);
+
+    // Floating exit button in top left when in web fullscreen
+    const exitBtn = document.createElement('button');
+    exitBtn.id = 'btn-embed-fs-exit';
+    exitBtn.type = 'button';
+    exitBtn.className = `absolute top-3 left-3 z-40 w-10 h-10 rounded-full bg-black/80 backdrop-blur-md text-white flex items-center justify-center border border-white/25 active:scale-90 shadow-2xl transition-opacity ${isNowFs ? '' : 'hidden'} cursor-pointer`;
+    exitBtn.title = 'Thu nhỏ / Thoát toàn màn hình';
+    exitBtn.innerHTML = '<span class="material-symbols-outlined text-[22px]">fullscreen_exit</span>';
+    exitBtn.onclick = () => toggleWebFullscreen(false);
+    container.appendChild(exitBtn);
 
     // Party Reactions Layer & Sync Toast
     const partyLayer = document.createElement('div');

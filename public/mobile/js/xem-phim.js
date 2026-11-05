@@ -139,6 +139,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (textSpan) textSpan.textContent = should ? 'Thu nhỏ' : 'Phóng to (Giữ Song Ngữ)';
       if (iconSpan) iconSpan.textContent = should ? 'fullscreen_exit' : 'aspect_ratio';
     }
+    if (iframeEl && iframeEl.contentWindow) {
+      iframeEl.contentWindow.postMessage({ type: 'web-fullscreen-changed', isFullscreen: should }, '*');
+    }
     if (should) {
       try {
         if (screen.orientation && screen.orientation.lock) {
@@ -154,6 +157,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (_) {}
     }
   }
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'toggle-web-fullscreen') {
+      toggleWebFullscreen();
+    }
+  });
   window.addEventListener('pagehide', () => { toggleWebFullscreen(false); saveProgress(true); cleanupPlayer(); clearInterval(historyTimer); clearTimeout(hideOverlayTimer); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(true); });
 
@@ -438,7 +446,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   function playStream(m3u8Url, embedUrl, ep, initialTime = 0) {
     loaderEl.classList.add('hidden');
     iframeEl.classList.add('hidden');
-    if (embedFsBtn) embedFsBtn.classList.add('hidden');
+    if (embedFsBtn) {
+      embedFsBtn.classList.add('hidden');
+      embedFsBtn.classList.remove('flex');
+    }
     if (playerWrapper.classList.contains('m-web-fullscreen')) toggleWebFullscreen(false);
     overlayEl.hidden = false;
     videoEl.classList.remove('hidden');
@@ -462,7 +473,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     overlayEl.hidden = true;
     iframeEl.classList.remove('hidden');
     loaderEl.classList.add('hidden');
-    if (embedFsBtn) embedFsBtn.classList.remove('hidden');
+    if (embedFsBtn) {
+      embedFsBtn.classList.remove('hidden');
+      embedFsBtn.classList.add('flex');
+    }
     embedSession?.destroy();
     embedSession = PlayerUX.createEmbedSession({ iframe: iframeEl, url: embedUrl, onState: updateStatus,
       onFailure: message => offerRecovery(currentEpisodes[currentEpIndex], PlayerUX.selectInitial(allServers, epSlug, currentServerIndex, progressStore?.get()).resume, 'embed', message) });
