@@ -1,11 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
   const syncFooterAdState = () => {
     try {
+      if (sessionStorage.getItem('cv_footer_campaign') !== 'noza_site') {
+        sessionStorage.removeItem('hide_footer_ad');
+        sessionStorage.setItem('cv_footer_campaign', 'noza_site');
+      }
       const isClosed = sessionStorage.getItem('hide_footer_ad') === '1';
       const f = document.querySelector('.cv-partner-dock, .ad-footer');
       if (!f) return;
 
       // Anti-adblock immunity: strip classes that trigger ad blockers
+      f.removeAttribute('data-ad-slot');
       f.classList.remove('ad-placement', 'ad-footer');
       const card = f.querySelector('.cv-partner-card, .ad-banner');
       if (card) card.classList.remove('ad-banner');
@@ -87,31 +92,31 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!json.status || !json.data || !json.data.enabled) return;
       const data = json.data;
 
-      const storageKey = 'cineviet_popup_ad_last_shown';
-      const lastShown = Number(localStorage.getItem(storageKey)) || 0;
-      const cooldownHours = Math.max(1, Number(data.cooldown_hours) || 12);
+      const campaignKey = 'cv_popup_v2_' + String(data.href || 'noza').replace(/[^a-zA-Z0-9]/g, '_');
+      const lastShown = Number(localStorage.getItem(campaignKey)) || 0;
+      const cooldownHours = Number(data.cooldown_hours) != null ? Number(data.cooldown_hours) : 12;
       const cooldownMs = cooldownHours * 60 * 60 * 1000;
       const now = Date.now();
       if (lastShown && (now - lastShown) < cooldownMs) return;
 
       const overlay = document.createElement('div');
-      overlay.className = 'ad-popup-overlay';
+      overlay.className = 'cv-promo-overlay ad-popup-overlay';
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
       overlay.setAttribute('aria-label', data.title || 'Quảng cáo');
 
       const modal = document.createElement('div');
-      modal.className = 'ad-popup-modal';
+      modal.className = 'cv-promo-modal ad-popup-modal';
 
       const closeBtn = document.createElement('button');
       closeBtn.type = 'button';
-      closeBtn.className = 'ad-popup-close';
+      closeBtn.className = 'cv-promo-close ad-popup-close';
       closeBtn.setAttribute('aria-label', 'Đóng quảng cáo');
       closeBtn.title = 'Đóng quảng cáo';
       closeBtn.innerHTML = '✕';
 
       const link = document.createElement('a');
-      link.className = 'ad-popup-link';
+      link.className = 'cv-promo-link ad-popup-link';
       link.href = data.href || '#';
       if (data.new_tab) {
         link.target = '_blank';
@@ -123,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const img = document.createElement('img');
       img.src = data.image || '/images/banners/dealpulse-popup.png';
       img.alt = data.title || 'Quảng cáo DealPulse';
-      img.className = 'ad-popup-img';
+      img.className = 'cv-promo-img ad-popup-img';
       img.loading = 'eager';
       img.decoding = 'async';
 
@@ -134,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.appendChild(overlay);
 
       // Record timestamp
-      localStorage.setItem(storageKey, String(now));
+      localStorage.setItem(campaignKey, String(now));
 
       let dismissed = false;
       const dismiss = () => {
@@ -176,7 +181,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const protectBanners = () => {
     const dock = document.querySelector('.cv-partner-dock, .ad-footer');
     if (!dock) return;
+    dock.removeAttribute('data-ad-slot');
     dock.classList.remove('ad-placement', 'ad-footer', 'ad-banner');
+    const pOverlay = document.querySelector('.cv-promo-overlay');
+    if (pOverlay) pOverlay.classList.remove('ad-popup-overlay');
+    const pModal = document.querySelector('.cv-promo-modal');
+    if (pModal) pModal.classList.remove('ad-popup-modal');
     syncFooterAdState();
   };
   protectBanners();

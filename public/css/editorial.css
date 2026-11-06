@@ -270,6 +270,7 @@ body:has(.ad-footer.is-collapsed), body:has(.cv-partner-dock.is-collapsed) { pad
 }
 
 /* Popup Modal Banner (DealPulse 12h) */
+.cv-promo-overlay,
 .ad-popup-overlay {
   position: fixed;
   inset: 0;
@@ -285,10 +286,12 @@ body:has(.ad-footer.is-collapsed), body:has(.cv-partner-dock.is-collapsed) { pad
   visibility: hidden;
   transition: opacity 0.28s ease, visibility 0.28s ease;
 }
+.cv-promo-overlay.is-active,
 .ad-popup-overlay.is-active {
   opacity: 1;
   visibility: visible;
 }
+.cv-promo-modal,
 .ad-popup-modal {
   position: relative;
   width: min(460px, 92vw);
@@ -303,9 +306,11 @@ body:has(.ad-footer.is-collapsed), body:has(.cv-partner-dock.is-collapsed) { pad
   display: flex;
   flex-direction: column;
 }
+.cv-promo-overlay.is-active .cv-promo-modal,
 .ad-popup-overlay.is-active .ad-popup-modal {
   transform: scale(1) translateY(0);
 }
+.cv-promo-close,
 .ad-popup-close {
   position: absolute;
   top: 14px;
@@ -329,12 +334,14 @@ body:has(.ad-footer.is-collapsed), body:has(.cv-partner-dock.is-collapsed) { pad
   line-height: 1;
   padding: 0;
 }
+.cv-promo-close:hover,
 .ad-popup-close:hover {
   background: #ef4444;
   border-color: #f87171;
   color: #ffffff;
   transform: scale(1.1);
 }
+.cv-promo-link,
 .ad-popup-link {
   display: block;
   width: 100%;
@@ -343,6 +350,7 @@ body:has(.ad-footer.is-collapsed), body:has(.cv-partner-dock.is-collapsed) { pad
   line-height: 0;
   cursor: pointer;
 }
+.cv-promo-img,
 .ad-popup-img {
   display: block;
   width: 100%;

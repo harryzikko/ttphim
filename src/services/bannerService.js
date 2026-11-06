@@ -122,10 +122,10 @@ function renderAd(item, mobile = false) {
 function decorate(html, settings, mobile = false) {
   const ads = getAds(settings).ads;
   const render = slot => renderAd(ads.find(item => item.slot === slot), mobile);
-  if (!html.includes('/css/editorial.css')) html = html.replace('</head>', '<link rel="stylesheet" href="/css/editorial.css?v=2.2.0"></head>');
-  else html = html.replace(/\/css\/editorial\.css(?:\?v=[^"'\s>]*)?/, '/css/editorial.css?v=2.2.0');
-  html = html.replace(/\/js\/site-footer\.js(?:\?v=[^"'\s>]*)?/, '/js/site-footer.js?v=2.2.0');
-  html = html.replace(/\/js\/editorial\.js(?:\?v=[^"'\s>]*)?/, '/js/editorial.js?v=2.2.0');
+  if (!html.includes('/css/editorial.css')) html = html.replace('</head>', '<link rel="stylesheet" href="/css/editorial.css?v=2.2.1"></head>');
+  else html = html.replace(/\/css\/editorial\.css(?:\?v=[^"'\s>]*)?/, '/css/editorial.css?v=2.2.1');
+  html = html.replace(/\/js\/site-footer\.js(?:\?v=[^"'\s>]*)?/, '/js/site-footer.js?v=2.2.1');
+  html = html.replace(/\/js\/editorial\.js(?:\?v=[^"'\s>]*)?/, '/js/editorial.js?v=2.2.1');
   html = html.replace('<!-- banner:home_middle -->', '').replace('<!-- banner:home_footer -->', '');
   html = html.replace('<!-- banner:below_featured -->', render('below_featured'))
     .replace('<!-- banner:below_player -->', render('below_player'));
