@@ -206,25 +206,66 @@
 }
 
 /* Mobile & Responsive Web Fullscreen / Pseudo Fullscreen for Bilingual & Embed Streams */
-#m-player-wrapper.m-web-fullscreen,
-#player-viewport.w-web-fullscreen {
-  position: fixed !important;
-  inset: 0 !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  width: 100dvw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  max-width: none !important;
-  max-height: none !important;
-  z-index: 2147483647 !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  background: #000 !important;
-  aspect-ratio: auto !important;
+@media (orientation: portrait) and (max-width: 1024px) {
+  #m-player-wrapper.m-web-fullscreen,
+  #player-viewport.w-web-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vh !important;
+    width: 100dvh !important;
+    height: 100vw !important;
+    height: 100dvw !important;
+    transform: rotate(90deg) translateY(-100%) !important;
+    transform-origin: top left !important;
+    z-index: 2147483647 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: #000 !important;
+    aspect-ratio: auto !important;
+    overflow: hidden !important;
+  }
+}
+
+@media (orientation: landscape) and (max-width: 1024px) {
+  #m-player-wrapper.m-web-fullscreen,
+  #player-viewport.w-web-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    width: 100dvw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    transform: none !important;
+    z-index: 2147483647 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: #000 !important;
+    aspect-ratio: auto !important;
+    overflow: hidden !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  #player-viewport.w-web-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    transform: none !important;
+    z-index: 2147483647 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: #000 !important;
+  }
 }
 
 

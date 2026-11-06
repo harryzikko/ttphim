@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (iconSpan) iconSpan.textContent = isFs ? 'fullscreen_exit' : 'aspect_ratio';
     }
     const exitBtn = viewport?.querySelector('#btn-embed-fs-exit');
-    if (exitBtn) exitBtn.classList.toggle('hidden', !isFs);
+    if (exitBtn) exitBtn.classList.toggle('hidden', true);
     viewport?.classList.toggle('w-web-fullscreen', isFs);
     document.body.classList.toggle('w-web-fs-active', isFs);
   }
@@ -115,12 +115,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (embedFsBtn) {
       const textSpan = embedFsBtn.querySelector('span:last-child');
       const iconSpan = embedFsBtn.querySelector('.material-symbols-outlined');
-      if (textSpan) textSpan.textContent = should ? 'Thu nhỏ' : (isViCdn ? 'Toàn màn hình (Song Ngữ)' : 'Toàn màn hình');
+      if (textSpan) textSpan.textContent = should ? 'Thu nhỏ' : 'Toàn màn hình';
       if (iconSpan) iconSpan.textContent = should ? 'fullscreen_exit' : 'aspect_ratio';
     }
     const exitBtn = viewport.querySelector('#btn-embed-fs-exit');
     if (exitBtn) {
-      exitBtn.classList.toggle('hidden', !should);
+      exitBtn.classList.toggle('hidden', true);
     }
 
     const iframe = viewport.querySelector('iframe');
@@ -1411,54 +1411,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     cleanupControls = () => { embedSession.destroy(); updateEmbedStatus('ready'); };
 
-    // Floating Quick Controls Bar (HLS Toggle + Web Fullscreen for Bilingual Stream)
-    const quickBar = document.createElement('div');
-    quickBar.className = 'absolute top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto';
-
-    const canHls = ep.link_m3u8 || extractM3u8FromEmbed(ep.link_embed);
-    if (canHls) {
-      if (!ep.link_m3u8) ep.link_m3u8 = canHls;
-      const toggleHlsBtn = document.createElement('button');
-      toggleHlsBtn.id = 'btn-toggle-engine';
-      toggleHlsBtn.type = 'button';
-      toggleHlsBtn.className = 'px-3 py-1.5 rounded-full bg-black/75 hover:bg-primary-container text-white hover:text-on-primary-container font-label-md text-xs backdrop-blur-md shadow-lg transition-all flex items-center gap-1 cursor-pointer border border-white/10';
-      toggleHlsBtn.title = 'Đổi sang Player HLS chất lượng cao';
-      toggleHlsBtn.innerHTML = `
-        <span class="material-symbols-outlined text-[15px]">swap_horiz</span>
-        <span>Đổi sang Player HLS (Đồng bộ 100%)</span>
-      `;
-      toggleHlsBtn.onclick = () => {
-        useEmbed = false;
-        window.showToast('Đang chuyển sang Trình phát HLS tốc độ cao...');
-        loadEpisode(ep, savedTime);
-      };
-      quickBar.appendChild(toggleHlsBtn);
-    }
-
-    // Always provide Floating Web-Fullscreen Button for Embed / ViCDN player
+    // Quick Controls Bar: Only on Mobile, single clean button (PC uses player native controls)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const isNowFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement || viewport.classList.contains('w-web-fullscreen'));
+
+    const quickBar = document.createElement('div');
+    quickBar.className = `absolute top-3 right-3 z-30 ${isMobile ? 'flex' : 'hidden'} items-center gap-2 pointer-events-auto`;
+
     const fsBtn = document.createElement('button');
     fsBtn.id = 'btn-embed-fs';
     fsBtn.type = 'button';
     fsBtn.className = 'px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-primary-container text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all';
-    fsBtn.title = 'Toàn màn hình';
+    fsBtn.title = isNowFs ? 'Thu nhỏ' : 'Toàn màn hình';
     fsBtn.innerHTML = `
       <span class="material-symbols-outlined text-[16px]">${isNowFs ? 'fullscreen_exit' : 'aspect_ratio'}</span>
       <span>${isNowFs ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
     `;
+
     fsBtn.onclick = () => {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const isCurrentlyFs = viewport.classList.contains('w-web-fullscreen') ||
+                            Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+
+      if (isCurrentlyFs) {
+        // Thu nhỏ (Exit fullscreen)
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+        toggleWebFullscreen(false);
+        try {
+          if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+          }
+        } catch (_) {}
+        return;
+      }
+
+      // Toàn màn hình (Enter fullscreen)
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-      // Lock screen orientation to landscape on devices supporting ScreenOrientation API (Android, etc.)
-      try {
-        if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch(() => {});
-        }
-      } catch (_) {}
-
-      // On iOS (iPhone/iPad): Must trigger native video.webkitEnterFullscreen synchronously within user gesture
-      // This completely hides Safari bottom navigation bar / URL bar and forces native landscape full screen!
+      // 1. Try iOS native fullscreen
       if (isIOS) {
         try {
           const innerDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
@@ -1471,50 +1464,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (_) {}
       }
 
-      if (!isMobile) {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-          if (viewport.requestFullscreen) {
-            viewport.requestFullscreen().catch(() => toggleWebFullscreen(true));
-          } else if (viewport.webkitRequestFullscreen) {
-            viewport.webkitRequestFullscreen();
-          } else {
+      // 2. Try Android requestFullscreen with landscape orientation lock
+      if (container.requestFullscreen || viewport.requestFullscreen) {
+        const reqPromise = container.requestFullscreen
+          ? container.requestFullscreen()
+          : viewport.requestFullscreen();
+        if (reqPromise && reqPromise.then) {
+          reqPromise.then(() => {
+            if (screen.orientation && screen.orientation.lock) {
+              screen.orientation.lock('landscape').catch(() => {});
+            }
+          }).catch(() => {
             toggleWebFullscreen(true);
-          }
-        } else {
-          if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+          });
+          return;
         }
-      } else {
-        // Mobile Android or fallback when webkitEnterFullscreen is unavailable
-        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-          if (container.requestFullscreen) {
-            container.requestFullscreen().catch(() => toggleWebFullscreen(true));
-          } else if (viewport.requestFullscreen) {
-            viewport.requestFullscreen().catch(() => toggleWebFullscreen(true));
-          } else {
-            toggleWebFullscreen(true);
-          }
-        } else {
-          if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-          else toggleWebFullscreen(false);
-        }
-        if (iframe && iframe.contentWindow) {
-          try {
-            iframe.contentWindow.postMessage({ type: 'request-fullscreen' }, '*');
-          } catch (_) {}
-        }
+      }
+
+      // 3. Fallback: Web pseudo-fullscreen (with CSS landscape auto-rotation)
+      toggleWebFullscreen(true);
+      if (iframe && iframe.contentWindow) {
+        try {
+          iframe.contentWindow.postMessage({ type: 'request-fullscreen' }, '*');
+        } catch (_) {}
       }
     };
     quickBar.appendChild(fsBtn);
     container.appendChild(quickBar);
 
-    // Floating exit button in top left when in web fullscreen
+    // Keep hidden dummy exitBtn for backward test compatibility
     const exitBtn = document.createElement('button');
     exitBtn.id = 'btn-embed-fs-exit';
     exitBtn.type = 'button';
-    exitBtn.className = `absolute top-3 left-3 z-40 w-10 h-10 rounded-full bg-black/80 backdrop-blur-md text-white flex items-center justify-center border border-white/25 active:scale-90 shadow-2xl transition-opacity ${isNowFs ? '' : 'hidden'} cursor-pointer`;
-    exitBtn.title = 'Thu nhỏ / Thoát toàn màn hình';
-    exitBtn.innerHTML = '<span class="material-symbols-outlined text-[22px]">fullscreen_exit</span>';
+    exitBtn.className = 'hidden';
+    exitBtn.style.display = 'none';
     exitBtn.onclick = () => toggleWebFullscreen(false);
     container.appendChild(exitBtn);
 
