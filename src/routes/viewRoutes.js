@@ -102,7 +102,7 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
     if (!upstreamRes.ok) throw new Error(`Upstream HTTP ${upstreamRes.status}`);
     let html = await upstreamRes.text();
 
-    // 1. Remove ONLY bad scripts (devtoolsDetector, Cloudflare challenge) by matching each <script> individually
+    // 1. Remove bad scripts (devtoolsDetector reload loop, Cloudflare challenge)
     html = html.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (fullMatch, content) => {
       if (content.includes('devtoolsDetector') || content.includes('__CF$cv$params') || content.includes('challenge-platform')) {
         return '';
@@ -117,11 +117,13 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
         try {
           const fn = new Function('return ' + em.replace(/^eval/, ''));
           const unpacked = fn();
-          if (unpacked.includes('decryptUrl') && unpacked.includes('AUDIO_SOURCES')) {
-            let patched = unpacked.replace(
-              "new TextDecoder().decode(decB)",
-              "new TextDecoder().decode(decB).replace(/https:\\/\\/[^/]*?(x\\d+)-vicdn-cc\\.pages\\.dev\\//g, 'https://$1.vicdn.cc/').replace(/https:\\/\\/[^\\s\"']+\\.png/g, function(m){ return '/api/stream/vicdn/segment?url=' + encodeURIComponent(m); })"
-            );
+          if (unpacked.includes('AUDIO_SOURCES') || unpacked.includes('decryptUrl')) {
+            let patched = unpacked
+              .replace(/AUDIO_SOURCES\.original\s*=\s*['"][^'"]+['"]/g, `AUDIO_SOURCES.original = '/api/stream/vicdn/${videoId}/original.m3u8'`)
+              .replace(/AUDIO_SOURCES\.female\s*=\s*['"][^'"]+['"]/g, `AUDIO_SOURCES.female = '/api/stream/vicdn/${videoId}/female.m3u8'`)
+              .replace(/AUDIO_SOURCES\.male\s*=\s*['"][^'"]+['"]/g, `AUDIO_SOURCES.male = '/api/stream/vicdn/${videoId}/male.m3u8'`)
+              .replace(/const\s+VTT_VI_URL\s*=\s*['"][^'"]+['"]/g, `const VTT_VI_URL = '/api/stream/vicdn/${videoId}/vi.vtt'`)
+              .replace(/const\s+VTT_EN_URL\s*=\s*['"][^'"]+['"]/g, `const VTT_EN_URL = '/api/stream/vicdn/${videoId}/en.vtt'`);
             html = html.replace(em, patched);
             break;
           }
@@ -129,13 +131,13 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
       }
     }
 
-    // 3. Patch plain-text decryptUrl if present
-    if (html.includes('new TextDecoder().decode(decB)')) {
-      html = html.replace(
-        "new TextDecoder().decode(decB)",
-        "new TextDecoder().decode(decB).replace(/https:\\/\\/[^/]*?(x\\d+)-vicdn-cc\\.pages\\.dev\\//g, 'https://$1.vicdn.cc/').replace(/https:\\/\\/[^\\s\"']+\\.png/g, function(m){ return '/api/stream/vicdn/segment?url=' + encodeURIComponent(m); })"
-      );
-    }
+    // 3. Patch plain-text URLs if present
+    html = html
+      .replace(/AUDIO_SOURCES\.original\s*=\s*['"][^'"]+['"]/g, `AUDIO_SOURCES.original = '/api/stream/vicdn/${videoId}/original.m3u8'`)
+      .replace(/AUDIO_SOURCES\.female\s*=\s*['"][^'"]+['"]/g, `AUDIO_SOURCES.female = '/api/stream/vicdn/${videoId}/female.m3u8'`)
+      .replace(/AUDIO_SOURCES\.male\s*=\s*['"][^'"]+['"]/g, `AUDIO_SOURCES.male = '/api/stream/vicdn/${videoId}/male.m3u8'`)
+      .replace(/const\s+VTT_VI_URL\s*=\s*['"][^'"]+['"]/g, `const VTT_VI_URL = '/api/stream/vicdn/${videoId}/vi.vtt'`)
+      .replace(/const\s+VTT_EN_URL\s*=\s*['"][^'"]+['"]/g, `const VTT_EN_URL = '/api/stream/vicdn/${videoId}/en.vtt'`);
 
     // 4. Inject fullscreen message listener and test compliance markers before </body>
     const injectCode = `<script>
