@@ -134,6 +134,17 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
     @keyframes spin { to { transform: rotate(360deg); } }
     .hidden-ui { opacity: 0 !important; pointer-events: none !important; }
     #player-wrap.standalone-fs { position: fixed !important; inset: 0 !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; width: 100dvw !important; height: 100vh !important; height: 100dvh !important; z-index: 999999 !important; background: #000 !important; }
+    @media (orientation: portrait) and (max-width: 1023px) {
+      #player-wrap.standalone-fs {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        width: 100dvh !important;
+        height: 100dvw !important;
+        transform: translate(-50%, -50%) rotate(90deg) !important;
+        transform-origin: center center !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -331,8 +342,10 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
     btnBack10.onclick = function(e) { e.stopPropagation(); video.currentTime = Math.max(0, video.currentTime - 10); scheduleHide(); };
     btnNext10.onclick = function(e) { e.stopPropagation(); video.currentTime = Math.min(video.duration || Infinity, video.currentTime + 10); scheduleHide(); };
 
-    video.addEventListener('play', function() { updatePlayState(true); });
+    video.addEventListener('play', function() { loader.style.display = 'none'; updatePlayState(true); });
     video.addEventListener('pause', function() { updatePlayState(false); });
+    video.addEventListener('loadeddata', function() { loader.style.display = 'none'; });
+    video.addEventListener('canplay', function() { loader.style.display = 'none'; });
     video.addEventListener('waiting', function() { loader.style.display = 'flex'; });
     video.addEventListener('playing', function() { loader.style.display = 'none'; updatePlayState(true); });
     video.addEventListener('timeupdate', function() {
@@ -458,7 +471,6 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
       }
       subOverlay.style.display = 'block';
       if (!video.paused) video.play().catch(function() {});
-    });
     });
 
     window.addEventListener('message', function(ev) {

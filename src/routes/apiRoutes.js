@@ -95,7 +95,13 @@ router.get('/stream/vicdn/segment', async (req, res) => {
     return res.status(400).send('Invalid url');
   }
   try {
-    const upstream = await fetch(target, { signal: AbortSignal.timeout(10000) });
+    const upstream = await fetch(target, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Referer': 'https://vicdn.cc/'
+      },
+      signal: AbortSignal.timeout(10000)
+    });
     if (!upstream.ok) return res.status(upstream.status).send('Upstream error');
     res.set('Content-Type', 'video/mp4');
     res.set('Access-Control-Allow-Origin', '*');

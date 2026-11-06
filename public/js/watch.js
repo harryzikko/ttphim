@@ -84,11 +84,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     viewport.classList.toggle('w-web-fullscreen', should);
     document.body.classList.toggle('w-web-fs-active', should);
 
+    const isViCdn = (currentEpisode?.link_embed && currentEpisode.link_embed.includes('/embed/vicdn/')) ||
+                    (servers[activeServerIndex]?.server_name || '').toLowerCase().includes('song ngữ');
     const embedFsBtn = viewport.querySelector('#btn-embed-fs');
     if (embedFsBtn) {
       const textSpan = embedFsBtn.querySelector('span:last-child');
       const iconSpan = embedFsBtn.querySelector('.material-symbols-outlined');
-      if (textSpan) textSpan.textContent = should ? 'Thu nhỏ' : 'Phóng to (Giữ Song Ngữ)';
+      if (textSpan) textSpan.textContent = should ? 'Thu nhỏ' : (isViCdn ? 'Toàn màn hình (Song Ngữ)' : 'Toàn màn hình');
       if (iconSpan) iconSpan.textContent = should ? 'fullscreen_exit' : 'aspect_ratio';
     }
     const exitBtn = viewport.querySelector('#btn-embed-fs-exit');
@@ -107,7 +109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           screen.orientation.lock('landscape').catch(() => {});
         }
       } catch (_) {}
-      if (window.showToast) window.showToast('Toàn màn hình web (Vẫn giữ phụ đề song ngữ và chọn giọng)');
+      if (window.showToast) window.showToast('Toàn màn hình');
     } else {
       try {
         if (screen.orientation && screen.orientation.unlock) {
@@ -712,6 +714,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (viewport?.classList.contains('w-web-fullscreen')) {
         toggleWebFullscreen(false);
         return;
+      }
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        try {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+          }
+        } catch (_) {}
+        if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && video && video.webkitEnterFullscreen) {
+          video.webkitEnterFullscreen();
+          return;
+        }
       }
       if (!document.fullscreenElement && !document.webkitFullscreenElement) {
         if (container.requestFullscreen) {
@@ -1355,8 +1369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const iframe = document.createElement('iframe');
     iframe.className = 'w-full h-full border-0 rounded-xl';
-    iframe.referrerPolicy = 'no-referrer';
-    iframe.setAttribute('referrerpolicy', 'no-referrer');
+// Default referrer policy
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
     iframe.allowFullscreen = true;
     container.appendChild(iframe);

@@ -752,6 +752,11 @@ class ViCDNService {
       // Rewrite blocked pages.dev domains to unblocked vicdn.cc CDN subdomains
       m3u8 = m3u8.replace(/https:\/\/[^/]*?(x\d+)-vicdn-cc\.pages\.dev\//g, 'https://$1.vicdn.cc/');
 
+      // Rewrite fMP4 .png segment URLs to local proxy to fix Content-Type (image/png -> video/mp4) and bypass 4G blocks
+      m3u8 = m3u8.replace(/https:\/\/(x\d+\.vicdn\.cc\/[^\s"']+\.png)/g, (match) => {
+        return `/api/stream/vicdn/segment?url=${encodeURIComponent(match)}`;
+      });
+
       this.cache.set(cacheKey, m3u8, 60 * 60 * 1000); // 1 hour cache
       return m3u8;
     } catch (err) {
