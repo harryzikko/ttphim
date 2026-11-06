@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Cứu Tui Chén Cơm 🍚 — Tiếp Sức CineViet Hoàn Toàn Miễn Phí | CineViet</title>
-  <meta name="description" content="Chung tay giúp CineViet duy trì máy chủ, băng thông và trải nghiệm xem phim hoàn toàn miễn phí chỉ bằng việc mua sắm qua noza.site. Tiết kiệm cho bạn, tiếp sức cho CineViet!">
+  <meta name="description" content="Chung tay giúp CineViet duy trì máy chủ, băng thông và trải nghiệm xem phim hoàn toàn miễn phí chỉ bằng việc mua sắm qua noza.site hoặc donate trực tiếp qua RutXu.">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="vi_VN">
   <meta property="og:site_name" content="CineViet">
@@ -18,567 +18,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="/css/site-footer.css?v=1.0.0">
   <script defer src="/js/site-footer.js?v=1.0.0"></script>
-  <style>
-    /* RESET & BASE */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      background-color: #0d0f17;
-      color: #e2e4ed;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      line-height: 1.6;
-      min-height: 100vh;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* HEADER */
-    .site-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 70px;
-      z-index: 100;
-      background: rgba(13, 15, 23, 0.9);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-    }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 32px;
-    }
-    .brand-logo {
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 900;
-      font-size: 22px;
-      color: #ffffff;
-      text-decoration: none;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-    .brand-logo span {
-      color: #e50914;
-    }
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-    .nav-link {
-      color: #9fa4b4;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.2s ease;
-    }
-    .nav-link:hover {
-      color: #ffffff;
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    /* HEADER DONATE BUTTON */
-    .btn-rice-donate {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      height: 36px;
-      padding: 0 14px;
-      border-radius: 9999px;
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(225, 29, 72, 0.25) 100%);
-      border: 1px solid rgba(245, 158, 11, 0.6);
-      color: #fef08a !important;
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 700;
-      font-size: 13px;
-      line-height: 1;
-      text-decoration: none !important;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 0 14px rgba(245, 158, 11, 0.25);
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      white-space: nowrap;
-      position: relative;
-      cursor: pointer;
-    }
-    .btn-rice-donate:hover {
-      background: linear-gradient(135deg, #f59e0b 0%, #e11d48 100%);
-      color: #ffffff !important;
-      border-color: rgba(254, 240, 138, 0.9);
-      box-shadow: 0 4px 18px rgba(245, 158, 11, 0.5), 0 0 20px rgba(225, 29, 72, 0.4);
-      transform: translateY(-1.5px);
-    }
-    .btn-rice-donate .rice-icon {
-      font-size: 15px;
-      line-height: 1;
-      filter: drop-shadow(0 0 4px rgba(254, 240, 138, 0.6));
-    }
-    .btn-rice-donate .rice-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #fef08a;
-      box-shadow: 0 0 8px #fef08a;
-      animation: pulseDot 1.8s infinite;
-    }
-    @keyframes pulseDot {
-      0%, 100% { opacity: 0.6; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.3); }
-    }
-
-    /* SEARCH BAR IN HEADER */
-    .header-search {
-      display: flex;
-      align-items: center;
-      position: relative;
-    }
-    .header-search input {
-      width: 220px;
-      height: 36px;
-      border-radius: 9999px;
-      background: #1c1e2b;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-      padding: 0 36px 0 34px;
-      font-size: 13px;
-      outline: none;
-      transition: all 0.2s ease;
-    }
-    .header-search input:focus {
-      border-color: rgba(255, 255, 255, 0.3);
-      width: 260px;
-      background: #232535;
-    }
-    .header-search .search-icon {
-      position: absolute;
-      left: 10px;
-      font-size: 18px;
-      color: #7d8396;
-      pointer-events: none;
-    }
-    .header-search .search-badge {
-      position: absolute;
-      right: 10px;
-      font-size: 10px;
-      color: #6a6f82;
-      background: #13141d;
-      padding: 2px 5px;
-      border-radius: 4px;
-      pointer-events: none;
-      font-weight: 600;
-    }
-
-    /* MAIN CONTAINER - FIXED CENTERED MAX-WIDTH */
-    .main-page {
-      padding-top: 105px;
-      padding-bottom: 70px;
-      position: relative;
-    }
-    .page-container {
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 0 20px;
-      position: relative;
-      z-index: 2;
-    }
-
-    /* AMBIENT GLOW IN BACKGROUND */
-    .ambient-glow {
-      position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 600px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, rgba(225, 29, 72, 0.08) 50%, transparent 70%);
-      filter: blur(60px);
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    /* HERO CARD */
-    .hero-card {
-      background: linear-gradient(145deg, #181a26 0%, #12141e 100%);
-      border: 1px solid rgba(245, 158, 11, 0.35);
-      border-radius: 24px;
-      padding: 40px 32px;
-      text-align: center;
-      box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6), 0 0 25px rgba(245, 158, 11, 0.15);
-      margin-bottom: 32px;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, #f59e0b, #e11d48, transparent);
-    }
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 14px;
-      border-radius: 9999px;
-      background: rgba(245, 158, 11, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.35);
-      color: #fbbf24;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 20px;
-    }
-    .hero-title {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 32px;
-      font-weight: 900;
-      color: #ffffff;
-      line-height: 1.25;
-      margin-bottom: 12px;
-    }
-    .hero-title span {
-      background: linear-gradient(135deg, #f59e0b 0%, #fb923c 50%, #f43f5e 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .hero-desc {
-      font-size: 15px;
-      color: #b0b4c3;
-      max-width: 620px;
-      margin: 0 auto 28px;
-      line-height: 1.65;
-    }
-    .hero-desc strong {
-      color: #ffffff;
-    }
-
-    /* MAIN CTA BUTTON */
-    .cta-button-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-    .btn-shopee-cta {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      max-width: 380px;
-      height: 52px;
-      border-radius: 9999px;
-      background: linear-gradient(135deg, #ee4d2d 0%, #f97316 50%, #f59e0b 100%);
-      color: #ffffff !important;
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 800;
-      font-size: 16px;
-      text-decoration: none !important;
-      box-shadow: 0 8px 24px rgba(238, 77, 45, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-    }
-    .btn-shopee-cta:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(238, 77, 45, 0.6), 0 0 20px rgba(245, 158, 11, 0.4);
-      color: #ffffff !important;
-    }
-    .cta-subtext {
-      font-size: 13px;
-      color: #888e9f;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .cta-subtext span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .cta-subtext .check {
-      color: #10b981;
-      font-weight: 800;
-    }
-
-    /* 3 VALUE PILLARS */
-    .pillars-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-    .pillar-card {
-      background: #151722;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
-      padding: 22px 20px;
-      transition: all 0.25s ease;
-      display: flex;
-      flex-direction: column;
-    }
-    .pillar-card:hover {
-      border-color: rgba(245, 158, 11, 0.4);
-      transform: translateY(-3px);
-      box-shadow: 0 10px 24px -5px rgba(0, 0, 0, 0.4);
-    }
-    .pillar-icon {
-      font-size: 28px;
-      margin-bottom: 12px;
-      display: inline-block;
-    }
-    .pillar-title {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      color: #ffffff;
-      margin-bottom: 8px;
-    }
-    .pillar-text {
-      font-size: 13px;
-      color: #9ea3b5;
-      line-height: 1.55;
-    }
-
-    /* 3 EASY STEPS */
-    .steps-section {
-      background: #141620;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 28px 24px;
-      margin-bottom: 32px;
-    }
-    .section-heading {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 19px;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .section-subtitle {
-      font-size: 13px;
-      color: #868c9f;
-      margin-bottom: 22px;
-    }
-    .steps-list {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-    .step-box {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 14px;
-      padding: 18px 16px;
-      position: relative;
-    }
-    .step-number {
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 900;
-      font-size: 22px;
-      color: rgba(245, 158, 11, 0.4);
-      margin-bottom: 6px;
-    }
-    .step-title {
-      font-weight: 700;
-      font-size: 14px;
-      color: #ffffff;
-      margin-bottom: 6px;
-    }
-    .step-text {
-      font-size: 12.5px;
-      color: #9297aa;
-      line-height: 1.5;
-    }
-
-    /* SHOPEE VOUCHERS SHOWCASE */
-    .vouchers-section {
-      background: #141620;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 28px 24px;
-      margin-bottom: 32px;
-    }
-    .vouchers-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-    }
-    .voucher-card {
-      background: #1b1e2a;
-      border: 1px dashed rgba(245, 158, 11, 0.4);
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: all 0.2s ease;
-    }
-    .voucher-card:hover {
-      border-color: #f59e0b;
-      background: #1f2230;
-      transform: translateY(-2px);
-    }
-    .voucher-tag {
-      display: inline-block;
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-      padding: 2px 7px;
-      border-radius: 4px;
-      background: rgba(238, 77, 45, 0.2);
-      color: #ff7a59;
-      margin-bottom: 8px;
-      width: fit-content;
-    }
-    .voucher-val {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 17px;
-      font-weight: 900;
-      color: #ffffff;
-      margin-bottom: 4px;
-    }
-    .voucher-desc {
-      font-size: 11.5px;
-      color: #8b91a3;
-      margin-bottom: 12px;
-    }
-    .voucher-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      width: 100%;
-      padding: 7px 0;
-      border-radius: 7px;
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      color: #fef08a !important;
-      font-size: 11.5px;
-      font-weight: 700;
-      text-decoration: none !important;
-      transition: all 0.2s ease;
-    }
-    .voucher-btn:hover {
-      background: #f59e0b;
-      color: #000000 !important;
-    }
-
-    /* TRANSPARENCY & FAQ */
-    .info-card {
-      background: #141620;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 26px 24px;
-      margin-bottom: 32px;
-    }
-    .cost-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    }
-    .cost-row:last-child {
-      border-bottom: none;
-    }
-    .cost-name {
-      font-size: 13.5px;
-      font-weight: 600;
-      color: #e2e4ed;
-    }
-    .cost-detail {
-      font-size: 11.5px;
-      color: #797f93;
-    }
-    .cost-badge {
-      font-size: 11px;
-      font-weight: 700;
-      color: #f59e0b;
-      background: rgba(245, 158, 11, 0.12);
-      padding: 3px 8px;
-      border-radius: 6px;
-      white-space: nowrap;
-    }
-
-    /* BOTTOM FINAL CTA */
-    .bottom-cta {
-      background: linear-gradient(135deg, rgba(238, 77, 45, 0.15) 0%, rgba(245, 158, 11, 0.12) 100%);
-      border: 1px solid rgba(245, 158, 11, 0.35);
-      border-radius: 20px;
-      padding: 36px 24px;
-      text-align: center;
-    }
-    .bottom-cta h3 {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 22px;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 8px;
-    }
-    .bottom-cta p {
-      font-size: 14px;
-      color: #adb2c4;
-      max-width: 520px;
-      margin: 0 auto 22px;
-    }
-
-    /* RESPONSIVE FOR MOBILE & TABLET */
-    @media (max-width: 768px) {
-      .nav-links {
-        display: none;
-      }
-      .header-search {
-        display: none;
-      }
-      .main-page {
-        padding-top: 86px;
-      }
-      .hero-card {
-        padding: 30px 18px;
-      }
-      .hero-title {
-        font-size: 24px;
-      }
-      .hero-desc {
-        font-size: 14px;
-      }
-      .pillars-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-      .steps-list {
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-      .vouchers-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-    }
-  </style>
-<style id="cv-rice-button-styles">/* ========================================================
+  <style id="cv-rice-button-styles">
+/* ========================================================
    Nút "Cứu tui chén cơm" Siêu Đẹp & Sang Trọng trên Header
    ======================================================== */
 .btn-rice-donate {
@@ -716,7 +157,580 @@
     display: inline !important;
   }
 }
-</style></head>
+
+  </style>
+  <style>
+    /* RESET & BASE */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0d0f17;
+      color: #e2e4ed;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* HEADER */
+    .site-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      z-index: 100;
+      background: rgba(13, 15, 23, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .brand-logo {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 900;
+      font-size: 22px;
+      color: #ffffff;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .brand-logo span {
+      color: #e50914;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .nav-link {
+      color: #9fa4b4;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+    .nav-link:hover {
+      color: #ffffff;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* SEARCH BAR IN HEADER */
+    .header-search {
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .header-search input {
+      width: 200px;
+      height: 36px;
+      border-radius: 9999px;
+      background: #1c1e2b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      padding: 0 34px 0 32px;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .header-search input:focus {
+      border-color: rgba(255, 255, 255, 0.3);
+      width: 240px;
+      background: #232535;
+    }
+    .header-search .search-icon {
+      position: absolute;
+      left: 9px;
+      font-size: 17px;
+      color: #7d8396;
+      pointer-events: none;
+    }
+    .header-search .search-badge {
+      position: absolute;
+      right: 9px;
+      font-size: 9.5px;
+      color: #6a6f82;
+      background: #13141d;
+      padding: 2px 4px;
+      border-radius: 4px;
+      pointer-events: none;
+      font-weight: 600;
+    }
+
+    /* MAIN CONTAINER - FIXED CENTERED MAX-WIDTH */
+    .main-page {
+      padding-top: 100px;
+      padding-bottom: 70px;
+      position: relative;
+    }
+    .page-container {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 0 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* AMBIENT GLOW IN BACKGROUND */
+    .ambient-glow {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, rgba(225, 29, 72, 0.08) 50%, transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* PAGE INTRO */
+    .intro-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+    .hero-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 32px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, #f59e0b 0%, #fb923c 50%, #f43f5e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-desc {
+      font-size: 14.5px;
+      color: #b0b4c3;
+      max-width: 620px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* TAB SWITCHER */
+    .support-tabs-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 28px;
+      background: #151824;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px;
+      border-radius: 9999px;
+      max-width: 660px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .tab-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #9fa4b4;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .tab-btn.active#btn-tab-1 {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(225, 29, 72, 0.25) 100%), #1c1f2d;
+      border-color: rgba(245, 158, 11, 0.6);
+      color: #fbbf24;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+    }
+    .tab-btn.active#btn-tab-2 {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(79, 70, 229, 0.25) 100%), #1c1f2d;
+      border-color: rgba(59, 130, 246, 0.6);
+      color: #60a5fa;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+    }
+    .tab-pill {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    .tab-pill-blue {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    /* TAB CONTENT PANES */
+    .tab-pane {
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* HERO CARD FOR CÁCH 1 */
+    .hero-card {
+      background: linear-gradient(145deg, #181a26 0%, #12141e 100%);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 24px;
+      padding: 36px 28px;
+      text-align: center;
+      box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6), 0 0 25px rgba(245, 158, 11, 0.15);
+      margin-bottom: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #f59e0b, #e11d48, transparent);
+    }
+    .btn-shopee-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 380px;
+      height: 50px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #ee4d2d 0%, #f97316 50%, #f59e0b 100%);
+      color: #ffffff !important;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800;
+      font-size: 15.5px;
+      text-decoration: none !important;
+      box-shadow: 0 8px 24px rgba(238, 77, 45, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    .btn-shopee-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(238, 77, 45, 0.6), 0 0 20px rgba(245, 158, 11, 0.4);
+      color: #ffffff !important;
+    }
+
+    /* 3 VALUE PILLARS */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .pillar-card {
+      background: #151722;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 22px 20px;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .pillar-card:hover {
+      border-color: rgba(245, 158, 11, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 24px -5px rgba(0, 0, 0, 0.4);
+    }
+    .pillar-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+    .pillar-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+    .pillar-text {
+      font-size: 13px;
+      color: #9ea3b5;
+      line-height: 1.55;
+    }
+
+    /* 3 EASY STEPS */
+    .steps-section {
+      background: #141620;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 26px 22px;
+      margin-bottom: 28px;
+    }
+    .section-heading {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 19px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-subtitle {
+      font-size: 13px;
+      color: #868c9f;
+      margin-bottom: 20px;
+    }
+    .steps-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .step-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 18px 16px;
+      position: relative;
+    }
+    .step-number {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 900;
+      font-size: 22px;
+      color: rgba(245, 158, 11, 0.4);
+      margin-bottom: 6px;
+    }
+    .step-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .step-text {
+      font-size: 12.5px;
+      color: #9297aa;
+      line-height: 1.5;
+    }
+
+    /* SHOPEE VOUCHERS SHOWCASE */
+    .vouchers-section {
+      background: #141620;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 26px 22px;
+      margin-bottom: 28px;
+    }
+    .vouchers-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .voucher-card {
+      background: #1b1e2a;
+      border: 1px dashed rgba(245, 158, 11, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    .voucher-card:hover {
+      border-color: #f59e0b;
+      background: #1f2230;
+      transform: translateY(-2px);
+    }
+    .voucher-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(238, 77, 45, 0.2);
+      color: #ff7a59;
+      margin-bottom: 8px;
+      width: fit-content;
+    }
+    .voucher-val {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 17px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .voucher-desc {
+      font-size: 11.5px;
+      color: #8b91a3;
+      margin-bottom: 12px;
+    }
+    .voucher-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 100%;
+      padding: 7px 0;
+      border-radius: 7px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fef08a !important;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-decoration: none !important;
+      transition: all 0.2s ease;
+    }
+    .voucher-btn:hover {
+      background: #f59e0b;
+      color: #000000 !important;
+    }
+
+    /* TRANSPARENCY & INFO */
+    .info-card {
+      background: #141620;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 26px 22px;
+      margin-bottom: 28px;
+    }
+    .cost-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .cost-row:last-child {
+      border-bottom: none;
+    }
+    .cost-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #e2e4ed;
+    }
+    .cost-detail {
+      font-size: 11.5px;
+      color: #797f93;
+    }
+    .cost-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    /* BOTTOM FINAL CTA */
+    .bottom-cta {
+      background: linear-gradient(135deg, rgba(238, 77, 45, 0.15) 0%, rgba(245, 158, 11, 0.12) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 20px;
+      padding: 32px 22px;
+      text-align: center;
+    }
+    .bottom-cta h3 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+    .bottom-cta p {
+      font-size: 13.5px;
+      color: #adb2c4;
+      max-width: 520px;
+      margin: 0 auto 20px;
+    }
+
+    /* RESPONSIVE FOR MOBILE & TABLET */
+    @media (max-width: 640px) {
+      .support-tabs-wrap {
+        padding: 4px;
+        border-radius: 14px;
+        gap: 6px;
+      }
+      .tab-btn {
+        padding: 10px 8px;
+        font-size: 12px;
+        border-radius: 10px;
+        gap: 5px;
+      }
+      .tab-btn .tab-text-full { display: none; }
+      .tab-btn .tab-text-short { display: inline; }
+      .tab-pill { display: none; }
+      .nav-links, .header-search {
+        display: none;
+      }
+      .main-page {
+        padding-top: 85px;
+      }
+      .hero-title {
+        font-size: 24px;
+      }
+      .hero-desc {
+        font-size: 13.5px;
+      }
+      .hero-card {
+        padding: 24px 16px;
+      }
+      .pillars-grid, .steps-list, .vouchers-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+    }
+    @media (min-width: 641px) {
+      .tab-btn .tab-text-short { display: none; }
+      .tab-btn .tab-text-full { display: inline; }
+    }
+  </style>
+</head>
 <body>
 
   <!-- FIXED HEADER -->
@@ -752,197 +766,231 @@
 
     <div class="page-container">
 
-      <!-- HERO BANNER -->
-      <div class="hero-card">
+      <!-- TIÊU ĐỀ CHUNG -->
+      <div class="intro-header">
         <div class="hero-badge">
-          <span>🍚</span> CHI PHÍ 0 ĐỒNG · TIẾT KIỆM CHO BẠN, TIẾP SỨC CHO CINEVIET
+          <span>🍚</span> TIẾP SỨC CINEVIET DUY TRÌ MÁY CHỦ
         </div>
-
         <h1 class="hero-title">
           Cứu Tui Chén Cơm 🍚<br>
-          <span>Tiếp Sức CineViet Hoàn Toàn Miễn Phí</span>
+          <span>Chọn Cách Ủng Hộ Bạn Thích</span>
         </h1>
-
         <p class="hero-desc">
           CineViet kiên quyết <strong>nói KHÔNG với quảng cáo cá cược phản cảm và thu phí thành viên</strong>.
-          Bạn không cần nạp tiền hay chuyển khoản donate — chỉ cần ghé <strong>noza.site</strong> lấy mã giảm giá Shopee trước mỗi lần mua hàng là bạn đã tặng CineViet một <strong>"chén cơm"</strong> để duy trì server!
+          Bạn có thể tiếp sức cho CineViet theo 1 trong 2 cách thuận tiện dưới đây:
         </p>
-
-        <div class="cta-button-wrap">
-          <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="btn-shopee-cta">
-            <span>🛒</span>
-            <span>Ghé Noza.site Săn Deal & Tiếp Sức Ngay</span>
-            <span class="material-symbols-outlined" style="font-size: 19px;">open_in_new</span>
-          </a>
-
-          <div class="cta-subtext">
-            <span><span class="check">✓</span> Mã giảm 50% - 80%</span>
-            <span><span class="check">✓</span> Freeship 0đ toàn sàn</span>
-            <span><span class="check">✓</span> 100% Không tốn thêm tiền túi</span>
-          </div>
-        </div>
       </div>
 
-      <!-- 3 LỢI ÍCH TRONG 1 -->
-      <div class="pillars-grid">
-        <div class="pillar-card">
-          <span class="pillar-icon">💰</span>
-          <h3 class="pillar-title">Bạn Tiết Kiệm Tiền</h3>
-          <p class="pillar-text">
-            Noza.site tổng hợp các voucher hot nhất Shopee Mall, mã giảm 50% - 80%, voucher hoàn xu và freeship giúp đơn hàng rẻ hơn mua bình thường.
+      <!-- 2 NÚT CHỌN CÁCH ỦNG HỘ (TABS SWITCHER) -->
+      <div class="support-tabs-wrap">
+        <button type="button" class="tab-btn active" id="btn-tab-1" data-tab="1">
+          <span style="font-size: 16px;">🛍️</span>
+          <span class="tab-text-full">Cách 1: Tiếp Sức 0Đ Qua Noza.site</span>
+          <span class="tab-text-short">Cách 1: Noza.site (0Đ)</span>
+          <span class="tab-pill">Khuyên Dùng</span>
+        </button>
+        <button type="button" class="tab-btn" id="btn-tab-2" data-tab="2">
+          <span style="font-size: 16px;">💸</span>
+          <span class="tab-text-full">Cách 2: Donate Trực Tiếp (RutXu QR)</span>
+          <span class="tab-text-short">Cách 2: RutXu QR</span>
+          <span class="tab-pill tab-pill-blue">Nhận User ID</span>
+        </button>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 1: CÁCH 1 - TIẾP SỨC 0Đ QUA NOZA.SITE -->
+      <!-- ============================================== -->
+      <div id="tab-content-1" class="tab-pane">
+        <!-- Hero Card Noza.site -->
+        <div class="hero-card">
+          <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; background: rgba(238, 77, 45, 0.15); border: 1px solid rgba(238, 77, 45, 0.35); color: #ff7a59; font-size: 11.5px; font-weight: 700; margin-bottom: 16px;">
+            <span>🔥</span> CHUYÊN TRANG DEAL SHOPEE MALL & FREESHIP
+          </div>
+          <h2 style="font-family: 'Montserrat', sans-serif; font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 12px; line-height: 1.3;">
+            Vừa Săn Voucher Giảm 50% - 80%, Vừa Giúp CineViet Có "Chén Cơm" Duy Trì!
+          </h2>
+          <p style="font-size: 14px; color: #b0b4c3; max-width: 580px; margin: 0 auto 24px; line-height: 1.6;">
+            Mỗi khi bạn cần mua sắm online trên Shopee, hãy ghé thăm <strong>noza.site</strong>. Bạn nhận được mã giảm giá hời nhất, còn Shopee sẽ trích phần hoa hồng nhỏ của họ để CineViet chi trả tiền thuê server hàng tháng!
           </p>
-        </div>
 
-        <div class="pillar-card">
-          <span class="pillar-icon">🍚</span>
-          <h3 class="pillar-title">CineViet Có "Chén Cơm"</h3>
-          <p class="pillar-text">
-            Khi bạn đặt hàng qua link Shopee của Noza, Shopee sẽ trích phần hoa hồng nhỏ của họ để ủng hộ máy chủ CineViet trả tiền thuê server.
-          </p>
-        </div>
-
-        <div class="pillar-card">
-          <span class="pillar-icon">🛡️</span>
-          <h3 class="pillar-title">Chi Phí Của Bạn: 0Đ</h3>
-          <p class="pillar-text">
-            Giá mua trên Shopee vẫn giữ nguyên 100% (thậm chí rẻ hơn nhờ voucher). CineViet không xin tiền mặt, không yêu cầu thẻ tín dụng.
-          </p>
-        </div>
-      </div>
-
-      <!-- 3 BƯỚC ĐƠN GIẢN -->
-      <div class="steps-section">
-        <h2 class="section-heading">
-          <span>⚡</span> 3 Bước Tiếp Sức Cực Kỳ Đơn Giản
-        </h2>
-        <p class="section-subtitle">Tạo thói quen mở Noza.site trước mỗi khi chốt đơn trên Shopee</p>
-
-        <div class="steps-list">
-          <div class="step-box">
-            <div class="step-number">01</div>
-            <div class="step-title">Mở Noza.site</div>
-            <div class="step-text">Khi có nhu cầu mua sắm bất kỳ món đồ nào, bạn mở trình duyệt vào <a href="https://noza.site" target="_blank" rel="noopener noreferrer" style="color:#f59e0b; text-decoration:underline;">noza.site</a>.</div>
-          </div>
-
-          <div class="step-box">
-            <div class="step-number">02</div>
-            <div class="step-title">Lấy Mã & Bấm Shopee</div>
-            <div class="step-text">Chọn deal bạn thích hoặc bấm vào link deal để chuyển hướng sang ứng dụng Shopee chính thức.</div>
-          </div>
-
-          <div class="step-box">
-            <div class="step-number">03</div>
-            <div class="step-title">Chốt Đơn Giá Hời</div>
-            <div class="step-text">Bạn áp mã giảm giá để mua hàng rẻ hơn, Shopee sẽ tự động trích hoa hồng tiếp sức server CineViet!</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SHOPEE VOUCHERS PREVIEW -->
-      <div class="vouchers-section">
-        <h2 class="section-heading">
-          <span>🔥</span> Voucher Hot Đang Có Trên Noza.site
-        </h2>
-        <p class="section-subtitle">Cập nhật liên tục 24/7 để bạn không bao giờ bỏ lỡ ưu đãi</p>
-
-        <div class="vouchers-grid">
-          <div class="voucher-card">
-            <div>
-              <span class="voucher-tag">Shopee Mall</span>
-              <div class="voucher-val">GIẢM 50% - 80%</div>
-              <div class="voucher-desc">Áp dụng các thương hiệu chính hãng, đồ công nghệ & gia dụng hot.</div>
-            </div>
-            <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="voucher-btn">
-              <span>Lấy mã tại Noza.site</span>
-              <span class="material-symbols-outlined" style="font-size: 14px;">arrow_forward</span>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="btn-shopee-cta">
+              <span>🛒</span>
+              <span>Ghé Noza.site Săn Deal & Tiếp Sức Ngay</span>
+              <span class="material-symbols-outlined" style="font-size: 19px;">open_in_new</span>
             </a>
-          </div>
-
-          <div class="voucher-card">
-            <div>
-              <span class="voucher-tag" style="background:rgba(16,185,129,0.2); color:#34d399;">Freeship Xtra</span>
-              <div class="voucher-val">MIỄN PHÍ VẬN CHUYỂN</div>
-              <div class="voucher-desc">Mã freeship toàn quốc, giảm đến 300k phí ship cho đơn cồng kềnh.</div>
+            <div style="font-size: 12.5px; color: #888e9f; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;">
+              <span><strong style="color: #10b981;">✓</strong> Mã giảm 50% - 80%</span>
+              <span><strong style="color: #10b981;">✓</strong> Freeship 0đ toàn sàn</span>
+              <span><strong style="color: #10b981;">✓</strong> 100% Không tốn thêm tiền túi</span>
             </div>
-            <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="voucher-btn">
-              <span>Lấy mã tại Noza.site</span>
-              <span class="material-symbols-outlined" style="font-size: 14px;">arrow_forward</span>
-            </a>
+          </div>
+        </div>
+
+        <!-- 3 Lợi ích trong 1 -->
+        <div class="pillars-grid">
+          <div class="pillar-card">
+            <span class="pillar-icon">💰</span>
+            <h3 class="pillar-title">Bạn Tiết Kiệm Tiền</h3>
+            <p class="pillar-text">
+              Noza.site tổng hợp các voucher hot nhất Shopee Mall, mã giảm 50% - 80%, voucher hoàn xu và freeship giúp đơn hàng rẻ hơn mua bình thường.
+            </p>
           </div>
 
-          <div class="voucher-card">
-            <div>
-              <span class="voucher-tag" style="background:rgba(245,158,11,0.2); color:#fbbf24;">Hoàn Xu Xtra</span>
-              <div class="voucher-val">HOÀN XU ĐẾN 100K</div>
-              <div class="voucher-desc">Hoàn xu tích lũy dùng để trừ trực tiếp vào các lần mua tiếp theo.</div>
+          <div class="pillar-card">
+            <span class="pillar-icon">🍚</span>
+            <h3 class="pillar-title">CineViet Có "Chén Cơm"</h3>
+            <p class="pillar-text">
+              Khi bạn đặt hàng qua link Shopee của Noza, Shopee sẽ trích phần hoa hồng nhỏ của họ để ủng hộ máy chủ CineViet trả tiền thuê server.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <span class="pillar-icon">🛡️</span>
+            <h3 class="pillar-title">Chi Phí Của Bạn: 0Đ</h3>
+            <p class="pillar-text">
+              Giá mua trên Shopee vẫn giữ nguyên 100% (thậm chí rẻ hơn nhờ voucher). CineViet không xin tiền mặt, không yêu cầu thẻ tín dụng.
+            </p>
+          </div>
+        </div>
+
+        <!-- 3 Bước đơn giản -->
+        <div class="steps-section">
+          <h2 class="section-heading">
+            <span>⚡</span> 3 Bước Tiếp Sức Cực Kỳ Đơn Giản
+          </h2>
+          <p class="section-subtitle">Tạo thói quen mở Noza.site trước mỗi khi chốt đơn trên Shopee</p>
+
+          <div class="steps-list">
+            <div class="step-box">
+              <div class="step-number">01</div>
+              <div class="step-title">Mở Noza.site</div>
+              <div class="step-text">Khi có nhu cầu mua sắm bất kỳ món đồ nào, bạn mở trình duyệt vào <a href="https://noza.site" target="_blank" rel="noopener noreferrer" style="color:#f59e0b; text-decoration:underline; font-weight:600;">noza.site ↗</a>.</div>
             </div>
-            <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="voucher-btn">
-              <span>Lấy mã tại Noza.site</span>
-              <span class="material-symbols-outlined" style="font-size: 14px;">arrow_forward</span>
-            </a>
+
+            <div class="step-box">
+              <div class="step-number">02</div>
+              <div class="step-title">Lấy Mã & Bấm Shopee</div>
+              <div class="step-text">Chọn deal bạn thích hoặc bấm vào link deal để chuyển hướng sang ứng dụng Shopee chính thức.</div>
+            </div>
+
+            <div class="step-box">
+              <div class="step-number">03</div>
+              <div class="step-title">Chốt Đơn Giá Hời</div>
+              <div class="step-text">Bạn áp mã giảm giá để mua hàng rẻ hơn, Shopee sẽ tự động trích hoa hồng tiếp sức server CineViet!</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      
-      <!-- CÁCH 2: DONATE TRỰC TIẾP QUA RUTXU (USDT BEP20) & NHẬN USER ID -->
-      <div id="cach-2-rutxu" class="info-card" style="border-color: rgba(59, 130, 246, 0.35); background: linear-gradient(145deg, #151928 0%, #10121c 100%);">
-        <div class="hero-badge" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa; margin-bottom: 14px;">
-          <span>💸</span> CÁCH 2: DONATE TRỰC TIẾP (QUÉT MÃ QR / RUTXU)
-        </div>
-        
-        <h2 class="section-heading" style="font-size: 22px; margin-bottom: 6px;">
-          <span>🔑</span> Nhận User ID & Kích Hoạt Server VIP
-        </h2>
-        <p class="section-subtitle" style="margin-bottom: 22px;">
-          Dành cho các bạn muốn ủng hộ trực tiếp kinh phí server bằng chuyển khoản ngân hàng qua cổng RutXu.
-        </p>
+        <!-- Showcase voucher hot -->
+        <div class="vouchers-section">
+          <h2 class="section-heading">
+            <span>🔥</span> Voucher Hot Đang Có Trên Noza.site
+          </h2>
+          <p class="section-subtitle">Cập nhật liên tục 24/7 để bạn không bao giờ bỏ lỡ ưu đãi</p>
 
-        <!-- Form Nhận User ID -->
-        <div style="background: #1a1e2d; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 22px; margin-bottom: 24px;">
-          <label for="refInput" style="display: block; font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 8px;">
-            Nhập mã đơn RutXu để nhận User ID:
-          </label>
-          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <input type="text" id="refInput" placeholder="Nhập mã đơn (VD: RX957XX14W)" autocomplete="off" style="flex: 1; min-width: 220px; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.15); background: #0f121b; color: #ffffff; font-size: 14px; font-weight: 600; text-transform: uppercase; font-family: monospace; letter-spacing: 0.05em; outline: none;">
-            <button id="submitBtn" type="button" style="padding: 12px 24px; border-radius: 10px; border: none; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s ease;">
-              Nhận User ID
-            </button>
-          </div>
-          <div id="result" style="margin-top: 14px; font-size: 14px; line-height: 1.6;"></div>
-        </div>
-
-        <!-- Hướng dẫn donate qua rutxu -->
-        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 22px;">
-          <h3 style="font-size: 15px; font-weight: 700; color: #fbbf24; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-            <span>💸</span> Các Bước Donate Qua RutXu
-          </h3>
-          <ol style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 12px; font-size: 13.5px; color: #c4c8d8; line-height: 1.65;">
-            <li>Truy cập <a href="https://rutxu.com/" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; font-weight: 600; text-decoration: underline;">rutxu.com ↗</a>, chọn đăng nhập, nhập email của bạn. Chờ 1-2 phút, vào email sẽ có link truy cập, mở link đó.</li>
-            <li>Chọn mục <strong>Mua bán coin</strong>.</li>
-            <li>Chọn mua <strong>USDT BEP20</strong>.</li>
-            <li>Nhập số tiền muốn donate. Số lượng mua chính là số lượng tiền muốn donate.<br>
-              Địa chỉ ví <strong>USDT BEP20</strong>, điền chính xác bằng cách copy và paste:
-              <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <code id="walletAddr" style="padding: 10px 14px; background: #0c0e16; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; font-family: monospace; color: #4ade80; font-size: 13px; word-break: break-all; user-select: all;">0x76e2416910ad277519d63ce932497F93207B5A97</code>
-                <button class="copy-wallet-btn" id="copyWallet" type="button" style="padding: 9px 16px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: #1e293b; color: #f8fafc; font-weight: 600; font-size: 12.5px; cursor: pointer; transition: all 0.2s ease;">📋 Copy địa chỉ ví</button>
+          <div class="vouchers-grid">
+            <div class="voucher-card">
+              <div>
+                <span class="voucher-tag">Shopee Mall</span>
+                <div class="voucher-val">GIẢM 50% - 80%</div>
+                <div class="voucher-desc">Áp dụng các thương hiệu chính hãng, đồ công nghệ & gia dụng hot.</div>
               </div>
-            </li>
-            <li>Chuyển khoản theo mã QR hiện trên màn hình RutXu.</li>
-            <li>Nhập <strong>mã đơn</strong> RutXu vào ô phía trên để nhận User ID, rồi nhập User ID vào app/web để kích hoạt server vip.</li>
-          </ol>
-          <div style="margin-top: 14px; padding: 10px 14px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); font-size: 12.5px; color: #fbbf24;">
-            💡 <strong>Lưu ý:</strong> Số lượng mua tối thiểu trên RutXu là <strong>2 USDT</strong> (tương đương khoảng 50.000 VNĐ).
+              <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="voucher-btn">
+                <span>Lấy mã tại Noza.site</span>
+                <span class="material-symbols-outlined" style="font-size: 14px;">arrow_forward</span>
+              </a>
+            </div>
+
+            <div class="voucher-card">
+              <div>
+                <span class="voucher-tag" style="background:rgba(16,185,129,0.2); color:#34d399;">Freeship Xtra</span>
+                <div class="voucher-val">MIỄN PHÍ VẬN CHUYỂN</div>
+                <div class="voucher-desc">Mã freeship toàn quốc, giảm đến 300k phí ship cho đơn cồng kềnh.</div>
+              </div>
+              <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="voucher-btn">
+                <span>Lấy mã tại Noza.site</span>
+                <span class="material-symbols-outlined" style="font-size: 14px;">arrow_forward</span>
+              </a>
+            </div>
+
+            <div class="voucher-card">
+              <div>
+                <span class="voucher-tag" style="background:rgba(245,158,11,0.2); color:#fbbf24;">Hoàn Xu Xtra</span>
+                <div class="voucher-val">HOÀN XU ĐẾN 100K</div>
+                <div class="voucher-desc">Hoàn xu tích lũy dùng để trừ trực tiếp vào các lần mua tiếp theo.</div>
+              </div>
+              <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="voucher-btn">
+                <span>Lấy mã tại Noza.site</span>
+                <span class="material-symbols-outlined" style="font-size: 14px;">arrow_forward</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- MINH BẠCH CHI PHÍ SERVER -->
+      <!-- ============================================== -->
+      <!-- TAB 2: CÁCH 2 - DONATE TRỰC TIẾP QUA RUTXU -->
+      <!-- ============================================== -->
+      <div id="tab-content-2" class="tab-pane" style="display: none;">
+        <div class="info-card" style="border-color: rgba(59, 130, 246, 0.35); background: linear-gradient(145deg, #151928 0%, #10121c 100%);">
+          <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; font-size: 11.5px; font-weight: 700; margin-bottom: 14px;">
+            <span>💸</span> DONATE TRỰC TIẾP QUA CHUYỂN KHOẢN QR RUTXU
+          </div>
+          
+          <h2 class="section-heading" style="font-size: 22px; margin-bottom: 6px;">
+            <span>🔑</span> Nhận User ID & Kích Hoạt Server VIP
+          </h2>
+          <p class="section-subtitle" style="margin-bottom: 22px;">
+            Chuyển khoản ngân hàng quét mã QR qua cổng RutXu và nhập mã đơn để nhận User ID kích hoạt.
+          </p>
+
+          <!-- Form Nhận User ID -->
+          <div style="background: #1a1e2d; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 22px; margin-bottom: 24px;">
+            <label for="refInput" style="display: block; font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 8px;">
+              Nhập mã đơn RutXu để nhận User ID:
+            </label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <input type="text" id="refInput" placeholder="Nhập mã đơn (VD: RX957XX14W)" autocomplete="off" style="flex: 1; min-width: 200px; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.15); background: #0f121b; color: #ffffff; font-size: 14px; font-weight: 600; text-transform: uppercase; font-family: monospace; letter-spacing: 0.05em; outline: none;">
+              <button id="submitBtn" type="button" style="padding: 12px 24px; border-radius: 10px; border: none; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s ease;">
+                Nhận User ID
+              </button>
+            </div>
+            <div id="result" style="margin-top: 14px; font-size: 14px; line-height: 1.6;"></div>
+          </div>
+
+          <!-- Hướng dẫn donate qua rutxu -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 22px;">
+            <h3 style="font-size: 15px; font-weight: 700; color: #fbbf24; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+              <span>💸</span> Các Bước Donate Qua RutXu
+            </h3>
+            <ol style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 12px; font-size: 13.5px; color: #c4c8d8; line-height: 1.65;">
+              <li>Truy cập <a href="https://rutxu.com/" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; font-weight: 600; text-decoration: underline;">rutxu.com ↗</a>, chọn đăng nhập, nhập email của bạn. Chờ 1-2 phút, vào email sẽ có link truy cập, mở link đó.</li>
+              <li>Chọn mục <strong>Mua bán coin</strong>.</li>
+              <li>Chọn mua <strong>USDT BEP20</strong>.</li>
+              <li>Nhập số tiền muốn donate. Số lượng mua chính là số lượng tiền muốn donate.<br>
+                Địa chỉ ví <strong>USDT BEP20</strong>, điền chính xác bằng cách copy và paste:
+                <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <code id="walletAddr" style="padding: 10px 14px; background: #0c0e16; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; font-family: monospace; color: #4ade80; font-size: 13px; word-break: break-all; user-select: all;">0x76e2416910ad277519d63ce932497F93207B5A97</code>
+                  <button class="copy-wallet-btn" id="copyWallet" type="button" style="padding: 9px 16px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: #1e293b; color: #f8fafc; font-weight: 600; font-size: 12.5px; cursor: pointer; transition: all 0.2s ease;">📋 Copy địa chỉ ví</button>
+                </div>
+              </li>
+              <li>Chuyển khoản theo mã QR hiện trên màn hình RutXu.</li>
+              <li>Nhập <strong>mã đơn</strong> RutXu vào ô phía trên để nhận User ID, rồi nhập User ID vào app/web để kích hoạt server vip.</li>
+            </ol>
+            <div style="margin-top: 14px; padding: 10px 14px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); font-size: 12.5px; color: #fbbf24;">
+              💡 <strong>Lưu ý:</strong> Số lượng mua tối thiểu trên RutXu là <strong>2 USDT</strong> (tương đương khoảng 50.000 VNĐ).
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MINH BẠCH CHI PHÍ SERVER (DÙNG CHUNG) -->
       <div class="info-card">
         <h2 class="section-heading">
           <span>⚙️</span> Minh Bạch Chi Phí Server Hàng Tháng
         </h2>
-        <p class="section-subtitle">Toàn bộ hoa hồng Shopee được chuyển trực tiếp vào chi phí hạ tầng máy chủ:</p>
+        <p class="section-subtitle">Toàn bộ kinh phí ủng hộ được chuyển trực tiếp vào chi phí hạ tầng máy chủ:</p>
 
         <div>
           <div class="cost-row">
@@ -974,12 +1022,15 @@
       <!-- BOTTOM FINAL CALL TO ACTION -->
       <div class="bottom-cta">
         <h3>Cảm Ơn Bạn Đã Tiếp Sức Cho CineViet! 🍚❤️</h3>
-        <p>Hãy lưu trang Noza.site vào dấu trang (Bookmark) để lấy voucher bất cứ lúc nào bạn chuẩn bị mua hàng trên Shopee nhé!</p>
-        <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="btn-shopee-cta" style="margin: 0 auto;">
-          <span>🛒</span>
-          <span>Truy Cập Noza.site Ngay Bây Giờ</span>
-          <span class="material-symbols-outlined" style="font-size: 19px;">arrow_forward</span>
-        </a>
+        <p>Mỗi lượt ủng hộ hay mỗi lần mua hàng qua Noza.site đều là động lực lớn để đội ngũ duy trì website miễn phí!</p>
+        <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+          <a href="https://noza.site" target="_blank" rel="noopener noreferrer" class="btn-shopee-cta" style="max-width: 280px; height: 46px; font-size: 14.5px;">
+            <span>🛒 Ghé Noza.site Săn Deal</span>
+          </a>
+          <button type="button" onclick="switchSupportTab(2)" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 24px; height: 46px; border-radius: 9999px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5); color: #60a5fa; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14.5px; cursor: pointer; transition: all 0.2s ease;">
+            <span>💸 Donate Qua RutXu</span>
+          </button>
+        </div>
       </div>
 
     </div>
@@ -1036,9 +1087,42 @@
     </div>
   </footer>
 
-
+  <!-- SCRIPT SWITCH TABS & RUTXU CLAIM -->
   <script>
+    function switchSupportTab(tabIndex) {
+      var btn1 = document.getElementById('btn-tab-1');
+      var btn2 = document.getElementById('btn-tab-2');
+      var pane1 = document.getElementById('tab-content-1');
+      var pane2 = document.getElementById('tab-content-2');
+
+      if (tabIndex === 1) {
+        if (btn1) btn1.classList.add('active');
+        if (btn2) btn2.classList.remove('active');
+        if (pane1) pane1.style.display = 'block';
+        if (pane2) pane2.style.display = 'none';
+        try { history.replaceState(null, null, '#cach-1-noza'); } catch(_) {}
+      } else {
+        if (btn1) btn1.classList.remove('active');
+        if (btn2) btn2.classList.add('active');
+        if (pane1) pane1.style.display = 'none';
+        if (pane2) pane2.style.display = 'block';
+        try { history.replaceState(null, null, '#cach-2-rutxu'); } catch(_) {}
+      }
+    }
+
     (function() {
+      // Tab switcher event listeners
+      var btn1 = document.getElementById('btn-tab-1');
+      var btn2 = document.getElementById('btn-tab-2');
+      if (btn1) btn1.addEventListener('click', function() { switchSupportTab(1); });
+      if (btn2) btn2.addEventListener('click', function() { switchSupportTab(2); });
+
+      // Auto switch if hash matches
+      if (window.location.hash.indexOf('rutxu') !== -1 || window.location.hash.indexOf('cach-2') !== -1) {
+        switchSupportTab(2);
+      }
+
+      // Copy Wallet and Claim logic
       var resultEl = document.getElementById('result');
       var btn = document.getElementById('submitBtn');
       var input = document.getElementById('refInput');
