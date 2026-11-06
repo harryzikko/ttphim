@@ -825,6 +825,12 @@
               <span class="material-symbols-outlined text-[20px]">bookmark</span>
             </a>
           </div>
+          ${user.role === 'admin' ? `
+            <a href="/admin" class="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl bg-primary-container/20 text-primary-fixed-dim hover:bg-primary-container/30 transition-colors font-bold text-xs mt-2 border border-primary-container/30">
+              <span class="material-symbols-outlined text-[18px] text-primary">admin_panel_settings</span>
+              <span>Trang Quản Trị Admin</span>
+            </a>
+          ` : ''}
         `;
       }
     } catch(e) {}
