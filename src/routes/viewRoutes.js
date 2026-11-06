@@ -316,6 +316,16 @@ router.get('/quoc-gia/:slug', (req, res) => res.redirect(`/kham-pha?country=${re
 router.get('/bang-xep-hang', (req, res) => res.redirect('/#bang-xep-hang'));
 
 // Public information pages are static and available in every device/view mode.
+// "Cứu tui chén cơm" - Support CineViet via noza.site
+router.get(['/ung-ho', '/cuu-tui-chen-com', '/ung-ho.html', '/cuu-tui-chen-com.html'], async (req, res, next) => {
+  try {
+    const rawHtml = await fs.readFile(publicFile('ung-ho.html'), 'utf8');
+    const settings = await dbService.getSettings();
+    res.set('Cache-Control', 'no-cache');
+    res.send(bannerService.decorate(rawHtml, settings));
+  } catch (err) { next(err); }
+});
+
 for (const slug of ['gioi-thieu', 'tro-giup', 'lien-he', 'dieu-khoan', 'quyen-rieng-tu', 'ban-quyen']) {
   router.get(`/${slug}`, async (req, res, next) => {
     try {
