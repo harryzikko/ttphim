@@ -291,6 +291,7 @@ async function handleWatchView(req, res) {
     } catch (_) {}
 
     const rendered = templateService.renderWatch(rawHtml, movieData, epSlug, comments, requestedServerIdx);
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.send(await decorateWatch(rendered));
   } catch (err) {
     console.error('Error rendering watch view:', err);

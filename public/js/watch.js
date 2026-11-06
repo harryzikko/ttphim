@@ -180,24 +180,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Mobile Orientation Fullscreen Sync:
   // - Turning phone to landscape (xoay ngang) -> enters fullscreen
   // - Turning phone to portrait (xoay dọc) -> exits fullscreen immediately so user can choose episodes!
-  let lastOrientationState = (window.innerHeight > window.innerWidth) ? 'portrait' : 'landscape';
-  let manualFullscreenToggleTime = 0;
+  function checkIsPortrait() {
+    if (typeof window.orientation !== 'undefined') {
+      return window.orientation === 0 || window.orientation === 180;
+    }
+    if (window.matchMedia) {
+      return window.matchMedia('(orientation: portrait)').matches;
+    }
+    if (window.screen?.orientation?.type) {
+      return window.screen.orientation.type.includes('portrait');
+    }
+    return window.innerHeight > window.innerWidth;
+  }
+
+  let lastKnownOrientation = checkIsPortrait() ? 'portrait' : 'landscape';
 
   function syncMobileOrientationFullscreen() {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (!isMobile) return;
 
-    // Ignore events for 1000ms after user manually clicked buttons
-    if (Date.now() - manualFullscreenToggleTime < 1000) return;
-
-    const isPortrait = (window.innerHeight > window.innerWidth);
+    const isPortrait = checkIsPortrait();
     const currentOrientation = isPortrait ? 'portrait' : 'landscape';
 
-    if (currentOrientation === lastOrientationState) return;
-    const prev = lastOrientationState;
-    lastOrientationState = currentOrientation;
+    if (currentOrientation === lastKnownOrientation) return;
+    lastKnownOrientation = currentOrientation;
 
-    if (currentOrientation === 'portrait' && prev === 'landscape') {
+    if (currentOrientation === 'portrait') {
       // User physically turned phone to portrait (xoay dọc)!
       // Exit fullscreen immediately so user can pick another episode!
       if (document.fullscreenElement) {
@@ -208,7 +216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (viewport?.classList.contains('w-web-fullscreen')) {
         toggleWebFullscreen(false);
       }
-    } else if (currentOrientation === 'landscape' && prev === 'portrait') {
+    } else if (currentOrientation === 'landscape') {
       // User physically turned phone to landscape (xoay ngang)!
       // Auto enter web fullscreen for immersive watching experience!
       if (!viewport?.classList.contains('w-web-fullscreen')) {
@@ -217,20 +225,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  const mqlPortrait = window.matchMedia('(orientation: portrait)');
-  if (mqlPortrait?.addEventListener) {
-    mqlPortrait.addEventListener('change', () => {
-      setTimeout(syncMobileOrientationFullscreen, 100);
-      setTimeout(syncMobileOrientationFullscreen, 350);
-    });
-  }
   window.addEventListener('orientationchange', () => {
-    setTimeout(syncMobileOrientationFullscreen, 100);
-    setTimeout(syncMobileOrientationFullscreen, 350);
+    setTimeout(syncMobileOrientationFullscreen, 50);
+    setTimeout(syncMobileOrientationFullscreen, 200);
+    setTimeout(syncMobileOrientationFullscreen, 400);
   });
+
+  const mqlPortrait = window.matchMedia ? window.matchMedia('(orientation: portrait)') : null;
+  if (mqlPortrait) {
+    if (mqlPortrait.addEventListener) {
+      mqlPortrait.addEventListener('change', () => {
+        setTimeout(syncMobileOrientationFullscreen, 50);
+        setTimeout(syncMobileOrientationFullscreen, 200);
+      });
+    } else if (mqlPortrait.addListener) {
+      mqlPortrait.addListener(() => {
+        setTimeout(syncMobileOrientationFullscreen, 50);
+        setTimeout(syncMobileOrientationFullscreen, 200);
+      });
+    }
+  }
+
   window.addEventListener('resize', () => {
     setTimeout(syncMobileOrientationFullscreen, 100);
-    setTimeout(syncMobileOrientationFullscreen, 350);
+    setTimeout(syncMobileOrientationFullscreen, 300);
   });
 
   // Helper: Extract m3u8 from embed URL
