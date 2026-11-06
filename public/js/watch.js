@@ -80,6 +80,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   function syncFullscreenUI() {
     const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    if (!isFs) {
+      try {
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+      } catch (_) {}
+    }
     const embedFsBtn = viewport?.querySelector('#btn-embed-fs');
     if (embedFsBtn) {
       const textSpan = embedFsBtn.querySelector('span:last-child');
@@ -741,6 +748,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         } catch (_) {}
         if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && video && video.webkitEnterFullscreen) {
+          video.play().catch(() => {});
           video.webkitEnterFullscreen();
           return;
         }
@@ -1440,6 +1448,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
     fsBtn.onclick = () => {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      // Lock screen orientation to landscape on devices supporting ScreenOrientation API (Android, etc.)
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      } catch (_) {}
+
+      // On iOS (iPhone/iPad): Must trigger native video.webkitEnterFullscreen synchronously within user gesture
+      // This completely hides Safari bottom navigation bar / URL bar and forces native landscape full screen!
+      if (isIOS) {
+        try {
+          const innerDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+          const innerVideo = innerDoc?.querySelector('video');
+          if (innerVideo && innerVideo.webkitEnterFullscreen) {
+            innerVideo.play().catch(() => {});
+            innerVideo.webkitEnterFullscreen();
+            return;
+          }
+        } catch (_) {}
+      }
+
       if (!isMobile) {
         if (!document.fullscreenElement && !document.webkitFullscreenElement) {
           if (viewport.requestFullscreen) {
@@ -1454,10 +1485,24 @@ document.addEventListener('DOMContentLoaded', async () => {
           else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         }
       } else {
-        if (iframe && iframe.contentWindow) {
-          iframe.contentWindow.postMessage({ type: 'request-fullscreen' }, '*');
+        // Mobile Android or fallback when webkitEnterFullscreen is unavailable
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          if (container.requestFullscreen) {
+            container.requestFullscreen().catch(() => toggleWebFullscreen(true));
+          } else if (viewport.requestFullscreen) {
+            viewport.requestFullscreen().catch(() => toggleWebFullscreen(true));
+          } else {
+            toggleWebFullscreen(true);
+          }
+        } else {
+          if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+          else toggleWebFullscreen(false);
         }
-        toggleWebFullscreen();
+        if (iframe && iframe.contentWindow) {
+          try {
+            iframe.contentWindow.postMessage({ type: 'request-fullscreen' }, '*');
+          } catch (_) {}
+        }
       }
     };
     quickBar.appendChild(fsBtn);

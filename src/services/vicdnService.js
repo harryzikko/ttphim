@@ -435,7 +435,7 @@ class ViCDNService {
           name: num,
           slug: `tap-${num}`,
           filename: `Tập ${num}`,
-          link_embed: isVicdn ? `https://vicdn.cc/${videoId}` : url,
+          link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
           link_m3u8: ''
         };
       });
@@ -504,7 +504,7 @@ class ViCDNService {
         name: num,
         slug: `tap-${num}`,
         filename: `Tập ${num}`,
-        link_embed: isVicdn ? `https://vicdn.cc/${videoId}` : url,
+        link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
         link_m3u8: ''
       };
     });

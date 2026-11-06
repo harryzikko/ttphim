@@ -57,3 +57,5 @@ mobile_app/ios/.symlinks/
 
 public/downloads/*.apk
 public/downloads/*.ipa
+
+scratch/

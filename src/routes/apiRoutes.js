@@ -90,9 +90,12 @@ router.get('/stream/vicdn/:videoId/:lang.vtt', async (req, res) => {
 });
 
 router.get('/stream/vicdn/segment', async (req, res) => {
-  const target = req.query.url;
+  let target = req.query.url;
   if (!target || (!target.includes('.vicdn.cc') && !target.includes('pages.dev'))) {
     return res.status(400).send('Invalid url');
+  }
+  if (!target.startsWith('http://') && !target.startsWith('https://')) {
+    target = 'https://' + target;
   }
   try {
     const upstream = await fetch(target, {
@@ -100,7 +103,7 @@ router.get('/stream/vicdn/segment', async (req, res) => {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Referer': 'https://vicdn.cc/'
       },
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(12000)
     });
     if (!upstream.ok) return res.status(upstream.status).send('Upstream error');
     res.set('Content-Type', 'video/mp4');
@@ -109,6 +112,7 @@ router.get('/stream/vicdn/segment', async (req, res) => {
     const { Readable } = require('stream');
     Readable.fromWeb(upstream.body).pipe(res);
   } catch (err) {
+    console.warn('[Segment Proxy] Error fetching segment:', target, err.message);
     res.status(502).send('Gateway timeout');
   }
 });

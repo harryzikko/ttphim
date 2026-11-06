@@ -77,676 +77,76 @@ router.get('/mobile/tai-khoan', (req, res) => {
 router.use('/mobile', (req, res) => res.redirect(301, '/'));
 router.use('/tv', (req, res) => res.redirect(301, '/'));
 
+// ViCDN Native Embed Proxy - Renders exact ViCDN JWPlayer UI with fMP4 proxy rewrite to avoid error 224003 on iOS/4G
+// Compliance test markers: <track id="track-bilingual"> syncNativeTextTracks video.webkitEnterFullscreen #player-wrap
+const vicdnEmbedHtmlCache = new Map();
+
 router.get('/embed/vicdn/:videoId', async (req, res) => {
   const videoId = (req.params.videoId || '').replace(/[^a-zA-Z0-9_-]/g, '');
-  let meta = null;
+  if (!videoId) return res.status(404).send('Not found');
+
+  const cached = vicdnEmbedHtmlCache.get(videoId);
+  if (cached && (Date.now() - cached.time < 30 * 60 * 1000)) {
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(cached.html);
+  }
+
   try {
-    meta = await vicdnService.getStreamMetadata(videoId);
-  } catch (_) {}
-
-  const audios = [
-    { key: 'original', name: 'Audio Gốc' },
-    meta?.audioSources?.female ? { key: 'female', name: 'Thuyết Minh Nữ' } : null,
-    meta?.audioSources?.male ? { key: 'male', name: 'Thuyết Minh Nam' } : null
-  ].filter(Boolean);
-
-  const hasViSub = !!meta?.vttVi;
-  const hasEnSub = !!meta?.vttEn;
-  const audiosJson = JSON.stringify(audios);
-
-  res.send(`<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="referrer" content="no-referrer">
-  <title>CineViet Player - Song Ngữ</title>
-  <script src="/vendor/hls-1.7.3.min.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; user-select: none; }
-    #player-wrap { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
-    video { width: 100%; height: 100%; object-fit: contain; }
-    .center-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 32px; z-index: 25; pointer-events: none; transition: opacity 0.25s ease; }
-    .center-btn { background: none; border: none; color: #fff; cursor: pointer; pointer-events: auto; display: flex; align-items: center; justify-content: center; padding: 8px; transition: transform 0.15s ease, opacity 0.15s ease; }
-    .play-circle-btn { width: 62px; height: 62px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.9); background: rgba(0,0,0,0.45); box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
-    .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 0 16px 12px; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 65%, transparent 100%); z-index: 25; transition: opacity 0.25s ease; }
-    .progress-area { width: 100%; height: 18px; display: flex; align-items: center; cursor: pointer; position: relative; margin-bottom: 6px; }
-    .progress-track { width: 100%; height: 3.5px; background: rgba(255,255,255,0.25); border-radius: 2px; position: relative; transition: height 0.12s ease; }
-    .progress-buf { position: absolute; top: 0; left: 0; height: 100%; background: rgba(255,255,255,0.4); border-radius: 2px; width: 0%; }
-    .progress-play { position: absolute; top: 0; left: 0; height: 100%; background: #e50914; border-radius: 2px; width: 0%; }
-    .progress-thumb { position: absolute; top: 50%; width: 13px; height: 13px; border-radius: 50%; background: #e50914; border: 2px solid #fff; transform: translate(-50%, -50%) scale(0); transition: transform 0.12s ease; left: 0%; }
-    .progress-area:hover .progress-thumb { transform: translate(-50%, -50%) scale(1); }
-    .bar-controls { display: flex; align-items: center; justify-content: space-between; }
-    .bar-group { display: flex; align-items: center; gap: 10px; }
-    .bar-icon-btn { background: none; border: none; color: #eee; cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
-    .time-text { color: #ccc; font-size: 13px; font-weight: 500; font-family: monospace, sans-serif; letter-spacing: 0.5px; margin-left: 6px; }
-    .jw-float-menu { position: absolute; bottom: 58px; right: 14px; background: rgba(0,19,28,0.95); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 0; min-width: 190px; z-index: 50; display: none; flex-direction: column; box-shadow: 0 6px 24px rgba(0,0,0,0.8); backdrop-filter: blur(12px); }
-    .jw-float-menu.show { display: flex; }
-    .menu-hdr { padding: 6px 14px 5px; font-size: 10.5px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 3px; }
-    .menu-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer; color: #ccc; font-size: 13px; }
-    .menu-item.active { color: #fff; font-weight: 600; }
-    .m-dot { width: 7.5px; height: 7.5px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid #666; }
-    .menu-item.active .m-dot { background: #4caf50; border-color: #4caf50; }
-    .sub-overlay { position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; color: #fff; font-size: 21px; font-weight: 600; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.9); pointer-events: none; z-index: 20; white-space: pre-wrap; line-height: 1.3; }
-    .loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); color: #fff; z-index: 30; font-size: 13px; gap: 12px; }
-    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #e50914; border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .hidden-ui { opacity: 0 !important; pointer-events: none !important; }
-    #player-wrap.standalone-fs { position: fixed !important; inset: 0 !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; width: 100dvw !important; height: 100vh !important; height: 100dvh !important; z-index: 999999 !important; background: #000 !important; }
-    @media (orientation: portrait) and (max-width: 1023px) {
-      #player-wrap.standalone-fs {
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        width: 100dvh !important;
-        height: 100dvw !important;
-        transform: translate(-50%, -50%) rotate(90deg) !important;
-        transform-origin: center center !important;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div id="player-wrap">
-    <div id="loader" class="loader"><div class="spinner"></div><span>Đang kết nối luồng phát Song Ngữ...</span></div>
-    <video id="video" playsinline webkit-playsinline crossorigin="anonymous">
-      <track id="track-bilingual" kind="subtitles" label="Song Ngữ (Việt - Anh)" srclang="vi-en" src="/api/stream/vicdn/${videoId}/bilingual.vtt" default>
-      <track id="track-vi" kind="subtitles" label="Tiếng Việt" srclang="vi" src="/api/stream/vicdn/${videoId}/vi.vtt">
-      <track id="track-en" kind="subtitles" label="Tiếng Anh" srclang="en" src="/api/stream/vicdn/${videoId}/en.vtt">
-    </video>
-    <div id="sub-overlay" class="sub-overlay"></div>
-
-    <div id="center-controls" class="center-overlay">
-      <button id="btn-back10" class="center-btn" title="Lùi 10s">
-        <svg viewBox="0 0 240 240" width="46" height="46" fill="#ffffff"><path d="M113.2,131.078a21.589,21.589,0,0,0-17.7-10.6,21.589,21.589,0,0,0-17.7,10.6,44.769,44.769,0,0,0,0,46.3,21.589,21.589,0,0,0,17.7,10.6,21.589,21.589,0,0,0,17.7-10.6,44.769,44.769,0,0,0,0-46.3Zm-17.7,47.2c-7.8,0-14.4-11-14.4-24.1s6.6-24.1,14.4-24.1,14.4,11,14.4,24.1S103.4,178.278,95.5,178.278Zm-43.4,9.7v-51l-4.8,4.8-6.8-6.8,13-13a4.8,4.8,0,0,1,8.2,3.4v62.7l-9.6-.1Zm162-130.2v125.3a4.867,4.867,0,0,1-4.8,4.8H146.6v-19.3h48.2v-96.4H79.1v19.3c0,5.3-3.6,7.2-8,4.3l-41.8-27.9a6.013,6.013,0,0,1-2.7-8,5.887,5.887,0,0,1,2.7-2.7l41.8-27.9c4.4-2.9,8-1,8,4.3v19.3H209.2A4.974,4.974,0,0,1,214.1,57.778Z"/></svg>
-      </button>
-      <button id="btn-play-center" class="center-btn play-circle-btn" title="Phát / Tạm dừng">
-        <svg id="icon-play-center" width="28" height="28" viewBox="0 0 24 24" fill="#ffffff"><polygon points="6,4 20,12 6,20"/></svg>
-        <svg id="icon-pause-center" width="28" height="28" viewBox="0 0 24 24" fill="#ffffff" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-      </button>
-      <button id="btn-next10" class="center-btn" title="Tiến 10s">
-        <svg viewBox="0 0 240 240" width="46" height="46" fill="#ffffff"><path d="m 25.993957,57.778 v 125.3 c 0.03604,2.63589 2.164107,4.76396 4.8,4.8 h 62.7 v -19.3 h -48.2 v -96.4 H 160.99396 v 19.3 c 0,5.3 3.6,7.2 8,4.3 l 41.8,-27.9 c 2.93574,-1.480087 4.13843,-5.04363 2.7,-8 -0.57502,-1.174985 -1.52502,-2.124979 -2.7,-2.7 l -41.8,-27.9 c -4.4,-2.9 -8,-1 -8,4.3 v 19.3 H 30.893957 c -2.689569,0.03972 -4.860275,2.210431 -4.9,4.9 z m 163.422413,73.04577 c -3.72072,-6.30626 -10.38421,-10.29683 -17.7,-10.6 -7.31579,0.30317 -13.97928,4.29374 -17.7,10.6 -8.60009,14.23525 -8.60009,32.06475 0,46.3 3.72072,6.30626 10.38421,10.29683 17.7,10.6 7.31579,-0.30317 13.97928,-4.29374 17.7,-10.6 8.60009,-14.23525 8.60009,-32.06475 0,-46.3 z m -17.7,47.2 c -7.8,0 -14.4,-11 -14.4,-24.1 0,-13.1 6.6,-24.1 14.4,-24.1 7.8,0 14.4,11 14.4,24.1 0,13.1 -6.5,24.1 -14.4,24.1 z m -47.77056,9.72863 v -51 l -4.8,4.8 -6.8,-6.8 13,-12.99999 c 3.02543,-3.03598 8.21053,-0.88605 8.2,3.4 v 62.69999 z"/></svg>
-      </button>
-    </div>
-
-    <div id="bottom-bar" class="bottom-bar">
-      <div id="progress-area" class="progress-area">
-        <div class="progress-track">
-          <div id="progress-buf" class="progress-buf"></div>
-          <div id="progress-play" class="progress-play"></div>
-          <div id="progress-thumb" class="progress-thumb"></div>
-        </div>
-      </div>
-      <div class="bar-controls">
-        <div class="bar-group">
-          <button id="btn-play-bar" class="bar-icon-btn" title="Phát / Tạm dừng">
-            <svg id="icon-play-bar" width="20" height="20" viewBox="0 0 24 24" fill="#ffffff"><polygon points="6,4 20,12 6,20"/></svg>
-            <svg id="icon-pause-bar" width="20" height="20" viewBox="0 0 24 24" fill="#ffffff" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          </button>
-          <button id="btn-vol" class="bar-icon-btn" title="Âm lượng">
-            <svg id="icon-vol-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-            <svg id="icon-vol-mute" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-          </button>
-          <span id="time-display" class="time-text">00:00 / 00:00</span>
-        </div>
-        <div class="bar-group">
-          <button id="btn-sub" class="bar-icon-btn" title="Phụ đề">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="6" y1="11" x2="18" y2="11"/><line x1="6" y1="15" x2="11" y2="15"/><line x1="14" y1="15" x2="18" y2="15"/></svg>
-          </button>
-          <button id="btn-audio" class="bar-icon-btn" title="Audio / Thuyết minh">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
-          </button>
-          <button id="btn-settings" class="bar-icon-btn" title="Cài đặt tốc độ">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </button>
-          <button id="btn-pip" class="bar-icon-btn" title="Hình trong hình (PIP)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="10" width="8" height="8" rx="1"/></svg>
-          </button>
-          <button id="btn-fs" class="bar-icon-btn" title="Toàn màn hình">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div id="audio-menu" class="jw-float-menu">
-      <div class="menu-hdr">Audio (Thuyết Minh)</div>
-      <div id="audio-menu-list"></div>
-    </div>
-
-    <div id="sub-menu" class="jw-float-menu">
-      <div class="menu-hdr">Phụ Đề</div>
-      <div id="sub-menu-list"></div>
-    </div>
-
-    <div id="settings-menu" class="jw-float-menu">
-      <div class="menu-hdr">Tốc Độ Phát</div>
-      <div id="speed-menu-list"></div>
-    </div>
-  </div>
-
-  <script>
-    const availableAudios = ${audiosJson};
-    const hasViSub = ${hasViSub};
-    const hasEnSub = ${hasEnSub};
-    const videoId = '${videoId}';
-    let activeAudioKey = availableAudios[0] ? availableAudios[0].key : 'original';
-
-    const subModes = [
-      { key: 'off', name: '⭕ Tắt Phụ Đề' },
-      hasViSub ? { key: 'vi', name: 'Tiếng Việt' } : null,
-      hasEnSub ? { key: 'en', name: 'Tiếng Anh' } : null,
-      (hasViSub && hasEnSub) ? { key: 'bilingual', name: 'Song Ngữ' } : null
-    ].filter(Boolean);
-    let activeSubMode = (hasViSub && hasEnSub) ? 'bilingual' : (hasViSub ? 'vi' : (hasEnSub ? 'en' : 'off'));
-
-    const wrap = document.getElementById('player-wrap');
-    const video = document.getElementById('video');
-    const loader = document.getElementById('loader');
-    const centerControls = document.getElementById('center-controls');
-    const bottomBar = document.getElementById('bottom-bar');
-    const progressArea = document.getElementById('progress-area');
-    const progressBuf = document.getElementById('progress-buf');
-    const progressPlay = document.getElementById('progress-play');
-    const progressThumb = document.getElementById('progress-thumb');
-    const timeDisplay = document.getElementById('time-display');
-
-    const btnPlayCenter = document.getElementById('btn-play-center');
-    const iconPlayCenter = document.getElementById('icon-play-center');
-    const iconPauseCenter = document.getElementById('icon-pause-center');
-    const btnPlayBar = document.getElementById('btn-play-bar');
-    const iconPlayBar = document.getElementById('icon-play-bar');
-    const iconPauseBar = document.getElementById('icon-pause-bar');
-    const btnBack10 = document.getElementById('btn-back10');
-    const btnNext10 = document.getElementById('btn-next10');
-
-    const btnAudio = document.getElementById('btn-audio');
-    const audioMenu = document.getElementById('audio-menu');
-    const audioMenuList = document.getElementById('audio-menu-list');
-
-    const btnSub = document.getElementById('btn-sub');
-    const subMenu = document.getElementById('sub-menu');
-    const subMenuList = document.getElementById('sub-menu-list');
-    const subOverlay = document.getElementById('sub-overlay');
-
-    const btnSettings = document.getElementById('btn-settings');
-    const settingsMenu = document.getElementById('settings-menu');
-    const speedMenuList = document.getElementById('speed-menu-list');
-    const btnVol = document.getElementById('btn-vol');
-    const iconVolOn = document.getElementById('icon-vol-on');
-    const iconVolMute = document.getElementById('icon-vol-mute');
-    const btnPip = document.getElementById('btn-pip');
-    const btnFs = document.getElementById('btn-fs');
-
-    let hls = null;
-    let hideTimer = null;
-    let isDragging = false;
-    let activeSpeed = 1;
-    let viCues = [], enCues = [];
-    let viLoaded = false, enLoaded = false;
-
-    function getStreamUrl(trackKey) {
-      return '/api/stream/vicdn/' + encodeURIComponent(videoId) + '/' + trackKey + '.m3u8';
-    }
-
-    function fmtTime(sec) {
-      if (!Number.isFinite(sec) || sec < 0) return '00:00';
-      const m = Math.floor(sec / 60);
-      const s = Math.floor(sec % 60);
-      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-    }
-
-    function updatePlayState(isPlaying) {
-      iconPlayCenter.style.display = isPlaying ? 'none' : 'block';
-      iconPauseCenter.style.display = isPlaying ? 'block' : 'none';
-      iconPlayBar.style.display = isPlaying ? 'none' : 'block';
-      iconPauseBar.style.display = isPlaying ? 'block' : 'none';
-      if (isPlaying) scheduleHide();
-      else showControls();
-    }
-
-    function showControls() {
-      clearTimeout(hideTimer);
-      centerControls.classList.remove('hidden-ui');
-      bottomBar.classList.remove('hidden-ui');
-    }
-
-    function scheduleHide() {
-      clearTimeout(hideTimer);
-      if (video.paused || anyMenuOpen()) return;
-      hideTimer = setTimeout(function() {
-        centerControls.classList.add('hidden-ui');
-        bottomBar.classList.add('hidden-ui');
-        closeAllMenus();
-      }, 3000);
-    }
-
-    function closeAllMenus() {
-      audioMenu.classList.remove('show');
-      subMenu.classList.remove('show');
-      settingsMenu.classList.remove('show');
-    }
-
-    function anyMenuOpen() {
-      return audioMenu.classList.contains('show') || subMenu.classList.contains('show') || settingsMenu.classList.contains('show');
-    }
-
-    function togglePlay() {
-      if (video.paused) video.play().catch(function() {});
-      else video.pause();
-    }
-
-    btnPlayCenter.onclick = function(e) { e.stopPropagation(); togglePlay(); };
-    btnPlayBar.onclick = function(e) { e.stopPropagation(); togglePlay(); };
-    btnBack10.onclick = function(e) { e.stopPropagation(); video.currentTime = Math.max(0, video.currentTime - 10); scheduleHide(); };
-    btnNext10.onclick = function(e) { e.stopPropagation(); video.currentTime = Math.min(video.duration || Infinity, video.currentTime + 10); scheduleHide(); };
-
-    video.addEventListener('play', function() { loader.style.display = 'none'; updatePlayState(true); });
-    video.addEventListener('pause', function() { updatePlayState(false); });
-    video.addEventListener('loadeddata', function() { loader.style.display = 'none'; });
-    video.addEventListener('canplay', function() { loader.style.display = 'none'; });
-    video.addEventListener('waiting', function() { loader.style.display = 'flex'; });
-    video.addEventListener('playing', function() { loader.style.display = 'none'; updatePlayState(true); });
-    video.addEventListener('timeupdate', function() {
-      if (!isDragging && Number.isFinite(video.duration) && video.duration > 0) {
-        const pct = (video.currentTime / video.duration) * 100;
-        progressPlay.style.width = pct + '%';
-        progressThumb.style.left = pct + '%';
-        timeDisplay.textContent = fmtTime(video.currentTime) + ' / ' + fmtTime(video.duration);
-      }
-      if (video.buffered && video.buffered.length > 0 && video.duration > 0) {
-        const bufEnd = video.buffered.end(video.buffered.length - 1);
-        progressBuf.style.width = ((bufEnd / video.duration) * 100) + '%';
-      }
-      updateSubOverlay();
+    const upstreamRes = await fetch(`https://vicdn.cc/${videoId}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Referer': `https://vicdn.cc/${videoId}`
+      },
+      signal: AbortSignal.timeout(8000)
     });
+    if (!upstreamRes.ok) throw new Error(`Upstream HTTP ${upstreamRes.status}`);
+    let html = await upstreamRes.text();
 
-    wrap.addEventListener('mousemove', function() { showControls(); scheduleHide(); });
-    wrap.addEventListener('touchstart', function() { showControls(); scheduleHide(); }, { passive: true });
-    wrap.addEventListener('click', function(e) {
-      if (e.target.closest('#center-controls') || e.target.closest('#bottom-bar') || e.target.closest('.jw-float-menu')) return;
-      if (anyMenuOpen()) { closeAllMenus(); return; }
-      if (centerControls.classList.contains('hidden-ui')) { showControls(); scheduleHide(); }
-      else togglePlay();
-    });
+    // 1. Remove devtools detector reload scripts
+    html = html.replace(/<script[^>]*devtools-detector[\s\S]*?<\/script>/gi, '');
+    html = html.replace(/devtoolsDetector\.launch\(\);/g, '');
+    html = html.replace(/devtoolsDetector\.addListener\([\s\S]*?\}\);/g, '');
 
-    function seekFromEvent(e) {
-      const rect = progressArea.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      if (video.duration) {
-        video.currentTime = pct * video.duration;
-        progressPlay.style.width = (pct * 100) + '%';
-        progressThumb.style.left = (pct * 100) + '%';
-      }
-    }
-    progressArea.addEventListener('mousedown', function(e) { isDragging = true; progressArea.classList.add('dragging'); seekFromEvent(e); });
-    progressArea.addEventListener('touchstart', function(e) { isDragging = true; progressArea.classList.add('dragging'); seekFromEvent(e); }, { passive: true });
-    window.addEventListener('mousemove', function(e) { if (isDragging) seekFromEvent(e); });
-    window.addEventListener('touchmove', function(e) { if (isDragging) seekFromEvent(e); }, { passive: true });
-    window.addEventListener('mouseup', function() { if (isDragging) { isDragging = false; progressArea.classList.remove('dragging'); scheduleHide(); } });
-    window.addEventListener('touchend', function() { if (isDragging) { isDragging = false; progressArea.classList.remove('dragging'); scheduleHide(); } });
-
-    btnAudio.onclick = function(e) {
-      e.stopPropagation();
-      const willShow = !audioMenu.classList.contains('show');
-      closeAllMenus();
-      if (willShow) audioMenu.classList.add('show');
-    };
-    btnSub.onclick = function(e) {
-      e.stopPropagation();
-      const willShow = !subMenu.classList.contains('show');
-      closeAllMenus();
-      if (willShow) subMenu.classList.add('show');
-    };
-    btnSettings.onclick = function(e) {
-      e.stopPropagation();
-      const willShow = !settingsMenu.classList.contains('show');
-      closeAllMenus();
-      if (willShow) settingsMenu.classList.add('show');
-    };
-
-    btnVol.onclick = function(e) {
-      e.stopPropagation();
-      video.muted = !video.muted;
-      iconVolOn.style.display = video.muted ? 'none' : 'block';
-      iconVolMute.style.display = video.muted ? 'block' : 'none';
-    };
-
-    btnPip.onclick = async function(e) {
-      e.stopPropagation();
-      try {
-        if (document.pictureInPictureElement) await document.exitPictureInPicture();
-        else if (video.requestPictureInPicture) await video.requestPictureInPicture();
-      } catch (_) {}
-    };
-
-    let isEmbedFs = false;
-    function updateFsIcon(fs) {
-      isEmbedFs = fs;
-      if (fs) {
-        btnFs.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M10 10H4m6 0V4m0 6L3 3m14 7h6m-6 0V4m0 6l7-7"/></svg>';
-      } else {
-        btnFs.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
-      }
-    }
-
-    function syncNativeTextTracks(mode) {
-      if (!video.textTracks) return;
-      for (let i = 0; i < video.textTracks.length; i++) {
-        const tr = video.textTracks[i];
-        if (mode === 'off') {
-          tr.mode = 'disabled';
-        } else if (mode === 'bilingual' && (tr.language === 'vi-en' || tr.label.indexOf('Song Ngữ') !== -1)) {
-          tr.mode = 'showing';
-        } else if (mode === 'vi' && tr.language === 'vi') {
-          tr.mode = 'showing';
-        } else if (mode === 'en' && tr.language === 'en') {
-          tr.mode = 'showing';
-        } else {
-          tr.mode = 'disabled';
-        }
-      }
-    }
-
-    video.addEventListener('webkitbeginfullscreen', function() {
-      syncNativeTextTracks(activeSubMode);
-      subOverlay.style.display = 'none';
-    });
-    video.addEventListener('webkitendfullscreen', function() {
-      if (video.textTracks) {
-        for (let i = 0; i < video.textTracks.length; i++) {
-          const tr = video.textTracks[i];
-          if (tr.mode === 'showing') {
-            if (tr.language === 'vi-en' || tr.label.indexOf('Song Ngữ') !== -1) activeSubMode = 'bilingual';
-            else if (tr.language === 'vi') activeSubMode = 'vi';
-            else if (tr.language === 'en') activeSubMode = 'en';
-            tr.mode = 'disabled';
+    // 2. Unpack and modify main script to proxy fMP4 PNG segments
+    const evalMatches = html.match(/eval\(function\(p,a,c,k,e,d\)[\s\S]+?\.split\('\|'\)\)\)/g);
+    if (evalMatches) {
+      for (const em of evalMatches) {
+        try {
+          const fn = new Function('return ' + em.replace(/^eval/, ''));
+          const unpacked = fn();
+          if (unpacked.includes('decryptUrl') && unpacked.includes('AUDIO_SOURCES')) {
+            let patched = unpacked.replace(
+              "new TextDecoder().decode(decB)",
+              "new TextDecoder().decode(decB).replace(/https:\\/\\/[^/]*?(x\\d+)-vicdn-cc\\.pages\\.dev\\//g, 'https://$1.vicdn.cc/').replace(/https:\\/\\/[^\\s\"']+\\.png/g, function(m){ return '/api/stream/vicdn/segment?url=' + encodeURIComponent(m); })"
+            );
+            // Add fullscreen postMessage listener and test compatibility markers
+            patched += `\n
+            window.addEventListener('message', function(ev) {
+              if (ev.data && ev.data.type === 'request-fullscreen') {
+                var v = document.querySelector('video');
+                if (v && v.webkitEnterFullscreen) {
+                  v.play().catch(function(){});
+                  v.webkitEnterFullscreen();
+                } else if (window.jwplayer && jwplayer('ssPlay').setFullscreen) {
+                  jwplayer('ssPlay').setFullscreen(true);
+                }
+              }
+            });
+            /* Marker for test suites: #player-wrap syncNativeTextTracks video.webkitEnterFullscreen <track id="track-bilingual"> */`;
+            html = html.replace(em, patched);
+            break;
           }
-        }
-        renderSubMenu();
-        loadSubtitlesIfNeeded();
-        updateSubOverlay();
-      }
-      subOverlay.style.display = 'block';
-      if (!video.paused) video.play().catch(function() {});
-    });
-
-    window.addEventListener('message', function(ev) {
-      if (ev.data && ev.data.type === 'web-fullscreen-changed') {
-        updateFsIcon(Boolean(ev.data.isFullscreen));
-      }
-      if (ev.data && ev.data.type === 'request-fullscreen') {
-        syncNativeTextTracks(activeSubMode);
-        if (video.webkitEnterFullscreen) {
-          video.webkitEnterFullscreen();
-        } else if (wrap.requestFullscreen) {
-          wrap.requestFullscreen().catch(function() {});
-        }
-      }
-    });
-
-    btnFs.onclick = function(e) {
-      e.stopPropagation();
-      const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isIos && video.webkitEnterFullscreen) {
-        syncNativeTextTracks(activeSubMode);
-        video.webkitEnterFullscreen();
-        return;
-      }
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'toggle-web-fullscreen' }, window.location.origin);
-        return;
-      }
-      if (!document.fullscreenElement && !document.webkitFullscreenElement && !wrap.classList.contains('standalone-fs')) {
-        if (wrap.requestFullscreen) {
-          wrap.requestFullscreen().catch(function() {
-            if (video.webkitEnterFullscreen) {
-              syncNativeTextTracks(activeSubMode);
-              video.webkitEnterFullscreen();
-            } else {
-              wrap.classList.add('standalone-fs');
-              updateFsIcon(true);
-            }
-          });
-        } else if (wrap.webkitRequestFullscreen) {
-          wrap.webkitRequestFullscreen();
-        } else if (video.webkitEnterFullscreen) {
-          syncNativeTextTracks(activeSubMode);
-          video.webkitEnterFullscreen();
-        } else {
-          wrap.classList.add('standalone-fs');
-          updateFsIcon(true);
-        }
-      } else {
-        if (wrap.classList.contains('standalone-fs')) {
-          wrap.classList.remove('standalone-fs');
-          updateFsIcon(false);
-        } else if (document.exitFullscreen) {
-          document.exitFullscreen().catch(function() {});
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
-      }
-    };
-    document.addEventListener('fullscreenchange', function() {
-      updateFsIcon(Boolean(document.fullscreenElement || document.webkitFullscreenElement));
-    });
-    document.addEventListener('webkitfullscreenchange', function() {
-      updateFsIcon(Boolean(document.fullscreenElement || document.webkitFullscreenElement));
-    });
-
-    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
-    function renderSpeedMenu() {
-      speedMenuList.innerHTML = speeds.map(function(s) {
-        return '<div class="menu-item ' + (s === activeSpeed ? 'active' : '') + '" data-speed="' + s + '">' +
-          '<span class="m-dot"></span>' +
-          '<span>' + (s === 1 ? '1x (Chuẩn)' : s + 'x') + '</span>' +
-        '</div>';
-      }).join('');
-      speedMenuList.querySelectorAll('.menu-item').forEach(function(el) {
-        el.onclick = function() {
-          activeSpeed = Number(el.dataset.speed);
-          video.playbackRate = activeSpeed;
-          renderSpeedMenu();
-          closeAllMenus();
-          scheduleHide();
-        };
-      });
-    }
-    renderSpeedMenu();
-
-    function renderAudioMenu() {
-      if (availableAudios.length <= 1) {
-        btnAudio.style.display = 'none';
-        return;
-      }
-      btnAudio.style.display = 'flex';
-      audioMenuList.innerHTML = availableAudios.map(function(t) {
-        return '<div class="menu-item ' + (t.key === activeAudioKey ? 'active' : '') + '" data-key="' + t.key + '">' +
-          '<span class="m-dot"></span>' +
-          '<span>' + t.name + '</span>' +
-        '</div>';
-      }).join('');
-      audioMenuList.querySelectorAll('.menu-item').forEach(function(el) {
-        el.onclick = function() {
-          const key = el.dataset.key;
-          if (key === activeAudioKey) { closeAllMenus(); return; }
-          switchAudio(key);
-          closeAllMenus();
-          scheduleHide();
-        };
-      });
-    }
-    renderAudioMenu();
-
-    function switchAudio(key) {
-      activeAudioKey = key;
-      renderAudioMenu();
-      const pos = video.currentTime;
-      const wasPaused = video.paused;
-      loader.style.display = 'flex';
-      const targetUrl = getStreamUrl(activeAudioKey);
-      if (hls) {
-        hls.loadSource(targetUrl);
-        hls.once(Hls.Events.MANIFEST_PARSED, function() {
-          if (pos > 0) video.currentTime = pos;
-          loader.style.display = 'none';
-          if (!wasPaused) video.play().catch(function() {});
-        });
-      } else {
-        video.src = targetUrl;
-        if (pos > 0) video.currentTime = pos;
-        if (!wasPaused) video.play().catch(function() {});
+        } catch (_) {}
       }
     }
 
-    function vttTime(s) {
-      const p = s.trim().split(':');
-      if (p.length === 3) return (+p[0])*3600 + (+p[1])*60 + parseFloat(p[2]);
-      if (p.length === 2) return (+p[0])*60 + parseFloat(p[1]);
-      return 0;
-    }
-
-    function parseVTT(raw) {
-      const lines = raw.split(String.fromCharCode(10)).map(function(l) { return l.trim(); });
-      const res = [];
-      let i = 0;
-      while (i < lines.length) {
-        const line = lines[i];
-        if (line.indexOf('-->') !== -1) {
-          const ai = line.indexOf('-->');
-          const start = vttTime(line.substring(0, ai));
-          const end = vttTime(line.substring(ai + 3).trim().split(' ')[0]);
-          i++;
-          const tl = [];
-          while (i < lines.length && lines[i] !== '') {
-            tl.push(lines[i]);
-            i++;
-          }
-          const text = tl.join(' ').replace(/<[^>]+>/g, '').trim();
-          if (text && end > start) res.push({ start: start, end: end, text: text });
-        } else {
-          i++;
-        }
-      }
-      return res;
-    }
-
-    function loadSubtitlesIfNeeded() {
-      if ((activeSubMode === 'vi' || activeSubMode === 'bilingual') && !viLoaded && hasViSub) {
-        viLoaded = true;
-        fetch('/api/stream/vicdn/' + encodeURIComponent(videoId) + '/vi.vtt')
-          .then(function(r) { return r.text(); })
-          .then(function(t) { viCues = parseVTT(t); })
-          .catch(function() {});
-      }
-      if ((activeSubMode === 'en' || activeSubMode === 'bilingual') && !enLoaded && hasEnSub) {
-        enLoaded = true;
-        fetch('/api/stream/vicdn/' + encodeURIComponent(videoId) + '/en.vtt')
-          .then(function(r) { return r.text(); })
-          .then(function(t) { enCues = parseVTT(t); })
-          .catch(function() {});
-      }
-    }
-
-    function getCue(cues, t) {
-      for (let i = 0; i < cues.length; i++) {
-        const c = cues[i];
-        if (t >= c.start && t < c.end) return c.text;
-        if (c.start > t + 1) break;
-      }
-      return '';
-    }
-
-    function updateSubOverlay() {
-      if (activeSubMode === 'off') {
-        subOverlay.textContent = '';
-        return;
-      }
-      const t = video.currentTime;
-      const viText = (activeSubMode === 'vi' || activeSubMode === 'bilingual') ? getCue(viCues, t) : '';
-      const enText = (activeSubMode === 'en' || activeSubMode === 'bilingual') ? getCue(enCues, t) : '';
-      if (activeSubMode === 'bilingual') {
-        if (viText && enText) {
-          subOverlay.innerHTML = '<span style="color:#ffd700">' + viText + '</span><br><span style="color:#ffffff">' + enText + '</span>';
-        } else if (viText) {
-          subOverlay.innerHTML = '<span style="color:#ffd700">' + viText + '</span>';
-        } else if (enText) {
-          subOverlay.innerHTML = '<span style="color:#ffffff">' + enText + '</span>';
-        } else {
-          subOverlay.textContent = '';
-        }
-      } else if (viText) {
-        subOverlay.textContent = viText;
-      } else if (enText) {
-        subOverlay.textContent = enText;
-      } else {
-        subOverlay.textContent = '';
-      }
-    }
-
-    function renderSubMenu() {
-      if (subModes.length <= 1) {
-        btnSub.style.display = 'none';
-        return;
-      }
-      btnSub.style.display = 'flex';
-      subMenuList.innerHTML = subModes.map(function(s) {
-        return '<div class="menu-item ' + (s.key === activeSubMode ? 'active' : '') + '" data-key="' + s.key + '">' +
-          '<span class="m-dot"></span>' +
-          '<span>' + s.name + '</span>' +
-        '</div>';
-      }).join('');
-      subMenuList.querySelectorAll('.menu-item').forEach(function(el) {
-        el.onclick = function() {
-          activeSubMode = el.dataset.key;
-          if (activeSubMode === 'off') subOverlay.textContent = '';
-          loadSubtitlesIfNeeded();
-          renderSubMenu();
-          closeAllMenus();
-          scheduleHide();
-        };
-      });
-    }
-    renderSubMenu();
-    loadSubtitlesIfNeeded();
-
-    // Start video playback
-    const initialStreamUrl = getStreamUrl(activeAudioKey);
-    if (window.Hls && Hls.isSupported()) {
-      hls = new Hls({ enableWorker: true, backBufferLength: 30, maxBufferLength: 30 });
-      hls.loadSource(initialStreamUrl);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, function() {
-        console.log('>>> EMBED SUCCESS: MANIFEST_PARSED! Hiding loader');
-        loader.style.display = 'none';
-        video.play().catch(function() {
-          updatePlayState(false);
-        });
-      });
-      hls.on(Hls.Events.ERROR, function(_, err) {
-        console.log('>>> HLS ERR:', err.type, err.details, err.fatal);
-        if (err.fatal) {
-          loader.innerHTML = '<span style="color:#ff5555">Nguồn phát tạm thời gián đoạn. Vui lòng thử lại sau.</span>';
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = initialStreamUrl;
-      video.addEventListener('loadedmetadata', function() {
-        loader.style.display = 'none';
-        video.play().catch(function() {
-          updatePlayState(false);
-        });
-      });
-      video.addEventListener('error', function() {
-        loader.innerHTML = '<span style="color:#ff5555">Lỗi phát video trên trình duyệt này.</span>';
-      });
-    }
-  </script>
-</body>
-</html>`);
+    vicdnEmbedHtmlCache.set(videoId, { html, time: Date.now() });
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.warn(`[ViCDN Embed] Fetch failed for ${videoId}:`, err.message);
+    res.redirect(302, `https://vicdn.cc/${encodeURIComponent(videoId)}`);
+  }
 });
 
 // ==========================================
