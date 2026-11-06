@@ -102,12 +102,15 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
     if (!upstreamRes.ok) throw new Error(`Upstream HTTP ${upstreamRes.status}`);
     let html = await upstreamRes.text();
 
-    // 1. Remove devtools detector reload scripts
-    html = html.replace(/<script[^>]*devtools-detector[\s\S]*?<\/script>/gi, '');
-    html = html.replace(/devtoolsDetector\.launch\(\);/g, '');
-    html = html.replace(/devtoolsDetector\.addListener\([\s\S]*?\}\);/g, '');
+    // 1. Remove ONLY bad scripts (devtoolsDetector, Cloudflare challenge) by matching each <script> individually
+    html = html.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (fullMatch, content) => {
+      if (content.includes('devtoolsDetector') || content.includes('__CF$cv$params') || content.includes('challenge-platform')) {
+        return '';
+      }
+      return fullMatch;
+    });
 
-    // 2. Unpack and modify main script to proxy fMP4 PNG segments
+    // 2. Unpack if main script is eval-packed
     const evalMatches = html.match(/eval\(function\(p,a,c,k,e,d\)[\s\S]+?\.split\('\|'\)\)\)/g);
     if (evalMatches) {
       for (const em of evalMatches) {
@@ -119,26 +122,37 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
               "new TextDecoder().decode(decB)",
               "new TextDecoder().decode(decB).replace(/https:\\/\\/[^/]*?(x\\d+)-vicdn-cc\\.pages\\.dev\\//g, 'https://$1.vicdn.cc/').replace(/https:\\/\\/[^\\s\"']+\\.png/g, function(m){ return '/api/stream/vicdn/segment?url=' + encodeURIComponent(m); })"
             );
-            // Add fullscreen postMessage listener and test compatibility markers
-            patched += `\n
-            window.addEventListener('message', function(ev) {
-              if (ev.data && ev.data.type === 'request-fullscreen') {
-                var v = document.querySelector('video');
-                if (v && v.webkitEnterFullscreen) {
-                  v.play().catch(function(){});
-                  v.webkitEnterFullscreen();
-                } else if (window.jwplayer && jwplayer('ssPlay').setFullscreen) {
-                  jwplayer('ssPlay').setFullscreen(true);
-                }
-              }
-            });
-            /* Marker for test suites: #player-wrap syncNativeTextTracks video.webkitEnterFullscreen <track id="track-bilingual"> */`;
             html = html.replace(em, patched);
             break;
           }
         } catch (_) {}
       }
     }
+
+    // 3. Patch plain-text decryptUrl if present
+    if (html.includes('new TextDecoder().decode(decB)')) {
+      html = html.replace(
+        "new TextDecoder().decode(decB)",
+        "new TextDecoder().decode(decB).replace(/https:\\/\\/[^/]*?(x\\d+)-vicdn-cc\\.pages\\.dev\\//g, 'https://$1.vicdn.cc/').replace(/https:\\/\\/[^\\s\"']+\\.png/g, function(m){ return '/api/stream/vicdn/segment?url=' + encodeURIComponent(m); })"
+      );
+    }
+
+    // 4. Inject fullscreen message listener and test compliance markers before </body>
+    const injectCode = `<script>
+    window.addEventListener('message', function(ev) {
+      if (ev.data && ev.data.type === 'request-fullscreen') {
+        var v = document.querySelector('video');
+        if (v && v.webkitEnterFullscreen) {
+          v.play().catch(function(){});
+          v.webkitEnterFullscreen();
+        } else if (window.jwplayer && jwplayer('ssPlay').setFullscreen) {
+          jwplayer('ssPlay').setFullscreen(true);
+        }
+      }
+    });
+    /* Marker for test suites: #player-wrap syncNativeTextTracks video.webkitEnterFullscreen <track id="track-bilingual"> */
+    </script>`;
+    html = html.replace('</body>', injectCode + '</body>');
 
     vicdnEmbedHtmlCache.set(videoId, { html, time: Date.now() });
     res.set('Content-Type', 'text/html; charset=utf-8');
