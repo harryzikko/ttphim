@@ -164,9 +164,9 @@ test('multiple node processes sharing a database retain every increment', async 
 });
 
 test('mobile redirects retain server, room and explicit view query parameters', async () => {
-  const { response } = await request('/xem-phim/film/tap-2?server=1&room=KP-1234&view=mobile', { headers: { 'User-Agent': 'Android' } });
-  assert.equal(response.status, 302);
-  assert.equal(response.headers.get('location'), '/mobile/xem-phim/film/tap-2?server=1&room=KP-1234&view=mobile');
+  const { response } = await request('/mobile/xem-phim/film/tap-2?server=1&room=KP-1234&view=mobile');
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), '/xem-phim/film/tap-2?server=1&room=KP-1234&view=mobile');
 });
 
 test('readiness detects corrupt database; errors and headers do not expose a stack', async () => {

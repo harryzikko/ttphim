@@ -118,7 +118,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   window.addEventListener('message', (e) => {
-    if (e.data && e.data.type === 'toggle-web-fullscreen') {
+    const iframe = viewport?.querySelector('iframe');
+    if (e.origin === window.location.origin && e.source === iframe?.contentWindow &&
+        e.data && e.data.type === 'toggle-web-fullscreen') {
       toggleWebFullscreen();
     }
   });
@@ -1405,7 +1407,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       <span class="material-symbols-outlined text-[16px]">${isNowFs ? 'fullscreen_exit' : 'aspect_ratio'}</span>
       <span>${isNowFs ? 'Thu nhỏ' : 'Phóng to (Giữ Song Ngữ)'}</span>
     `;
-    fsBtn.onclick = () => toggleWebFullscreen();
+    fsBtn.onclick = () => {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile && iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'request-fullscreen' }, '*');
+      }
+      toggleWebFullscreen();
+    };
     quickBar.appendChild(fsBtn);
     container.appendChild(quickBar);
 

@@ -184,6 +184,11 @@
   #watch-main-content { padding-top: 0; }
   #player-viewport:not(:fullscreen) { height: calc(100dvh - 44px); aspect-ratio: auto; }
   #player-viewport video, #player-viewport iframe { object-fit: contain; }
+  .cv-dock-reopen,
+  .cv-dock-bar,
+  [class*="cv-dock"] {
+    display: none !important;
+  }
 }
 @media (max-width: 359px) {
   #m-player-overlay > div:nth-child(2) { gap: 16px; }
@@ -193,15 +198,7 @@
   #m-player-movie-name { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { #detail-episode-jump, #m-detail-episode-jump { scroll-behavior: auto; } }
-@media (orientation: landscape) and (max-height: 550px) and (max-width: 1023px) {
-  #top-watch-bar { height: 44px; padding: 0 12px; }
-  #top-watch-bar > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; height: 44px; }
-  #top-watch-bar > div > div:first-child { gap: 8px; min-width: 0; }
-  #top-watch-bar > div > div:first-child > div:last-child { min-width: 0; flex: 1; }
-  #top-watch-bar > div > div:first-child > div:last-child > span:last-child, #top-watch-bar #btn-theater-toggle { display: none; }
-  #top-watch-bar h1 { font-size: 14px; line-height: 20px; }
-  #top-watch-bar button { min-height: 44px; }
-}
+/* Consolidated into landscape query */
 @media (max-width: 1023px) {
   #party-modal-card { max-height: calc(100dvh - 24px); }
   #party-modal-card > div:first-child, #party-modal-card > div:nth-child(2) { flex-shrink: 0; }
@@ -223,10 +220,21 @@
   height: 100dvh !important;
   max-width: none !important;
   max-height: none !important;
-  z-index: 99999 !important;
+  z-index: 2147483647 !important;
   margin: 0 !important;
   border-radius: 0 !important;
   background: #000 !important;
+  aspect-ratio: auto !important;
+}
+body.w-web-fs-active .cv-dock-reopen,
+body.w-web-fs-active .cv-dock-bar,
+body.w-web-fs-active [class*="cv-dock"],
+body.w-web-fs-active header,
+body.w-web-fs-active #top-watch-bar,
+body.m-web-fs-active .cv-dock-reopen,
+body.m-web-fs-active .cv-dock-bar,
+body.m-web-fs-active [class*="cv-dock"] {
+  display: none !important;
 }
 #m-player-wrapper.m-web-fullscreen #m-iframe-player,
 #m-player-wrapper.m-web-fullscreen #m-video-player,

@@ -42,98 +42,40 @@ router.use((req, res, next) => {
     res.cookie('kkphim_view_preference', 'mobile', { maxAge: 86400000 * 30, path: '/' });
   }
 
-  // Check if request is for static asset or API or already in /mobile or /tv
-  if (req.path.startsWith('/mobile') || req.path.startsWith('/tv') || req.path.startsWith('/api') || req.path.includes('.')) {
-    return next();
-  }
-
-  // Detect Mobile User-Agent (iOS & Android)
-  const viewPref = req.query.view || req.cookies?.kkphim_view_preference;
-  if (viewPref === 'desktop') {
-    return next();
-  }
-
-  const ua = req.headers['user-agent'] || '';
-  const isMobile = viewPref === 'mobile' || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-
-  if (isMobile) {
-    const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-    if (req.path === '/') return res.redirect('/mobile' + query);
-    if (req.path === '/kham-pha') {
-      const q = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
-      return res.redirect('/mobile/kham-pha' + q);
-    }
-    if (req.path.startsWith('/phim/')) return res.redirect('/mobile' + req.path + query);
-    if (req.path.startsWith('/xem-phim/')) return res.redirect('/mobile' + req.path + query);
-    if (req.path === '/danh-sach' || req.path === '/danh-sach-cua-toi') return res.redirect('/mobile/danh-sach' + query);
-    if (req.path === '/tai-khoan') return res.redirect('/mobile/tai-khoan' + query);
-  }
-
   next();
 });
 
 // ==========================================
-// MOBILE APP ROUTES (Obsidian Cinema Mobile)
+// REDIRECT OBSOLETE /mobile AND /tv TO MAIN RESPONSIVE ROUTES
 // ==========================================
-router.get(['/mobile', '/mobile/', '/mobile/index.html'], async (req, res) => {
-  const [html, settings] = await Promise.all([fs.readFile(mobileFile('index.html'), 'utf8'), dbService.getSettings()]);
-  res.set('Cache-Control', 'private, no-cache');
-  res.send(bannerService.decorate(html, settings, true));
+router.get(['/mobile', '/mobile/', '/mobile/index.html'], (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, '/' + query);
 });
-router.get('/mobile/kham-pha', async (req, res, next) => {
-  try {
-    const rawHtml = await fs.readFile(mobileFile('kham-pha.html'), 'utf8');
-    const settings = await dbService.getSettings();
-    res.send(bannerService.decorate(rawHtml, settings, true));
-  } catch (err) { next(err); }
+router.get('/mobile/kham-pha', (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, '/kham-pha' + query);
 });
-router.get('/mobile/phim/:slug', async (req, res) => {
-  try {
-    const data = await kkphimService.getMovieDetail(req.params.slug);
-    if (!data?.movie) return sendPageError(res, { status: 404 });
-    res.locals.seoMovie = data.movie;
-    const [html, settings] = await Promise.all([fs.readFile(mobileFile('chi-tiet.html'), 'utf8'), dbService.getSettings()]);
-    res.set('Cache-Control', 'private, no-cache');
-    res.send(bannerService.decorate(html, settings, true));
-  } catch (error) { sendPageError(res, error); }
+router.get('/mobile/phim/:slug', (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, '/phim/' + req.params.slug + query);
 });
-async function mobileWatch(req, res) {
-  try {
-    if (req.params.slug) {
-      const data = await kkphimService.getMovieDetail(req.params.slug);
-      if (!data?.movie || !episodeExists(data, req.params.episode, req.query.server)) return sendPageError(res, { status: 404 });
-      res.locals.seoMovie = data.movie;
-    }
-    const [html, settings] = await Promise.all([fs.readFile(mobileFile('xem-phim.html'), 'utf8'), dbService.getSettings()]);
-    res.set('Cache-Control', 'private, no-cache');
-    res.set('Cache-Control', 'private, no-cache');
-    res.send(bannerService.decorate(html, settings, true));
-  } catch (error) { sendPageError(res, error); }
-}
-router.get(['/mobile/xem-phim.html', '/mobile/xem-phim/:slug', '/mobile/xem-phim/:slug/:episode'], mobileWatch);
-router.get('/mobile/danh-sach', async (req, res, next) => {
-  try {
-    const rawHtml = await fs.readFile(mobileFile('danh-sach.html'), 'utf8');
-    const settings = await dbService.getSettings();
-    res.send(bannerService.decorate(rawHtml, settings, true));
-  } catch (err) { next(err); }
+router.get(['/mobile/xem-phim.html', '/mobile/xem-phim/:slug', '/mobile/xem-phim/:slug/:episode'], (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  const slug = req.params.slug ? '/' + req.params.slug : '';
+  const ep = req.params.episode ? '/' + req.params.episode : '';
+  res.redirect(301, '/xem-phim' + slug + ep + query);
 });
-router.get('/mobile/tai-khoan', async (req, res, next) => {
-  try {
-    const rawHtml = await fs.readFile(mobileFile('tai-khoan.html'), 'utf8');
-    const settings = await dbService.getSettings();
-    res.send(bannerService.decorate(rawHtml, settings, true));
-  } catch (err) { next(err); }
+router.get('/mobile/danh-sach', (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, '/danh-sach' + query);
 });
-
-// ==========================================
-// ANDROID TV LEANBACK 10-FOOT ROUTES
-// ==========================================
-router.get(['/tv', '/tv/'], (req, res) => res.sendFile(tvFile('index.html')));
-router.get('/tv/chi-tiet/:slug', (req, res) => res.sendFile(tvFile('chi-tiet.html')));
-router.get('/tv/xem-phim/:slug', (req, res) => res.sendFile(tvFile('xem-phim.html')));
-router.get('/tv/tim-kiem', (req, res) => res.sendFile(tvFile('tim-kiem.html')));
-router.get(['/tv/dang-nhap', '/tv/qr-login'], (req, res) => res.sendFile(tvFile('dang-nhap.html')));
+router.get('/mobile/tai-khoan', (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, '/tai-khoan' + query);
+});
+router.use('/mobile', (req, res) => res.redirect(301, '/'));
+router.use('/tv', (req, res) => res.redirect(301, '/'));
 
 router.get('/embed/vicdn/:videoId', async (req, res) => {
   const videoId = (req.params.videoId || '').replace(/[^a-zA-Z0-9_-]/g, '');
@@ -197,7 +139,11 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
 <body>
   <div id="player-wrap">
     <div id="loader" class="loader"><div class="spinner"></div><span>Đang kết nối luồng phát Song Ngữ...</span></div>
-    <video id="video" playsinline webkit-playsinline></video>
+    <video id="video" playsinline webkit-playsinline crossorigin="anonymous">
+      <track id="track-bilingual" kind="subtitles" label="Song Ngữ (Việt - Anh)" srclang="vi-en" src="/api/stream/vicdn/${videoId}/bilingual.vtt" default>
+      <track id="track-vi" kind="subtitles" label="Tiếng Việt" srclang="vi" src="/api/stream/vicdn/${videoId}/vi.vtt">
+      <track id="track-en" kind="subtitles" label="Tiếng Anh" srclang="en" src="/api/stream/vicdn/${videoId}/en.vtt">
+    </video>
     <div id="sub-overlay" class="sub-overlay"></div>
 
     <div id="center-controls" class="center-overlay">
@@ -282,7 +228,7 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
       hasEnSub ? { key: 'en', name: 'Tiếng Anh' } : null,
       (hasViSub && hasEnSub) ? { key: 'bilingual', name: 'Song Ngữ' } : null
     ].filter(Boolean);
-    let activeSubMode = hasViSub ? 'vi' : (hasEnSub ? 'en' : 'off');
+    let activeSubMode = (hasViSub && hasEnSub) ? 'bilingual' : (hasViSub ? 'vi' : (hasEnSub ? 'en' : 'off'));
 
     const wrap = document.getElementById('player-wrap');
     const video = document.getElementById('video');
@@ -473,26 +419,90 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
       }
     }
 
+    function syncNativeTextTracks(mode) {
+      if (!video.textTracks) return;
+      for (let i = 0; i < video.textTracks.length; i++) {
+        const tr = video.textTracks[i];
+        if (mode === 'off') {
+          tr.mode = 'disabled';
+        } else if (mode === 'bilingual' && (tr.language === 'vi-en' || tr.label.indexOf('Song Ngữ') !== -1)) {
+          tr.mode = 'showing';
+        } else if (mode === 'vi' && tr.language === 'vi') {
+          tr.mode = 'showing';
+        } else if (mode === 'en' && tr.language === 'en') {
+          tr.mode = 'showing';
+        } else {
+          tr.mode = 'disabled';
+        }
+      }
+    }
+
+    video.addEventListener('webkitbeginfullscreen', function() {
+      syncNativeTextTracks(activeSubMode);
+      subOverlay.style.display = 'none';
+    });
+    video.addEventListener('webkitendfullscreen', function() {
+      if (video.textTracks) {
+        for (let i = 0; i < video.textTracks.length; i++) {
+          const tr = video.textTracks[i];
+          if (tr.mode === 'showing') {
+            if (tr.language === 'vi-en' || tr.label.indexOf('Song Ngữ') !== -1) activeSubMode = 'bilingual';
+            else if (tr.language === 'vi') activeSubMode = 'vi';
+            else if (tr.language === 'en') activeSubMode = 'en';
+            tr.mode = 'disabled';
+          }
+        }
+        renderSubMenu();
+        loadSubtitlesIfNeeded();
+        updateSubOverlay();
+      }
+      subOverlay.style.display = 'block';
+      if (!video.paused) video.play().catch(function() {});
+    });
+    });
+
     window.addEventListener('message', function(ev) {
       if (ev.data && ev.data.type === 'web-fullscreen-changed') {
         updateFsIcon(Boolean(ev.data.isFullscreen));
+      }
+      if (ev.data && ev.data.type === 'request-fullscreen') {
+        syncNativeTextTracks(activeSubMode);
+        if (video.webkitEnterFullscreen) {
+          video.webkitEnterFullscreen();
+        } else if (wrap.requestFullscreen) {
+          wrap.requestFullscreen().catch(function() {});
+        }
       }
     });
 
     btnFs.onclick = function(e) {
       e.stopPropagation();
+      const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isIos && video.webkitEnterFullscreen) {
+        syncNativeTextTracks(activeSubMode);
+        video.webkitEnterFullscreen();
+        return;
+      }
       if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'toggle-web-fullscreen' }, '*');
+        window.parent.postMessage({ type: 'toggle-web-fullscreen' }, window.location.origin);
         return;
       }
       if (!document.fullscreenElement && !document.webkitFullscreenElement && !wrap.classList.contains('standalone-fs')) {
         if (wrap.requestFullscreen) {
           wrap.requestFullscreen().catch(function() {
-            wrap.classList.add('standalone-fs');
-            updateFsIcon(true);
+            if (video.webkitEnterFullscreen) {
+              syncNativeTextTracks(activeSubMode);
+              video.webkitEnterFullscreen();
+            } else {
+              wrap.classList.add('standalone-fs');
+              updateFsIcon(true);
+            }
           });
         } else if (wrap.webkitRequestFullscreen) {
           wrap.webkitRequestFullscreen();
+        } else if (video.webkitEnterFullscreen) {
+          syncNativeTextTracks(activeSubMode);
+          video.webkitEnterFullscreen();
         } else {
           wrap.classList.add('standalone-fs');
           updateFsIcon(true);

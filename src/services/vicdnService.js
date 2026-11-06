@@ -720,14 +720,7 @@ class ViCDNService {
       m3u8 += `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Thuyết Minh Nam",DEFAULT=NO,AUTOSELECT=NO,URI="${base}/api/stream/vicdn/${videoId}/male.m3u8"\n`;
     }
 
-    if (meta.vttVi) {
-      m3u8 += `#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Tiếng Việt",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE="vi",URI="${base}/api/stream/vicdn/${videoId}/vi.vtt"\n`;
-    }
-    if (meta.vttEn) {
-      m3u8 += `#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Tiếng Anh",DEFAULT=NO,AUTOSELECT=NO,FORCED=NO,LANGUAGE="en",URI="${base}/api/stream/vicdn/${videoId}/en.vtt"\n`;
-    }
-
-    m3u8 += `\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080,AUDIO="audio"${meta.vttVi || meta.vttEn ? ',SUBTITLES="subs"' : ''}\n`;
+    m3u8 += `\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080,AUDIO="audio"\n`;
     m3u8 += `${base}/api/stream/vicdn/${videoId}/original.m3u8\n`;
 
     return m3u8;
@@ -767,7 +760,83 @@ class ViCDNService {
     }
   }
 
+  parseVTT(raw) {
+    if (!raw) return [];
+    const lines = raw.split(/\r?\n/).map(l => l.trim());
+    const res = [];
+    let i = 0;
+    const vttTime = s => {
+      const p = s.trim().split(':');
+      if (p.length === 3) return (+p[0])*3600 + (+p[1])*60 + parseFloat(p[2]);
+      if (p.length === 2) return (+p[0])*60 + parseFloat(p[1]);
+      return 0;
+    };
+    while (i < lines.length) {
+      const line = lines[i];
+      if (line.includes('-->')) {
+        const parts = line.split('-->');
+        const start = vttTime(parts[0]);
+        const endPart = parts[1].trim().split(' ')[0];
+        const end = vttTime(endPart);
+        i++;
+        const textLines = [];
+        while (i < lines.length && lines[i] !== '') {
+          textLines.push(lines[i]);
+          i++;
+        }
+        const text = textLines.join(' ').replace(/<[^>]+>/g, '').trim();
+        if (text && end > start) res.push({ start, end, text });
+      } else {
+        i++;
+      }
+    }
+    return res;
+  }
+
+  fmtVttTime(sec) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = Math.floor(sec % 60);
+    const ms = Math.floor((sec % 1) * 1000);
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s + '.' + (ms < 100 ? (ms < 10 ? '00' : '0') : '') + ms;
+  }
+
+  async getBilingualSubtitle(videoId) {
+    const cacheKey = `vicdn_sub_${videoId}_bilingual`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) return cached;
+
+    const [subVi, subEn] = await Promise.all([
+      this.getSubtitle(videoId, 'vi'),
+      this.getSubtitle(videoId, 'en')
+    ]);
+
+    if (!subVi && !subEn) return null;
+    if (!subVi) return subEn;
+    if (!subEn) return subVi;
+
+    const viCues = this.parseVTT(subVi);
+    const enCues = this.parseVTT(subEn);
+
+    let merged = 'WEBVTT\n\n';
+    for (const vi of viCues) {
+      const en = enCues.find(e => Math.abs(e.start - vi.start) < 2.5 || (vi.start >= e.start && vi.start < e.end));
+      merged += this.fmtVttTime(vi.start) + ' --> ' + this.fmtVttTime(vi.end) + '\n';
+      if (en && en.text && en.text !== vi.text) {
+        merged += vi.text + '\n' + en.text + '\n\n';
+      } else {
+        merged += vi.text + '\n\n';
+      }
+    }
+
+    this.cache.set(cacheKey, merged, 6 * 60 * 60 * 1000);
+    return merged;
+  }
+
   async getSubtitle(videoId, lang = 'vi') {
+    if (lang === 'bilingual' || lang === 'vi-en') {
+      return this.getBilingualSubtitle(videoId);
+    }
     const cacheKey = `vicdn_sub_${videoId}_${lang}`;
     const cached = this.cache.get(cacheKey);
     if (cached) return cached;

@@ -30,8 +30,9 @@ test('private pages and HTML aliases redirect guests and forged cookies; public 
     const response = await request(url, { auth: 'token=forged' }); assert.equal(response.status, 302, url);
     const location = new URL(response.headers.get('location'), base); assert.equal(location.pathname, '/auth'); assert.equal(location.searchParams.get('redirect'), url); assert.ok(response.headers.get('cache-control').includes('no-store'));
   }
-  for (const url of ['/auth', '/mobile', '/kham-pha?view=desktop']) assert.equal((await request(url)).status, 200, url);
-  for (const url of ['/tai-khoan', '/tai-khoan.html', '/mobile/danh-sach.html', '/api/movies/film']) {
+  assert.equal((await request('/mobile')).status, 301);
+  for (const url of ['/auth', '/kham-pha?view=desktop']) assert.equal((await request(url)).status, 200, url);
+  for (const url of ['/tai-khoan', '/tai-khoan.html', '/danh-sach.html', '/api/movies/film']) {
     const response = await request(url, { auth: cookie }); assert.equal(response.status, 200);
     assert.match(response.headers.get('cache-control'), /private.*no-store/);
     assert.match(response.headers.get('vary'), /Cookie/);
