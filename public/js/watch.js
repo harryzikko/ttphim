@@ -77,6 +77,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupCinemaAndTheaterModes();
 
   // Web Fullscreen (Pseudo-fullscreen) Controller for Responsive/Mobile Player
+  
+  function syncFullscreenUI() {
+    const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    const embedFsBtn = viewport?.querySelector('#btn-embed-fs');
+    if (embedFsBtn) {
+      const textSpan = embedFsBtn.querySelector('span:last-child');
+      const iconSpan = embedFsBtn.querySelector('.material-symbols-outlined');
+      if (textSpan) textSpan.textContent = isFs ? 'Thu nhỏ' : 'Toàn màn hình';
+      if (iconSpan) iconSpan.textContent = isFs ? 'fullscreen_exit' : 'aspect_ratio';
+    }
+    const exitBtn = viewport?.querySelector('#btn-embed-fs-exit');
+    if (exitBtn) exitBtn.classList.toggle('hidden', !isFs);
+    viewport?.classList.toggle('w-web-fullscreen', isFs);
+    document.body.classList.toggle('w-web-fs-active', isFs);
+  }
+  document.addEventListener('fullscreenchange', syncFullscreenUI);
+  document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
+
   function toggleWebFullscreen(enable) {
     if (!viewport) return;
     const isNow = viewport.classList.contains('w-web-fullscreen');
@@ -1410,22 +1428,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Always provide Floating Web-Fullscreen Button for Embed / ViCDN player
-    const isNowFs = viewport.classList.contains('w-web-fullscreen');
+    const isNowFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement || viewport.classList.contains('w-web-fullscreen'));
     const fsBtn = document.createElement('button');
     fsBtn.id = 'btn-embed-fs';
     fsBtn.type = 'button';
     fsBtn.className = 'px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-primary-container text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all';
-    fsBtn.title = 'Toàn màn hình (Giữ Song Ngữ & Thuyết minh)';
+    fsBtn.title = 'Toàn màn hình';
     fsBtn.innerHTML = `
       <span class="material-symbols-outlined text-[16px]">${isNowFs ? 'fullscreen_exit' : 'aspect_ratio'}</span>
-      <span>${isNowFs ? 'Thu nhỏ' : 'Phóng to (Giữ Song Ngữ)'}</span>
+      <span>${isNowFs ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
     `;
     fsBtn.onclick = () => {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile && iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: 'request-fullscreen' }, '*');
+      if (!isMobile) {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          if (viewport.requestFullscreen) {
+            viewport.requestFullscreen().catch(() => toggleWebFullscreen(true));
+          } else if (viewport.webkitRequestFullscreen) {
+            viewport.webkitRequestFullscreen();
+          } else {
+            toggleWebFullscreen(true);
+          }
+        } else {
+          if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }
+      } else {
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'request-fullscreen' }, '*');
+        }
+        toggleWebFullscreen();
       }
-      toggleWebFullscreen();
     };
     quickBar.appendChild(fsBtn);
     container.appendChild(quickBar);

@@ -242,7 +242,10 @@
     iframe.onerror = () => fail('Không thể mở server nhúng. Hãy đổi server.');
     emit('embed', 'Đang mở server nhúng…');
     deadline = setTimeout(() => fail('Server nhúng phản hồi chậm. Hãy thử lại hoặc đổi server.'), timeout);
-// Default referrer policy to allow embed CDN providers
+try {
+      iframe.referrerPolicy = 'origin';
+      iframe.setAttribute('referrerpolicy', 'origin');
+    } catch (_) {}
     iframe.src = url;
     return { destroy() {
       active = false; clearTimeout(deadline);
