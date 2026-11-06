@@ -216,10 +216,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (viewport?.classList.contains('w-web-fullscreen')) {
         toggleWebFullscreen(false);
       }
+      try {
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+      } catch (_) {}
     } else if (currentOrientation === 'landscape') {
       // User physically turned phone to landscape (xoay ngang)!
       // Auto enter web fullscreen for immersive watching experience!
-      if (!viewport?.classList.contains('w-web-fullscreen')) {
+      if (!viewport?.classList.contains('w-web-fullscreen') && !document.fullscreenElement) {
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const container = viewport.querySelector('.relative.w-full.h-full') || viewport;
+        if (isAndroid && container?.requestFullscreen) {
+          container.requestFullscreen().catch(() => {});
+        }
         toggleWebFullscreen(true);
       }
     }
@@ -1586,6 +1596,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // On Android with hardware fullscreen support:
       if (isAndroid && container.requestFullscreen) {
         container.requestFullscreen().then(() => {
+          toggleWebFullscreen(true);
           if (screen.orientation && screen.orientation.lock) {
             screen.orientation.lock('landscape').catch(() => {});
           }
