@@ -121,6 +121,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? 'px-3.5 py-1.5 rounded-full bg-red-600/90 hover:bg-red-700 text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all'
         : 'px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-primary-container text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all';
     }
+    const chooseEpBtn = viewport.querySelector('#btn-embed-choose-ep');
+    if (chooseEpBtn) chooseEpBtn.style.display = should ? 'flex' : 'none';
+    const nextEpBtn = viewport.querySelector('#btn-embed-next-ep');
+    if (nextEpBtn) nextEpBtn.style.display = should ? 'flex' : 'none';
+
     const exitBtn = viewport.querySelector('#btn-embed-fs-exit');
     if (exitBtn) {
       exitBtn.classList.toggle('hidden', true);
@@ -170,6 +175,62 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (viewport?.classList.contains('w-web-fullscreen')) {
       toggleWebFullscreen(false);
     }
+  });
+
+  // Mobile Orientation Fullscreen Sync:
+  // - Turning phone to landscape (xoay ngang) -> enters fullscreen
+  // - Turning phone to portrait (xoay dọc) -> exits fullscreen immediately so user can choose episodes!
+  let lastOrientationState = (window.innerHeight > window.innerWidth) ? 'portrait' : 'landscape';
+  let manualFullscreenToggleTime = 0;
+
+  function syncMobileOrientationFullscreen() {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (!isMobile) return;
+
+    // Ignore events for 1000ms after user manually clicked buttons
+    if (Date.now() - manualFullscreenToggleTime < 1000) return;
+
+    const isPortrait = (window.innerHeight > window.innerWidth);
+    const currentOrientation = isPortrait ? 'portrait' : 'landscape';
+
+    if (currentOrientation === lastOrientationState) return;
+    const prev = lastOrientationState;
+    lastOrientationState = currentOrientation;
+
+    if (currentOrientation === 'portrait' && prev === 'landscape') {
+      // User physically turned phone to portrait (xoay dọc)!
+      // Exit fullscreen immediately so user can pick another episode!
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+      if (viewport?.classList.contains('w-web-fullscreen')) {
+        toggleWebFullscreen(false);
+      }
+    } else if (currentOrientation === 'landscape' && prev === 'portrait') {
+      // User physically turned phone to landscape (xoay ngang)!
+      // Auto enter web fullscreen for immersive watching experience!
+      if (!viewport?.classList.contains('w-web-fullscreen')) {
+        toggleWebFullscreen(true);
+      }
+    }
+  }
+
+  const mqlPortrait = window.matchMedia('(orientation: portrait)');
+  if (mqlPortrait?.addEventListener) {
+    mqlPortrait.addEventListener('change', () => {
+      setTimeout(syncMobileOrientationFullscreen, 100);
+      setTimeout(syncMobileOrientationFullscreen, 350);
+    });
+  }
+  window.addEventListener('orientationchange', () => {
+    setTimeout(syncMobileOrientationFullscreen, 100);
+    setTimeout(syncMobileOrientationFullscreen, 350);
+  });
+  window.addEventListener('resize', () => {
+    setTimeout(syncMobileOrientationFullscreen, 100);
+    setTimeout(syncMobileOrientationFullscreen, 350);
   });
 
   // Helper: Extract m3u8 from embed URL
@@ -1424,8 +1485,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isNowFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement || viewport.classList.contains('w-web-fullscreen'));
 
     const quickBar = document.createElement('div');
+    quickBar.id = 'embed-quick-bar';
     quickBar.className = `absolute top-3 right-3 z-30 ${isMobile ? 'flex' : 'hidden'} items-center gap-2 pointer-events-auto`;
 
+    // 1. Next Episode Button (visible in fullscreen when next episode exists)
+    const allEps = movieData?.episodes?.[activeServerIndex]?.server_data || [];
+    const currentIdx = allEps.findIndex(e => e.slug === ep.slug);
+    if (currentIdx > -1 && currentIdx < allEps.length - 1) {
+      const nextEp = allEps[currentIdx + 1];
+      const nextEpBtn = document.createElement('button');
+      nextEpBtn.id = 'btn-embed-next-ep';
+      nextEpBtn.type = 'button';
+      nextEpBtn.style.display = isNowFs ? 'flex' : 'none';
+      nextEpBtn.className = 'px-3 py-1.5 rounded-full bg-black/80 hover:bg-primary-container text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 items-center gap-1 active:scale-95 cursor-pointer select-none transition-all';
+      nextEpBtn.title = `Tập tiếp: Tập ${cleanEpName(nextEp.name)}`;
+      nextEpBtn.innerHTML = `
+        <span>Tập ${cleanEpName(nextEp.name)}</span>
+        <span class="material-symbols-outlined text-[16px]">skip_next</span>
+      `;
+      nextEpBtn.onclick = () => loadEpisode(nextEp);
+      quickBar.appendChild(nextEpBtn);
+    }
+
+    // 2. "Chọn tập" Button (visible in fullscreen, exits fullscreen & jumps to episode list)
+    const chooseEpBtn = document.createElement('button');
+    chooseEpBtn.id = 'btn-embed-choose-ep';
+    chooseEpBtn.type = 'button';
+    chooseEpBtn.style.display = isNowFs ? 'flex' : 'none';
+    chooseEpBtn.className = 'px-3 py-1.5 rounded-full bg-black/80 hover:bg-primary-container text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 items-center gap-1 active:scale-95 cursor-pointer select-none transition-all';
+    chooseEpBtn.title = 'Danh sách tập';
+    chooseEpBtn.innerHTML = `
+      <span class="material-symbols-outlined text-[16px]">video_library</span>
+      <span>Chọn tập</span>
+    `;
+    chooseEpBtn.onclick = () => {
+      manualFullscreenToggleTime = Date.now();
+      toggleWebFullscreen(false);
+      setTimeout(() => {
+        const epCard = document.getElementById('right-rail-card') || document.getElementById('watch-film-info');
+        if (epCard) {
+          epCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
+    };
+    quickBar.appendChild(chooseEpBtn);
+
+    // 3. Fullscreen Toggle Button ("Toàn màn hình" / "Thu nhỏ")
     const fsBtn = document.createElement('button');
     fsBtn.id = 'btn-embed-fs';
     fsBtn.type = 'button';
@@ -1437,6 +1542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
 
     fsBtn.onclick = () => {
+      manualFullscreenToggleTime = Date.now();
       const isCurrentlyFs = viewport.classList.contains('w-web-fullscreen') ||
                             Boolean(document.fullscreenElement || document.webkitFullscreenElement);
 
