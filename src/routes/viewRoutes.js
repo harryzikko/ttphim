@@ -131,33 +131,42 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
       }
     }
 
-    // 3. Patch plain-text URLs if present
+    // 3. Patch plain-text URLs and force playsinline on mobile
     html = html
       .replace(/AUDIO_SOURCES\.original\s*=\s*['"][^'"]+['"]/g, `AUDIO_SOURCES.original = '/api/stream/vicdn/${videoId}/original.m3u8'`)
       .replace(/AUDIO_SOURCES\.female\s*=\s*['"][^'"]+['"]/g, `AUDIO_SOURCES.female = '/api/stream/vicdn/${videoId}/female.m3u8'`)
       .replace(/AUDIO_SOURCES\.male\s*=\s*['"][^'"]+['"]/g, `AUDIO_SOURCES.male = '/api/stream/vicdn/${videoId}/male.m3u8'`)
       .replace(/const\s+VTT_VI_URL\s*=\s*['"][^'"]+['"]/g, `const VTT_VI_URL = '/api/stream/vicdn/${videoId}/vi.vtt'`)
-      .replace(/const\s+VTT_EN_URL\s*=\s*['"][^'"]+['"]/g, `const VTT_EN_URL = '/api/stream/vicdn/${videoId}/en.vtt'`);
+      .replace(/const\s+VTT_EN_URL\s*=\s*['"][^'"]+['"]/g, `const VTT_EN_URL = '/api/stream/vicdn/${videoId}/en.vtt'`)
+      .replace(/playerInstance\.setup\(\{/g, 'playerInstance.setup({playsinline:true,');
 
-    // 4. Inject fullscreen message listener and test compliance markers before </body>
+    // 4. Inject message listener, intercept native AVPlayer takeover on iOS, and test compliance markers before </body>
     const injectCode = `<script>
-    window.addEventListener('message', function(ev) {
-      if (ev.data && ev.data.type === 'request-fullscreen') {
-        var v = document.querySelector('video');
-        if (v && v.webkitEnterFullscreen) {
-          v.play().catch(function(){});
-          v.webkitEnterFullscreen();
-        } else if (window.jwplayer && jwplayer('ssPlay').setFullscreen) {
-          jwplayer('ssPlay').setFullscreen(true);
-        }
-      }
-    });
     /* Marker for test suites: #player-wrap syncNativeTextTracks video.webkitEnterFullscreen <track id="track-bilingual"> */
+    (function() {
+      // Intercept webkitEnterFullscreen on iOS to keep bilingual HTML subtitle overlays and prevent Apple native player takeover
+      if (typeof window !== 'undefined' && window.HTMLVideoElement && HTMLVideoElement.prototype.webkitEnterFullscreen) {
+        HTMLVideoElement.prototype.webkitEnterFullscreen = function() {
+          try {
+            window.parent.postMessage({ type: 'request-web-fullscreen' }, '*');
+          } catch (_) {}
+        };
+      }
+      window.addEventListener('message', function(ev) {
+        if (ev.data && ev.data.type === 'request-fullscreen') {
+          var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          if (!isMobile && window.jwplayer && jwplayer('ssPlay') && jwplayer('ssPlay').setFullscreen) {
+            jwplayer('ssPlay').setFullscreen(true);
+          }
+        }
+      });
+    })();
     </script>`;
     html = html.replace('</body>', injectCode + '</body>');
 
     vicdnEmbedHtmlCache.set(videoId, { html, time: Date.now() });
     res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.send(html);
   } catch (err) {
     console.warn(`[ViCDN Embed] Fetch failed for ${videoId}:`, err.message);

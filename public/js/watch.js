@@ -117,6 +117,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       const iconSpan = embedFsBtn.querySelector('.material-symbols-outlined');
       if (textSpan) textSpan.textContent = should ? 'Thu nhỏ' : 'Toàn màn hình';
       if (iconSpan) iconSpan.textContent = should ? 'fullscreen_exit' : 'aspect_ratio';
+      embedFsBtn.className = should
+        ? 'px-3.5 py-1.5 rounded-full bg-red-600/90 hover:bg-red-700 text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all'
+        : 'px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-primary-container text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all';
     }
     const exitBtn = viewport.querySelector('#btn-embed-fs-exit');
     if (exitBtn) {
@@ -146,9 +149,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   window.addEventListener('message', (e) => {
     const iframe = viewport?.querySelector('iframe');
-    if (e.origin === window.location.origin && e.source === iframe?.contentWindow &&
-        e.data && e.data.type === 'toggle-web-fullscreen') {
-      toggleWebFullscreen();
+    if (e.origin === window.location.origin && e.source === iframe?.contentWindow && e.data) {
+      if (e.data.type === 'toggle-web-fullscreen') {
+        toggleWebFullscreen();
+      } else if (e.data.type === 'request-web-fullscreen') {
+        toggleWebFullscreen(true);
+      } else if (e.data.type === 'exit-web-fullscreen') {
+        toggleWebFullscreen(false);
+      }
     }
   });
 
@@ -1448,46 +1456,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      // Toàn màn hình (Enter fullscreen)
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      // Toàn màn hình (Enter fullscreen - Giữ nguyên Song Ngữ & Audio, không mở native player)
+      const isAndroid = /Android/i.test(navigator.userAgent);
 
-      // 1. Try iOS native fullscreen
-      if (isIOS) {
-        try {
-          const innerDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
-          const innerVideo = innerDoc?.querySelector('video');
-          if (innerVideo && innerVideo.webkitEnterFullscreen) {
-            innerVideo.play().catch(() => {});
-            innerVideo.webkitEnterFullscreen();
-            return;
+      // On Android with hardware fullscreen support:
+      if (isAndroid && container.requestFullscreen) {
+        container.requestFullscreen().then(() => {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
           }
-        } catch (_) {}
+        }).catch(() => {
+          toggleWebFullscreen(true);
+        });
+        return;
       }
 
-      // 2. Try Android requestFullscreen with landscape orientation lock
-      if (container.requestFullscreen || viewport.requestFullscreen) {
-        const reqPromise = container.requestFullscreen
-          ? container.requestFullscreen()
-          : viewport.requestFullscreen();
-        if (reqPromise && reqPromise.then) {
-          reqPromise.then(() => {
-            if (screen.orientation && screen.orientation.lock) {
-              screen.orientation.lock('landscape').catch(() => {});
-            }
-          }).catch(() => {
-            toggleWebFullscreen(true);
-          });
-          return;
-        }
-      }
-
-      // 3. Fallback: Web pseudo-fullscreen (with CSS landscape auto-rotation)
+      // On iOS & mobile web: Web Fullscreen with CSS Landscape Auto-Rotation
+      // Preserves 100% HTML bilingual subtitles and custom audio controls without native player takeover
       toggleWebFullscreen(true);
-      if (iframe && iframe.contentWindow) {
-        try {
-          iframe.contentWindow.postMessage({ type: 'request-fullscreen' }, '*');
-        } catch (_) {}
-      }
     };
     quickBar.appendChild(fsBtn);
     container.appendChild(quickBar);
