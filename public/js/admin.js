@@ -653,7 +653,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (pEnabledEl) pEnabledEl.checked = Boolean(popup.enabled);
         if (pTitleEl) pTitleEl.value = popup.title || 'ĐẠI TIỆC SĂN DEAL SHOPEE MALL';
         if (pDescEl) pDescEl.value = popup.description || '';
-        if (pHrefEl) pHrefEl.value = popup.href || 'https://aff.cineviet.live/';
+        if (pHrefEl) pHrefEl.value = popup.href || 'https://noza.site/';
         if (pImageEl) pImageEl.value = popup.image || '/images/banners/dealpulse-popup.png';
         if (pCooldownEl) pCooldownEl.value = popup.cooldown_hours != null ? popup.cooldown_hours : 12;
         if (pNewTabEl) pNewTabEl.checked = popup.new_tab !== false;
@@ -678,7 +678,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (aEnabledEl) aEnabledEl.checked = Boolean(appBanner.enabled);
         if (aTitleEl) aTitleEl.value = appBanner.title || 'S\u0102N DEAL SHOPEE GI\u1ea2M S\u1ed0C 50% - 80%';
         if (aDescEl) aDescEl.value = appBanner.description || '';
-        if (aHrefEl) aHrefEl.value = appBanner.href || 'https://aff.cineviet.live/';
+        if (aHrefEl) aHrefEl.value = appBanner.href || 'https://noza.site/';
         if (aCtaEl) aCtaEl.value = appBanner.cta_text || 'S\u0102N DEAL NGAY B\u00c2Y GI\u1edc';
         if (aCountdownEl) aCountdownEl.value = appBanner.countdown_seconds != null ? appBanner.countdown_seconds : 5;
         if (aImgMobEl) aImgMobEl.value = appBanner.image_mobile_vertical || '/images/banners/banner_mobile_vertical.png';
@@ -850,7 +850,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-preview-popup-ad')?.addEventListener('click', () => {
     const image = document.getElementById('setting-popup-ad-image')?.value.trim() || '/images/banners/dealpulse-popup.png';
-    const href = document.getElementById('setting-popup-ad-href')?.value.trim() || 'https://aff.cineviet.live/';
+    const href = document.getElementById('setting-popup-ad-href')?.value.trim() || 'https://noza.site/';
     const title = document.getElementById('setting-popup-ad-title')?.value.trim() || 'ĐẠI TIỆC SĂN DEAL SHOPEE MALL';
 
     document.querySelector('.ad-popup-overlay')?.remove();
@@ -913,7 +913,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function previewAppBanner(type) {
     let img = '';
     let frameStyle = '';
-    const href = document.getElementById('setting-app-ad-href')?.value.trim() || 'https://aff.cineviet.live/';
+    const href = document.getElementById('setting-app-ad-href')?.value.trim() || 'https://noza.site/';
     const title = document.getElementById('setting-app-ad-title')?.value.trim() || 'Banner \u1ee8ng D\u1ee5ng';
     const countdown = Number(document.getElementById('setting-app-ad-countdown')?.value) || 5;
 

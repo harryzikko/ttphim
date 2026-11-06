@@ -850,7 +850,7 @@ router.get('/popup-banner', async (req, res) => {
       title: 'ĐẠI TIỆC SĂN DEAL SHOPEE MALL',
       description: 'Tự động tổng hợp Flash Sale khung giờ vàng, cảnh báo lỗi giá cực sốc & nhận voucher freeship 0Đ độc quyền!',
       image: '/images/banners/dealpulse-popup.png',
-      href: 'https://aff.cineviet.live/',
+      href: 'https://noza.site/',
       new_tab: true,
       cooldown_hours: 12
     };
@@ -868,7 +868,7 @@ router.get('/admin/popup-banner', async (req, res) => {
       title: 'ĐẠI TIỆC SĂN DEAL SHOPEE MALL',
       description: 'Tự động tổng hợp Flash Sale khung giờ vàng, cảnh báo lỗi giá cực sốc & nhận voucher freeship 0Đ độc quyền!',
       image: '/images/banners/dealpulse-popup.png',
-      href: 'https://aff.cineviet.live/',
+      href: 'https://noza.site/',
       new_tab: true,
       cooldown_hours: 12
     };
@@ -882,7 +882,7 @@ router.post('/admin/popup-banner', async (req, res) => {
   try {
     const { enabled, title, description, image, href, new_tab, cooldown_hours } = req.body || {};
     const cleanImage = typeof image === 'string' && image.trim() ? image.trim() : '/images/banners/dealpulse-popup.png';
-    const cleanHref = typeof href === 'string' && href.trim() ? href.trim() : 'https://aff.cineviet.live/';
+    const cleanHref = typeof href === 'string' && href.trim() ? href.trim() : 'https://noza.site/';
     const popup_banner = {
       enabled: enabled === true || enabled === 'true',
       title: typeof title === 'string' ? title.trim() : 'ĐẠI TIỆC SĂN DEAL SHOPEE MALL',
@@ -906,7 +906,7 @@ const defaultAppBanner = {
   enabled: true,
   title: 'SĂN DEAL SHOPEE GIẢM SỐC 50% - 80%',
   description: 'Tự động quét kho Flash Sale Shopee Mall, bắt trọn deal lỗi giá & nhận voucher Freeship 0Đ độc quyền!',
-  href: 'https://aff.cineviet.live/',
+  href: 'https://noza.site/',
   cta_text: 'SĂN DEAL NGAY BÂY GIỜ',
   countdown_seconds: 5,
   image_mobile_vertical: '/images/banners/banner_mobile_vertical.png',
