@@ -507,6 +507,32 @@ const API = {
     });
   },
 
+  // Donations APIs
+  async getAdminDonations() {
+    const res = await this.request('/api/admin/donations');
+    return res.data || [];
+  },
+
+  async deleteAdminDonation(id) {
+    return this.request(`/api/admin/donations/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  async manualAddDonation(data) {
+    return this.request('/api/admin/donations/manual', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  async claimDonation(ref) {
+    return this.request('/api/donate/claim', {
+      method: 'POST',
+      body: JSON.stringify({ ref })
+    });
+  },
+
   async searchAdminMovies(keyword, source = 'all') {
     const res = await this.request(`/api/admin/search-movie?keyword=${encodeURIComponent(keyword)}&source=${encodeURIComponent(source || 'all')}`);
     return res.data || [];

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentUser = null;
   let allUsers = [];
   let allReports = [];
+  let allDonations = [];
   let allComments = [];
   let currentSettings = null;
 
@@ -61,7 +62,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       const targetPane = document.getElementById(targetId);
       if (targetPane) targetPane.classList.remove('hidden');
 
-      if (targetId === 'tab-movies') {
+      if (targetId === 'tab-donations') {
+        loadDonationsTab();
+      } else if (targetId === 'tab-movies') {
         loadFeaturedMovies();
       } else if (targetId === 'tab-settings') {
         loadSettingsTab();
@@ -87,6 +90,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       document.getElementById('stat-total-users').innerText = stats.totalUsers || 0;
+      const donBadge = document.getElementById('badge-donations-count');
+      if (donBadge) {
+        const count = stats.totalDonations || 0;
+        donBadge.innerText = count;
+        if (count > 0) donBadge.classList.remove('hidden');
+        else donBadge.classList.add('hidden');
+      }
       const watchlistEl = document.getElementById('stat-watchlist');
       if (watchlistEl) watchlistEl.innerText = stats.totalWatchlistEntries || 0;
       document.getElementById('stat-reports').innerText = stats.totalReports || 0;
@@ -259,6 +269,279 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.showToast(err.message || 'Lỗi tạo tài khoản', 'error');
     }
   });
+
+  // --- Quản Lý Đơn Donate (RutXu & Chén Cơm) ---
+  async function loadDonationsTab() {
+    try {
+      allDonations = await API.getAdminDonations();
+      updateDonationStats();
+      applyDonationFilters();
+    } catch (e) {
+      console.error('[CineViet Admin] Failed to load donations:', e);
+      if (window.showToast) window.showToast('Lỗi tải danh sách đơn donate', 'error');
+    }
+  }
+
+  function updateDonationStats() {
+    const totalEl = document.getElementById('don-stat-total');
+    const usersEl = document.getElementById('don-stat-users');
+    const daysEl = document.getElementById('don-stat-days');
+    const recentEl = document.getElementById('don-stat-recent');
+    const recentSubEl = document.getElementById('don-stat-recent-sub');
+    const badgeEl = document.getElementById('badge-donations-count');
+
+    if (totalEl) totalEl.innerText = allDonations.length;
+    if (badgeEl) {
+      badgeEl.innerText = allDonations.length;
+      if (allDonations.length > 0) badgeEl.classList.remove('hidden');
+    }
+
+    if (usersEl) {
+      const uniqueUsers = new Set(allDonations.filter(d => d.user_id).map(d => d.user_id));
+      usersEl.innerText = uniqueUsers.size;
+    }
+
+    if (daysEl) {
+      const totalDays = allDonations.reduce((sum, d) => sum + (Number(d.days_left) || 0), 0);
+      daysEl.innerText = totalDays;
+    }
+
+    if (recentEl && recentSubEl) {
+      if (allDonations.length > 0) {
+        const latest = allDonations[0];
+        recentEl.innerText = latest.ref || 'Đơn mới';
+        recentSubEl.innerText = new Date(latest.created_at).toLocaleString('vi-VN');
+      } else {
+        recentEl.innerText = 'Chưa có';
+        recentSubEl.innerText = '--';
+      }
+    }
+  }
+
+  function applyDonationFilters() {
+    const keyword = (document.getElementById('search-donations')?.value || '').trim().toLowerCase();
+    const statusFilter = document.getElementById('filter-donation-status')?.value || 'all';
+
+    let filtered = allDonations;
+    if (statusFilter === 'success') {
+      filtered = filtered.filter(d => !d.already_claimed && d.status === 'success');
+    } else if (statusFilter === 'already_claimed') {
+      filtered = filtered.filter(d => d.already_claimed);
+    }
+
+    if (keyword) {
+      filtered = filtered.filter(d => {
+        const ref = (d.ref || '').toLowerCase();
+        const uid = (d.user_id || '').toLowerCase();
+        const ip = (d.client_ip || '').toLowerCase();
+        const user = (d.claimed_by_user?.email || d.claimed_by_user?.name || '').toLowerCase();
+        return ref.includes(keyword) || uid.includes(keyword) || ip.includes(keyword) || user.includes(keyword);
+      });
+    }
+
+    renderDonationsTable(filtered);
+  }
+
+  function renderDonationsTable(list) {
+    const tbody = document.getElementById('donations-table-body');
+    if (!tbody) return;
+
+    if (!list || list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-on-surface-variant">Không có đơn donate nào phù hợp bộ lọc</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map(d => {
+      const statusBadge = d.already_claimed
+        ? '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">Đã nhận trước</span>'
+        : '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Thành công</span>';
+
+      const userDisplay = d.claimed_by_user
+        ? ('<div class="font-semibold text-on-surface text-xs">' + escapeHtml(d.claimed_by_user.name || d.claimed_by_user.email) + '</div>' +
+           '<span class="text-[11px] font-mono text-on-surface-variant">' + escapeHtml(d.client_ip || '') + '</span>')
+        : ('<span class="text-xs text-on-surface-variant">Khách vãng lai</span>' +
+           (d.client_ip ? ('<div class="text-[11px] font-mono text-on-surface-variant">' + escapeHtml(d.client_ip) + '</div>') : ''));
+
+      const userIdDisplay = d.user_id
+        ? ('<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-highest border border-emerald-500/30 text-emerald-400 font-mono text-xs">' +
+            '<span>' + escapeHtml(d.user_id) + '</span>' +
+            '<button type="button" class="btn-copy-val hover:text-white transition-colors cursor-pointer" data-copy="' + escapeHtml(d.user_id) + '" title="Copy User ID">' +
+              '<span class="material-symbols-outlined text-[13px]">content_copy</span>' +
+            '</button>' +
+           '</div>')
+        : '<span class="text-xs text-on-surface-variant italic">Chưa có</span>';
+
+      return (
+        '<tr class="hover:bg-surface-container-high/40 transition-colors">' +
+          '<td class="p-3.5">' +
+            '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/30 text-primary font-mono font-bold text-xs">' +
+              '<span>' + escapeHtml(d.ref) + '</span>' +
+              '<button type="button" class="btn-copy-val hover:text-white transition-colors cursor-pointer" data-copy="' + escapeHtml(d.ref) + '" title="Copy mã đơn">' +
+                '<span class="material-symbols-outlined text-[13px]">content_copy</span>' +
+              '</button>' +
+            '</div>' +
+          '</td>' +
+          '<td class="p-3.5">' + userIdDisplay + '</td>' +
+          '<td class="p-3.5">' +
+            '<div class="font-bold text-amber-400 text-xs">' + (d.days_left != null ? (d.days_left + ' ngày') : '--') + '</div>' +
+            '<span class="text-[11px] text-on-surface-variant">' + (d.max_ips || 1) + ' IP tối đa</span>' +
+          '</td>' +
+          '<td class="p-3.5">' + userDisplay + '</td>' +
+          '<td class="p-3.5 text-xs text-on-surface-variant whitespace-nowrap">' +
+            new Date(d.created_at).toLocaleString('vi-VN') +
+          '</td>' +
+          '<td class="p-3.5">' + statusBadge + '</td>' +
+          '<td class="p-3.5 text-right whitespace-nowrap">' +
+            '<button type="button" class="btn-delete-donation p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer" data-id="' + escapeHtml(d.id) + '" title="Xóa đơn này">' +
+              '<span class="material-symbols-outlined text-[18px]">delete</span>' +
+            '</button>' +
+          '</td>' +
+        '</tr>'
+      );
+    }).join('');
+
+    // Attach copy button listeners
+    tbody.querySelectorAll('.btn-copy-val').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const val = btn.dataset.copy;
+        if (!val) return;
+        navigator.clipboard.writeText(val).then(() => {
+          if (window.showToast) window.showToast('Đã copy: ' + val);
+        });
+      });
+    });
+
+    // Attach delete button listeners
+    tbody.querySelectorAll('.btn-delete-donation').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        if (!confirm('Bạn có chắc muốn xóa bản ghi donate này?')) return;
+        try {
+          await API.deleteAdminDonation(id);
+          if (window.showToast) window.showToast('Đã xóa đơn donate thành công');
+          loadDonationsTab();
+        } catch (err) {
+          if (window.showToast) window.showToast(err.message || 'Lỗi khi xóa đơn', 'error');
+        }
+      });
+    });
+  }
+
+  // Bind toolbar and manual donate controls once
+  const searchDonationsInput = document.getElementById('search-donations');
+  if (searchDonationsInput) {
+    searchDonationsInput.addEventListener('input', applyDonationFilters);
+  }
+  const filterDonationStatus = document.getElementById('filter-donation-status');
+  if (filterDonationStatus) {
+    filterDonationStatus.addEventListener('change', applyDonationFilters);
+  }
+  const btnRefreshDonations = document.getElementById('btn-refresh-donations');
+  if (btnRefreshDonations) {
+    btnRefreshDonations.addEventListener('click', loadDonationsTab);
+  }
+
+  const boxManualDonate = document.getElementById('box-manual-donate');
+  const btnOpenManual = document.getElementById('btn-open-manual-donate');
+  const btnCloseManual = document.getElementById('btn-close-manual-donate');
+  if (btnOpenManual && boxManualDonate) {
+    btnOpenManual.addEventListener('click', () => {
+      boxManualDonate.classList.toggle('hidden');
+    });
+  }
+  if (btnCloseManual && boxManualDonate) {
+    btnCloseManual.addEventListener('click', () => {
+      boxManualDonate.classList.add('hidden');
+    });
+  }
+
+  // Tra cứu & kích hoạt qua RutXu worker
+  const btnVerifyWorker = document.getElementById('btn-verify-worker');
+  const manualRefInput = document.getElementById('manual-ref');
+  const manualUserIdInput = document.getElementById('manual-userid');
+  const manualDaysInput = document.getElementById('manual-days');
+  const manualStatusEl = document.getElementById('manual-donate-status');
+
+  if (btnVerifyWorker && manualRefInput) {
+    btnVerifyWorker.addEventListener('click', async () => {
+      const ref = manualRefInput.value.trim().toUpperCase();
+      if (!ref) {
+        if (manualStatusEl) {
+          manualStatusEl.className = 'text-xs text-error font-semibold';
+          manualStatusEl.innerText = 'Vui lòng nhập mã đơn (ref)';
+        }
+        return;
+      }
+      btnVerifyWorker.disabled = true;
+      if (manualStatusEl) {
+        manualStatusEl.className = 'text-xs text-on-surface-variant';
+        manualStatusEl.innerText = 'Đang tra cứu máy chủ RutXu...';
+      }
+      try {
+        const res = await API.claimDonation(ref);
+        if (res.user_id && manualUserIdInput) manualUserIdInput.value = res.user_id;
+        if (res.days_left != null && manualDaysInput) manualDaysInput.value = res.days_left;
+        if (manualStatusEl) {
+          manualStatusEl.className = 'text-xs text-success font-semibold';
+          manualStatusEl.innerText = (res.already_claimed ? 'Đơn đã nhận trước. ' : 'Xác minh thành công! ') + 'User ID: ' + res.user_id;
+        }
+        if (window.showToast) window.showToast('Đã xác minh đơn qua RutXu thành công!');
+        loadDonationsTab();
+      } catch (err) {
+        if (manualStatusEl) {
+          manualStatusEl.className = 'text-xs text-error font-semibold';
+          manualStatusEl.innerText = err.message || 'Không thể xác minh đơn này';
+        }
+      } finally {
+        btnVerifyWorker.disabled = false;
+      }
+    });
+  }
+
+  // Lưu đơn thủ công
+  const btnSaveManual = document.getElementById('btn-save-manual-donate');
+  if (btnSaveManual && manualRefInput) {
+    btnSaveManual.addEventListener('click', async () => {
+      const ref = manualRefInput.value.trim().toUpperCase();
+      const user_id = manualUserIdInput ? manualUserIdInput.value.trim() : '';
+      const days_left = manualDaysInput ? manualDaysInput.value.trim() : '';
+
+      if (!ref) {
+        if (manualStatusEl) {
+          manualStatusEl.className = 'text-xs text-error font-semibold';
+          manualStatusEl.innerText = 'Vui lòng nhập mã đơn (ref)';
+        }
+        return;
+      }
+
+      btnSaveManual.disabled = true;
+      try {
+        await API.manualAddDonation({
+          ref,
+          user_id: user_id || null,
+          days_left: days_left ? parseInt(days_left, 10) : null
+        });
+        if (manualStatusEl) {
+          manualStatusEl.className = 'text-xs text-success font-semibold';
+          manualStatusEl.innerText = 'Đã lưu đơn thành công vào cơ sở dữ liệu!';
+        }
+        if (window.showToast) window.showToast('Đã lưu đơn donate thủ công!');
+        manualRefInput.value = '';
+        if (manualUserIdInput) manualUserIdInput.value = '';
+        if (manualDaysInput) manualDaysInput.value = '';
+        loadDonationsTab();
+      } catch (err) {
+        if (manualStatusEl) {
+          manualStatusEl.className = 'text-xs text-error font-semibold';
+          manualStatusEl.innerText = err.message || 'Lỗi khi lưu đơn thủ công';
+        }
+      } finally {
+        btnSaveManual.disabled = false;
+      }
+    });
+  }
 
   // --- 3. Load Error Reports ---
   async function loadReports() {

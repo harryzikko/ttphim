@@ -62,6 +62,11 @@
         <span class="material-symbols-outlined text-[20px]">group</span>
         <span>Quản Lý Người Dùng</span>
       </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-donations">
+        <span class="material-symbols-outlined text-[20px]">volunteer_activism</span>
+        <span>Quản Lý Donate</span>
+        <span id="badge-donations-count" class="ml-auto px-1.5 py-0.2 rounded bg-amber-500 text-black text-[11px] font-black hidden">0</span>
+      </button>
       <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-reports">
         <span class="material-symbols-outlined text-[20px]">report_problem</span>
         <span>Báo Lỗi & Sự Cố</span>
@@ -341,6 +346,147 @@
               </thead>
               <tbody id="activity-stream-table-body" class="divide-y divide-surface-container-highest/40">
                 <tr><td colspan="5" class="p-6 text-center text-on-surface-variant">Chưa có luồng xem nào gần đây</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB: QUẢN LÝ DONATE (RUTXU & ỦNG HỘ) ================= -->
+      <section id="tab-donations" class="admin-tab-pane hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="font-display text-2xl font-bold text-on-surface flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-amber-400 text-[28px]">volunteer_activism</span>
+              Quản Lý Đơn Donate (RutXu & Chén Cơm)
+            </h1>
+            <p class="text-on-surface-variant text-sm mt-0.5">Theo dõi các đơn donate qua RutXu quét mã QR, mã đơn ref và User ID kích hoạt Server VIP</p>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button id="btn-open-manual-donate" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-semibold transition-all shadow cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">add_circle</span> Thêm / Tra Cứu Mã Đơn
+            </button>
+            <button id="btn-refresh-donations" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-sm font-semibold transition-all shadow cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">refresh</span> Làm mới
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Tổng Đơn Donate</span>
+              <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 material-symbols-outlined text-[22px]">paid</span>
+            </div>
+            <div class="mt-3">
+              <div id="don-stat-total" class="text-3xl font-black font-display text-amber-400">0</div>
+              <p class="text-xs text-on-surface-variant mt-1">Đơn đã ghi nhận vào hệ thống</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">User ID Đã Cấp</span>
+              <span class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 material-symbols-outlined text-[22px]">vpn_key</span>
+            </div>
+            <div class="mt-3">
+              <div id="don-stat-users" class="text-3xl font-black font-display text-emerald-400">0</div>
+              <p class="text-xs text-on-surface-variant mt-1">Kích hoạt Server VIP</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Tổng Ngày VIP Cấp</span>
+              <span class="p-2 rounded-xl bg-primary/10 text-primary material-symbols-outlined text-[22px]">verified</span>
+            </div>
+            <div class="mt-3">
+              <div id="don-stat-days" class="text-3xl font-black font-display text-primary">0</div>
+              <p class="text-xs text-on-surface-variant mt-1">Tổng số ngày VIP tích lũy</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Đơn Gần Nhất</span>
+              <span class="p-2 rounded-xl bg-secondary/10 text-secondary material-symbols-outlined text-[22px]">schedule</span>
+            </div>
+            <div class="mt-3">
+              <div id="don-stat-recent" class="text-lg font-bold text-on-surface">Chưa có</div>
+              <p id="don-stat-recent-sub" class="text-xs text-on-surface-variant mt-1">--</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Khung thêm / Tra cứu thủ công -->
+        <div id="box-manual-donate" class="p-6 rounded-2xl bg-surface-container border border-primary/40 space-y-4 hidden">
+          <div class="flex items-center justify-between">
+            <h3 class="font-display font-bold text-base text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">search_check</span>
+              Xác Minh Qua RutXu Worker Hoặc Nhập Thủ Công
+            </h3>
+            <button id="btn-close-manual-donate" class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface cursor-pointer">
+              <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Mã đơn RutXu (Ref)*</label>
+              <input type="text" id="manual-ref" placeholder="VD: RX957XX14W" class="w-full p-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm font-mono uppercase border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">User ID VIP (Nếu có)</label>
+              <input type="text" id="manual-userid" placeholder="Tự sinh nếu tra qua RutXu" class="w-full p-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm font-mono border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Số ngày VIP</label>
+              <input type="number" id="manual-days" placeholder="VD: 30" class="w-full p-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" />
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2.5 pt-1">
+            <button id="btn-verify-worker" type="button" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]">sync</span> Tra cứu & Kích hoạt qua RutXu Worker
+            </button>
+            <button id="btn-save-manual-donate" type="button" class="px-4 py-2 rounded-xl bg-surface-container-highest hover:bg-primary hover:text-white text-on-surface font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]">save</span> Lưu đơn thủ công vào DB
+            </button>
+            <span id="manual-donate-status" class="text-xs"></span>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="relative w-full sm:w-80">
+              <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[20px]">search</span>
+              <input id="search-donations" type="text" placeholder="Tìm theo mã đơn, User ID, IP..." class="w-full pl-10 pr-4 py-2 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" />
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+              <select id="filter-donation-status" class="p-2 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer">
+                <option value="all">Tất cả trạng thái</option>
+                <option value="success">Thành công</option>
+                <option value="already_claimed">Đã nhận trước đó</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Table of Donations -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-surface-container-high/60 text-xs uppercase text-on-surface-variant font-bold border-b border-surface-container-highest/60">
+                <tr>
+                  <th class="p-3.5">Mã Đơn (Ref RutXu)</th>
+                  <th class="p-3.5">User ID VIP</th>
+                  <th class="p-3.5">Thời Hạn</th>
+                  <th class="p-3.5">Khán Giả / IP</th>
+                  <th class="p-3.5">Thời Gian</th>
+                  <th class="p-3.5">Trạng Thái</th>
+                  <th class="p-3.5 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="donations-table-body" class="divide-y divide-surface-container-highest/40">
+                <tr><td colspan="7" class="p-8 text-center text-on-surface-variant">Đang tải danh sách đơn donate...</td></tr>
               </tbody>
             </table>
           </div>

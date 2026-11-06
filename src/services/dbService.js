@@ -595,6 +595,64 @@ class DbService {
     return null;
   }
 
+  async getDonations() {
+    const db = await this.read();
+    return db.donations || [];
+  }
+
+  async recordDonation({ ref, user_id, days_left, max_ips, already_claimed, claimed_by_user, client_ip, status = 'success', note = '' }) {
+    const db = await this.read();
+    if (!db.donations) db.donations = [];
+    const normalizedRef = String(ref || '').trim().toUpperCase();
+    const existingIndex = db.donations.findIndex(d => d.ref && d.ref.toUpperCase() === normalizedRef);
+    const now = new Date().toISOString();
+
+    if (existingIndex >= 0) {
+      const existing = db.donations[existingIndex];
+      if (user_id) existing.user_id = user_id;
+      if (days_left != null) existing.days_left = days_left;
+      if (max_ips != null) existing.max_ips = max_ips;
+      if (already_claimed != null) existing.already_claimed = already_claimed;
+      existing.status = status;
+      existing.updated_at = now;
+      if (claimed_by_user && !existing.claimed_by_user) existing.claimed_by_user = claimed_by_user;
+      if (client_ip) existing.client_ip = client_ip;
+      if (note) existing.note = note;
+      await this.write(db);
+      return existing;
+    }
+
+    const newDonation = {
+      id: 'don_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      ref: normalizedRef,
+      user_id: user_id || null,
+      days_left: days_left != null ? days_left : null,
+      max_ips: max_ips != null ? max_ips : 1,
+      already_claimed: !!already_claimed,
+      status: status || 'success',
+      note: note || '',
+      claimed_by_user: claimed_by_user || null,
+      client_ip: client_ip || null,
+      created_at: now,
+      updated_at: now
+    };
+    db.donations.unshift(newDonation);
+    await this.write(db);
+    return newDonation;
+  }
+
+  async deleteDonation(donationId) {
+    const db = await this.read();
+    if (!db.donations) return false;
+    const initialLen = db.donations.length;
+    db.donations = db.donations.filter(d => d.id !== donationId);
+    if (db.donations.length !== initialLen) {
+      await this.write(db);
+      return true;
+    }
+    return false;
+  }
+
   async getAdminStats() {
     const db = await this.read();
     const users = db.users || [];
@@ -628,6 +686,7 @@ class DbService {
       totalUsers: users.length,
       vipUsers: vipUsers.length,
       totalReports: reports.length,
+      totalDonations: (db.donations || []).length,
       pendingReports: pendingReports.length,
       totalComments: comments.length,
       totalWatchlistEntries: watchlist.length,

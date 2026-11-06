@@ -46,6 +46,75 @@ router.get('/health', (req, res) => {
   res.json({ status: true, message: 'KKPhim API is running', timestamp: new Date().toISOString() });
 });
 
+// Public: Donate Claim via RutXu (quét QR -> mua USDT -> nhập mã đơn nhận User ID VIP)
+router.post('/donate/claim', async (req, res) => {
+  try {
+    const ref = String(req.body?.ref || '').trim().toUpperCase();
+    if (!ref) {
+      return res.status(400).json({ status: false, error: 'Vui lòng cung cấp mã đơn (ref)' });
+    }
+
+    let upstreamRes = null;
+    let upstreamData = null;
+    try {
+      upstreamRes = await fetch('https://donate.phim4k.workers.dev/donate/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref })
+      });
+      upstreamData = await upstreamRes.json().catch(() => ({}));
+    } catch (fetchErr) {
+      console.error('[Donate Claim] Upstream worker fetch error:', fetchErr);
+      return res.status(502).json({ status: false, error: 'Không thể kết nối đến máy chủ xác minh đơn hàng, vui lòng thử lại sau.' });
+    }
+
+    if (!upstreamRes.ok) {
+      const extra = upstreamData?.upstream_status ? ' [' + upstreamData.upstream_status + ']'
+        : (upstreamData?.upstream_reason ? ' [' + upstreamData.upstream_reason + ']' : '');
+      return res.status(upstreamRes.status).json({
+        status: false,
+        error: (upstreamData?.error || 'Không thể xác minh đơn hàng.') + extra,
+        upstream_status: upstreamData?.upstream_status
+      });
+    }
+
+    // Client user info if logged in
+    let claimedByUser = null;
+    if (req.user) {
+      claimedByUser = {
+        id: req.user.id,
+        email: req.user.email,
+        name: req.user.name
+      };
+    }
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+
+    // Record into DB
+    const record = await dbService.recordDonation({
+      ref: ref,
+      user_id: upstreamData.user_id,
+      days_left: upstreamData.days_left,
+      max_ips: upstreamData.max_ips,
+      already_claimed: upstreamData.already_claimed,
+      claimed_by_user: claimedByUser,
+      client_ip: clientIp,
+      status: 'success'
+    });
+
+    return res.json({
+      status: true,
+      user_id: upstreamData.user_id,
+      days_left: upstreamData.days_left,
+      max_ips: upstreamData.max_ips,
+      already_claimed: upstreamData.already_claimed,
+      donation_id: record.id
+    });
+  } catch (err) {
+    console.error('[Donate Claim] Error:', err);
+    return res.status(500).json({ status: false, error: 'Lỗi máy chủ khi xử lý đơn donate' });
+  }
+});
+
 // ViCDN Direct Stream Endpoints (Bilingual HLS & Subtitles)
 router.get('/stream/vicdn/:videoId/master.m3u8', async (req, res) => {
   try {
@@ -616,6 +685,49 @@ router.get('/admin/reports', async (req, res) => {
     res.json({ status: true, data: reports });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Lỗi tải danh sách báo cáo' });
+  }
+});
+
+// Admin: Donations Management
+router.get('/admin/donations', async (req, res) => {
+  try {
+    const donations = await dbService.getDonations();
+    res.json({ status: true, data: donations });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi tải danh sách donate' });
+  }
+});
+
+router.delete('/admin/donations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ok = await dbService.deleteDonation(id);
+    if (!ok) return res.status(404).json({ status: false, message: 'Không tìm thấy đơn donate' });
+    res.json({ status: true, message: 'Đã xóa đơn donate thành công' });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi xóa đơn donate' });
+  }
+});
+
+router.post('/admin/donations/manual', async (req, res) => {
+  try {
+    const { ref, user_id, days_left, max_ips, note } = req.body;
+    if (!ref) return res.status(400).json({ status: false, message: 'Vui lòng nhập mã đơn (ref)' });
+    
+    const record = await dbService.recordDonation({
+      ref: String(ref).trim().toUpperCase(),
+      user_id: user_id ? String(user_id).trim() : null,
+      days_left: days_left != null ? parseInt(days_left, 10) : null,
+      max_ips: max_ips != null ? parseInt(max_ips, 10) : 1,
+      already_claimed: false,
+      status: 'success',
+      note: note || 'Thêm thủ công từ Admin',
+      claimed_by_user: { id: req.user.id, email: req.user.email, name: req.user.name },
+      client_ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress
+    });
+    res.json({ status: true, message: 'Đã lưu đơn donate thành công', data: record });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi lưu đơn donate' });
   }
 });
 

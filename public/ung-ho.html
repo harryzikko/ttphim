@@ -971,7 +971,7 @@
               <li>Nhập số tiền muốn donate. Số lượng mua chính là số lượng tiền muốn donate.<br>
                 Địa chỉ ví <strong>USDT BEP20</strong>, điền chính xác bằng cách copy và paste:
                 <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                  <code id="walletAddr" style="padding: 10px 14px; background: #0c0e16; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; font-family: monospace; color: #4ade80; font-size: 13px; word-break: break-all; user-select: all;">0x76e2416910ad277519d63ce932497F93207B5A97</code>
+                  <code id="walletAddr" style="padding: 10px 14px; background: #0c0e16; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; font-family: monospace; color: #4ade80; font-size: 13px; word-break: break-all; user-select: all;">0x098f7e6accdad2c9897766bb40b5cd28701ca2a3</code>
                   <button class="copy-wallet-btn" id="copyWallet" type="button" style="padding: 9px 16px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: #1e293b; color: #f8fafc; font-weight: 600; font-size: 12.5px; cursor: pointer; transition: all 0.2s ease;">📋 Copy địa chỉ ví</button>
                 </div>
               </li>
@@ -1207,7 +1207,7 @@
           resultEl.style.color = '#94a3b8';
           resultEl.textContent = 'Đang xác minh đơn hàng...';
 
-          fetch('https://donate.phim4k.workers.dev/donate/claim', {
+          fetch('/api/donate/claim', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ref: ref })

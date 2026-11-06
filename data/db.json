@@ -2369,5 +2369,6 @@
   "follows": [],
   "follow_notifications": [],
   "follow_checks": [],
-  "sessions": []
+  "sessions": [],
+  "donations": []
 }
