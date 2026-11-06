@@ -342,31 +342,34 @@
       line-height: 1.6;
     }
 
-    /* TAB SWITCHER - SLEEK MODERN SEGMENTED DESIGN */
+    /* TAB SWITCHER - BULLETPROOF NO-OVERFLOW GRID DESIGN */
     .support-tabs-wrap {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 6px;
       margin: 0 auto 32px;
-      background: #141724;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 5px;
-      border-radius: 16px;
-      max-width: 680px;
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      background: #111420;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 4px;
+      border-radius: 14px;
+      max-width: 580px;
+      width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      overflow: hidden;
     }
     .tab-btn {
-      flex: 1;
+      width: 100%;
+      box-sizing: border-box;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 9px;
-      padding: 13px 20px;
-      border-radius: 12px;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 10px;
       border: 1px solid transparent;
       background: transparent;
-      color: #9499ad;
+      color: #8c93a8;
       font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
       font-weight: 700;
       font-size: 13.5px;
@@ -374,62 +377,63 @@
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       white-space: nowrap;
       user-select: none;
+      overflow: hidden;
     }
     .tab-btn:hover:not(.active) {
       color: #ffffff;
       background: rgba(255, 255, 255, 0.05);
     }
     .tab-btn.active#btn-tab-1 {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(225, 29, 72, 0.18) 100%), #1c2030;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(225, 29, 72, 0.18) 100%), #1b1f2e;
       border-color: rgba(245, 158, 11, 0.55);
-      color: #ffffff;
-      box-shadow: 0 4px 18px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      color: #fef08a;
+      box-shadow: 0 4px 18px rgba(245, 158, 11, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15);
     }
     .tab-btn.active#btn-tab-1 .tab-icon {
-      transform: scale(1.12);
+      transform: scale(1.1);
       filter: drop-shadow(0 2px 6px rgba(245, 158, 11, 0.5));
     }
-    .tab-btn.active#btn-tab-1 .tab-text-full,
-    .tab-btn.active#btn-tab-1 .tab-text-short {
+    .tab-btn.active#btn-tab-1 .tab-label {
       color: #fbbf24;
     }
     .tab-btn.active#btn-tab-2 {
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.28) 0%, rgba(99, 102, 241, 0.22) 100%), #1c2030;
-      border-color: rgba(59, 130, 246, 0.55);
-      color: #ffffff;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.28) 0%, rgba(99, 102, 241, 0.22) 100%), #1b1f2e;
+      border-color: rgba(59, 130, 246, 0.6);
+      color: #93c5fd;
       box-shadow: 0 4px 18px rgba(37, 99, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
     }
     .tab-btn.active#btn-tab-2 .tab-icon {
-      transform: scale(1.12);
+      transform: scale(1.1);
       filter: drop-shadow(0 2px 6px rgba(59, 130, 246, 0.5));
     }
-    .tab-btn.active#btn-tab-2 .tab-text-full,
-    .tab-btn.active#btn-tab-2 .tab-text-short {
+    .tab-btn.active#btn-tab-2 .tab-label {
       color: #60a5fa;
     }
     .tab-icon {
       font-size: 16px;
       line-height: 1;
       display: inline-block;
+      flex-shrink: 0;
       transition: transform 0.2s ease;
     }
+    .tab-label {
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
     .tab-pill {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      padding: 3px 8px;
+      padding: 3px 7px;
       border-radius: 9999px;
-      background: rgba(245, 158, 11, 0.18);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: rgba(255, 255, 255, 0.07);
+      color: #9499ad;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       line-height: 1;
+      flex-shrink: 0;
       transition: all 0.2s ease;
-    }
-    .tab-pill-blue {
-      background: rgba(59, 130, 246, 0.18);
-      color: #60a5fa;
-      border-color: rgba(59, 130, 246, 0.35);
     }
     .tab-btn.active#btn-tab-1 .tab-pill {
       background: linear-gradient(135deg, #f59e0b, #ef4444);
@@ -728,19 +732,24 @@
     /* RESPONSIVE FOR MOBILE & TABLET */
     @media (max-width: 640px) {
       .support-tabs-wrap {
-        padding: 4px;
-        border-radius: 14px;
-        gap: 6px;
+        padding: 3px;
+        border-radius: 12px;
+        gap: 4px;
+        margin-bottom: 22px;
+        max-width: 100%;
       }
       .tab-btn {
-        padding: 10px 8px;
+        padding: 10px 6px;
         font-size: 12px;
-        border-radius: 10px;
+        border-radius: 8px;
         gap: 5px;
       }
-      .tab-btn .tab-text-full { display: none; }
-      .tab-btn .tab-text-short { display: inline; }
-      .tab-pill { display: none; }
+      .tab-icon {
+        font-size: 14px;
+      }
+      .tab-pill {
+        display: none;
+      }
       .nav-links, .header-search {
         display: none;
       }
@@ -761,10 +770,7 @@
         gap: 12px;
       }
     }
-    @media (min-width: 641px) {
-      .tab-btn .tab-text-short { display: none; }
-      .tab-btn .tab-text-full { display: inline; }
-    }
+    
   </style>
 </head>
 <body>
@@ -820,16 +826,14 @@
       <!-- 2 NÚT CHỌN CÁCH ỦNG HỘ (TABS SWITCHER) -->
       <div class="support-tabs-wrap" role="tablist" aria-label="Chọn cách ủng hộ">
         <button type="button" class="tab-btn active" id="btn-tab-1" data-tab="1" role="tab" aria-selected="true">
-          <span class="tab-icon">🛍️</span>
-          <span class="tab-text-full">Cách 1: Tiếp Sức 0Đ Qua Noza.site</span>
-          <span class="tab-text-short">Cách 1: Noza.site (0Đ)</span>
+          <span class="tab-icon">🛒</span>
+          <span class="tab-label">Cách 1: Noza.site (0Đ)</span>
           <span class="tab-pill">Khuyên Dùng</span>
         </button>
         <button type="button" class="tab-btn" id="btn-tab-2" data-tab="2" role="tab" aria-selected="false">
-          <span class="tab-icon">💸</span>
-          <span class="tab-text-full">Cách 2: Donate Trực Tiếp (RutXu QR)</span>
-          <span class="tab-text-short">Cách 2: RutXu QR</span>
-          <span class="tab-pill tab-pill-blue">Nhận User ID</span>
+          <span class="tab-icon">💳</span>
+          <span class="tab-label">Cách 2: RutXu QR</span>
+          <span class="tab-pill tab-pill-blue">Nhận VIP</span>
         </button>
       </div>
 
