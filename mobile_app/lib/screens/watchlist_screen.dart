@@ -4,7 +4,6 @@ import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
-import '../services/download_service.dart';
 import '../services/session_service.dart';
 import '../theme/app_theme.dart';
 import 'detail_screen.dart';
@@ -30,7 +29,6 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
   late TabController _tabController;
   List<Movie> _favorites = [];
   List<WatchHistoryItem> _history = [];
-  List<DownloadedEpisode> _downloads = [];
   bool _isLoading = true;
   int _loadGeneration = 0;
 
@@ -38,22 +36,20 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 3,
+      length: 2,
       vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 2),
+      initialIndex: widget.initialTabIndex.clamp(0, 1),
     );
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) setState(() {});
     });
     SessionService.changes.addListener(_loadData);
-    DownloadService.changes.addListener(_loadData);
     _loadData();
   }
 
   @override
   void dispose() {
     SessionService.changes.removeListener(_loadData);
-    DownloadService.changes.removeListener(_loadData);
     _tabController.dispose();
     super.dispose();
   }
@@ -72,12 +68,10 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
     });
     final favs = await StorageService.getFavorites();
     final hist = await StorageService.getHistory();
-    final dl = await DownloadService.getDownloads();
     if (mounted && generation == _loadGeneration) {
       setState(() {
         _favorites = favs;
         _history = hist;
-        _downloads = dl;
         _isLoading = false;
       });
     }
@@ -249,12 +243,6 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
               icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.textSecondary),
               tooltip: 'Xóa toàn bộ lịch sử xem',
               onPressed: _clearHistory,
-            )
-          else if (_tabController.index == 2 && _downloads.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.textSecondary),
-              tooltip: 'Xóa toàn bộ phim đã tải',
-              onPressed: _clearAllDownloads,
             ),
         ],
         bottom: TabBar(
@@ -284,16 +272,6 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
                 ],
               ),
             ),
-            Tab(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.download_for_offline_rounded, color: Color(0xFF10B981), size: 18),
-                  const SizedBox(width: 6),
-                  Text('Tải Về (${_downloads.length})'),
-                ],
-              ),
-            ),
           ],
         ),
       ),
@@ -304,7 +282,6 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
               children: [
                 _buildFavoritesTab(),
                 _buildHistoryTab(),
-                _buildDownloadsTab(),
               ],
             ),
     );
@@ -654,246 +631,6 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
                     icon: const Icon(Icons.play_circle_fill, color: AppTheme.primary, size: 30),
                     tooltip: 'Tiếp tục xem',
                     onPressed: () => _resumePlayback(context, item),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _clearAllDownloads() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Xóa tất cả bản tải về?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text(
-          'Toàn bộ các tập phim đã tải về xem offline sẽ bị xóa khỏi bộ nhớ thiết bị.',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('HỦY', style: TextStyle(color: AppTheme.textMuted)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('XÓA HẾT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await DownloadService.clearAllDownloads();
-      _loadData();
-    }
-  }
-
-  void _playDownloadedEpisode(BuildContext context, DownloadedEpisode item) async {
-    final movie = Movie(
-      id: item.movieSlug,
-      name: item.movieName,
-      slug: item.movieSlug,
-      originName: item.movieName,
-      posterUrl: item.posterUrl,
-      thumbUrl: item.thumbUrl,
-      year: 0,
-    );
-
-    final ep = EpisodeItem(
-      name: item.episodeName,
-      slug: item.episodeSlug,
-      filename: '',
-      linkEmbed: '',
-      linkM3u8: item.downloadUrl,
-    );
-
-    final server = ServerItem(
-      serverName: item.serverName.isNotEmpty ? item.serverName : 'Tải Về Offline',
-      episodes: [ep],
-    );
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PlayerScreen(
-          movie: movie,
-          servers: [server],
-          initialServer: server,
-          initialEpisode: ep,
-        ),
-      ),
-    );
-    _loadData();
-  }
-
-  Widget _buildDownloadsTab() {
-    if (_downloads.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.download_for_offline_rounded,
-                  size: 46,
-                  color: Color(0xFF10B981),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Chưa có phim tải về',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Tải các tập phim hỗ trợ luồng HLS trực tiếp để xem ngoại tuyến mượt mà không cần mạng Internet.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: _downloads.length,
-      separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 16),
-      itemBuilder: (context, idx) {
-        final item = _downloads[idx];
-        final imgUrl = item.thumbUrl.isNotEmpty ? item.thumbUrl : item.posterUrl;
-
-        return Dismissible(
-          key: Key('download_${item.movieSlug}_${item.episodeSlug}'),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20),
-            decoration: BoxDecoration(
-              color: Colors.redAccent.shade700,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Xóa', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                SizedBox(width: 6),
-                Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
-              ],
-            ),
-          ),
-          onDismissed: (_) async {
-            await DownloadService.removeDownload(item.movieSlug, item.episodeSlug);
-            _loadData();
-          },
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () => _playDownloadedEpisode(context, item),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: SizedBox(
-                      width: 80,
-                      height: 48,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          if (imgUrl.isNotEmpty)
-                            CachedNetworkImage(
-                              imageUrl: imgUrl,
-                              fit: BoxFit.cover,
-                              memCacheWidth: 240,
-                              placeholder: (_, __) => Container(color: AppTheme.card),
-                              errorWidget: (_, __, ___) => Container(
-                                color: AppTheme.card,
-                                child: const Icon(Icons.movie_rounded, color: AppTheme.textMuted, size: 18),
-                              ),
-                            )
-                          else
-                            Container(
-                              color: AppTheme.card,
-                              child: const Icon(Icons.movie_rounded, color: AppTheme.textMuted, size: 18),
-                            ),
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.55),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 16),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.movieName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          '${item.episodeName} • ${item.formattedSize}',
-                          style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.w500),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.white54, size: 21),
-                    tooltip: 'Xóa bản tải về',
-                    onPressed: () async {
-                      await DownloadService.removeDownload(item.movieSlug, item.episodeSlug);
-                      _loadData();
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.play_circle_fill, color: Color(0xFF10B981), size: 30),
-                    tooltip: 'Phát offline',
-                    onPressed: () => _playDownloadedEpisode(context, item),
                   ),
                 ],
               ),
