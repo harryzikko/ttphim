@@ -26,6 +26,8 @@ class _TvMainScreenState extends State<TvMainScreen> {
   Map<String, dynamic>? _user;
 
   final GlobalKey _tvHomeKey = GlobalKey();
+  final GlobalKey _tvExploreKey = GlobalKey();
+  final GlobalKey _tvSearchKey = GlobalKey();
   final List<FocusNode> _navFocusNodes = List.generate(4, (_) => FocusNode());
   final FocusNode _contentFocusNode = FocusNode(skipTraversal: true, canRequestFocus: false);
 
@@ -111,7 +113,7 @@ class _TvMainScreenState extends State<TvMainScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 28),
-                // App Brand Logo
+                // App Brand Logo (Website Favicon Style: Red Rounded Box with White 'C' & CineViet Text)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -122,23 +124,38 @@ class _TvMainScreenState extends State<TvMainScreen> {
                         color: AppTheme.primary,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
-                          BoxShadow(color: AppTheme.primary.withOpacity(0.5), blurRadius: 16),
+                          BoxShadow(color: AppTheme.primary.withOpacity(0.55), blurRadius: 14, offset: const Offset(0, 3)),
                         ],
                       ),
-                      child: const Icon(Icons.movie_rounded, color: Colors.white, size: 24),
+                      child: const Center(
+                        child: Text(
+                          'C',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 27,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'sans-serif',
+                            height: 1.0,
+                          ),
+                        ),
+                      ),
                     ),
                     if (_isSidebarExpanded) ...[
                       const SizedBox(width: 12),
                       const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'CINEVIET',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(text: 'CINE', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: 1.2)),
+                                TextSpan(text: 'VIET', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: 1.2)),
+                              ],
+                            ),
                           ),
                           Text(
-                            'TV EDITION',
-                            style: TextStyle(color: AppTheme.cyan, fontWeight: FontWeight.bold, fontSize: 9, letterSpacing: 1.5),
+                            'RẠP PHIM TẠI GIA',
+                            style: TextStyle(color: AppTheme.cyan, fontWeight: FontWeight.bold, fontSize: 8.5, letterSpacing: 1.5),
                           ),
                         ],
                       ),
@@ -188,8 +205,14 @@ class _TvMainScreenState extends State<TvMainScreen> {
                                   try {
                                     (_tvHomeKey.currentState as dynamic)?.focusHero();
                                   } catch (_) {}
-                                } else {
-                                  node.nearestScope?.nextFocus();
+                                } else if (index == 1) {
+                                  try {
+                                    (_tvExploreKey.currentState as dynamic)?.focusFirstItem();
+                                  } catch (_) {}
+                                } else if (index == 2) {
+                                  try {
+                                    (_tvSearchKey.currentState as dynamic)?.focusSearchField();
+                                  } catch (_) {}
                                 }
                               });
                             }
@@ -323,9 +346,17 @@ class _TvMainScreenState extends State<TvMainScreen> {
           onRequestSidebar: _focusSidebar,
         );
       case 1:
-        return _buildTvExploreView();
+        return _TvExploreView(
+          key: _tvExploreKey,
+          onMovieSelect: _onMovieSelected,
+          onFocusSidebar: _focusSidebar,
+        );
       case 2:
-        return _buildTvSearchView();
+        return _TvSearchView(
+          key: _tvSearchKey,
+          onMovieSelect: _onMovieSelected,
+          onFocusSidebar: _focusSidebar,
+        );
       case 3:
         // Unified Auth: If logged in, show Account screen; If guest, show QR Login!
         if (_user != null) {
@@ -442,115 +473,549 @@ class _TvMainScreenState extends State<TvMainScreen> {
       ),
     );
   }
+}
 
-  Widget _buildTvExploreView() {
-    return FutureBuilder<List<Movie>>(
-      future: ApiService.getSingleMovies(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: AppTheme.primary));
-        }
-        final movies = snapshot.data!;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+/// REDESIGNED LEANBACK EXPLORE VIEW WITH CATEGORY CHIPS & 6-COLUMN GRID
+class _TvExploreView extends StatefulWidget {
+  final Function(Movie) onMovieSelect;
+  final VoidCallback onFocusSidebar;
+
+  const _TvExploreView({
+    super.key,
+    required this.onMovieSelect,
+    required this.onFocusSidebar,
+  });
+
+  @override
+  State<_TvExploreView> createState() => _TvExploreViewState();
+}
+
+class _TvExploreViewState extends State<_TvExploreView> {
+  final List<FocusNode> _chipFocusNodes = List.generate(7, (_) => FocusNode());
+  final FocusNode _firstCardFocus = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+
+  int _selectedCategoryIndex = 0;
+  bool _isLoading = false;
+  List<Movie> _movies = [];
+
+  static const List<Map<String, String>> _categories = [
+    {'title': 'Tất Cả', 'key': 'all'},
+    {'title': 'Phim Bộ', 'key': 'series'},
+    {'title': 'Phim Lẻ', 'key': 'single'},
+    {'title': 'Chiếu Rạp', 'key': 'cinema'},
+    {'title': 'Hoạt Hình', 'key': 'anime'},
+    {'title': 'Song Ngữ', 'key': 'song_ngu'},
+    {'title': 'TV Shows', 'key': 'tvshows'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategory(0);
+  }
+
+  @override
+  void dispose() {
+    for (var f in _chipFocusNodes) {
+      f.dispose();
+    }
+    _firstCardFocus.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void focusFirstItem() {
+    if (_chipFocusNodes.isNotEmpty) {
+      _chipFocusNodes[_selectedCategoryIndex.clamp(0, _chipFocusNodes.length - 1)].requestFocus();
+    }
+  }
+
+  Future<void> _loadCategory(int index) async {
+    setState(() {
+      _selectedCategoryIndex = index;
+      _isLoading = true;
+    });
+
+    List<Movie> results = [];
+    try {
+      switch (_categories[index]['key']) {
+        case 'series':
+          results = await ApiService.getSeriesMovies();
+          break;
+        case 'single':
+          results = await ApiService.getSingleMovies();
+          break;
+        case 'cinema':
+          results = await ApiService.getCinemaMovies();
+          break;
+        case 'anime':
+          results = await ApiService.getAnimeMovies();
+          break;
+        case 'song_ngu':
+          results = await ApiService.getSongNguMovies();
+          break;
+        case 'tvshows':
+          results = await ApiService.getTvShows();
+          break;
+        default:
+          results = await ApiService.getFeaturedMovies();
+          if (results.isEmpty) {
+            results = await ApiService.getSingleMovies();
+          }
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _movies = results;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Explore Header & Category Filter Chips
+        Row(
           children: [
+            Container(
+              width: 4,
+              height: 22,
+              decoration: BoxDecoration(
+                color: AppTheme.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
             const Text(
               'KHÁM PHÁ DANH MỤC PHIM',
               style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 0.5),
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
-                  childAspectRatio: 0.65,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                ),
-                itemCount: movies.length,
-                itemBuilder: (context, idx) {
-                  return TvMovieCard(
-                    movie: movies[idx],
-                    onSelect: () => _onMovieSelected(movies[idx]),
-                    onLeftPressed: (idx % 6 == 0) ? _focusSidebar : null,
-                  );
-                },
-              ),
-            ),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: 16),
+
+        // Horizontal Category Filter Chips
+        SizedBox(
+          height: 44,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, cIdx) {
+              final cat = _categories[cIdx];
+              final isSelected = cIdx == _selectedCategoryIndex;
+              final node = _chipFocusNodes[cIdx];
+
+              return Focus(
+                focusNode: node,
+                onKeyEvent: (fNode, event) {
+                  if (event is KeyDownEvent) {
+                    final key = event.logicalKey;
+                    if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(key)) {
+                      _loadCategory(cIdx);
+                      return KeyEventResult.handled;
+                    }
+                    if (key == LogicalKeyboardKey.arrowDown) {
+                      _firstCardFocus.requestFocus();
+                      return KeyEventResult.handled;
+                    }
+                    if (key == LogicalKeyboardKey.arrowLeft && cIdx == 0) {
+                      widget.onFocusSidebar();
+                      return KeyEventResult.handled;
+                    }
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: Builder(
+                  builder: (ctx) {
+                    final isFocused = Focus.of(ctx).hasFocus;
+                    return GestureDetector(
+                      onTap: () => _loadCategory(cIdx),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppTheme.primary
+                              : (isFocused ? Colors.white24 : const Color(0xFF1E2230)),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: isFocused ? Colors.white : (isSelected ? AppTheme.primary : Colors.white12),
+                            width: isFocused ? 2.5 : 1.0,
+                          ),
+                          boxShadow: isFocused
+                              ? [
+                                  BoxShadow(
+                                    color: AppTheme.primary.withOpacity(0.6),
+                                    blurRadius: 12,
+                                    spreadRadius: 1,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            cat['title']!,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: isSelected || isFocused ? FontWeight.w900 : FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Movies Grid Canvas
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+              : _movies.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Không có phim trong danh mục này',
+                        style: TextStyle(color: Colors.white60, fontSize: 14),
+                      ),
+                    )
+                  : GridView.builder(
+                      controller: _scrollController,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 6,
+                        childAspectRatio: 0.65,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemCount: _movies.length,
+                      itemBuilder: (context, idx) {
+                        final movie = _movies[idx];
+                        final isFirstCard = idx == 0;
+                        final isTopRow = idx < 6;
+                        final isLeftEdge = idx % 6 == 0;
+
+                        return TvMovieCard(
+                          movie: movie,
+                          focusNode: isFirstCard ? _firstCardFocus : null,
+                          onSelect: () => widget.onMovieSelect(movie),
+                          onUpPressed: isTopRow ? () => _chipFocusNodes[_selectedCategoryIndex].requestFocus() : null,
+                          onLeftPressed: isLeftEdge ? widget.onFocusSidebar : null,
+                        );
+                      },
+                    ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildTvSearchView() {
-    final searchCtrl = TextEditingController();
-    return StatefulBuilder(
-      builder: (context, setInnerState) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+/// REDESIGNED LEANBACK SEARCH VIEW WITH INSTANT FOCUS, TRENDING TAGS & INLINE RESULTS
+class _TvSearchView extends StatefulWidget {
+  final Function(Movie) onMovieSelect;
+  final VoidCallback onFocusSidebar;
+
+  const _TvSearchView({
+    super.key,
+    required this.onMovieSelect,
+    required this.onFocusSidebar,
+  });
+
+  @override
+  State<_TvSearchView> createState() => _TvSearchViewState();
+}
+
+class _TvSearchViewState extends State<_TvSearchView> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _firstResultFocus = FocusNode();
+  final List<FocusNode> _tagFocusNodes = List.generate(6, (_) => FocusNode());
+
+  bool _isSearching = false;
+  List<Movie> _results = [];
+  bool _hasSearched = false;
+
+  static const List<String> _trendingTags = [
+    'Truy Sát',
+    'Thần Y Cổ Đại',
+    'Gấu Trúc Lý',
+    'Siêu Nhân Tiga',
+    'One Piece',
+    'Doraemon',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _searchFocusNode.dispose();
+    _firstResultFocus.dispose();
+    for (var f in _tagFocusNodes) {
+      f.dispose();
+    }
+    super.dispose();
+  }
+
+  void focusSearchField() {
+    _searchFocusNode.requestFocus();
+  }
+
+  Future<void> _performSearch(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return;
+    _searchCtrl.text = q;
+    setState(() {
+      _isSearching = true;
+      _hasSearched = true;
+    });
+
+    final movies = await ApiService.searchMovies(q);
+    if (mounted) {
+      setState(() {
+        _results = movies;
+        _isSearching = false;
+      });
+      if (movies.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _firstResultFocus.requestFocus();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Search Header
+        Row(
           children: [
+            Container(
+              width: 4,
+              height: 22,
+              decoration: BoxDecoration(
+                color: AppTheme.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
             const Text(
               'TÌM KIẾM PHIM TRÊN ANDROID TV',
               style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 0.5),
             ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF191B24),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: TextField(
-                controller: searchCtrl,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-                decoration: const InputDecoration(
-                  hintText: 'Nhập tên phim, diễn viên hoặc đạo diễn...',
-                  hintStyle: TextStyle(color: Colors.white38),
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search, color: AppTheme.primary),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Focusable Search Box with D-pad
+        Focus(
+          focusNode: _searchFocusNode,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent) {
+              if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                if (_searchCtrl.selection.baseOffset <= 0) {
+                  widget.onFocusSidebar();
+                  return KeyEventResult.handled;
+                }
+              }
+              if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                if (_tagFocusNodes.isNotEmpty) {
+                  _tagFocusNodes[0].requestFocus();
+                  return KeyEventResult.handled;
+                }
+              }
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Builder(
+            builder: (ctx) {
+              final isFocused = Focus.of(ctx).hasFocus;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF191B24),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isFocused ? AppTheme.primary : Colors.white24,
+                    width: isFocused ? 2.5 : 1.0,
+                  ),
+                  boxShadow: isFocused
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.primary.withOpacity(0.55),
+                            blurRadius: 14,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : null,
                 ),
-                onSubmitted: (query) async {
-                  if (query.trim().isEmpty) return;
-                  final results = await ApiService.searchMovies(query);
-                  if (context.mounted) {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: const Color(0xFF141722),
-                        title: Text('Kết quả tìm kiếm cho: $query', style: const TextStyle(color: Colors.white)),
-                        content: SizedBox(
-                          width: 800,
-                          height: 400,
-                          child: results.isEmpty
-                              ? const Center(child: Text('Không tìm thấy phim phù hợp', style: TextStyle(color: Colors.white70)))
-                              : GridView.builder(
-                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 4,
-                                    childAspectRatio: 0.65,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
-                                  ),
-                                  itemCount: results.length,
-                                  itemBuilder: (_, i) => TvMovieCard(
-                                    movie: results[i],
-                                    onSelect: () {
-                                      Navigator.pop(ctx);
-                                      _onMovieSelected(results[i]);
-                                    },
-                                  ),
+                child: TextField(
+                  controller: _searchCtrl,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  decoration: const InputDecoration(
+                    hintText: 'Nhập tên phim, diễn viên hoặc đạo diễn...',
+                    hintStyle: TextStyle(color: Colors.white38),
+                    border: InputBorder.none,
+                    icon: Icon(Icons.search, color: AppTheme.primary),
+                  ),
+                  onSubmitted: _performSearch,
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // Quick Trending Search Suggestions
+        SizedBox(
+          height: 38,
+          child: Row(
+            children: [
+              const Text(
+                'Gợi ý: ',
+                style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _trendingTags.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, tIdx) {
+                    final tag = _trendingTags[tIdx];
+                    final node = _tagFocusNodes[tIdx];
+
+                    return Focus(
+                      focusNode: node,
+                      onKeyEvent: (fNode, event) {
+                        if (event is KeyDownEvent) {
+                          final key = event.logicalKey;
+                          if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(key)) {
+                            _performSearch(tag);
+                            return KeyEventResult.handled;
+                          }
+                          if (key == LogicalKeyboardKey.arrowUp) {
+                            _searchFocusNode.requestFocus();
+                            return KeyEventResult.handled;
+                          }
+                          if (key == LogicalKeyboardKey.arrowDown && _results.isNotEmpty) {
+                            _firstResultFocus.requestFocus();
+                            return KeyEventResult.handled;
+                          }
+                          if (key == LogicalKeyboardKey.arrowLeft && tIdx == 0) {
+                            widget.onFocusSidebar();
+                            return KeyEventResult.handled;
+                          }
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: Builder(
+                        builder: (ctx) {
+                          final isFocused = Focus.of(ctx).hasFocus;
+                          return GestureDetector(
+                            onTap: () => _performSearch(tag),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isFocused ? AppTheme.primary : const Color(0xFF1E2230),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isFocused ? Colors.white : Colors.white12,
+                                  width: isFocused ? 2.0 : 1.0,
                                 ),
-                        ),
+                              ),
+                              child: Text(
+                                tag,
+                                style: TextStyle(
+                                  color: isFocused ? Colors.white : Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: isFocused ? FontWeight.bold : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     );
-                  }
-                },
+                  },
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        // Inline Search Results Canvas
+        Expanded(
+          child: _isSearching
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+              : !_hasSearched
+                  ? const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search_rounded, size: 56, color: Colors.white24),
+                          SizedBox(height: 12),
+                          Text(
+                            'Nhập từ khóa tìm kiếm hoặc chọn gợi ý ở trên',
+                            style: TextStyle(color: Colors.white54, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _results.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Không tìm thấy phim phù hợp với "${_searchCtrl.text}"',
+                            style: const TextStyle(color: Colors.white70, fontSize: 14),
+                          ),
+                        )
+                      : GridView.builder(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 6,
+                            childAspectRatio: 0.65,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                          itemCount: _results.length,
+                          itemBuilder: (context, idx) {
+                            final movie = _results[idx];
+                            final isFirstCard = idx == 0;
+                            final isTopRow = idx < 6;
+                            final isLeftEdge = idx % 6 == 0;
+
+                            return TvMovieCard(
+                              movie: movie,
+                              focusNode: isFirstCard ? _firstResultFocus : null,
+                              onSelect: () => widget.onMovieSelect(movie),
+                              onUpPressed: isTopRow ? () => _searchFocusNode.requestFocus() : null,
+                              onLeftPressed: isLeftEdge ? widget.onFocusSidebar : null,
+                            );
+                          },
+                        ),
+        ),
+      ],
     );
   }
 }

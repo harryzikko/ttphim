@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,9 +30,12 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
   final FocusNode _firstRailFirstCardFocus = FocusNode();
 
   bool _isLoading = true;
-  Movie? _spotlight;
+  List<Movie> _spotlights = [];
+  int _currentSpotlightIndex = 0;
+  Timer? _spotlightTimer;
+
   List<Movie> _historyMovies = [];
-  List<Movie> _trendingMovies = [];
+  List<Movie> _rankingMovies = [];
   List<Movie> _cinemaMovies = [];
   List<Movie> _singleMovies = [];
   List<Movie> _seriesMovies = [];
@@ -48,11 +52,40 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
   @override
   void dispose() {
     SessionService.changes.removeListener(_loadAllRails);
+    _spotlightTimer?.cancel();
     _scrollController.dispose();
     _heroPlayFocus.dispose();
     _heroInfoFocus.dispose();
     _firstRailFirstCardFocus.dispose();
     super.dispose();
+  }
+
+  void _startSpotlightTimer() {
+    _spotlightTimer?.cancel();
+    if (_spotlights.length <= 1) return;
+    _spotlightTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (mounted && !_heroPlayFocus.hasFocus && !_heroInfoFocus.hasFocus) {
+        setState(() {
+          _currentSpotlightIndex = (_currentSpotlightIndex + 1) % _spotlights.length;
+        });
+      }
+    });
+  }
+
+  void _nextSpotlight() {
+    if (_spotlights.isEmpty) return;
+    setState(() {
+      _currentSpotlightIndex = (_currentSpotlightIndex + 1) % _spotlights.length;
+    });
+    _startSpotlightTimer();
+  }
+
+  void _prevSpotlight() {
+    if (_spotlights.isEmpty) return;
+    setState(() {
+      _currentSpotlightIndex = (_currentSpotlightIndex - 1 + _spotlights.length) % _spotlights.length;
+    });
+    _startSpotlightTimer();
   }
 
   Future<void> _loadAllRails() async {
@@ -74,17 +107,18 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
       );
     }
 
-    // Fast-path: Show instant hero and trending rails
-    if (_trendingMovies.isEmpty) {
-      _trendingMovies = ApiService.defaultFeaturedMovies;
-      _spotlight = _trendingMovies.isNotEmpty ? _trendingMovies.first : null;
+    // Fast-path: Show instant hero and rankings
+    if (_spotlights.isEmpty) {
+      _spotlights = ApiService.defaultFeaturedMovies;
+      _rankingMovies = ApiService.defaultTopRankings;
       _isLoading = false;
       if (mounted) setState(() {});
     }
 
-    // Load feeds in parallel
+    // Load feeds in parallel (including real Top Rankings & Spotlights from backend)
     final feeds = await Future.wait([
       ApiService.getFeaturedMovies(),
+      ApiService.getTopRankings(),
       ApiService.getCinemaMovies(),
       ApiService.getSingleMovies(),
       ApiService.getSeriesMovies(),
@@ -93,17 +127,21 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
     ]);
 
     final featured = feeds[0];
-    final cinema = feeds[1];
-    final singles = feeds[2];
-    final series = feeds[3];
-    final tvshows = feeds[4];
-    final anime = feeds[5];
+    final rankings = feeds[1];
+    final cinema = feeds[2];
+    final singles = feeds[3];
+    final series = feeds[4];
+    final tvshows = feeds[5];
+    final anime = feeds[6];
 
     if (mounted) {
       setState(() {
         _historyMovies = histMovies;
-        _trendingMovies = featured;
-        _spotlight = featured.isNotEmpty ? featured.first : (cinema.isNotEmpty ? cinema.first : (singles.isNotEmpty ? singles.first : null));
+        _spotlights = featured.isNotEmpty ? featured : (rankings.isNotEmpty ? rankings : cinema);
+        if (_currentSpotlightIndex >= _spotlights.length) {
+          _currentSpotlightIndex = 0;
+        }
+        _rankingMovies = rankings;
         _cinemaMovies = cinema;
         _singleMovies = singles;
         _seriesMovies = series;
@@ -111,6 +149,7 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
         _animeMovies = anime;
         _isLoading = false;
       });
+      _startSpotlightTimer();
     }
   }
 
@@ -161,8 +200,8 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. LEANBACK HERO BILLBOARD
-          if (_spotlight != null) _buildHeroBillboard(_spotlight!),
+          // 1. LEANBACK HERO BILLBOARD (MULTI-SPOTLIGHT CAROUSEL)
+          if (_spotlights.isNotEmpty) _buildHeroBillboard(_spotlights[_currentSpotlightIndex]),
 
           const SizedBox(height: 24),
 
@@ -177,11 +216,12 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
             const SizedBox(height: 24),
           ],
 
-          // 3. RAIL: THỊNH HÀNH HÔM NAY
-          if (_trendingMovies.isNotEmpty) ...[
-            _buildRailHeader('Thịnh Hành Hôm Nay', Icons.local_fire_department_rounded),
+          // 3. RAIL: BẢNG XẾP HẠNG HÔM NAY (TOP 10 WEBSITE SYNCED)
+          if (_rankingMovies.isNotEmpty) ...[
+            _buildRailHeader('🏆 Bảng Xếp Hạng Hôm Nay (Top 10)', Icons.emoji_events_rounded),
             _buildMovieRail(
-              _trendingMovies,
+              _rankingMovies,
+              isRankings: true,
               isFirstRail: !hasHistory,
             ),
             const SizedBox(height: 24),
@@ -301,6 +341,43 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
             ),
           ),
 
+          // Top-Right Carousel Navigation Indicators
+          if (_spotlights.length > 1)
+            Positioned(
+              top: 24,
+              right: 28,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white24, width: 0.8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star_rounded, color: AppTheme.gold, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'PHIM NỔI BẬT ${_currentSpotlightIndex + 1}/${_spotlights.length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
+                    const SizedBox(width: 10),
+                    InkWell(
+                      onTap: _prevSpotlight,
+                      borderRadius: BorderRadius.circular(12),
+                      child: const Icon(Icons.arrow_left_rounded, color: Colors.white70, size: 24),
+                    ),
+                    InkWell(
+                      onTap: _nextSpotlight,
+                      borderRadius: BorderRadius.circular(12),
+                      child: const Icon(Icons.arrow_right_rounded, color: Colors.white, size: 24),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // Spotlight Metadata
           Positioned(
             left: 44,
@@ -322,11 +399,14 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                             BoxShadow(color: AppTheme.primary.withOpacity(0.5), blurRadius: 10),
                           ],
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text('TOP #1 THỊNH HÀNH', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                            const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              'PHIM NỔI BẬT #${_currentSpotlightIndex + 1}',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                            ),
                           ],
                         ),
                       ),
@@ -391,14 +471,13 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                         },
                         onKeyEvent: (node, event) {
                           if (event is KeyDownEvent) {
+                            // ENTER / SELECT / SPACE triggers playback
+                            if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
+                              widget.onMovieSelect(m);
+                              return KeyEventResult.handled;
+                            }
                             if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                              if (_scrollController.hasClients) {
-                                _scrollController.animateTo(
-                                  0.0,
-                                  duration: const Duration(milliseconds: 200),
-                                  curve: Curves.easeOutCubic,
-                                );
-                              }
+                              _prevSpotlight();
                               return KeyEventResult.handled;
                             }
                             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -453,14 +532,13 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                         },
                         onKeyEvent: (node, event) {
                           if (event is KeyDownEvent) {
+                            // ENTER / SELECT / SPACE opens movie details
+                            if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
+                              widget.onMovieSelect(m);
+                              return KeyEventResult.handled;
+                            }
                             if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                              if (_scrollController.hasClients) {
-                                _scrollController.animateTo(
-                                  0.0,
-                                  duration: const Duration(milliseconds: 200),
-                                  curve: Curves.easeOutCubic,
-                                );
-                              }
+                              _nextSpotlight();
                               return KeyEventResult.handled;
                             }
                             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -469,6 +547,10 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                             }
                             if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
                               _heroPlayFocus.requestFocus();
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                              _nextSpotlight();
                               return KeyEventResult.handled;
                             }
                           }
@@ -540,6 +622,7 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
     List<Movie> movies, {
     bool showProgress = false,
     bool isFirstRail = false,
+    bool isRankings = false,
   }) {
     return SizedBox(
       height: 290,
@@ -555,6 +638,7 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
 
           return TvMovieCard(
             movie: movie,
+            rank: isRankings ? index + 1 : null,
             showProgress: showProgress,
             progress: 0.65,
             focusNode: (isFirstRail && isFirstCard) ? _firstRailFirstCardFocus : null,

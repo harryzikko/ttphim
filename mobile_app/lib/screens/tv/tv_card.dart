@@ -12,6 +12,7 @@ class TvMovieCard extends StatefulWidget {
   final double height;
   final bool showProgress;
   final double progress;
+  final int? rank;
   final FocusNode? focusNode;
   final VoidCallback? onUpPressed;
   final VoidCallback? onDownPressed;
@@ -26,6 +27,7 @@ class TvMovieCard extends StatefulWidget {
     this.height = 255,
     this.showProgress = false,
     this.progress = 0.0,
+    this.rank,
     this.focusNode,
     this.onUpPressed,
     this.onDownPressed,
@@ -207,9 +209,62 @@ class _TvMovieCardState extends State<TvMovieCard> {
                     ),
                   ),
 
+                  // Rank Badge Top-Left (Top 10 Rankings)
+                  if (widget.rank != null)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          gradient: widget.rank == 1
+                              ? const LinearGradient(colors: [Color(0xFFFFDF00), Color(0xFFD97706)])
+                              : (widget.rank == 2
+                                  ? const LinearGradient(colors: [Color(0xFFF1F5F9), Color(0xFF64748B)])
+                                  : (widget.rank == 3
+                                      ? const LinearGradient(colors: [Color(0xFFFED7AA), Color(0xFFC2410C)])
+                                      : const LinearGradient(colors: [Color(0xFF1E293B), Color(0xFF0F172A)]))),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: widget.rank == 1
+                                ? const Color(0xFFFFE082)
+                                : (widget.rank == 2
+                                    ? Colors.white70
+                                    : (widget.rank == 3 ? const Color(0xFFFFCC80) : Colors.white24)),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (widget.rank == 1 ? const Color(0xFFD97706) : Colors.black).withOpacity(0.6),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.rank == 1) ...[
+                              const Icon(Icons.emoji_events_rounded, size: 12, color: Colors.black87),
+                              const SizedBox(width: 3),
+                            ],
+                            Text(
+                              '#${widget.rank}',
+                              style: TextStyle(
+                                color: widget.rank! <= 2 ? Colors.black87 : Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
                   // Quality Badge Top-Left (Netflix Signature)
                   Positioned(
-                    top: 8,
+                    top: widget.rank != null ? 36 : 8,
                     left: 8,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
@@ -235,7 +290,7 @@ class _TvMovieCardState extends State<TvMovieCard> {
                   // Song Ngữ Badge Top-Left
                   if (widget.movie.hasSongNgu)
                     Positioned(
-                      top: 34,
+                      top: widget.rank != null ? 62 : 34,
                       left: 8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),

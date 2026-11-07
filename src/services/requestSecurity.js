@@ -92,6 +92,6 @@ module.exports = {
     }
     next();
   },
-  tvLimiter: limiter(30, 15 * 60 * 1000, sharedRateOptions('tv')),
+  tvLimiter: limiter(200, 15 * 60 * 1000, sharedRateOptions('tv')),
   mutationLimiter: limiter(120, 60 * 1000, { skip: req => safeMethods.has(req.method), ...sharedRateOptions('mutations') })
 };

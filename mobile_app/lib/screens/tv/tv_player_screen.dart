@@ -60,6 +60,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
 
   // Quick Episode Drawer
   bool _showEpisodesDrawer = false;
+  List<FocusNode> _drawerEpisodeFocusNodes = [];
 
   final FocusNode _rootPlayerFocus = FocusNode();
 
@@ -68,11 +69,44 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     super.initState();
     _currentServer = widget.initialServer;
     _currentEpisode = widget.initialEpisode;
+    _initDrawerNodes();
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     _initPlayer();
     _historyTimer = Timer.periodic(const Duration(seconds: 10), (_) => _saveProgress());
+  }
+
+  void _initDrawerNodes() {
+    for (var f in _drawerEpisodeFocusNodes) {
+      f.dispose();
+    }
+    _drawerEpisodeFocusNodes = List.generate(
+      _currentServer.episodes.length,
+      (_) => FocusNode(),
+    );
+  }
+
+  void _openEpisodeDrawer() {
+    setState(() {
+      _showEpisodesDrawer = true;
+      _showControls = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _drawerEpisodeFocusNodes.isNotEmpty) {
+        final epIdx = _currentServer.episodes.indexWhere((e) => e.slug == _currentEpisode.slug);
+        final targetIdx = epIdx >= 0 ? epIdx : 0;
+        if (targetIdx < _drawerEpisodeFocusNodes.length) {
+          _drawerEpisodeFocusNodes[targetIdx].requestFocus();
+        }
+      }
+    });
+  }
+
+  void _closeEpisodeDrawer() {
+    setState(() => _showEpisodesDrawer = false);
+    _rootPlayerFocus.requestFocus();
+    _resetControlsTimer();
   }
 
   @override
@@ -105,6 +139,9 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     _centerIconTimer?.cancel();
     _controller?.removeListener(_videoListener);
     _controller?.dispose();
+    for (var f in _drawerEpisodeFocusNodes) {
+      f.dispose();
+    }
     _rootPlayerFocus.dispose();
     super.dispose();
   }
@@ -112,10 +149,14 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   void _resetControlsTimer() {
     setState(() => _showControls = true);
     _hideControlsTimer?.cancel();
-    _hideControlsTimer = Timer(const Duration(seconds: 5), () {
-      if (mounted && (_controller?.value.isPlaying ?? false) && !_isScrubbing && !_showEpisodesDrawer) {
-        setState(() => _showControls = false);
+    _hideControlsTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      if (_isScrubbing || _showEpisodesDrawer) return;
+      // If controller is active and paused, leave controls visible; otherwise auto-hide
+      if (_controller != null && _controller!.value.isInitialized && !_controller!.value.isPlaying) {
+        return;
       }
+      setState(() => _showControls = false);
     });
   }
 
@@ -440,6 +481,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
         },
       );
       _webViewController = controller;
+      _resetControlsTimer();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -475,6 +517,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       _currentEpisode = ep;
       _showEpisodesDrawer = false;
     });
+    _initDrawerNodes();
     _initPlayer();
   }
 
@@ -498,13 +541,14 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   }
 
   KeyEventResult _handleRemoteKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
+    final isRepeat = event is KeyRepeatEvent;
 
     // 1. Back button
     if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
       if (_showEpisodesDrawer) {
-        setState(() => _showEpisodesDrawer = false);
+        _closeEpisodeDrawer();
         return KeyEventResult.handled;
       }
       if (_showControls) {
@@ -513,6 +557,15 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       }
       Navigator.pop(context);
       return KeyEventResult.handled;
+    }
+
+    // If episode drawer is open, delegate keys to episode focus nodes
+    if (_showEpisodesDrawer) {
+      if (key == LogicalKeyboardKey.arrowUp) {
+        _closeEpisodeDrawer();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
     }
 
     // 2. Center / OK / Select button or TV Play/Pause
@@ -524,6 +577,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       LogicalKeyboardKey.mediaPlay,
       LogicalKeyboardKey.mediaPause,
     ].contains(key)) {
+      if (isRepeat) return KeyEventResult.handled;
       if (_isScrubbing) {
         // Immediate seek commit
         _scrubCommitTimer?.cancel();
@@ -538,34 +592,27 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       return KeyEventResult.handled;
     }
 
-    // 3. Left / Right scrubbing (Netflix style) or Rewind / FastForward keys
+    // 3. Left / Right scrubbing: Single press = 10s, Hold (repeat) = continuous accelerated scrub (15s per tick)
     if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.mediaRewind) {
-      if (_showEpisodesDrawer) return KeyEventResult.ignored;
-      _handleDpadScrub(-10);
+      _handleDpadScrub(isRepeat ? -15 : -10);
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowRight || key == LogicalKeyboardKey.mediaFastForward) {
-      if (_showEpisodesDrawer) return KeyEventResult.ignored;
-      _handleDpadScrub(10);
+      _handleDpadScrub(isRepeat ? 15 : 10);
       return KeyEventResult.handled;
     }
 
-    // 4. Down button -> Open Quick Episode Drawer
+    // 4. Down button -> Open Quick Episode Drawer & autofocus current episode
     if (key == LogicalKeyboardKey.arrowDown) {
-      if (!_showEpisodesDrawer) {
-        setState(() {
-          _showEpisodesDrawer = true;
-          _showControls = true;
-        });
+      if (!isRepeat) {
+        _openEpisodeDrawer();
       }
       return KeyEventResult.handled;
     }
 
     // 5. Up button -> Toggle top header / controls
     if (key == LogicalKeyboardKey.arrowUp) {
-      if (_showEpisodesDrawer) {
-        setState(() => _showEpisodesDrawer = false);
-      } else {
+      if (!isRepeat) {
         _resetControlsTimer();
       }
       return KeyEventResult.handled;
@@ -857,9 +904,12 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                           itemBuilder: (context, idx) {
                             final ep = _currentServer.episodes[idx];
                             final isCurrent = ep.slug == _currentEpisode.slug;
+                            final fNode = (idx < _drawerEpisodeFocusNodes.length)
+                                ? _drawerEpisodeFocusNodes[idx]
+                                : FocusNode();
 
                             return Focus(
-                              autofocus: isCurrent,
+                              focusNode: fNode,
                               onFocusChange: (focused) {
                                 if (focused) {
                                   Scrollable.ensureVisible(
@@ -873,13 +923,21 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                                 if (event is KeyDownEvent) {
                                   if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
                                     _switchEpisode(ep);
-                                    setState(() => _showEpisodesDrawer = false);
-                                    _rootPlayerFocus.requestFocus();
+                                    _closeEpisodeDrawer();
                                     return KeyEventResult.handled;
                                   }
-                                  if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.escape || event.logicalKey == LogicalKeyboardKey.goBack) {
-                                    setState(() => _showEpisodesDrawer = false);
-                                    _rootPlayerFocus.requestFocus();
+                                  if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+                                      event.logicalKey == LogicalKeyboardKey.escape ||
+                                      event.logicalKey == LogicalKeyboardKey.goBack) {
+                                    _closeEpisodeDrawer();
+                                    return KeyEventResult.handled;
+                                  }
+                                  if (event.logicalKey == LogicalKeyboardKey.arrowLeft && idx > 0) {
+                                    _drawerEpisodeFocusNodes[idx - 1].requestFocus();
+                                    return KeyEventResult.handled;
+                                  }
+                                  if (event.logicalKey == LogicalKeyboardKey.arrowRight && idx < _drawerEpisodeFocusNodes.length - 1) {
+                                    _drawerEpisodeFocusNodes[idx + 1].requestFocus();
                                     return KeyEventResult.handled;
                                   }
                                 }
@@ -891,7 +949,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                                   return GestureDetector(
                                     onTap: () {
                                       _switchEpisode(ep);
-                                      setState(() => _showEpisodesDrawer = false);
+                                      _closeEpisodeDrawer();
                                     },
                                     child: AnimatedScale(
                                       scale: isFocused ? 1.08 : 1.0,

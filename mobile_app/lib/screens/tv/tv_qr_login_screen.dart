@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../services/storage_service.dart';
@@ -59,21 +60,29 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
       _sessionToken = '';
     });
 
-    final session = await ApiService.createTvSession();
+    Map<String, dynamic>? session = await ApiService.createTvSession();
     if (!mounted || generation != _sessionGeneration) return;
+
+    // Retry once if first request timed out
+    if (session == null || session['code'] == null) {
+      await Future.delayed(const Duration(milliseconds: 1200));
+      if (!mounted || generation != _sessionGeneration) return;
+      session = await ApiService.createTvSession();
+      if (!mounted || generation != _sessionGeneration) return;
+    }
 
     if (session == null || session['token'] == null || session['code'] == null) {
       setState(() {
         _isLoading = false;
         _sessionError = AppConfig.hasBackend
-            ? 'Không thể tạo mã đăng nhập. Vui lòng thử lại.'
+            ? 'Không thể tạo mã đăng nhập. Vui lòng bấm Làm Mới Mã bên dưới.'
             : 'Chưa cấu hình BACKEND_URL khi build app.';
       });
       return;
     }
 
     setState(() {
-      _authCode = session['code']?.toString() ?? '';
+      _authCode = session!['code']?.toString() ?? '';
       _sessionToken = session['token'].toString();
       _isLoading = false;
     });
@@ -129,11 +138,11 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
   Widget _buildDigitBox(String char) {
     final hasValue = char.isNotEmpty;
     return Container(
-      width: 58,
-      height: 74,
+      width: 54,
+      height: 68,
       decoration: BoxDecoration(
         color: const Color(0xFF1E2230),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: hasValue ? AppTheme.primary : Colors.white24,
           width: hasValue ? 2.5 : 1.0,
@@ -142,8 +151,8 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
             ? [
                 BoxShadow(
                   color: AppTheme.primary.withOpacity(0.45),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  blurRadius: 14,
+                  offset: const Offset(0, 3),
                 ),
               ]
             : null,
@@ -153,7 +162,7 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
           char,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 40,
+            fontSize: 38,
             fontWeight: FontWeight.w900,
             fontFamily: 'monospace',
           ),
@@ -165,20 +174,20 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
   Widget _buildPinDisplay() {
     if (_isLoading) {
       return Container(
-        height: 80,
+        height: 72,
         alignment: Alignment.center,
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(
-              width: 28,
-              height: 28,
+              width: 26,
+              height: 26,
               child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 3),
             ),
-            SizedBox(width: 16),
+            SizedBox(width: 14),
             Text(
               'Đang tạo mã kích hoạt 6 số...',
-              style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -187,20 +196,20 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
 
     if (_sessionError != null || _authCode.isEmpty) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.red.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 24),
-            const SizedBox(width: 12),
+            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 22),
+            const SizedBox(width: 10),
             Text(
               _sessionError ?? 'Chưa tạo được mã kích hoạt',
-              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -215,33 +224,32 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildDigitBox(part1[0].trim()),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         _buildDigitBox(part1[1].trim()),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         _buildDigitBox(part1[2].trim()),
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: 14),
           child: Text(
             '—',
-            style: TextStyle(color: AppTheme.primaryLight, fontSize: 26, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppTheme.primaryLight, fontSize: 24, fontWeight: FontWeight.bold),
           ),
         ),
         _buildDigitBox(part2[0].trim()),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         _buildDigitBox(part2[1].trim()),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         _buildDigitBox(part2[2].trim()),
       ],
     );
   }
 
-  Widget _buildStepItem(String number, String title, String subtitle) {
+  Widget _buildStepItem(String number, String text) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
             color: AppTheme.primary.withOpacity(0.2),
             shape: BoxShape.circle,
@@ -250,25 +258,15 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
           child: Center(
             child: Text(
               number,
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 10),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(color: Colors.white60, fontSize: 12.5, height: 1.3),
-              ),
-            ],
+          child: Text(
+            text,
+            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.25),
           ),
         ),
       ],
@@ -278,7 +276,7 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
   Widget _buildSuccessView() {
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 42),
+        padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 40),
         decoration: BoxDecoration(
           color: const Color(0xFF191B24),
           borderRadius: BorderRadius.circular(24),
@@ -290,16 +288,16 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 84),
-            const SizedBox(height: 20),
+            const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 76),
+            const SizedBox(height: 18),
             const Text(
               'ĐĂNG NHẬP THÀNH CÔNG!',
-              style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900),
+              style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(
               'Chào mừng $_userName đến với rạp phim CineViet TV!',
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
+              style: const TextStyle(color: Colors.white70, fontSize: 15),
             ),
           ],
         ),
@@ -327,247 +325,189 @@ class _TvQrLoginScreenState extends State<TvQrLoginScreen> {
               ),
             ),
           ),
-          Positioned(
-            bottom: -80,
-            right: 80,
-            child: Container(
-              width: 450,
-              height: 450,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.cyan.withOpacity(0.08),
-              ),
-            ),
-          ),
 
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
               child: _isAuthorized
                   ? _buildSuccessView()
-                  : SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Header Status
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(color: AppTheme.primary.withOpacity(0.5), blurRadius: 10),
-                                  ],
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.tv_rounded, color: Colors.white, size: 16),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'CINEVIET ANDROID TV',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                  : Center(
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 760),
+                        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF141722),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white.withOpacity(0.08)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.6),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Header
+                            const Text(
+                              'ĐĂNG NHẬP BẰNG MÃ 6 SỐ',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
                               ),
-                              Row(
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Mở điện thoại hoặc máy tính truy cập trang bên dưới để nhập mã:',
+                              style: TextStyle(color: Colors.white60, fontSize: 13),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 14),
+
+                            // URL Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.cyan.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: AppTheme.cyan.withOpacity(0.6), width: 1.5),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Container(
-                                    width: 9,
-                                    height: 9,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF10B981),
-                                      shape: BoxShape.circle,
+                                  Icon(Icons.language_rounded, color: AppTheme.cyan, size: 18),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'cineviet.live/tv-auth',
+                                    style: TextStyle(
+                                      color: AppTheme.cyan,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.8,
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Đang chờ kích hoạt tài khoản...',
-                                    style: TextStyle(color: Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Main Central Card (Netflix 10-foot Style)
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 820),
-                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF141722),
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(color: Colors.white.withOpacity(0.08)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.6),
-                                  blurRadius: 32,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
                             ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
+
+                            const SizedBox(height: 20),
+
+                            // Big 6-Digit PIN Display
+                            _buildPinDisplay(),
+
+                            const SizedBox(height: 20),
+
+                            // 3 Step Guide (Clean & Compact)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F111A),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                              ),
+                              child: Column(
+                                children: [
+                                  _buildStepItem(
+                                    '1',
+                                    'Mở trình duyệt vào cineviet.live/tv-auth (hoặc vào mục Tài khoản trên App Mobile)',
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildStepItem(
+                                    '2',
+                                    'Đăng nhập tài khoản và điền mã 6 số hiển thị ở trên',
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildStepItem(
+                                    '3',
+                                    'Bấm "Xác Nhận Đăng Nhập TV", màn hình TV sẽ tự động vào tài khoản ngay!',
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 22),
+
+                            // Action Buttons (D-pad focusable)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text(
-                                  'ĐĂNG NHẬP BẰNG MÃ KÍCH HOẠT',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                const Text(
-                                  'Nhập mã hiển thị bên dưới trên điện thoại hoặc máy tính để đăng nhập TV',
-                                  style: TextStyle(color: Colors.white60, fontSize: 14),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 24),
-
-                                // Web URL Pill Badge
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.cyan.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(30),
-                                    border: Border.all(color: AppTheme.cyan.withOpacity(0.6), width: 1.5),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.language_rounded, color: AppTheme.cyan, size: 20),
-                                      SizedBox(width: 10),
-                                      Text(
-                                        'cineviet.live/tv-auth',
-                                        style: TextStyle(
-                                          color: AppTheme.cyan,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.8,
+                                Focus(
+                                  focusNode: _refreshFocus,
+                                  onKeyEvent: (node, event) {
+                                    if (event is KeyDownEvent &&
+                                        [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
+                                      _initTvSession();
+                                      return KeyEventResult.handled;
+                                    }
+                                    return KeyEventResult.ignored;
+                                  },
+                                  child: Builder(
+                                    builder: (ctx) {
+                                      final isFocused = Focus.of(ctx).hasFocus;
+                                      return ElevatedButton.icon(
+                                        onPressed: _initTvSession,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: isFocused ? Colors.white : AppTheme.primary,
+                                          foregroundColor: isFocused ? Colors.black : Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          elevation: isFocused ? 12 : 4,
                                         ),
-                                      ),
-                                    ],
+                                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                                        label: const Text(
+                                          'Làm Mới Mã 6 Số',
+                                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-
-                                const SizedBox(height: 28),
-
-                                // Big 6-Digit PIN Display
-                                _buildPinDisplay(),
-
-                                const SizedBox(height: 32),
-
-                                // 3 Step Guide
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF0F111A),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                const SizedBox(width: 14),
+                                Focus(
+                                  focusNode: _skipFocus,
+                                  onKeyEvent: (node, event) {
+                                    if (event is KeyDownEvent &&
+                                        [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
+                                      if (widget.onSkip != null) {
+                                        widget.onSkip!();
+                                      } else {
+                                        Navigator.pop(context);
+                                      }
+                                      return KeyEventResult.handled;
+                                    }
+                                    return KeyEventResult.ignored;
+                                  },
+                                  child: Builder(
+                                    builder: (ctx) {
+                                      final isFocused = Focus.of(ctx).hasFocus;
+                                      return OutlinedButton(
+                                        onPressed: widget.onSkip ?? () => Navigator.pop(context),
+                                        style: OutlinedButton.styleFrom(
+                                          backgroundColor: isFocused ? Colors.white12 : Colors.transparent,
+                                          foregroundColor: Colors.white,
+                                          side: BorderSide(
+                                            color: isFocused ? AppTheme.primary : Colors.white24,
+                                            width: isFocused ? 2.0 : 1.0,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                        child: const Text(
+                                          'Bỏ Qua & Xem Ngay',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                  child: Column(
-                                    children: [
-                                      _buildStepItem(
-                                        '1',
-                                        'Truy cập website trên điện thoại/máy tính',
-                                        'Mở trình duyệt vào cineviet.live/tv-auth hoặc vào mục Tài khoản trên App CineViet',
-                                      ),
-                                      const Padding(
-                                        padding: EdgeInsets.symmetric(vertical: 10),
-                                        child: Divider(color: Colors.white10, height: 1),
-                                      ),
-                                      _buildStepItem(
-                                        '2',
-                                        'Nhập mã kích hoạt 6 số ở trên',
-                                        'Đăng nhập tài khoản của bạn và điền đúng 6 số vào ô xác thực',
-                                      ),
-                                      const Padding(
-                                        padding: EdgeInsets.symmetric(vertical: 10),
-                                        child: Divider(color: Colors.white10, height: 1),
-                                      ),
-                                      _buildStepItem(
-                                        '3',
-                                        'Hoàn tất liên kết ngay lập tức',
-                                        'Bấm "Xác Nhận Đăng Nhập TV", màn hình TV sẽ tự động đồng bộ tài khoản!',
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                const SizedBox(height: 28),
-
-                                // Action Buttons (D-pad focusable)
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Focus(
-                                      focusNode: _refreshFocus,
-                                      child: Builder(
-                                        builder: (ctx) {
-                                          final isFocused = Focus.of(ctx).hasFocus;
-                                          return ElevatedButton.icon(
-                                            onPressed: _initTvSession,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: isFocused ? Colors.white : AppTheme.primary,
-                                              foregroundColor: isFocused ? Colors.black : Colors.white,
-                                              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                              elevation: isFocused ? 12 : 4,
-                                            ),
-                                            icon: const Icon(Icons.refresh_rounded, size: 20),
-                                            label: const Text(
-                                              'Làm Mới Mã 6 Số',
-                                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Focus(
-                                      focusNode: _skipFocus,
-                                      child: Builder(
-                                        builder: (ctx) {
-                                          final isFocused = Focus.of(ctx).hasFocus;
-                                          return OutlinedButton(
-                                            onPressed: widget.onSkip ?? () => Navigator.pop(context),
-                                            style: OutlinedButton.styleFrom(
-                                              backgroundColor: isFocused ? Colors.white12 : Colors.transparent,
-                                              foregroundColor: Colors.white,
-                                              side: BorderSide(
-                                                color: isFocused ? AppTheme.primary : Colors.white24,
-                                                width: isFocused ? 2.0 : 1.0,
-                                              ),
-                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                            ),
-                                            child: const Text(
-                                              'Bỏ Qua & Xem Ngay',
-                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ],
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
             ),

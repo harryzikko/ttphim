@@ -73,6 +73,22 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
     );
   }
 
+  Widget _buildInitialsAvatar(String initials, bool isDirector) {
+    return Container(
+      color: isDirector ? const Color(0xFF0E7490) : const Color(0xFF1E293B),
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final movie = _detail?.movie ?? widget.movie;
@@ -344,69 +360,201 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                     ),
                   ),
 
-                  // TMDb Cast & Crew Rail
-                  if (movie.castMembers.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 20, bottom: 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'ĐẠO DIỄN & DIỄN VIÊN (TMDb Verified)',
-                              style: TextStyle(color: AppTheme.gold, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1),
-                            ),
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              height: 110,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: movie.castMembers.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 16),
-                                itemBuilder: (context, idx) {
-                                  final person = movie.castMembers[idx];
-                                  return GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => PersonScreen(name: person.name, isDirector: person.isDirector),
-                                        ),
-                                      );
-                                    },
-                                    child: Row(
-                                      children: [
-                                        ClipOval(
-                                          child: CachedNetworkImage(
-                                            imageUrl: person.avatar,
-                                            width: 60,
-                                            height: 60,
-                                            fit: BoxFit.cover,
-                                            errorWidget: (_, __, ___) => const Icon(Icons.person, color: Colors.white38),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(person.name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                            Text(
-                                              person.character.isNotEmpty ? person.character : (person.isDirector ? 'Đạo diễn' : 'Diễn viên'),
-                                              style: const TextStyle(color: Colors.white54, fontSize: 11),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                  // TMDb Cast & Crew Rail (Redesigned Netflix-Style for Android TV)
+                  Builder(
+                    builder: (context) {
+                      List<CastMember> persons = List.from(movie.castMembers);
+                      if (persons.isEmpty) {
+                        for (var d in movie.directors) {
+                          if (d.trim().isNotEmpty) {
+                            persons.add(CastMember(name: d.trim(), isDirector: true, avatar: ''));
+                          }
+                        }
+                        for (var c in movie.casts) {
+                          if (c.trim().isNotEmpty) {
+                            persons.add(CastMember(name: c.trim(), isDirector: false, avatar: ''));
+                          }
+                        }
+                      }
+                      if (persons.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+                      return SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 20, bottom: 28),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 3.5,
+                                    height: 18,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primary,
+                                      borderRadius: BorderRadius.circular(2),
                                     ),
-                                  );
-                                },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.groups_rounded, color: AppTheme.gold, size: 20),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'ĐẠO DIỄN & DIỄN VIÊN',
+                                    style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.gold.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: AppTheme.gold.withOpacity(0.4)),
+                                    ),
+                                    child: const Text('TMDb', style: TextStyle(color: AppTheme.gold, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                height: 145,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: persons.length,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 14),
+                                  itemBuilder: (context, idx) {
+                                    final person = persons[idx];
+                                    final initials = person.name.isNotEmpty
+                                        ? person.name.split(' ').where((w) => w.isNotEmpty).take(2).map((w) => w[0]).join().toUpperCase()
+                                        : 'A';
+
+                                    return Focus(
+                                      onKeyEvent: (node, event) {
+                                        if (event is KeyDownEvent &&
+                                            [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => PersonScreen(name: person.name, isDirector: person.isDirector),
+                                            ),
+                                          );
+                                          return KeyEventResult.handled;
+                                        }
+                                        return KeyEventResult.ignored;
+                                      },
+                                      child: Builder(
+                                        builder: (ctx) {
+                                          final isFocused = Focus.of(ctx).hasFocus;
+                                          return GestureDetector(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => PersonScreen(name: person.name, isDirector: person.isDirector),
+                                                ),
+                                              );
+                                            },
+                                            child: AnimatedScale(
+                                              scale: isFocused ? 1.08 : 1.0,
+                                              duration: const Duration(milliseconds: 150),
+                                              child: AnimatedContainer(
+                                                duration: const Duration(milliseconds: 150),
+                                                width: 128,
+                                                padding: const EdgeInsets.all(10),
+                                                decoration: BoxDecoration(
+                                                  color: isFocused ? const Color(0xFF1F2436) : const Color(0xFF141722),
+                                                  borderRadius: BorderRadius.circular(14),
+                                                  border: Border.all(
+                                                    color: isFocused ? AppTheme.primary : Colors.white12,
+                                                    width: isFocused ? 2.5 : 1.0,
+                                                  ),
+                                                  boxShadow: isFocused
+                                                      ? [
+                                                          BoxShadow(
+                                                            color: AppTheme.primary.withOpacity(0.55),
+                                                            blurRadius: 14,
+                                                            spreadRadius: 1,
+                                                          ),
+                                                        ]
+                                                      : null,
+                                                ),
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    // Circular Avatar or Initial Badge
+                                                    Container(
+                                                      width: 58,
+                                                      height: 58,
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(
+                                                          color: person.isDirector ? AppTheme.cyan : AppTheme.primary,
+                                                          width: 1.8,
+                                                        ),
+                                                      ),
+                                                      child: ClipOval(
+                                                        child: person.avatar.isNotEmpty
+                                                            ? CachedNetworkImage(
+                                                                imageUrl: person.avatar,
+                                                                fit: BoxFit.cover,
+                                                                errorWidget: (_, __, ___) => _buildInitialsAvatar(initials, person.isDirector),
+                                                              )
+                                                            : _buildInitialsAvatar(initials, person.isDirector),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 8),
+
+                                                    // Person Name
+                                                    Text(
+                                                      person.name,
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      textAlign: TextAlign.center,
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 12,
+                                                        fontWeight: isFocused ? FontWeight.w900 : FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 3),
+
+                                                    // Role Pill
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: person.isDirector
+                                                            ? AppTheme.cyan.withOpacity(0.18)
+                                                            : Colors.white.withOpacity(0.08),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      child: Text(
+                                                        person.isDirector
+                                                            ? 'ĐẠO DIỄN'
+                                                            : (person.character.isNotEmpty ? person.character : 'DIỄN VIÊN'),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: TextStyle(
+                                                          color: person.isDirector ? AppTheme.cyan : Colors.white60,
+                                                          fontSize: 9.5,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
+                  ),
 
                   // Episodes Rail
                   if (_isLoading)
