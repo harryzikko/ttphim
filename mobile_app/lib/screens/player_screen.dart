@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:screen_brightness/screen_brightness.dart';
+import 'package:volume_controller/volume_controller.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/api_service.dart';
@@ -118,6 +120,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     _currentEpisode = widget.initialEpisode;
 
     _loadInitialState();
+    _initSystemAudioAndBrightness();
     _initPlayer();
 
     // Periodic watch history saving every 10 seconds
@@ -146,7 +149,26 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     _videoPlayerController?.removeListener(_videoListener);
     _videoPlayerController?.dispose();
 
+    try {
+      ScreenBrightness.instance.resetApplicationScreenBrightness();
+    } catch (_) {}
+
     super.dispose();
+  }
+
+  Future<void> _initSystemAudioAndBrightness() async {
+    try {
+      final currentBrightness = await ScreenBrightness.instance.application;
+      if (mounted && currentBrightness > 0) {
+        setState(() => _brightness = currentBrightness.clamp(0.05, 1.0));
+      }
+    } catch (_) {}
+    try {
+      final currentVol = await VolumeController.instance.getVolume();
+      if (mounted) {
+        setState(() => _volume = currentVol.clamp(0.0, 1.0));
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadInitialState() async {
@@ -764,18 +786,26 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     final delta = -details.primaryDelta! / 200.0;
 
     if (isLeft) {
-      // Brightness HUD
+      // Synchronize with System Screen Brightness Hardware
+      final newBrightness = (_brightness + delta).clamp(0.05, 1.0);
       setState(() {
-        _brightness = (_brightness + delta).clamp(0.1, 1.0);
+        _brightness = newBrightness;
         _showBrightnessHud = true;
       });
+      try {
+        ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
+      } catch (_) {}
     } else {
-      // Volume HUD
+      // Synchronize with System Media Audio Volume Hardware
+      final newVolume = (_volume + delta).clamp(0.0, 1.0);
       setState(() {
-        _volume = (_volume + delta).clamp(0.0, 1.0);
-        _videoPlayerController?.setVolume(_volume);
+        _volume = newVolume;
         _showVolumeHud = true;
       });
+      try {
+        VolumeController.instance.setVolume(newVolume, showSystemUI: false);
+      } catch (_) {}
+      _videoPlayerController?.setVolume(newVolume);
     }
 
     _gestureHudTimer?.cancel();

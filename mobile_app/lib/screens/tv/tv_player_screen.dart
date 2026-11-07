@@ -39,18 +39,26 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   int _playerGeneration = 0;
   bool _autoNext = true;
 
+  // Netflix-style Overlay Controls
   bool _showControls = true;
   Timer? _hideControlsTimer;
   Timer? _historyTimer;
 
-  // TV Quick HUDs
-  String? _hudMessage;
-  Timer? _hudTimer;
+  // Netflix-style D-pad Scrubbing (smooth debounce)
+  bool _isScrubbing = false;
+  int _scrubTargetSeconds = 0;
+  int _scrubDelta = 0;
+  Timer? _scrubCommitTimer;
 
+  // Center Play/Pause Ripple
+  bool _showCenterPlayPauseIcon = false;
+  bool _wasPlaying = true;
+  Timer? _centerIconTimer;
 
-  final FocusNode _playPauseFocus = FocusNode();
-  final FocusNode _rwFocus = FocusNode();
-  final FocusNode _ffFocus = FocusNode();
+  // Quick Episode Drawer
+  bool _showEpisodesDrawer = false;
+
+  final FocusNode _rootPlayerFocus = FocusNode();
 
   @override
   void initState() {
@@ -58,7 +66,6 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     _currentServer = widget.initialServer;
     _currentEpisode = widget.initialEpisode;
 
-    // TV immersive mode
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     _initPlayer();
@@ -70,31 +77,75 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     _saveProgress();
     _playerGeneration++;
     _hideControlsTimer?.cancel();
-    _hudTimer?.cancel();
     _historyTimer?.cancel();
+    _scrubCommitTimer?.cancel();
+    _centerIconTimer?.cancel();
     _controller?.removeListener(_videoListener);
     _controller?.dispose();
-    _playPauseFocus.dispose();
-    _rwFocus.dispose();
-    _ffFocus.dispose();
+    _rootPlayerFocus.dispose();
     super.dispose();
-  }
-
-  void _showHud(String msg) {
-    setState(() => _hudMessage = msg);
-    _hudTimer?.cancel();
-    _hudTimer = Timer(const Duration(milliseconds: 1200), () {
-      if (mounted) setState(() => _hudMessage = null);
-    });
   }
 
   void _resetControlsTimer() {
     setState(() => _showControls = true);
     _hideControlsTimer?.cancel();
-    _hideControlsTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted && (_controller?.value.isPlaying ?? false)) {
-        if (_playPauseFocus.hasFocus || _rwFocus.hasFocus || _ffFocus.hasFocus) return;
+    _hideControlsTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted && (_controller?.value.isPlaying ?? false) && !_isScrubbing && !_showEpisodesDrawer) {
         setState(() => _showControls = false);
+      }
+    });
+  }
+
+  void _triggerPlayPause() {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+    final isPlaying = _controller!.value.isPlaying;
+    if (isPlaying) {
+      _controller!.pause();
+      _saveProgress();
+      _wasPlaying = false;
+    } else {
+      _controller!.play();
+      _wasPlaying = true;
+    }
+    setState(() {
+      _showCenterPlayPauseIcon = true;
+      _resetControlsTimer();
+    });
+    _centerIconTimer?.cancel();
+    _centerIconTimer = Timer(const Duration(milliseconds: 900), () {
+      if (mounted) setState(() => _showCenterPlayPauseIcon = false);
+    });
+  }
+
+  void _handleDpadScrub(int deltaSeconds) {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+
+    final duration = _controller!.value.duration.inSeconds;
+    if (duration <= 0) return;
+
+    _resetControlsTimer();
+
+    if (!_isScrubbing) {
+      _isScrubbing = true;
+      _scrubTargetSeconds = _controller!.value.position.inSeconds;
+      _scrubDelta = 0;
+    }
+
+    _scrubDelta += deltaSeconds;
+    _scrubTargetSeconds = (_scrubTargetSeconds + deltaSeconds).clamp(0, duration);
+
+    setState(() {});
+
+    _scrubCommitTimer?.cancel();
+    _scrubCommitTimer = Timer(const Duration(milliseconds: 650), () async {
+      if (!mounted || _controller == null) return;
+      await _controller!.seekTo(Duration(seconds: _scrubTargetSeconds));
+      if (mounted) {
+        setState(() {
+          _isScrubbing = false;
+          _scrubDelta = 0;
+        });
+        _resetControlsTimer();
       }
     });
   }
@@ -122,7 +173,6 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
 
     String streamUrl = episode.linkM3u8.trim();
     if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
-      // Check if .m3u8 is embedded in URL parameter
       final uri = Uri.tryParse(episode.linkEmbed);
       final param = uri?.queryParameters['url'] ?? uri?.queryParameters['file'];
       if (param != null && param.contains('.m3u8')) {
@@ -178,15 +228,17 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       }
     } catch (e) {
       if (!isCurrent()) return;
-      if (episode.linkEmbed.isNotEmpty) { _initEmbedPlayer(episode.linkEmbed); return; }
+      if (episode.linkEmbed.isNotEmpty) {
+        _initEmbedPlayer(episode.linkEmbed);
+        return;
+      }
       if (mounted) {
         setState(() {
           _isLoading = false;
           _errorMessage = 'Lỗi phát HLS: $e';
         });
       }
-    }
-    finally {
+    } finally {
       if (pendingController != null && !identical(pendingController, _controller)) {
         await pendingController.dispose();
       }
@@ -259,7 +311,6 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     if (!mounted || _controller == null) return;
     final val = _controller!.value;
 
-    // Check completion for auto next episode
     if (val.isInitialized && val.duration > Duration.zero) {
       if (val.position >= val.duration - const Duration(seconds: 1)) {
         _triggerAutoNextEpisode();
@@ -280,6 +331,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     _saveProgress();
     setState(() {
       _currentEpisode = ep;
+      _showEpisodesDrawer = false;
     });
     _initPlayer();
   }
@@ -293,7 +345,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
         movieSlug: widget.movie.slug,
         movieName: widget.movie.name,
         posterUrl: widget.movie.posterUrl,
-        thumbUrl: widget.movie.thumbUrl.isNotEmpty ? widget.movie.thumbUrl : (widget.movie.posterUrl.contains('-poster.') ? widget.movie.posterUrl.replaceAll('-poster.', '-thumb.') : widget.movie.posterUrl),
+        thumbUrl: widget.movie.thumbUrl.isNotEmpty ? widget.movie.thumbUrl : widget.movie.posterUrl,
         episodeSlug: _currentEpisode.slug,
         episodeName: _currentEpisode.name,
         positionSeconds: pos,
@@ -307,44 +359,88 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   KeyEventResult _handleRemoteKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
+
+    // 1. Back button
     if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
+      if (_showEpisodesDrawer) {
+        setState(() => _showEpisodesDrawer = false);
+        return KeyEventResult.handled;
+      }
+      if (_showControls) {
+        setState(() => _showControls = false);
+        return KeyEventResult.handled;
+      }
       Navigator.pop(context);
       return KeyEventResult.handled;
     }
-    if (_showControls) return KeyEventResult.ignored;
-    if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp) {
-      _resetControlsTimer();
-      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _playPauseFocus.requestFocus(); });
-      return KeyEventResult.handled;
-    }
-    if (_controller == null || !_controller!.value.isInitialized) return KeyEventResult.ignored;
+
+    // 2. Center / OK / Select button
     if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(key)) {
-      if (_controller!.value.isPlaying) { _controller!.pause(); _saveProgress(); }
-      else { _controller!.play(); }
-      _resetControlsTimer();
+      if (_isScrubbing) {
+        // Immediate seek commit
+        _scrubCommitTimer?.cancel();
+        _controller?.seekTo(Duration(seconds: _scrubTargetSeconds));
+        setState(() {
+          _isScrubbing = false;
+          _scrubDelta = 0;
+        });
+        return KeyEventResult.handled;
+      }
+      _triggerPlayPause();
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight) {
-      final delta = key == LogicalKeyboardKey.arrowLeft ? -10 : 10;
-      final seconds = (_controller!.value.position.inSeconds + delta).clamp(0, _controller!.value.duration.inSeconds);
-      _controller!.seekTo(Duration(seconds: seconds));
-      _showHud(delta < 0 ? '<< 10s' : '10s >>');
+
+    // 3. Left / Right scrubbing (Netflix style)
+    if (key == LogicalKeyboardKey.arrowLeft) {
+      _handleDpadScrub(-10);
       return KeyEventResult.handled;
     }
+    if (key == LogicalKeyboardKey.arrowRight) {
+      _handleDpadScrub(10);
+      return KeyEventResult.handled;
+    }
+
+    // 4. Down button -> Open Quick Episode Drawer
+    if (key == LogicalKeyboardKey.arrowDown) {
+      if (!_showEpisodesDrawer) {
+        setState(() {
+          _showEpisodesDrawer = true;
+          _showControls = true;
+        });
+      }
+      return KeyEventResult.handled;
+    }
+
+    // 5. Up button -> Toggle top header / controls
+    if (key == LogicalKeyboardKey.arrowUp) {
+      if (_showEpisodesDrawer) {
+        setState(() => _showEpisodesDrawer = false);
+      } else {
+        _resetControlsTimer();
+      }
+      return KeyEventResult.handled;
+    }
+
     return KeyEventResult.ignored;
   }
 
   @override
   Widget build(BuildContext context) {
+    final positionSeconds = _isScrubbing
+        ? _scrubTargetSeconds
+        : (_controller?.value.position.inSeconds ?? 0);
+    final totalSeconds = _controller?.value.duration.inSeconds ?? 1;
+
     return Focus(
       autofocus: true,
+      focusNode: _rootPlayerFocus,
       onKeyEvent: _handleRemoteKey,
       child: Scaffold(
         backgroundColor: Colors.black,
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // Video Output
+            // 1. Video Player
             if (_isEmbedMode && _webViewController != null)
               WebViewWidget(controller: _webViewController!)
             else if (_controller != null && _controller!.value.isInitialized)
@@ -362,7 +458,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                     CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 3.5),
                     SizedBox(height: 16),
                     Text(
-                      'Đang kết nối luồng phát Android TV...',
+                      'Đang tải luồng phát điện ảnh 4K/FHD...',
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],
@@ -386,24 +482,72 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                 ),
               ),
 
-            // TV HUD Message Ripple in Center
-            if (_hudMessage != null)
+            // 2. Netflix Center Play/Pause Indicator
+            if (_showCenterPlayPauseIcon)
               Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: AppTheme.primary, width: 1.5),
-                  ),
-                  child: Text(
-                    _hudMessage!,
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: _showCenterPlayPauseIcon ? 1.0 : 0.0,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.65),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white30, width: 2),
+                    ),
+                    child: Icon(
+                      _wasPlaying ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                      color: Colors.white,
+                      size: 54,
+                    ),
                   ),
                 ),
               ),
 
-            // TV Controls Overlay (Top Bar + Bottom Bar)
+            // 3. Netflix Scrub Time Badge (Center Screen)
+            if (_isScrubbing)
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.85),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.primary, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withOpacity(0.5),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatDuration(Duration(seconds: _scrubTargetSeconds)),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_scrubDelta >= 0 ? "+" : ""}${_scrubDelta}s',
+                        style: TextStyle(
+                          color: _scrubDelta >= 0 ? const Color(0xFF10B981) : Colors.redAccent,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // 4. Netflix HUD Overlay (Top & Bottom)
             if (_showControls) ...[
               // Top Bar
               Positioned(
@@ -414,7 +558,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.black.withOpacity(0.85), Colors.transparent],
+                      colors: [Colors.black.withOpacity(0.9), Colors.transparent],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -422,7 +566,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const SizedBox(width: 12),
@@ -440,7 +584,6 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                         ],
                       ),
                       const Spacer(),
-                      // Remote Guide
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
@@ -448,7 +591,7 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
-                          'Remote: D-pad ◄ / ► để Tua 10s • OK để Play/Pause',
+                          'Remote: ◄ / ► Tua • OK Phát/Dừng • ▼ Danh Sách Tập',
                           style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ),
@@ -457,16 +600,16 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                 ),
               ),
 
-              // Bottom TV Scrub & Action Bar
+              // Bottom Netflix Scrub Bar
               Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
+                      colors: [Colors.transparent, Colors.black.withOpacity(0.92)],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -474,78 +617,50 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (_controller != null && _controller!.value.isInitialized) ...[
-                        Row(
-                          children: [
-                            Text(
-                              _formatDuration(_controller!.value.position),
-                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                            ),
-                            Expanded(
-                              child: SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  activeTrackColor: AppTheme.primary,
-                                  inactiveTrackColor: Colors.white24,
-                                  thumbColor: AppTheme.primary,
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                                ),
-                                child: Slider(
-                                  value: _controller!.value.position.inSeconds
-                                      .toDouble()
-                                      .clamp(0.0, _controller!.value.duration.inSeconds.toDouble()),
-                                  max: _controller!.value.duration.inSeconds.toDouble() > 0
-                                      ? _controller!.value.duration.inSeconds.toDouble()
-                                      : 1.0,
-                                  onChanged: (v) {
-                                    _controller!.seekTo(Duration(seconds: v.toInt()));
-                                  },
-                                ),
-                              ),
-                            ),
-                            Text(
-                              _formatDuration(_controller!.value.duration),
-                              style: const TextStyle(color: Colors.white70, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      // TV Bottom Action Row (Episodes list & Server switcher)
+                      // Time indicator & Progress bar
                       Row(
                         children: [
-                          ElevatedButton.icon(
-                            focusNode: _playPauseFocus,
-                            onPressed: _controller == null ? null : () {
-                              if (_controller!.value.isPlaying) { _controller!.pause(); _saveProgress(); }
-                              else { _controller!.play(); }
-                              setState(() {});
-                            },
-                            icon: Icon((_controller?.value.isPlaying ?? false) ? Icons.pause : Icons.play_arrow),
-                            label: Text((_controller?.value.isPlaying ?? false) ? 'Tạm dừng' : 'Phát'),
+                          Text(
+                            _formatDuration(Duration(seconds: positionSeconds)),
+                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            focusNode: _ffFocus,
-                            onPressed: () => _openTvEpisodesSheet(),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.card,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: (positionSeconds / (totalSeconds > 0 ? totalSeconds : 1)).clamp(0.0, 1.0),
+                                minHeight: 6,
+                                backgroundColor: Colors.white24,
+                                valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                              ),
                             ),
-                            icon: const Icon(Icons.video_library_rounded, size: 18),
-                            label: const Text('Danh Sách Tập'),
                           ),
-                          const SizedBox(width: 12),
-                          OutlinedButton.icon(
-                            focusNode: _rwFocus,
-                            onPressed: () => _openTvServerSheet(),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white24),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            ),
-                            icon: const Icon(Icons.dns_rounded, size: 18),
-                            label: Text(_currentServer.serverName),
+                          const SizedBox(width: 14),
+                          Text(
+                            _formatDuration(Duration(seconds: totalSeconds)),
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: _triggerPlayPause,
+                            icon: Icon((_controller?.value.isPlaying ?? false) ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 20),
+                            label: Text((_controller?.value.isPlaying ?? false) ? 'Tạm Dừng' : 'Phát Tiếp', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 16),
+                          TextButton.icon(
+                            onPressed: () => setState(() => _showEpisodesDrawer = !_showEpisodesDrawer),
+                            icon: const Icon(Icons.video_library_rounded, color: Colors.white70, size: 18),
+                            label: const Text('Danh Sách Tập', style: TextStyle(color: Colors.white70)),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Chất lượng: ${widget.movie.quality.isNotEmpty ? widget.movie.quality : "FHD 1080p"}',
+                            style: const TextStyle(color: AppTheme.cyan, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -554,94 +669,97 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                 ),
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
 
-  void _openTvEpisodesSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF141722),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Chọn Tập Phim',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
-                  childAspectRatio: 2.2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: _currentServer.episodes.length,
-                itemBuilder: (context, idx) {
-                  final ep = _currentServer.episodes[idx];
-                  final isCurrent = ep.slug == _currentEpisode.slug;
-                  return ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _switchEpisode(ep);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isCurrent ? AppTheme.primary : AppTheme.card,
-                    ),
-                    child: Text(
-                      ep.name,
-                      style: TextStyle(
-                        color: isCurrent ? Colors.white : Colors.white70,
-                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+            // 5. Netflix Quick Episode Drawer (D-Pad Down on TV)
+            if (_showEpisodesDrawer)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 220,
+                child: Container(
+                  color: const Color(0xFF141722).withOpacity(0.97),
+                  padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.video_library_rounded, color: AppTheme.primary, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Chọn Tập Phim (${_currentServer.serverName})',
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, color: Colors.white60),
+                            onPressed: () => setState(() => _showEpisodesDrawer = false),
+                          ),
+                        ],
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _currentServer.episodes.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, idx) {
+                            final ep = _currentServer.episodes[idx];
+                            final isCurrent = ep.slug == _currentEpisode.slug;
 
-  void _openTvServerSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF141722),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Chọn Nguồn Phát (Server)',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ...widget.servers.map((s) {
-              final isCurrent = s.serverName == _currentServer.serverName;
-              return ListTile(
-                title: Text(s.serverName, style: TextStyle(color: isCurrent ? AppTheme.primaryLight : Colors.white)),
-                leading: Icon(Icons.dns_rounded, color: isCurrent ? AppTheme.primary : Colors.white54),
-                trailing: isCurrent ? const Icon(Icons.check, color: AppTheme.primary) : null,
-                onTap: () {
-                  Navigator.pop(ctx);
-                  setState(() {
-                    _currentServer = s;
-                    _currentEpisode = s.episodes.isNotEmpty ? s.episodes.first : _currentEpisode;
-                  });
-                  _initPlayer();
-                },
-              );
-            }),
+                            return Focus(
+                              autofocus: isCurrent,
+                              onKeyEvent: (node, event) {
+                                if (event is KeyDownEvent &&
+                                    [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
+                                  _switchEpisode(ep);
+                                  return KeyEventResult.handled;
+                                }
+                                return KeyEventResult.ignored;
+                              },
+                              child: Builder(
+                                builder: (ctx) {
+                                  final isFocused = Focus.of(ctx).hasFocus;
+                                  return GestureDetector(
+                                    onTap: () => _switchEpisode(ep),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 150),
+                                      width: 120,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: isCurrent
+                                            ? AppTheme.primary
+                                            : (isFocused ? Colors.white24 : const Color(0xFF1E2230)),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: isFocused ? Colors.white : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          ep.name,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),

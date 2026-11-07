@@ -153,14 +153,28 @@ class Movie {
       }
     }
 
+    final rawPoster = json['poster_url']?.toString().trim() ?? '';
+    final heroPoster = json['hero_poster_url']?.toString().trim() ?? '';
+    final heroPosterFallback = json['hero_poster_fallback']?.toString().trim() ?? '';
+    final resolvedPoster = rawPoster.isNotEmpty
+        ? rawPoster
+        : (heroPoster.isNotEmpty ? heroPoster : heroPosterFallback);
+
+    final rawThumb = json['thumb_url']?.toString().trim() ?? '';
+    final heroBackdrop = json['hero_backdrop_url']?.toString().trim() ?? '';
+    final heroBackdropFallback = json['hero_backdrop_fallback']?.toString().trim() ?? '';
+    final resolvedThumb = rawThumb.isNotEmpty
+        ? rawThumb
+        : (heroBackdrop.isNotEmpty ? heroBackdrop : heroBackdropFallback);
+
     return Movie(
       id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
       slug: json['slug'] ?? '',
       originName: json['origin_name'] ?? '',
       type: (json['type']?.toString().toLowerCase().trim() ?? 'single'),
-      posterUrl: json['poster_url'] ?? '',
-      thumbUrl: json['thumb_url'] ?? '',
+      posterUrl: resolvedPoster,
+      thumbUrl: resolvedThumb,
       year: parsedYear,
       time: json['time'] ?? '',
       quality: json['quality'] ?? 'HD',

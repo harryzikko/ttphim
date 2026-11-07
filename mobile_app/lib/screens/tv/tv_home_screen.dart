@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../models/movie.dart';
 import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
@@ -9,10 +10,12 @@ import 'tv_card.dart';
 
 class TvHomeScreen extends StatefulWidget {
   final Function(Movie) onMovieSelect;
+  final VoidCallback? onRequestSidebar;
 
   const TvHomeScreen({
     super.key,
     required this.onMovieSelect,
+    this.onRequestSidebar,
   });
 
   @override
@@ -20,6 +23,11 @@ class TvHomeScreen extends StatefulWidget {
 }
 
 class _TvHomeScreenState extends State<TvHomeScreen> {
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _heroPlayFocus = FocusNode();
+  final FocusNode _heroInfoFocus = FocusNode();
+  final FocusNode _firstRailFirstCardFocus = FocusNode();
+
   bool _isLoading = true;
   Movie? _spotlight;
   List<Movie> _historyMovies = [];
@@ -40,6 +48,10 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
   @override
   void dispose() {
     SessionService.changes.removeListener(_loadAllRails);
+    _scrollController.dispose();
+    _heroPlayFocus.dispose();
+    _heroInfoFocus.dispose();
+    _firstRailFirstCardFocus.dispose();
     super.dispose();
   }
 
@@ -102,6 +114,24 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
     }
   }
 
+  void _scrollToTopAndFocusHero() {
+    _heroPlayFocus.requestFocus();
+    _scrollController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _focusFirstRail() {
+    _firstRailFirstCardFocus.requestFocus();
+    _scrollController.animateTo(
+      360.0,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -117,7 +147,10 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
       );
     }
 
+    final hasHistory = _historyMovies.isNotEmpty;
+
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,17 +160,24 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
 
           const SizedBox(height: 24),
 
-          // 2. RAIL: TIẾP TỤC XEM DỞ
-          if (_historyMovies.isNotEmpty) ...[
+          // 2. RAIL: TIẾP TỤC XEM DỞ (if history exists)
+          if (hasHistory) ...[
             _buildRailHeader('Tiếp Tục Xem Dở', Icons.history_rounded),
-            _buildMovieRail(_historyMovies, showProgress: true),
+            _buildMovieRail(
+              _historyMovies,
+              showProgress: true,
+              isFirstRail: true,
+            ),
             const SizedBox(height: 24),
           ],
 
           // 3. RAIL: THỊNH HÀNH HÔM NAY
           if (_trendingMovies.isNotEmpty) ...[
             _buildRailHeader('Thịnh Hành Hôm Nay', Icons.local_fire_department_rounded),
-            _buildMovieRail(_trendingMovies),
+            _buildMovieRail(
+              _trendingMovies,
+              isFirstRail: !hasHistory,
+            ),
             const SizedBox(height: 24),
           ],
 
@@ -182,6 +222,7 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
 
   Widget _buildHeroBillboard(Movie m) {
     final backdrop = m.fullThumbUrl.isNotEmpty ? m.fullThumbUrl : m.fullPosterUrl;
+    final fallback = m.fullPosterUrl;
 
     return Container(
       height: 440,
@@ -193,13 +234,32 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Backdrop Image
+          // Backdrop Image with Multi-tier Resilience
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: CachedNetworkImage(
               imageUrl: backdrop,
               fit: BoxFit.cover,
-              errorWidget: (_, __, ___) => Container(color: const Color(0xFF191B24)),
+              httpHeaders: const {
+                'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
+                'Referer': 'https://cineviet.live',
+              },
+              placeholder: (_, __) => Container(color: const Color(0xFF191B24)),
+              errorWidget: (_, __, ___) => Image.network(
+                backdrop,
+                fit: BoxFit.cover,
+                headers: const {'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet)'},
+                errorBuilder: (_, __, ___) {
+                  if (fallback.isNotEmpty && fallback != backdrop) {
+                    return Image.network(
+                      fallback,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: const Color(0xFF191B24)),
+                    );
+                  }
+                  return Container(color: const Color(0xFF191B24));
+                },
+              ),
             ),
           ),
 
@@ -310,8 +370,26 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                   const SizedBox(height: 18),
                   Row(
                     children: [
+                      // "Xem Ngay" button
                       Focus(
-                        autofocus: true,
+                        focusNode: _heroPlayFocus,
+                        onKeyEvent: (node, event) {
+                          if (event is KeyDownEvent) {
+                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                              _focusFirstRail();
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                              widget.onRequestSidebar?.call();
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                              _heroInfoFocus.requestFocus();
+                              return KeyEventResult.handled;
+                            }
+                          }
+                          return KeyEventResult.ignored;
+                        },
                         child: Builder(
                           builder: (ctx) {
                             final isFocused = Focus.of(ctx).hasFocus;
@@ -331,7 +409,22 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                         ),
                       ),
                       const SizedBox(width: 14),
+                      // "Chi Tiết" button
                       Focus(
+                        focusNode: _heroInfoFocus,
+                        onKeyEvent: (node, event) {
+                          if (event is KeyDownEvent) {
+                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                              _focusFirstRail();
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                              _heroPlayFocus.requestFocus();
+                              return KeyEventResult.handled;
+                            }
+                          }
+                          return KeyEventResult.ignored;
+                        },
                         child: Builder(
                           builder: (ctx) {
                             final isFocused = Focus.of(ctx).hasFocus;
@@ -394,7 +487,11 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
     );
   }
 
-  Widget _buildMovieRail(List<Movie> movies, {bool showProgress = false}) {
+  Widget _buildMovieRail(
+    List<Movie> movies, {
+    bool showProgress = false,
+    bool isFirstRail = false,
+  }) {
     return SizedBox(
       height: 290,
       child: ListView.separated(
@@ -405,10 +502,17 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
         separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final movie = movies[index];
+          final isFirstCard = index == 0;
+
           return TvMovieCard(
             movie: movie,
             showProgress: showProgress,
             progress: 0.65,
+            focusNode: (isFirstRail && isFirstCard) ? _firstRailFirstCardFocus : null,
+            // When pressing UP on the first rail: smoothly scroll to top and focus hero play button!
+            onUpPressed: isFirstRail ? _scrollToTopAndFocusHero : null,
+            // When pressing LEFT on the first card: seamlessly move focus to the left sidebar!
+            onLeftPressed: isFirstCard ? () => widget.onRequestSidebar?.call() : null,
             onSelect: () => widget.onMovieSelect(movie),
           );
         },

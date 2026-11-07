@@ -12,6 +12,11 @@ class TvMovieCard extends StatefulWidget {
   final double height;
   final bool showProgress;
   final double progress;
+  final FocusNode? focusNode;
+  final VoidCallback? onUpPressed;
+  final VoidCallback? onDownPressed;
+  final VoidCallback? onLeftPressed;
+  final VoidCallback? onRightPressed;
 
   const TvMovieCard({
     super.key,
@@ -21,6 +26,11 @@ class TvMovieCard extends StatefulWidget {
     this.height = 255,
     this.showProgress = false,
     this.progress = 0.0,
+    this.focusNode,
+    this.onUpPressed,
+    this.onDownPressed,
+    this.onLeftPressed,
+    this.onRightPressed,
   });
 
   @override
@@ -30,19 +40,122 @@ class TvMovieCard extends StatefulWidget {
 class _TvMovieCardState extends State<TvMovieCard> {
   bool _isFocused = false;
 
+  Widget _buildPosterImage() {
+    final poster = widget.movie.fullPosterUrl;
+    final thumb = widget.movie.fullThumbUrl;
+
+    return CachedNetworkImage(
+      imageUrl: poster,
+      fit: BoxFit.cover,
+      httpHeaders: const {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
+        'Referer': 'https://cineviet.live',
+      },
+      placeholder: (_, __) => Container(color: AppTheme.card),
+      errorWidget: (_, __, ___) {
+        // Fallback 1: Try thumbnail URL (often high-res TMDb image)
+        if (thumb.isNotEmpty && thumb != poster) {
+          return CachedNetworkImage(
+            imageUrl: thumb,
+            fit: BoxFit.cover,
+            httpHeaders: const {
+              'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
+              'Referer': 'https://cineviet.live',
+            },
+            placeholder: (_, __) => Container(color: AppTheme.card),
+            errorWidget: (_, __, ___) => _buildDirectNetworkFallback(poster, thumb),
+          );
+        }
+        return _buildDirectNetworkFallback(poster, thumb);
+      },
+    );
+  }
+
+  Widget _buildDirectNetworkFallback(String poster, String thumb) {
+    return Image.network(
+      poster,
+      fit: BoxFit.cover,
+      headers: const {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
+      },
+      errorBuilder: (ctx, err, stack) {
+        if (thumb.isNotEmpty && thumb != poster) {
+          return Image.network(
+            thumb,
+            fit: BoxFit.cover,
+            headers: const {
+              'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
+            },
+            errorBuilder: (_, __, ___) => _buildPlaceholderFallback(),
+          );
+        }
+        return _buildPlaceholderFallback();
+      },
+    );
+  }
+
+  Widget _buildPlaceholderFallback() {
+    return Container(
+      color: AppTheme.cardElevated,
+      padding: const EdgeInsets.all(12),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.movie_rounded, color: AppTheme.primaryLight, size: 36),
+            const SizedBox(height: 8),
+            Text(
+              widget.movie.name,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final poster = widget.movie.fullPosterUrl;
-
     return Focus(
+      focusNode: widget.focusNode,
       onFocusChange: (focused) {
         setState(() => _isFocused = focused);
+        if (focused) {
+          // Ensure visible when focused
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+          );
+        }
       },
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
-          widget.onSelect();
-          return KeyEventResult.handled;
+        if (event is KeyDownEvent) {
+          final key = event.logicalKey;
+          if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(key)) {
+            widget.onSelect();
+            return KeyEventResult.handled;
+          }
+          if (key == LogicalKeyboardKey.arrowUp && widget.onUpPressed != null) {
+            widget.onUpPressed!();
+            return KeyEventResult.handled;
+          }
+          if (key == LogicalKeyboardKey.arrowDown && widget.onDownPressed != null) {
+            widget.onDownPressed!();
+            return KeyEventResult.handled;
+          }
+          if (key == LogicalKeyboardKey.arrowLeft && widget.onLeftPressed != null) {
+            widget.onLeftPressed!();
+            return KeyEventResult.handled;
+          }
+          if (key == LogicalKeyboardKey.arrowRight && widget.onRightPressed != null) {
+            widget.onRightPressed!();
+            return KeyEventResult.handled;
+          }
         }
         return KeyEventResult.ignored;
       },
@@ -84,19 +197,8 @@ class _TvMovieCardState extends State<TvMovieCard> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Poster Image
-                  CachedNetworkImage(
-                    imageUrl: poster,
-                    fit: BoxFit.cover,
-                    memCacheWidth: 420,
-                    placeholder: (_, __) => Container(color: AppTheme.card),
-                    errorWidget: (_, __, ___) => Container(
-                      color: AppTheme.cardElevated,
-                      child: const Center(
-                        child: Icon(Icons.movie_creation_rounded, color: Colors.white24, size: 40),
-                      ),
-                    ),
-                  ),
+                  // Poster Image with multi-tier fallback
+                  _buildPosterImage(),
 
                   // Rich Gradient Scrim for 10-foot Readability
                   Positioned.fill(

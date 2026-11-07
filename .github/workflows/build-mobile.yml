@@ -96,7 +96,7 @@ jobs:
         working-directory: mobile_app
         run: |
           flutter clean
-          flutter pub get --enforce-lockfile
+          flutter pub get
       - name: Static analysis
         working-directory: mobile_app
         run: |
@@ -180,7 +180,7 @@ jobs:
         working-directory: mobile_app
         run: |
           flutter clean
-          flutter pub get --enforce-lockfile
+          flutter pub get
       - name: Static analysis
         working-directory: mobile_app
         run: |
