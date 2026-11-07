@@ -373,8 +373,27 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                       // "Xem Ngay" button
                       Focus(
                         focusNode: _heroPlayFocus,
+                        onFocusChange: (focused) {
+                          if (focused && _scrollController.hasClients) {
+                            _scrollController.animateTo(
+                              0.0,
+                              duration: const Duration(milliseconds: 260),
+                              curve: Curves.easeOutCubic,
+                            );
+                          }
+                        },
                         onKeyEvent: (node, event) {
                           if (event is KeyDownEvent) {
+                            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                              if (_scrollController.hasClients) {
+                                _scrollController.animateTo(
+                                  0.0,
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeOutCubic,
+                                );
+                              }
+                              return KeyEventResult.handled;
+                            }
                             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                               _focusFirstRail();
                               return KeyEventResult.handled;
@@ -412,8 +431,27 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                       // "Chi Tiết" button
                       Focus(
                         focusNode: _heroInfoFocus,
+                        onFocusChange: (focused) {
+                          if (focused && _scrollController.hasClients) {
+                            _scrollController.animateTo(
+                              0.0,
+                              duration: const Duration(milliseconds: 260),
+                              curve: Curves.easeOutCubic,
+                            );
+                          }
+                        },
                         onKeyEvent: (node, event) {
                           if (event is KeyDownEvent) {
+                            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                              if (_scrollController.hasClients) {
+                                _scrollController.animateTo(
+                                  0.0,
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeOutCubic,
+                                );
+                              }
+                              return KeyEventResult.handled;
+                            }
                             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                               _focusFirstRail();
                               return KeyEventResult.handled;

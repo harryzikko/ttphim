@@ -436,7 +436,7 @@ class ViCDNService {
           slug: `tap-${num}`,
           filename: `Tập ${num}`,
           link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
-          link_m3u8: isVicdn ? `https://cineviet.live/api/stream/vicdn/${videoId}/original.m3u8` : (url.includes('.m3u8') ? url : '')
+          link_m3u8: ''
         };
       });
 
@@ -505,7 +505,7 @@ class ViCDNService {
         slug: `tap-${num}`,
         filename: `Tập ${num}`,
         link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
-        link_m3u8: isVicdn ? `https://cineviet.live/api/stream/vicdn/${videoId}/original.m3u8` : (url.includes('.m3u8') ? url : '')
+        link_m3u8: ''
       };
     });
 

@@ -98,6 +98,35 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   }
 
   void _triggerPlayPause() {
+    if (_isEmbedMode) {
+      _webViewController?.runJavaScript('''
+        (function() {
+          try {
+            if (window.jwplayer) {
+              var p = (window.jwplayer && window.jwplayer('ssPlay')) || window.jwplayer();
+              if (p && typeof p.getState === 'function') {
+                p.play();
+                return;
+              }
+            }
+            var v = document.querySelector('video');
+            if (v) {
+              if (v.paused) v.play(); else v.pause();
+            }
+          } catch (_) {}
+        })();
+      ''');
+      setState(() {
+        _showCenterPlayPauseIcon = true;
+        _resetControlsTimer();
+      });
+      _centerIconTimer?.cancel();
+      _centerIconTimer = Timer(const Duration(milliseconds: 900), () {
+        if (mounted) setState(() => _showCenterPlayPauseIcon = false);
+      });
+      return;
+    }
+
     if (_controller == null || !_controller!.value.isInitialized) return;
     final isPlaying = _controller!.value.isPlaying;
     if (isPlaying) {
@@ -119,6 +148,28 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   }
 
   void _handleDpadScrub(int deltaSeconds) {
+    if (_isEmbedMode) {
+      _webViewController?.runJavaScript('''
+        (function() {
+          try {
+            if (window.jwplayer) {
+              var p = (window.jwplayer && window.jwplayer('ssPlay')) || window.jwplayer();
+              if (p && typeof p.getPosition === 'function') {
+                p.seek(Math.max(0, p.getPosition() + $deltaSeconds));
+                return;
+              }
+            }
+            var v = document.querySelector('video');
+            if (v) {
+              v.currentTime = Math.max(0, v.currentTime + $deltaSeconds);
+            }
+          } catch (_) {}
+        })();
+      ''');
+      _resetControlsTimer();
+      return;
+    }
+
     if (_controller == null || !_controller!.value.isInitialized) return;
 
     final duration = _controller!.value.duration.inSeconds;
@@ -172,20 +223,12 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
         episode.linkEmbed.contains('vicdn') ||
         (widget.movie.hasSongNgu && episode.linkEmbed.contains('vicdn'));
 
-    if (forceEmbed && episode.linkEmbed.isNotEmpty) {
+    if ((forceEmbed || isSongNgu) && episode.linkEmbed.isNotEmpty) {
       _initEmbedPlayer(episode.linkEmbed);
       return;
     }
 
     String streamUrl = episode.linkM3u8.trim();
-    if (streamUrl.isEmpty && isSongNgu && episode.linkEmbed.isNotEmpty) {
-      final reg = RegExp(r'(?:embed/vicdn/|stream/vicdn/|vicdn\.cc/)([\w-]+)');
-      final m = reg.firstMatch(episode.linkEmbed);
-      final vid = m?.group(1);
-      if (vid != null && vid.isNotEmpty) {
-        streamUrl = 'https://cineviet.live/api/stream/vicdn/$vid/original.m3u8';
-      }
-    }
     if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
       final uri = Uri.tryParse(episode.linkEmbed);
       final param = uri?.queryParameters['url'] ?? uri?.queryParameters['file'];
@@ -300,10 +343,11 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
         ),
       );
 
+      final isNguonC = resolvedUrl.contains('streamc') || resolvedUrl.contains('nguonc');
       controller.loadRequest(
         Uri.parse(resolvedUrl),
-        headers: const {
-          'Referer': 'https://cineviet.live/',
+        headers: {
+          'Referer': isNguonC ? 'https://phim.nguonc.com/' : 'https://cineviet.live/',
         },
       );
       _webViewController = controller;
@@ -383,8 +427,15 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       return KeyEventResult.handled;
     }
 
-    // 2. Center / OK / Select button
-    if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(key)) {
+    // 2. Center / OK / Select button or TV Play/Pause
+    if ([
+      LogicalKeyboardKey.select,
+      LogicalKeyboardKey.enter,
+      LogicalKeyboardKey.space,
+      LogicalKeyboardKey.mediaPlayPause,
+      LogicalKeyboardKey.mediaPlay,
+      LogicalKeyboardKey.mediaPause,
+    ].contains(key)) {
       if (_isScrubbing) {
         // Immediate seek commit
         _scrubCommitTimer?.cancel();
@@ -399,12 +450,12 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       return KeyEventResult.handled;
     }
 
-    // 3. Left / Right scrubbing (Netflix style)
-    if (key == LogicalKeyboardKey.arrowLeft) {
+    // 3. Left / Right scrubbing (Netflix style) or Rewind / FastForward keys
+    if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.mediaRewind) {
       _handleDpadScrub(-10);
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.arrowRight) {
+    if (key == LogicalKeyboardKey.arrowRight || key == LogicalKeyboardKey.mediaFastForward) {
       _handleDpadScrub(10);
       return KeyEventResult.handled;
     }

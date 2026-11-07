@@ -162,13 +162,16 @@ class _TvMainScreenState extends State<TvMainScreen> {
                         focusNode: focusNode,
                         onFocusChange: (focused) {
                           if (focused) {
-                            setState(() => _isSidebarExpanded = true);
-                          } else {
-                            // Check if any sidebar node still has focus
-                            final anyFocused = _navFocusNodes.any((n) => n.hasFocus);
-                            if (!anyFocused && mounted) {
-                              setState(() => _isSidebarExpanded = false);
+                            if (!_isSidebarExpanded) {
+                              setState(() => _isSidebarExpanded = true);
                             }
+                          } else {
+                            // Check safely after frame whether focus actually moved out of sidebar
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted && !_navFocusNodes.any((n) => n.hasFocus)) {
+                                setState(() => _isSidebarExpanded = false);
+                              }
+                            });
                           }
                         },
                         onKeyEvent: (node, event) {
@@ -180,9 +183,12 @@ class _TvMainScreenState extends State<TvMainScreen> {
                               _contentFocusNode.requestFocus();
                               return KeyEventResult.handled;
                             }
-                            // Right arrow: Move smoothly to content canvas
+                            // Right arrow: Move smoothly to content canvas and collapse sidebar
                             if (key == LogicalKeyboardKey.arrowRight) {
-                              setState(() => _selectedNavIndex = index);
+                              setState(() {
+                                _selectedNavIndex = index;
+                                _isSidebarExpanded = false;
+                              });
                               _contentFocusNode.requestFocus();
                               return KeyEventResult.handled;
                             }

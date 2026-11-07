@@ -19,13 +19,6 @@ import '../services/embed_policy.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 
-class _SubCue {
-  final Duration start;
-  final Duration end;
-  final String text;
-  const _SubCue({required this.start, required this.end, required this.text});
-}
-
 enum VideoFitMode {
   original, // 16:9 or native aspect ratio
   fill,     // Zoom / Crop to fill screen
@@ -71,12 +64,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   bool _webIsPlaying = false;
   String _currentAudioTrack = 'original';
   String _currentSubMode = 'bilingual';
-
-  // Native Subtitles State (Bilingual / Vi / En)
-  List<_SubCue> _viSubCues = [];
-  List<_SubCue> _enSubCues = [];
-  String _activeViSubText = '';
-  String _activeEnSubText = '';
 
   // Netflix-style Overlay Controls
   bool _showControls = true;
@@ -443,75 +430,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     return null;
   }
 
-  /// Parse WebVTT subtitle into cues for native rendering
-  List<_SubCue> _parseVtt(String vttContent) {
-    final List<_SubCue> cues = [];
-    final lines = vttContent.split('\n');
-    final timeRegex = RegExp(r'(\d{2}:)?(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(\d{2}:)?(\d{2}):(\d{2})\.(\d{3})');
-
-    Duration parseDuration(String? hh, String mm, String ss, String ms) {
-      final hours = hh != null ? int.tryParse(hh.replaceAll(':', '')) ?? 0 : 0;
-      final minutes = int.tryParse(mm) ?? 0;
-      final seconds = int.tryParse(ss) ?? 0;
-      final millis = int.tryParse(ms) ?? 0;
-      return Duration(hours: hours, minutes: minutes, seconds: seconds, milliseconds: millis);
-    }
-
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i].trim();
-      final match = timeRegex.firstMatch(line);
-      if (match != null) {
-        final start = parseDuration(match.group(1), match.group(2)!, match.group(3)!, match.group(4)!);
-        final end = parseDuration(match.group(5), match.group(6)!, match.group(7)!, match.group(8)!);
-        final textBuffer = StringBuffer();
-        while (++i < lines.length && lines[i].trim().isNotEmpty) {
-          final cueLine = lines[i].replaceAll(RegExp(r'<[^>]*>'), '').trim();
-          if (cueLine.isNotEmpty) {
-            if (textBuffer.isNotEmpty) textBuffer.write('\n');
-            textBuffer.write(cueLine);
-          }
-        }
-        final text = textBuffer.toString().trim();
-        if (text.isNotEmpty) {
-          cues.add(_SubCue(start: start, end: end, text: text));
-        }
-      }
-    }
-    return cues;
-  }
-
-  Future<void> _loadNativeSubtitles(String videoId) async {
-    try {
-      final client = HttpClient();
-      final viUri = Uri.parse('https://cineviet.live/api/stream/vicdn/$videoId/vi.vtt');
-      final enUri = Uri.parse('https://cineviet.live/api/stream/vicdn/$videoId/en.vtt');
-
-      final results = await Future.wait([
-        _fetchString(client, viUri),
-        _fetchString(client, enUri),
-      ]);
-      client.close();
-
-      if (mounted) {
-        setState(() {
-          _viSubCues = _parseVtt(results[0]);
-          _enSubCues = _parseVtt(results[1]);
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<String> _fetchString(HttpClient client, Uri uri) async {
-    try {
-      final req = await client.getUrl(uri).timeout(const Duration(seconds: 5));
-      final res = await req.close();
-      if (res.statusCode == 200) {
-        return await res.transform(utf8.decoder).join();
-      }
-    } catch (_) {}
-    return '';
-  }
-
   /// Helper: Extract direct .m3u8 playlist URL from embed wrapper URL if present
   String? _extractM3u8FromEmbed(String embedUrl) {
     if (embedUrl.isEmpty) return null;
@@ -618,68 +536,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                   }
                   meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
 
-                  var style = document.createElement('style');
-                  style.id = 'cineviet-touch-fix';
-                  style.innerHTML = `
-                    * {
-                      -webkit-tap-highlight-color: transparent !important;
-                      -webkit-touch-callout: none !important;
-                    }
-                    html, body, #ssPlay, #player, .jwplayer, video, .jw-media, .jw-aspect {
-                      touch-action: manipulation !important;
-                      pointer-events: auto !important;
-                    }
-                    .jw-controlbar {
-                      opacity: 0 !important;
-                      pointer-events: none !important;
-                    }
-                  `;
-                  if (!document.getElementById('cineviet-touch-fix')) {
-                    document.head.appendChild(style);
-                  }
-                } catch (_) {}
-
-                // Continuously sync playback time, duration and play/pause state
-                setInterval(function() {
-                  try {
-                    var pos = 0, dur = 0, isPlaying = false;
-                    if (window.jwplayer) {
-                      var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
-                      if (p && typeof p.getPosition === 'function') {
-                        pos = p.getPosition() || 0;
-                        dur = p.getDuration() || 0;
-                        isPlaying = (p.getState() === 'playing');
-                      }
-                    }
-                    if (!dur) {
-                      var v = document.querySelector('video');
-                      if (v) {
-                        pos = v.currentTime || 0;
-                        dur = v.duration || 0;
-                        isPlaying = !v.paused;
-                      }
-                    }
-                    if (dur > 0 && window.CineVietNative && window.CineVietNative.postMessage) {
-                      window.CineVietNative.postMessage('sync:' + Math.round(pos) + ':' + Math.round(dur) + ':' + (isPlaying ? '1' : '0'));
-                    }
-                  } catch (_) {}
-                }, 400);
-
-                function tryAutoPlay() {
-                  try {
-                    if (window.jwplayer) {
-                      var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
-                      if (p && typeof p.play === 'function') p.play();
-                    }
-                    var v = document.querySelector('video');
-                    if (v && v.paused) {
-                      v.play().catch(function() {});
-                    }
-                  } catch (_) {}
-                }
-                setTimeout(tryAutoPlay, 500);
-                setTimeout(tryAutoPlay, 1500);
-
                 function fixVideos() {
                   var videos = document.querySelectorAll('video');
                   for (var i = 0; i < videos.length; i++) {
@@ -725,15 +581,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                     } catch (_) {}
                   }, 400);
                 }
-
-                // Forward click and touch events directly to Flutter native controls
-                document.addEventListener('click', function(e) {
-                  try {
-                    if (window.CineVietNative && window.CineVietNative.postMessage) {
-                      window.CineVietNative.postMessage('toggle-controls');
-                    }
-                  } catch (_) {}
-                }, true);
               })();
             ''');
           },
@@ -794,20 +641,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         episode.linkEmbed.contains('vicdn') ||
         (_activeMovie.hasSongNgu && episode.linkEmbed.contains('vicdn'));
 
-    // 1. Force Embed ONLY if explicitly requested and linkEmbed is present
-    if (forceEmbed && episode.linkEmbed.isNotEmpty) {
+    // 1. Force Embed or Song Ngữ (Song Ngữ uses interactive embed web player for multi-audio and dual subtitles)
+    if ((forceEmbed || isSongNgu) && episode.linkEmbed.isNotEmpty) {
       _initWebPlayer(episode.linkEmbed);
       return;
     }
 
     // 2. Resolve stream URL: Direct HLS or automatically extract from embed link
     String streamUrl = episode.linkM3u8.trim();
-    if (streamUrl.isEmpty && isSongNgu && episode.linkEmbed.isNotEmpty) {
-      final vid = _extractVicdnId(episode.linkEmbed);
-      if (vid != null && vid.isNotEmpty) {
-        streamUrl = 'https://cineviet.live/api/stream/vicdn/$vid/original.m3u8';
-      }
-    }
     if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
       final extracted = _extractM3u8FromEmbed(episode.linkEmbed);
       if (extracted != null && extracted.isNotEmpty) {
@@ -829,16 +670,15 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       }
     }
 
-    // 4. Play with native high-performance video engine (AVPlayer on iOS, ExoPlayer on Android)
+    // 4. Play with native high-performance video engine
     _isEmbedMode = false;
 
     try {
-      final isLocalStream = streamUrl.contains('cineviet.live') || streamUrl.contains('vicdn');
       final ctrl = VideoPlayerController.networkUrl(
         Uri.parse(streamUrl),
-        httpHeaders: {
+        httpHeaders: const {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': isLocalStream ? 'https://cineviet.live/' : 'https://phimapi.com/',
+          'Referer': 'https://phimapi.com/',
         },
       );
       pendingController = ctrl;
@@ -882,13 +722,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           _isPlayerInitializing = false;
         });
         _resetControlsTimer();
-
-        if (isSongNgu) {
-          final vid = _extractVicdnId(streamUrl.isNotEmpty ? streamUrl : episode.linkEmbed);
-          if (vid != null && vid.isNotEmpty) {
-            _loadNativeSubtitles(vid);
-          }
-        }
       }
     } catch (e) {
       if (!isCurrent()) return;
@@ -918,36 +751,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     if (val.isInitialized && val.duration > Duration.zero) {
       if (val.position >= val.duration - const Duration(seconds: 1) && !_isShowingNextPrompt) {
         _checkAutoPlayNext();
-      }
-
-      // Update native subtitles
-      if (!_isEmbedMode && (_viSubCues.isNotEmpty || _enSubCues.isNotEmpty)) {
-        final pos = val.position;
-        String currentVi = '';
-        String currentEn = '';
-
-        if (_currentSubMode == 'vi' || _currentSubMode == 'bilingual') {
-          for (final cue in _viSubCues) {
-            if (pos >= cue.start && pos <= cue.end) {
-              currentVi = cue.text;
-              break;
-            }
-          }
-        }
-
-        if (_currentSubMode == 'en' || _currentSubMode == 'bilingual') {
-          for (final cue in _enSubCues) {
-            if (pos >= cue.start && pos <= cue.end) {
-              currentEn = cue.text;
-              break;
-            }
-          }
-        }
-
-        if (currentVi != _activeViSubText || currentEn != _activeEnSubText) {
-          _activeViSubText = currentVi;
-          _activeEnSubText = currentEn;
-        }
       }
     }
     setState(() {});
@@ -1531,7 +1334,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               Container(color: Colors.black),
 
             // 2. BRIGHTNESS SIMULATOR FILTER
-            if (_brightness < 1.0)
+            if (_brightness < 1.0 && !_isEmbedMode)
               IgnorePointer(
                 child: Container(
                   color: Colors.black.withOpacity((1.0 - _brightness).clamp(0.0, 0.85)),
@@ -1539,25 +1342,26 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               ),
 
             // 3. GESTURE DETECTOR FOR TAP, DOUBLE-TAP & VERTICAL/HORIZONTAL SWIPES
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _toggleControls,
-                onDoubleTapDown: (details) {
-                  if (_isScreenLocked) return;
-                  final isRight = details.localPosition.dx > screenWidth * 0.5;
-                  _triggerDoubleTapSeek(isRight);
-                },
-                onVerticalDragUpdate: (details) => _handleVerticalDrag(details, screenWidth),
-                onHorizontalDragStart: _handleHorizontalDragStart,
-                onHorizontalDragUpdate: (details) => _handleHorizontalDragUpdate(details, screenWidth),
-                onHorizontalDragEnd: _handleHorizontalDragEnd,
-                onHorizontalDragCancel: _handleHorizontalDragCancel,
+            if (!_isEmbedMode)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _toggleControls,
+                  onDoubleTapDown: (details) {
+                    if (_isScreenLocked) return;
+                    final isRight = details.localPosition.dx > screenWidth * 0.5;
+                    _triggerDoubleTapSeek(isRight);
+                  },
+                  onVerticalDragUpdate: (details) => _handleVerticalDrag(details, screenWidth),
+                  onHorizontalDragStart: _handleHorizontalDragStart,
+                  onHorizontalDragUpdate: (details) => _handleHorizontalDragUpdate(details, screenWidth),
+                  onHorizontalDragEnd: _handleHorizontalDragEnd,
+                  onHorizontalDragCancel: _handleHorizontalDragCancel,
+                ),
               ),
-            ),
 
             // 4. DOUBLE-TAP RIPPLE HUDS
-            if (_showSeekLeftRipple)
+            if (!_isEmbedMode && _showSeekLeftRipple)
               Positioned(
                 left: 0,
                 top: 0,
@@ -1565,7 +1369,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 width: screenWidth * 0.45,
                 child: _buildSeekRipple(isForward: false),
               ),
-            if (_showSeekRightRipple)
+            if (!_isEmbedMode && _showSeekRightRipple)
               Positioned(
                 right: 0,
                 top: 0,
@@ -1575,7 +1379,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               ),
 
             // 5. BRIGHTNESS HUD (Left)
-            if (_showBrightnessHud)
+            if (!_isEmbedMode && _showBrightnessHud)
               Positioned(
                 left: 24,
                 top: 0,
@@ -1588,7 +1392,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               ),
 
             // 6. VOLUME HUD (Right)
-            if (_showVolumeHud)
+            if (!_isEmbedMode && _showVolumeHud)
               Positioned(
                 right: 24,
                 top: 0,
@@ -1601,7 +1405,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               ),
 
             // 6.5. HORIZONTAL SWIPE SEEK HUD
-            if (_isSwipingSeek)
+            if (!_isEmbedMode && _isSwipingSeek)
               Positioned.fill(
                 child: IgnorePointer(
                   child: _buildSwipeSeekHud(),
@@ -1609,7 +1413,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               ),
 
             // 7. UNOBTRUSIVE FLOATING LOCK PILL (Never blocking center!)
-            if (_isScreenLocked && _showLockPill)
+            if (!_isEmbedMode && _isScreenLocked && _showLockPill)
               Positioned(
                 top: 16,
                 left: 16,
@@ -1688,70 +1492,87 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
             if (_isShowingNextPrompt && _nextEpisode != null)
               _buildNextEpisodeOverlay(),
 
-            // 9.5. NATIVE SUBTITLE DISPLAY (Bilingual / Vietnamese / English)
-            if (!_isEmbedMode && _currentSubMode != 'off' && (_activeViSubText.isNotEmpty || _activeEnSubText.isNotEmpty))
-              Positioned(
-                bottom: (_showControls && !_isScreenLocked) ? (isLandscape ? 96.0 : 80.0) : (isLandscape ? 36.0 : 28.0),
-                left: isLandscape ? 48.0 : 20.0,
-                right: isLandscape ? 48.0 : 20.0,
-                child: IgnorePointer(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_activeViSubText.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          margin: const EdgeInsets.only(bottom: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.72),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            _activeViSubText,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: (_currentSubMode == 'bilingual') ? const Color(0xFFFFD54F) : Colors.white,
-                              fontSize: isLandscape ? 17 : 14,
-                              fontWeight: FontWeight.w700,
-                              height: 1.25,
-                              shadows: const [
-                                Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (_activeEnSubText.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.72),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            _activeEnSubText,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: isLandscape ? 16 : 13,
-                              fontWeight: FontWeight.w600,
-                              height: 1.25,
-                              shadows: const [
-                                Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-
             // 10. NETFLIX-STYLE CONTROLS OVERLAY
-            if (!_isScreenLocked && _showControls && !_isSwipingSeek)
+            if (!_isScreenLocked && !_isEmbedMode && _showControls && !_isSwipingSeek)
               _buildNetflixOverlayControls(isLandscape),
+
+            // 11. EMBED MODE FLOATING TOOLBAR
+            if (_isEmbedMode)
+              _buildEmbedFloatingControls(isLandscape),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildEmbedFloatingControls(bool isLandscape) {
+    final padding = MediaQuery.of(context).padding;
+    final safeLeft = isLandscape ? (padding.left > 0 ? padding.left + 8 : 16.0) : 10.0;
+    final safeRight = isLandscape ? (padding.right > 0 ? padding.right + 8 : 16.0) : 10.0;
+    final safeTop = isLandscape ? (padding.top > 0 ? padding.top + 8 : 16.0) : 10.0;
+
+    return Positioned(
+      top: safeTop,
+      left: safeLeft,
+      right: safeRight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
+              onPressed: () {
+                if (isLandscape) {
+                  _exitLandscapeMode();
+                } else {
+                  Navigator.pop(context);
+                }
+              },
+            ),
+          ),
+          Row(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                  tooltip: 'Tải lại',
+                  onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  tooltip: isLandscape ? 'Thoát toàn màn hình' : 'Toàn màn hình',
+                  onPressed: () {
+                    if (isLandscape && !_isFullScreen) {
+                      _exitLandscapeMode();
+                    } else {
+                      _toggleFullScreen();
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

@@ -1,14 +1,17 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/tv/tv_main_screen.dart';
 import 'services/api_service.dart';
 import 'services/app_config.dart';
+import 'services/http_overrides.dart';
 import 'services/update_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = CineVietHttpOverrides();
   await AppConfig.init();
 
   // Android TV Leanback: Fullscreen landscape & immersive sticky mode
