@@ -180,9 +180,7 @@ jobs:
           rm -f pubspec.lock
           rm -f test/widget_test.dart
           cp config/Info.plist ios/Runner/Info.plist
-          if [ -f ios/Runner.xcodeproj/project.pbxproj ]; then
-            sed -i 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/g' ios/Runner.xcodeproj/project.pbxproj
-          fi
+          python3 scripts/prepare_ios.py
       - name: Resolve dependencies
         working-directory: mobile_app
         run: |
@@ -213,10 +211,7 @@ jobs:
         run: |
           set -o pipefail
           if [ -f Podfile ]; then
-            sed -i -E "s/#? *platform :ios, '[0-9.]+'/platform :ios, '14.0'/g" Podfile
-            if ! grep -q "platform :ios" Podfile; then
-              sed -i "1i platform :ios, '14.0'" Podfile
-            fi
+            python3 ../scripts/prepare_ios.py
             if ! pod install --repo-update 2>&1 | tee /tmp/pod.log; then
               echo "::error title=Pod Install Failed::$(tail -n 20 /tmp/pod.log | tr '\r\n' '  ')"
               tail -n 200 /tmp/pod.log
