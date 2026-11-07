@@ -49,12 +49,12 @@ jobs:
           mkdir -p ~/.android
           cp config/debug.keystore ~/.android/debug.keystore
           cp pubspec.yaml /tmp/cineviet-pubspec.yaml
-          cp pubspec.lock /tmp/cineviet-pubspec.lock
+          rm -f pubspec.lock
           flutter create --platforms=android --org "${{ matrix.organization }}" --project-name cineviet .
           mkdir -p android/app
           cp config/debug.keystore android/app/debug.keystore
           cp /tmp/cineviet-pubspec.yaml pubspec.yaml
-          cp /tmp/cineviet-pubspec.lock pubspec.lock
+          rm -f pubspec.lock
           rm -f test/widget_test.dart
           cp config/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/res/drawable
@@ -170,10 +170,10 @@ jobs:
         working-directory: mobile_app
         run: |
           cp pubspec.yaml /tmp/cineviet-pubspec.yaml
-          cp pubspec.lock /tmp/cineviet-pubspec.lock
+          rm -f pubspec.lock
           flutter create --platforms=ios --org com.cineviet.cinema --project-name cineviet .
           cp /tmp/cineviet-pubspec.yaml pubspec.yaml
-          cp /tmp/cineviet-pubspec.lock pubspec.lock
+          rm -f pubspec.lock
           rm -f test/widget_test.dart
           cp config/Info.plist ios/Runner/Info.plist
       - name: Resolve dependencies
