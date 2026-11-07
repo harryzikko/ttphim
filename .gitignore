@@ -58,4 +58,8 @@ mobile_app/ios/.symlinks/
 public/downloads/*.apk
 public/downloads/*.ipa
 
+# Local server dumps and configs
+*.sql
+nginx_*.conf
+
 scratch/

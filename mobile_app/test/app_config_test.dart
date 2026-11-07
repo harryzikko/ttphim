@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ttphim/services/app_config.dart';
+import 'package:cineviet/services/app_config.dart';
 
 void main() {
   test('backend defaults to the project local port and accepts build overrides', () {

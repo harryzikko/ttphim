@@ -5,9 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ttphim/services/api_service.dart';
-import 'package:ttphim/services/backend_service.dart';
-import 'package:ttphim/services/storage_service.dart';
+import 'package:cineviet/services/api_service.dart';
+import 'package:cineviet/services/backend_service.dart';
+import 'package:cineviet/services/storage_service.dart';
 
 http.Response ok(Map<String, dynamic> value) => http.Response(json.encode(value), 200);
 void main() {
@@ -17,12 +17,12 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
   test('legacy token migrates to secure storage and leaves no plaintext credentials', () async {
-    SharedPreferences.setMockInitialValues({'ttphim_token': 'legacy', 'ttphim_user': '{"id":"a"}'});
+    SharedPreferences.setMockInitialValues({'cineviet_token': 'legacy', 'cineviet_user': '{"id":"a"}'});
     expect(await StorageService.getToken(), 'legacy');
     expect((await StorageService.getUser())?['id'], 'a');
     final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('ttphim_token'), isNull);
-    expect(prefs.getString('ttphim_user'), isNull);
+    expect(prefs.getString('cineviet_token'), isNull);
+    expect(prefs.getString('cineviet_user'), isNull);
   });
   test('a late restore response does not log the user back in after logout', () async {
     await StorageService.saveSession('token-a', {'id': 'a'});

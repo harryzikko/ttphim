@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ttphim/models/movie_detail.dart';
-import 'package:ttphim/services/download_service.dart';
+import 'package:cineviet/models/movie_detail.dart';
+import 'package:cineviet/services/download_service.dart';
 
 void main() {
   group('DownloadService source capability tests', () {
@@ -108,7 +108,7 @@ void main() {
         episodeName: 'Tập 1',
         episodeSlug: 'tap-1',
         downloadUrl: 'https://cdn.example.com/stream.m3u8',
-        localFilePath: '/data/user/0/ttphim/files/tap-1.mp4',
+        localFilePath: '/data/user/0/cineviet/files/tap-1.mp4',
         fileSizeBytes: 150 * 1024 * 1024, // 150 MB
         downloadedAt: DateTime(2026, 11, 1, 12, 0, 0),
         isCompleted: true,

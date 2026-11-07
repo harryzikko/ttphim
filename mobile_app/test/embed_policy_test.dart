@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ttphim/services/app_config.dart';
-import 'package:ttphim/services/embed_policy.dart';
+import 'package:cineviet/services/app_config.dart';
+import 'package:cineviet/services/embed_policy.dart';
 
 void main() {
   test('embed navigation validates exact HTTPS host and port', () {

@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">CineViet</string>
     <string name="title_activity_main">CineViet</string>
-    <string name="package_name">com.ttphim.cinema</string>
-    <string name="custom_url_scheme">com.ttphim.cinema</string>
+    <string name="package_name">com.cineviet.cinema</string>
+    <string name="custom_url_scheme">com.cineviet.cinema</string>
 </resources>

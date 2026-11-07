@@ -1,4 +1,4 @@
-# HƯỚNG DẪN TẢI & CÀI ĐẶT ỨNG DỤNG NATIVE TTPHIM (FLUTTER)
+# HƯỚNG DẪN TẢI & CÀI ĐẶT ỨNG DỤNG NATIVE CINEVIET (FLUTTER)
 
 Dự án đã được chuyển đổi hoàn toàn sang **Ứng dụng Native Flutter 100% Thuần (Pure Native Mobile App)**, loại bỏ triệt để kiến trúc WebView cũ nhằm đảm bảo:
 - **Không bao giờ bị lỗi màn hình trắng** khi mở trên iOS / Android (giao diện được biên dịch trực tiếp ra mã máy AOT Native Canvas / Impeller).
@@ -13,23 +13,23 @@ Dự án đã được chuyển đổi hoàn toàn sang **Ứng dụng Native Fl
 
 Bạn có thể tải ngay file cài đặt đã được GitHub Actions tự động biên dịch thành công:
 
-👉 **Trang tải Artifacts chính thức**: [https://github.com/harryzikko/ttphim/actions/runs/37956385360](https://github.com/harryzikko/ttphim/actions/runs/37956385360)
+👉 **Trang tải Artifacts chính thức**: [https://github.com/harryzikko/cineviet/actions/runs/37956385360](https://github.com/harryzikko/cineviet/actions/runs/37956385360)
 
 | Nền tảng | Tên Artifact | Dung lượng | Định dạng | Tương thích |
 |---|---|---|---|---|
-| **Android** | `TTPhim-Android-APK` | ~23.6 MB | `.apk` | Mọi điện thoại & máy tính bảng Android 5.0 - 15+ |
-| **iOS (iPhone/iPad)** | `TTPhim-iOS-IPA` | ~23.3 MB | `.ipa` (Unsigned) | Mọi iPhone, iPad chạy iOS 12.0 - 18+ |
+| **Android** | `CineViet-Android-APK` | ~23.6 MB | `.apk` | Mọi điện thoại & máy tính bảng Android 5.0 - 15+ |
+| **iOS (iPhone/iPad)** | `CineViet-iOS-IPA` | ~23.3 MB | `.ipa` (Unsigned) | Mọi iPhone, iPad chạy iOS 12.0 - 18+ |
 
 ---
 
 ## 📲 HƯỚNG DẪN CÀI ĐẶT LÊN THIẾT BỊ
 
 ### 1. Dành cho điện thoại Android (.apk)
-1. Bấm tải file `TTPhim-Android-APK` từ GitHub Actions (hoặc giải nén nếu tải file zip).
-2. Chuyển file `TTPhim-v1.0.0-release.apk` vào điện thoại.
+1. Bấm tải file `CineViet-Android-APK` từ GitHub Actions (hoặc giải nén nếu tải file zip).
+2. Chuyển file `CineViet-v1.0.0-release.apk` vào điện thoại.
 3. Bấm mở file và chọn **Cài đặt (Install)**.
 4. Nếu máy hỏi cấp quyền "Cài đặt ứng dụng không rõ nguồn gốc", bấm **Cho phép (Allow)**.
-5. Mở ứng dụng **TTPhim** và thưởng thức phim ngay lập tức!
+5. Mở ứng dụng **CineViet** và thưởng thức phim ngay lập tức!
 
 ---
 
@@ -39,18 +39,18 @@ File `.ipa` xuất ra là bản Unsigned chất lượng cao, bạn có thể c�
 #### Cách 1: Sử dụng Sideloadly (Khuyên dùng - Cực nhanh trên Windows & Mac)
 1. Tải công cụ miễn phí [Sideloadly](https://sideloadly.io/) trên máy tính.
 2. Kết nối iPhone với máy tính bằng cáp sạc.
-3. Kéo thả file `TTPhim-v1.0.0-unsigned.ipa` vào giao diện Sideloadly.
+3. Kéo thả file `CineViet-v1.0.0-unsigned.ipa` vào giao diện Sideloadly.
 4. Nhập Apple ID miễn phí của bạn và bấm **Start**.
 5. Sau khi Sideloadly báo **Done**, trên iPhone bạn vào:
    - **Cài đặt (Settings) -> Cài đặt chung (General) -> Quản lý VPN & Thiết bị (VPN & Device Management)**.
    - Bấm vào Apple ID của bạn và chọn **Tin cậy (Trust)**.
-6. Mở app TTPhim và xem phim full màn hình mượt mà!
+6. Mở app CineViet và xem phim full màn hình mượt mà!
 
 #### Cách 2: Sử dụng TrollStore (Dành cho máy tương thích TrollStore)
 - Chỉ cần gửi file `.ipa` qua AirDrop hoặc mở trực tiếp trên iPhone -> Chọn **Open in TrollStore** -> Cài đặt vĩnh viễn không bao giờ bị thu hồi chứng chỉ (No Revoke).
 
 #### Cách 3: Sử dụng AltStore / Scarlet / Esign
-- Mở ứng dụng Scarlet hoặc AltStore trên điện thoại, bấm nút dấu `+` và chọn file `TTPhim-v1.0.0-unsigned.ipa` để ký và cài đặt trực tiếp không cần máy tính.
+- Mở ứng dụng Scarlet hoặc AltStore trên điện thoại, bấm nút dấu `+` và chọn file `CineViet-v1.0.0-unsigned.ipa` để ký và cài đặt trực tiếp không cần máy tính.
 
 ---
 

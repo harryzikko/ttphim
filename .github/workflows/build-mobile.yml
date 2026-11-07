@@ -1,4 +1,4 @@
-name: Build TTPhim Native Mobile App (APK & IPA)
+name: Build CineViet Native Mobile App (APK & IPA)
 
 on:
   push:
@@ -22,13 +22,13 @@ jobs:
       matrix:
         include:
           - variant: Mobile
-            organization: com.ttphim.cinema
+            organization: com.cineviet.cinema
             target: lib/main.dart
-            artifact: TTPhim-Mobile-release.apk
+            artifact: CineViet-Mobile-release.apk
           - variant: AndroidTV
-            organization: com.ttphim.tv
+            organization: com.cineviet.tv
             target: lib/main_tv.dart
-            artifact: TTPhim-AndroidTV-release.apk
+            artifact: CineViet-AndroidTV-release.apk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -48,13 +48,13 @@ jobs:
         run: |
           mkdir -p ~/.android
           cp config/debug.keystore ~/.android/debug.keystore
-          cp pubspec.yaml /tmp/ttphim-pubspec.yaml
-          cp pubspec.lock /tmp/ttphim-pubspec.lock
-          flutter create --platforms=android --org "${{ matrix.organization }}" --project-name ttphim .
+          cp pubspec.yaml /tmp/cineviet-pubspec.yaml
+          cp pubspec.lock /tmp/cineviet-pubspec.lock
+          flutter create --platforms=android --org "${{ matrix.organization }}" --project-name cineviet .
           mkdir -p android/app
           cp config/debug.keystore android/app/debug.keystore
-          cp /tmp/ttphim-pubspec.yaml pubspec.yaml
-          cp /tmp/ttphim-pubspec.lock pubspec.lock
+          cp /tmp/cineviet-pubspec.yaml pubspec.yaml
+          cp /tmp/cineviet-pubspec.lock pubspec.lock
           rm -f test/widget_test.dart
           cp config/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/res/drawable
@@ -149,7 +149,7 @@ jobs:
           cp mobile_app/build/app/outputs/flutter-apk/app-release.apk "output/${{ matrix.artifact }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: TTPhim-${{ matrix.variant }}-APK
+          name: CineViet-${{ matrix.variant }}-APK
           path: output/*.apk
           retention-days: 14
 
@@ -169,11 +169,11 @@ jobs:
       - name: Prepare native platform
         working-directory: mobile_app
         run: |
-          cp pubspec.yaml /tmp/ttphim-pubspec.yaml
-          cp pubspec.lock /tmp/ttphim-pubspec.lock
-          flutter create --platforms=ios --org com.ttphim.cinema --project-name ttphim .
-          cp /tmp/ttphim-pubspec.yaml pubspec.yaml
-          cp /tmp/ttphim-pubspec.lock pubspec.lock
+          cp pubspec.yaml /tmp/cineviet-pubspec.yaml
+          cp pubspec.lock /tmp/cineviet-pubspec.lock
+          flutter create --platforms=ios --org com.cineviet.cinema --project-name cineviet .
+          cp /tmp/cineviet-pubspec.yaml pubspec.yaml
+          cp /tmp/cineviet-pubspec.lock pubspec.lock
           rm -f test/widget_test.dart
           cp config/Info.plist ios/Runner/Info.plist
       - name: Resolve dependencies
@@ -224,11 +224,11 @@ jobs:
           find Payload -type d -name _CodeSignature -prune -exec rm -rf {} +
           find Payload -name embedded.mobileprovision -delete
           find Payload -type f -exec sh -c 'file "$1" | grep -q "Mach-O" && codesign --remove-signature "$1" 2>/dev/null || true' sh {} \;
-          zip -r TTPhim-iOS-IPA-Unsigned.ipa Payload
+          zip -r CineViet-iOS-IPA-Unsigned.ipa Payload
       - uses: actions/upload-artifact@v4
         with:
-          name: TTPhim-iOS-IPA-Unsigned
-          path: TTPhim-iOS-IPA-Unsigned.ipa
+          name: CineViet-iOS-IPA-Unsigned
+          path: CineViet-iOS-IPA-Unsigned.ipa
           retention-days: 14
 
   publish-release:
@@ -250,7 +250,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "TTPhim Bản Cập Nhật Mới Nhất"
+          name: "CineViet Bản Cập Nhật Mới Nhất"
           draft: false
           prerelease: false
           files: release-files/*

@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ========================================================
-echo       🎬 TTPHIM - BIÊN DỊCH NATIVE ANDROID APK
+echo       🎬 CINEVIET - BIÊN DỊCH NATIVE ANDROID APK
 echo ========================================================
 echo.
 
@@ -37,8 +37,8 @@ if %ERRORLEVEL% EQU 0 (
     echo  👉 HOẶC CÁCH ĐƠN GIẢN NHẤT:
     echo  1. Mở phần mềm Android Studio.
     echo  2. Chọn "Open an Existing Project" và trỏ đến thư mục:
-    echo     f:\Tài\film\android
-    echo  3. Bấm menu: Build > Build Bundle(s) / APK(s) > Build APK(s)
+    echo     %~dp0android
+    echo  3. Bấm menu: Build ^> Build Bundle(s) / APK(s) ^> Build APK(s)
     echo     sẽ có ngay file APK cài đặt!
     echo --------------------------------------------------------
 )

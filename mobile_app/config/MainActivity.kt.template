@@ -11,7 +11,7 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.ttphim.app/updater"
+    private val CHANNEL = "com.cineviet.app/updater"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

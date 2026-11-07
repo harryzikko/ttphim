@@ -17,7 +17,7 @@ class UpdateService {
   static String get currentVersion => _version;
   static int get currentBuildNumber => _buildNumber;
 
-  static const MethodChannel _channel = MethodChannel('com.ttphim.app/updater');
+  static const MethodChannel _channel = MethodChannel('com.cineviet.app/updater');
 
   /// Initialize real installed version from native package manager or PackageInfo
   static Future<void> initVersion() async {

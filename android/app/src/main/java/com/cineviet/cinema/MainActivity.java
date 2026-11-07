@@ -1,4 +1,4 @@
-package com.ttphim.cinema;
+package com.cineviet.cinema;
 
 import com.getcapacitor.BridgeActivity;
 

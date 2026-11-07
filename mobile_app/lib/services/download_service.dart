@@ -76,7 +76,8 @@ class DownloadedEpisode {
 }
 
 class DownloadService {
-  static const String _storageKey = 'ttphim_downloaded_episodes';
+  static const String _storageKey = 'cineviet_downloaded_episodes';
+  static const String _legacyStorageKey = 'ttphim_downloaded_episodes';
   static final ChangeNotifier changes = ChangeNotifier();
   static final Map<String, double> activeDownloadProgress = {};
 

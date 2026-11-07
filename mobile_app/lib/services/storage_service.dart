@@ -96,26 +96,28 @@ class StorageService {
   static Future<String?> getToken() => SessionService.getToken();
   static Future<Map<String, dynamic>?> getUser() => SessionService.getUser();
   static Future<void> clearSession() => SessionService.clear();
-  static Future<bool> getAutoNext() async => (await SharedPreferences.getInstance()).getBool('ttphim_auto_next') ?? true;
-  static Future<void> setAutoNext(bool enabled) async => (await SharedPreferences.getInstance()).setBool('ttphim_auto_next', enabled);
-  static Future<String?> getCustomServerUrl() async => (await SharedPreferences.getInstance()).getString('ttphim_custom_server_url');
+  static Future<bool> getAutoNext() async => (await SharedPreferences.getInstance()).getBool('cineviet_auto_next') ?? (await SharedPreferences.getInstance()).getBool('ttphim_auto_next') ?? true;
+  static Future<void> setAutoNext(bool enabled) async => (await SharedPreferences.getInstance()).setBool('cineviet_auto_next', enabled);
+  static Future<String?> getCustomServerUrl() async => (await SharedPreferences.getInstance()).getString('cineviet_custom_server_url') ?? (await SharedPreferences.getInstance()).getString('ttphim_custom_server_url');
   static Future<void> setCustomServerUrl(String? url) async {
     final prefs = await SharedPreferences.getInstance();
     if (url == null || url.trim().isEmpty) {
-      await prefs.remove('ttphim_custom_server_url');
+      await prefs.remove('cineviet_custom_server_url');
       AppConfig.setCustomUrl(null);
     } else {
       final clean = url.trim().replaceAll(RegExp(r'/+$'), '');
-      await prefs.setString('ttphim_custom_server_url', clean);
+      await prefs.setString('cineviet_custom_server_url', clean);
       AppConfig.setCustomUrl(clean);
     }
   }
 
   static Future<String> _scope() async => (await getUser())?['id']?.toString() ?? 'guest';
-  static String _key(String name, String scope) => scope == 'guest' ? 'ttphim_${name}_v1' : 'ttphim_${name}_user_$scope';
+  static String _key(String name, String scope) => scope == 'guest' ? 'cineviet_${name}_v1' : 'cineviet_${name}_user_$scope';
   static List<Map<String, dynamic>> _read(SharedPreferences prefs, String key) {
     final result = <Map<String, dynamic>>[];
-    for (final raw in prefs.getStringList(key) ?? <String>[]) {
+    final legacyKey = key.replaceFirst('cineviet_', 'ttphim_');
+    final rawList = prefs.getStringList(key) ?? prefs.getStringList(legacyKey) ?? <String>[];
+    for (final raw in rawList) {
       try { final item = json.decode(raw); if (item is Map<String, dynamic>) result.add(item); }
       on FormatException { /* Skip corrupt cached entries. */ }
     }

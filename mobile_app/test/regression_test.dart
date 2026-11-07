@@ -8,16 +8,16 @@ import 'package:http/testing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:ttphim/models/movie.dart';
-import 'package:ttphim/models/movie_detail.dart';
-import 'package:ttphim/screens/search_screen.dart';
-import 'package:ttphim/screens/tv/tv_card.dart';
-import 'package:ttphim/screens/tv/tv_qr_login_screen.dart';
-import 'package:ttphim/services/api_service.dart';
-import 'package:ttphim/services/app_config.dart';
-import 'package:ttphim/services/backend_service.dart';
-import 'package:ttphim/services/storage_service.dart';
-import 'package:ttphim/services/season_service.dart';
+import 'package:cineviet/models/movie.dart';
+import 'package:cineviet/models/movie_detail.dart';
+import 'package:cineviet/screens/search_screen.dart';
+import 'package:cineviet/screens/tv/tv_card.dart';
+import 'package:cineviet/screens/tv/tv_qr_login_screen.dart';
+import 'package:cineviet/services/api_service.dart';
+import 'package:cineviet/services/app_config.dart';
+import 'package:cineviet/services/backend_service.dart';
+import 'package:cineviet/services/storage_service.dart';
+import 'package:cineviet/services/season_service.dart';
 
 http.Response response(Map<String, dynamic> value) => http.Response(json.encode(value), 200, headers: {'content-type': 'application/json'});
 Map<String, dynamic> movieJson(String name) => {'slug': name, 'name': name, 'poster_url': '', 'thumb_url': ''};
@@ -62,7 +62,7 @@ void main() {
   test('session tokens are stored securely and logout removes both secure and legacy credentials', () async {
     await StorageService.saveSession('secret-token', {'id': 'user-a'});
     expect(await StorageService.getToken(), 'secret-token');
-    expect((await SharedPreferences.getInstance()).getString('ttphim_token'), isNull);
+    expect((await SharedPreferences.getInstance()).getString('cineviet_token'), isNull);
     await StorageService.clearSession();
     expect(await StorageService.getToken(), isNull);
     expect(await StorageService.getUser(), isNull);

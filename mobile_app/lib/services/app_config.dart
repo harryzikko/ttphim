@@ -31,14 +31,14 @@ class AppConfig {
       final prefs = await SharedPreferences.getInstance();
 
       // 1. Check if user manually pinned a server URL
-      final manual = prefs.getString('ttphim_custom_server_url');
+      final manual = prefs.getString('cineviet_custom_server_url') ?? prefs.getString('ttphim_custom_server_url');
       if (manual != null && manual.trim().isNotEmpty) {
         _activeUrl = manual.trim().replaceAll(RegExp(r'/+$'), '');
         return;
       }
 
       // 2. Check if we have a previously verified working domain
-      final cached = prefs.getString('ttphim_active_backend_url');
+      final cached = prefs.getString('cineviet_active_backend_url') ?? prefs.getString('ttphim_active_backend_url');
       if (cached != null && cached.trim().isNotEmpty) {
         _activeUrl = cached.trim().replaceAll(RegExp(r'/+$'), '');
       }
@@ -89,61 +89,45 @@ class AppConfig {
       return null;
     }).toList();
 
-    final results = await Future.wait(pingFutures);
-    for (final clean in results) {
-      if (clean != null && clean.isNotEmpty) {
-        _activeUrl = clean;
+    // Use the first one that responds successfully
+    for (final future in pingFutures) {
+      final result = await future;
+      if (result != null) {
+        _activeUrl = result;
+        // Save verified working domain to warm disk cache
         try {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('ttphim_active_backend_url', clean);
+          await prefs.setString('cineviet_active_backend_url', result);
         } catch (_) {}
-        return clean;
+        return result;
       }
     }
+
     return _activeUrl;
   }
 
   static Future<bool> _pingDomain(String domain) async {
     try {
-      final uri = Uri.parse('$domain/api/ready');
-      final res = await http.get(uri).timeout(const Duration(milliseconds: 2000));
+      final uri = Uri.parse('$domain/api/health').replace(
+        path: '$domain/api/health'.replaceAll(RegExp(r'^https?://[^/]+'), ''),
+      );
+      final res = await http.get(uri).timeout(const Duration(milliseconds: 1500));
       return res.statusCode == 200;
     } catch (_) {
       return false;
     }
   }
 
-  // Local development default. On devices, forward port 3001 or override with a reachable LAN/HTTPS URL.
-  static const String _defaultBackendUrl = String.fromEnvironment(
-    'BACKEND_URL', defaultValue: kReleaseMode ? 'https://cineviet.live' : 'http://localhost:3001',
-  );
-
-  static String get backendUrl {
-    if (_activeUrl != null && _activeUrl!.isNotEmpty) return _activeUrl!;
-    return _defaultBackendUrl;
-  }
-
-  static bool get hasBackend => backendUrl.trim().isNotEmpty;
-
-  static Uri backendUri(String path, [Map<String, String>? query]) {
-    final base = backendUrl.trim().replaceAll(RegExp(r'/+$'), '');
-    final uri = Uri.tryParse(base);
-    if (uri == null || !['http', 'https'].contains(uri.scheme) || uri.host.isEmpty) {
-      throw StateError('Chưa cấu hình BACKEND_URL hợp lệ cho ứng dụng');
+  /// The active backend base URL (e.g. "https://cineviet.live")
+  /// Returns null if no backend is reachable (Offline/Standalone Mode)
+  static String? get backendUrl {
+    const defined = String.fromEnvironment('BACKEND_URL');
+    if (defined.isNotEmpty && _activeUrl == null) {
+      return defined.replaceAll(RegExp(r'/+$'), '');
     }
-    return Uri.parse('$base$path').replace(queryParameters: query);
+    return _activeUrl;
   }
 
-  static bool isProductionBackendUrl(String value) {
-    final uri = Uri.tryParse(value);
-    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty ||
-        uri.userInfo.isNotEmpty || uri.hasQuery || uri.hasFragment ||
-        (uri.path.isNotEmpty && uri.path != '/') || uri.port != 443) return false;
-    final host = uri.host.toLowerCase();
-    return host.contains('.') && host != 'localhost' &&
-        !host.startsWith('127.') && !host.startsWith('10.') &&
-        !host.startsWith('192.168.') && !host.startsWith('169.254.') &&
-        !RegExp(r'^172\.(1[6-9]|2\d|3[01])\.').hasMatch(host) &&
-        !['.localhost', '.local', '.test', '.invalid', '.example'].any(host.endsWith);
-  }
+  /// Whether a backend server is currently connected and active
+  static bool get hasBackend => backendUrl != null && backendUrl!.isNotEmpty;
 }

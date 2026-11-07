@@ -1,5 +1,5 @@
 /**
- * TTPhim Android TV - Universal D-Pad Remote Navigation Engine
+ * CineViet Android TV - Universal D-Pad Remote Navigation Engine
  * Provides 10-foot leanback spatial navigation, focus management,
  * auto-scrolling, and remote key handling.
  */

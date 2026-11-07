@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.ttphim.cinema"
+    namespace "com.cineviet.cinema"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.ttphim.cinema"
+        applicationId "com.cineviet.cinema"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

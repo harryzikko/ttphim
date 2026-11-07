@@ -9,7 +9,7 @@ let movieMatching; try { movieMatching = typeof require === 'function' ? require
   return false;
 }
 const isCompatibleMovie = (a, b) => movieMatching?.isCompatibleMovie ? movieMatching.isCompatibleMovie(a, b) : fallbackIsCompatible(a, b); const removeAccents = movieMatching?.removeAccents || (str => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^a-z0-9]/g, '')); const cleanTitle = movieMatching?.cleanTitle || (str => String(str || ''));
-// TTPhim - NguonC Service (Multi-source Streaming Provider)
+// CineViet - NguonC Service (Multi-source Streaming Provider)
 // Documentation: https://phim.nguonc.com/api-document
 
 class MemoryCache {

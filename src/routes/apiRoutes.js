@@ -1086,8 +1086,8 @@ const defaultAppUpdate = {
   force_update: false,
   title: 'Bản Cập Nhật CineViet Mới',
   release_notes: '• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng',
-  apk_mobile_url: '/downloads/TTPhim-Mobile-release.apk',
-  apk_tv_url: '/downloads/TTPhim-AndroidTV-release.apk',
+  apk_mobile_url: '/downloads/CineViet-Mobile-release.apk',
+  apk_tv_url: '/downloads/CineViet-AndroidTV-release.apk',
   ios_url: 'https://cineviet.live'
 };
 
@@ -1175,9 +1175,9 @@ router.post('/admin/upload-app-package', async (req, res) => {
 
     let sanitizedBase = rawFilename ? path.basename(rawFilename, ext).replace(/[^a-zA-Z0-9._-]/g, '_') : '';
     if (!sanitizedBase) {
-      if (rawType === 'apk_mobile') sanitizedBase = 'TTPhim-Mobile-release';
-      else if (rawType === 'apk_tv') sanitizedBase = 'TTPhim-AndroidTV-release';
-      else sanitizedBase = 'TTPhim-iOS-release';
+      if (rawType === 'apk_mobile') sanitizedBase = 'CineViet-Mobile-release';
+      else if (rawType === 'apk_tv') sanitizedBase = 'CineViet-AndroidTV-release';
+      else sanitizedBase = 'CineViet-iOS-release';
     }
     const finalFilename = `${sanitizedBase}${ext}`;
 
