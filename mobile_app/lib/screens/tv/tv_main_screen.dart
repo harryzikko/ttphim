@@ -69,8 +69,8 @@ class _TvMainScreenState extends State<TvMainScreen> {
       {'title': 'Khám Phá', 'icon': Icons.grid_view_rounded},
       {'title': 'Tìm Kiếm', 'icon': Icons.search_rounded},
       {
-        'title': isLoggedIn ? 'Tài Khoản' : 'Đăng Nhập QR',
-        'icon': isLoggedIn ? Icons.person_rounded : Icons.qr_code_scanner_rounded,
+        'title': isLoggedIn ? 'Tài Khoản' : 'Đăng Nhập',
+        'icon': isLoggedIn ? Icons.person_rounded : Icons.login_rounded,
       },
     ];
   }
