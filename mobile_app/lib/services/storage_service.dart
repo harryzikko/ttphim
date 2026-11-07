@@ -242,7 +242,6 @@ class StorageService {
       await prefs.setStringList(tombstoneKey, deleted.toList());
     }
 
-    final token = await getToken();
     final key = _key('history', scope);
     final items = _read(prefs, key)..removeWhere((entry) => entry['movie_slug'] == item.movieSlug);
     items.insert(0, {...item.toJson(), if (scope != 'guest') 'pending_sync': true});
@@ -280,7 +279,6 @@ class StorageService {
     final local = _read(prefs, key);
     local.removeWhere((entry) => deleted.contains(entry['movie_slug']));
 
-    final token = await getToken();
     if (scope != 'guest' && AppConfig.hasBackend) {
       for (final raw in local.where((entry) => entry['pending_sync'] == true)) {
         if (await _scope() != scope) return getHistory();
