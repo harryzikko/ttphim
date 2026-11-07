@@ -435,7 +435,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
 <body>
   <iframe src="$iframeSource"
           referrerpolicy="no-referrer-when-downgrade"
-          sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
           allowfullscreen="true"
           webkitallowfullscreen="true"

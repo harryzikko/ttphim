@@ -410,6 +410,26 @@ class ApiService {
     return [];
   }
 
+  /// Get Bilingual Movies (Song Ngữ)
+  static Future<List<Movie>> getSongNguMovies({int page = 1}) async {
+    try {
+      final response = await _backend('/api/catalog', query: {
+        'type': 'song-ngu',
+        'page': page.toString(),
+      });
+      if (response?['status'] == true && response?['data'] is Map<String, dynamic>) {
+        final data = response!['data'] as Map<String, dynamic>;
+        if (data['items'] is List) {
+          return (data['items'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map((m) => Movie.fromJson(m))
+              .toList();
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
   /// Get Theatrical / Cinema Movies (Phim Chiếu Rạp)
   static Future<List<Movie>> getCinemaMovies({int page = 1}) async {
     if (page == 1) {

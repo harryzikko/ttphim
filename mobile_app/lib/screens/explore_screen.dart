@@ -21,6 +21,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     {'title': 'Phim Bộ', 'slug': 'phim-bo'},
     {'title': 'TV Shows', 'slug': 'tv-shows'},
     {'title': 'Hoạt Hình', 'slug': 'hoat-hinh'},
+    {'title': 'Song Ngữ', 'slug': 'song-ngu'},
   ];
 
   final List<Map<String, String>> _categoryFilters = [
@@ -106,6 +107,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
           return await ApiService.getSeriesMovies(page: page);
         case 'hoat-hinh':
           return await ApiService.getAnimeMovies(page: page);
+        case 'song-ngu':
+          return await ApiService.getSongNguMovies(page: page);
         case 'tv-shows':
           return await ApiService.getTvShows(page: page);
         default:
@@ -200,15 +203,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
               itemCount: _typeFilters.length,
               itemBuilder: (context, idx) {
                 final isSel = idx == _selectedTypeIndex && !activeCat && !activeCountry;
+                final isSongNgu = _typeFilters[idx]['slug'] == 'song-ngu';
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
+                    avatar: isSongNgu ? const Icon(Icons.record_voice_over_rounded, size: 14, color: Colors.white) : null,
                     label: Text(_typeFilters[idx]['title']!),
                     selected: isSel,
-                    selectedColor: AppTheme.primary,
-                    backgroundColor: AppTheme.card,
+                    selectedColor: isSongNgu ? const Color(0xFF7C3AED) : AppTheme.primary,
+                    backgroundColor: isSongNgu ? const Color(0xFF581C87).withOpacity(0.3) : AppTheme.card,
+                    side: isSongNgu ? BorderSide(color: const Color(0xFFC084FC).withOpacity(isSel ? 0.8 : 0.4), width: 0.8) : null,
                     labelStyle: TextStyle(
-                      color: isSel ? Colors.white : AppTheme.textSecondary,
+                      color: isSel ? Colors.white : (isSongNgu ? const Color(0xFFE9D5FF) : AppTheme.textSecondary),
                       fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                       fontSize: 12,
                     ),

@@ -1,4 +1,5 @@
 import 'movie.dart';
+import '../services/app_config.dart';
 
 class EpisodeItem {
   final String name;
@@ -16,12 +17,25 @@ class EpisodeItem {
   });
 
   factory EpisodeItem.fromJson(Map<String, dynamic> json) {
+    String embed = json['link_embed']?.toString().trim() ?? '';
+    String m3u8 = json['link_m3u8']?.toString().trim() ?? '';
+
+    // Auto-resolve relative CineViet endpoints
+    if (embed.startsWith('/')) {
+      final base = AppConfig.backendUrl.replaceAll(RegExp(r'/+$'), '');
+      embed = '$base$embed';
+    }
+    if (m3u8.startsWith('/')) {
+      final base = AppConfig.backendUrl.replaceAll(RegExp(r'/+$'), '');
+      m3u8 = '$base$m3u8';
+    }
+
     return EpisodeItem(
       name: json['name']?.toString() ?? '',
       slug: json['slug']?.toString() ?? '',
       filename: json['filename']?.toString() ?? '',
-      linkEmbed: json['link_embed']?.toString() ?? '',
-      linkM3u8: json['link_m3u8']?.toString() ?? '',
+      linkEmbed: embed,
+      linkM3u8: m3u8,
     );
   }
 
@@ -76,8 +90,6 @@ class MovieDetailResponse {
         ? json['movie'] as Map<String, dynamic>
         : <String, dynamic>{};
 
-    final movie = Movie.fromJson(movieData);
-
     List<ServerItem> servers = [];
     if (json['episodes'] is List) {
       for (var s in json['episodes']) {
@@ -86,6 +98,16 @@ class MovieDetailResponse {
         }
       }
     }
+
+    final hasSongNgu = movieData['has_song_ngu'] == true ||
+        movieData['hasSongNgu'] == true ||
+        (movieData['lang'] != null && movieData['lang'].toString().toLowerCase().contains('song ngữ')) ||
+        servers.any((s) => s.serverName.toLowerCase().contains('song ngữ'));
+
+    final movie = Movie.fromJson({
+      ...movieData,
+      'has_song_ngu': hasSongNgu,
+    });
 
     return MovieDetailResponse(
       movie: movie,

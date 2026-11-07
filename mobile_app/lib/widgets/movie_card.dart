@@ -102,6 +102,55 @@ class MovieCard extends StatelessWidget {
                     ),
                   ),
 
+                  // Top-Left Song Ngữ Badge (Consistent with Web)
+                  if (movie.hasSongNgu)
+                    Positioned(
+                      top: 6,
+                      left: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF581C87), Color(0xFF4338CA)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: const Color(0xFFC084FC).withOpacity(0.6),
+                            width: 0.6,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF4F46E5).withOpacity(0.35),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.record_voice_over_rounded,
+                              size: 9.5,
+                              color: Color(0xFFDDD6FE),
+                            ),
+                            SizedBox(width: 3),
+                            Text(
+                              'SONG NGỮ',
+                              style: TextStyle(
+                                color: Color(0xFFF5F3FF),
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
                   // Top-Right Quality Badge (Netflix Style)
                   Positioned(
                     top: 6,

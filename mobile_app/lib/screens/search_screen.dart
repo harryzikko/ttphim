@@ -93,7 +93,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           child: TextField(
             controller: _controller,
-            autofocus: true,
+            autofocus: false,
             style: const TextStyle(color: Colors.white, fontSize: 14),
             onChanged: _onQueryChanged,
             decoration: InputDecoration(

@@ -41,6 +41,7 @@ class Movie {
   final List<String> actors;
   final List<String> directors;
   final List<CastMember> castMembers;
+  final bool hasSongNgu;
 
   Movie({
     required this.id,
@@ -62,6 +63,7 @@ class Movie {
     this.actors = const [],
     this.directors = const [],
     this.castMembers = const [],
+    this.hasSongNgu = false,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -167,6 +169,11 @@ class Movie {
         ? rawThumb
         : (heroBackdrop.isNotEmpty ? heroBackdrop : heroBackdropFallback);
 
+    final rawHasSongNgu = json['has_song_ngu'] == true ||
+        json['hasSongNgu'] == true ||
+        (json['lang'] != null && json['lang'].toString().toLowerCase().contains('song ngữ')) ||
+        (json['type'] != null && json['type'].toString().toLowerCase() == 'song-ngu');
+
     return Movie(
       id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
@@ -187,6 +194,7 @@ class Movie {
       actors: acts,
       directors: dirs,
       castMembers: members,
+      hasSongNgu: rawHasSongNgu,
     );
   }
 
@@ -210,6 +218,7 @@ class Movie {
       'country': countries,
       'actor': actors,
       'director': directors,
+      'has_song_ngu': hasSongNgu,
     };
   }
 
