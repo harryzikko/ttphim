@@ -144,14 +144,66 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
     const injectCode = `<script>
     /* Marker for test suites: #player-wrap syncNativeTextTracks video.webkitEnterFullscreen <track id="track-bilingual"> */
     (function() {
-      // Intercept webkitEnterFullscreen on iOS to keep bilingual HTML subtitle overlays and prevent Apple native player takeover
-      if (typeof window !== 'undefined' && window.HTMLVideoElement && HTMLVideoElement.prototype.webkitEnterFullscreen) {
-        HTMLVideoElement.prototype.webkitEnterFullscreen = function() {
-          try {
-            window.parent.postMessage({ type: 'request-web-fullscreen' }, '*');
-          } catch (_) {}
-        };
+      function enforceInline() {
+        var vids = document.querySelectorAll('video');
+        for (var i = 0; i < vids.length; i++) {
+          vids[i].setAttribute('playsinline', 'true');
+          vids[i].setAttribute('webkit-playsinline', 'true');
+          vids[i].setAttribute('x5-playsinline', 'true');
+          vids[i].playsInline = true;
+        }
       }
+      enforceInline();
+      document.addEventListener('play', function(e) {
+        if (e.target && e.target.tagName === 'VIDEO') {
+          e.target.setAttribute('playsinline', 'true');
+          e.target.setAttribute('webkit-playsinline', 'true');
+          e.target.playsInline = true;
+        }
+      }, true);
+
+      // Intercept webkitEnterFullscreen on iOS to keep bilingual HTML subtitle overlays and prevent Apple native player takeover
+      if (typeof window !== 'undefined' && window.HTMLVideoElement) {
+        try {
+          Object.defineProperty(HTMLVideoElement.prototype, 'webkitEnterFullscreen', {
+            value: function() {
+              try {
+                if (window.CineVietNative && window.CineVietNative.postMessage) {
+                  window.CineVietNative.postMessage('toggle-fullscreen');
+                } else {
+                  window.parent.postMessage({ type: 'request-web-fullscreen' }, '*');
+                }
+              } catch (_) {}
+            },
+            writable: true,
+            configurable: true
+          });
+        } catch (_) {}
+      }
+
+      // Listen for JWPlayer fullscreen event to keep player in DOM fullscreen & notify CineViet app
+      if (typeof window !== 'undefined') {
+        var checkJwFs = setInterval(function() {
+          try {
+            var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+            if (p && p.on) {
+              clearInterval(checkJwFs);
+              p.on('fullscreen', function(e) {
+                if (e.fullscreen) {
+                  try {
+                    if (window.CineVietNative && window.CineVietNative.postMessage) {
+                      window.CineVietNative.postMessage('toggle-fullscreen');
+                    } else {
+                      window.parent.postMessage({ type: 'request-web-fullscreen' }, '*');
+                    }
+                  } catch (_) {}
+                }
+              });
+            }
+          } catch (_) {}
+        }, 300);
+      }
+
       window.addEventListener('message', function(ev) {
         if (ev.data && ev.data.type === 'request-fullscreen') {
           var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);

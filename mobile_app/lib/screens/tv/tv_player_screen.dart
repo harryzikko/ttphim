@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../../models/movie.dart';
 import '../../models/movie_detail.dart';
 import '../../services/storage_service.dart';
@@ -166,7 +167,12 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     await previous?.dispose();
     if (!isCurrent()) return;
 
-    if (forceEmbed && episode.linkEmbed.isNotEmpty) {
+    final isSongNgu = _currentServer.serverName.toLowerCase().contains('song ngữ') ||
+        episode.linkEmbed.contains('/embed/vicdn/') ||
+        episode.linkEmbed.contains('vicdn') ||
+        (widget.movie.hasSongNgu && episode.linkEmbed.contains('vicdn'));
+
+    if ((forceEmbed || isSongNgu) && episode.linkEmbed.isNotEmpty) {
       _initEmbedPlayer(episode.linkEmbed);
       return;
     }
@@ -253,57 +259,52 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
       });
       return;
     }
-    final iframeSource = EmbedPolicy.iframeSource(embedUrl);
+    final resolvedUrl = EmbedPolicy.resolveUrl(embedUrl);
     setState(() {
       _isEmbedMode = true;
       _isLoading = false;
     });
 
-    final embedHtml = '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="referrer" content="no-referrer-when-downgrade">
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; background:#000; }
-    html, body { width:100%; height:100%; overflow:hidden; background:#000; }
-    iframe { width:100%; height:100%; border:none; position:absolute; top:0; left:0; right:0; bottom:0; }
-  </style>
-</head>
-<body>
-  <iframe src="$iframeSource"
-          referrerpolicy="no-referrer-when-downgrade"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-          allowfullscreen="true"
-          webkitallowfullscreen="true"
-          mozallowfullscreen="true">
-  </iframe>
-  <script>
-    window.open = function() { return null; };
-    window.alert = function() {};
-    window.confirm = function() { return false; };
-  </script>
-</body>
-</html>
-''';
+    try {
+      final controller = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setBackgroundColor(Colors.black)
+        ..setUserAgent(
+          'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        );
 
-    final controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.black)
-      ..setNavigationDelegate(
+      if (controller.platform is AndroidWebViewController) {
+        AndroidWebViewController.enableDebugging(false);
+        (controller.platform as AndroidWebViewController).setMediaPlaybackRequiresUserGesture(false);
+      }
+
+      controller.setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (request) {
-            return EmbedPolicy.allowsNavigation(embedUrl, request.url)
+            if (!request.isMainFrame) {
+              return NavigationDecision.navigate;
+            }
+            return EmbedPolicy.allowsNavigation(resolvedUrl, request.url)
                 ? NavigationDecision.navigate
                 : NavigationDecision.prevent;
           },
         ),
       );
 
-    controller.loadHtmlString(embedHtml, baseUrl: embedUrl);
-    _webViewController = controller;
+      controller.loadRequest(
+        Uri.parse(resolvedUrl),
+        headers: const {
+          'Referer': 'https://cineviet.live/',
+        },
+      );
+      _webViewController = controller;
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Lỗi khởi tạo player: $e';
+        });
+      }
+    }
   }
 
   void _videoListener() {

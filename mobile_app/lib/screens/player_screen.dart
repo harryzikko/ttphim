@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:volume_controller/volume_controller.dart';
 import '../models/movie.dart';
@@ -409,65 +411,111 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     });
 
     try {
-      final iframeSource = EmbedPolicy.iframeSource(embedUrl);
-      final embedHtml = '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="referrer" content="no-referrer-when-downgrade">
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; background:#000; }
-    html, body { width:100%; height:100%; overflow:hidden; background:#000; }
-    iframe {
-      width:100%;
-      height:100%;
-      border:0;
-      position:absolute;
-      top:0;
-      left:0;
-      right:0;
-      bottom:0;
-    }
-  </style>
-</head>
-<body>
-  <iframe src="$iframeSource"
-          referrerpolicy="no-referrer-when-downgrade"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-          allowfullscreen="true"
-          webkitallowfullscreen="true"
-          mozallowfullscreen="true">
-  </iframe>
-  <script>
-    // Suppress intrusive popups, prompts, and top-level hijack
-    window.open = function() { return null; };
-    window.alert = function() {};
-    window.confirm = function() { return false; };
-    window.prompt = function() { return null; };
-  </script>
-</body>
-</html>
-''';
+      final resolvedUrl = EmbedPolicy.resolveUrl(embedUrl);
 
-      final controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(Colors.black)
-        ..setUserAgent(
-          'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
-        )
-        ..setNavigationDelegate(
-          NavigationDelegate(
-            onNavigationRequest: (request) {
-              return EmbedPolicy.allowsNavigation(embedUrl, request.url)
-                  ? NavigationDecision.navigate
-                  : NavigationDecision.prevent;
-            },
-          ),
+      late final PlatformWebViewControllerCreationParams params;
+      if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+        params = WebKitWebViewControllerCreationParams(
+          allowsInlineMediaPlayback: true,
+          mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
         );
+      } else {
+        params = const PlatformWebViewControllerCreationParams();
+      }
 
-      controller.loadHtmlString(embedHtml, baseUrl: embedUrl);
+      final controller = WebViewController.fromPlatformCreationParams(params);
+      controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+      controller.setBackgroundColor(Colors.black);
+
+      final userAgent = Platform.isIOS
+          ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+          : 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36';
+      controller.setUserAgent(userAgent);
+
+      if (controller.platform is AndroidWebViewController) {
+        AndroidWebViewController.enableDebugging(false);
+        (controller.platform as AndroidWebViewController).setMediaPlaybackRequiresUserGesture(false);
+      }
+
+      controller.addJavaScriptChannel(
+        'CineVietNative',
+        onMessageReceived: (JavaScriptMessage message) {
+          if (message.message == 'toggle-fullscreen' || message.message == 'request-fullscreen') {
+            _toggleFullScreen();
+          }
+        },
+      );
+
+      controller.setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (url) {
+            controller.runJavaScript('''
+              (function() {
+                function fixVideos() {
+                  var videos = document.querySelectorAll('video');
+                  for (var i = 0; i < videos.length; i++) {
+                    videos[i].setAttribute('playsinline', 'true');
+                    videos[i].setAttribute('webkit-playsinline', 'true');
+                    videos[i].setAttribute('x5-playsinline', 'true');
+                    videos[i].playsInline = true;
+                  }
+                }
+                fixVideos();
+                setInterval(fixVideos, 1000);
+
+                if (window.HTMLVideoElement) {
+                  try {
+                    Object.defineProperty(HTMLVideoElement.prototype, 'webkitEnterFullscreen', {
+                      value: function() {
+                        try {
+                          if (window.CineVietNative && window.CineVietNative.postMessage) {
+                            window.CineVietNative.postMessage('toggle-fullscreen');
+                          }
+                        } catch (_) {}
+                      },
+                      writable: true,
+                      configurable: true
+                    });
+                  } catch (_) {}
+                }
+
+                if (window.jwplayer) {
+                  var checkJw = setInterval(function() {
+                    try {
+                      var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+                      if (p && p.on) {
+                        clearInterval(checkJw);
+                        p.on('fullscreen', function(e) {
+                          if (e.fullscreen) {
+                            if (window.CineVietNative && window.CineVietNative.postMessage) {
+                              window.CineVietNative.postMessage('toggle-fullscreen');
+                            }
+                          }
+                        });
+                      }
+                    } catch (_) {}
+                  }, 400);
+                }
+              })();
+            ''');
+          },
+          onNavigationRequest: (request) {
+            if (!request.isMainFrame) {
+              return NavigationDecision.navigate;
+            }
+            return EmbedPolicy.allowsNavigation(resolvedUrl, request.url)
+                ? NavigationDecision.navigate
+                : NavigationDecision.prevent;
+          },
+        ),
+      );
+
+      controller.loadRequest(
+        Uri.parse(resolvedUrl),
+        headers: const {
+          'Referer': 'https://cineviet.live/',
+        },
+      );
       _webViewController = controller;
     } catch (e) {
       if (mounted) {
@@ -499,8 +547,13 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
 
     VideoPlayerController? pendingController;
 
-    // 1. Force Embed
-    if (forceEmbed && episode.linkEmbed.isNotEmpty) {
+    final isSongNgu = _currentServer.serverName.toLowerCase().contains('song ngữ') ||
+        episode.linkEmbed.contains('/embed/vicdn/') ||
+        episode.linkEmbed.contains('vicdn') ||
+        (_activeMovie.hasSongNgu && episode.linkEmbed.contains('vicdn'));
+
+    // 1. Force Embed or Song Ngữ (Song Ngữ requires interactive embed web player for multi-audio and dual subtitles)
+    if ((forceEmbed || isSongNgu) && episode.linkEmbed.isNotEmpty) {
       _initWebPlayer(episode.linkEmbed);
       return;
     }

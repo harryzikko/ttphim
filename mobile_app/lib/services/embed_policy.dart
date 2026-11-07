@@ -2,6 +2,22 @@ import 'dart:convert';
 import 'app_config.dart';
 
 class EmbedPolicy {
+  static const List<String> _allowedRoots = [
+    'streamc.xyz',
+    'nguonc.com',
+    'vicdn.cc',
+    'cineviet.live',
+    'phimapi.com',
+    'opstream16.com',
+    'cloudflare.com',
+    'challenges.cloudflare.com',
+    'jwpcdn.com',
+    'byteark.com',
+    'akamaized.net',
+    'googleapis.com',
+    'gstatic.com',
+  ];
+
   static String resolveUrl(String source) {
     final trimmed = source.trim();
     if (trimmed.startsWith('/')) {
@@ -31,12 +47,22 @@ class EmbedPolicy {
     final trusted = Uri.parse(resolvedSource);
     final target = Uri.parse(resolvedDestination);
 
+    final targetHost = target.host.toLowerCase();
+    final trustedHost = trusted.host.toLowerCase();
+
     // Exact host and port match
-    if (target.host == trusted.host && target.port == trusted.port) return true;
+    if (targetHost == trustedHost && target.port == trusted.port) return true;
+
+    // Check trusted roots
+    for (final root in _allowedRoots) {
+      if (targetHost == root || targetHost.endsWith('.$root')) {
+        return true;
+      }
+    }
 
     // Subdomain match on same 2nd-level domain (e.g. embed13.streamc.xyz <-> streamc.xyz)
-    final trustedParts = trusted.host.split('.');
-    final targetParts = target.host.split('.');
+    final trustedParts = trustedHost.split('.');
+    final targetParts = targetHost.split('.');
     if (trustedParts.length >= 2 && targetParts.length >= 2) {
       final trustedRoot = trustedParts.sublist(trustedParts.length - 2).join('.');
       final targetRoot = targetParts.sublist(targetParts.length - 2).join('.');
