@@ -115,21 +115,27 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
   }
 
   void _scrollToTopAndFocusHero() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    }
     _heroPlayFocus.requestFocus();
-    _scrollController.animateTo(
-      0.0,
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeOutCubic,
-    );
   }
+
+  void focusHero() => _scrollToTopAndFocusHero();
 
   void _focusFirstRail() {
     _firstRailFirstCardFocus.requestFocus();
-    _scrollController.animateTo(
-      360.0,
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeOutCubic,
-    );
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        280.0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   @override
@@ -240,15 +246,12 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
             child: CachedNetworkImage(
               imageUrl: backdrop,
               fit: BoxFit.cover,
-              httpHeaders: const {
-                'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
-                'Referer': 'https://cineviet.live',
-              },
+              fadeInDuration: const Duration(milliseconds: 200),
+              fadeOutDuration: const Duration(milliseconds: 200),
               placeholder: (_, __) => Container(color: const Color(0xFF191B24)),
               errorWidget: (_, __, ___) => Image.network(
                 backdrop,
                 fit: BoxFit.cover,
-                headers: const {'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet)'},
                 errorBuilder: (_, __, ___) {
                   if (fallback.isNotEmpty && fallback != backdrop) {
                     return Image.network(
@@ -375,11 +378,15 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                         focusNode: _heroPlayFocus,
                         onFocusChange: (focused) {
                           if (focused && _scrollController.hasClients) {
-                            _scrollController.animateTo(
-                              0.0,
-                              duration: const Duration(milliseconds: 260),
-                              curve: Curves.easeOutCubic,
-                            );
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted && _scrollController.hasClients && _scrollController.offset > 0) {
+                                _scrollController.animateTo(
+                                  0.0,
+                                  duration: const Duration(milliseconds: 250),
+                                  curve: Curves.easeOutCubic,
+                                );
+                              }
+                            });
                           }
                         },
                         onKeyEvent: (node, event) {
@@ -433,11 +440,15 @@ class _TvHomeScreenState extends State<TvHomeScreen> {
                         focusNode: _heroInfoFocus,
                         onFocusChange: (focused) {
                           if (focused && _scrollController.hasClients) {
-                            _scrollController.animateTo(
-                              0.0,
-                              duration: const Duration(milliseconds: 260),
-                              curve: Curves.easeOutCubic,
-                            );
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted && _scrollController.hasClients && _scrollController.offset > 0) {
+                                _scrollController.animateTo(
+                                  0.0,
+                                  duration: const Duration(milliseconds: 250),
+                                  curve: Curves.easeOutCubic,
+                                );
+                              }
+                            });
                           }
                         },
                         onKeyEvent: (node, event) {

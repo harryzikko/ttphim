@@ -171,24 +171,43 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
 
   void _handleDpadScrub(int deltaSeconds) {
     if (_isEmbedMode) {
-      _webViewController?.runJavaScript('''
-        (function() {
-          try {
-            if (window.jwplayer) {
-              var p = (window.jwplayer && window.jwplayer('ssPlay')) || window.jwplayer();
-              if (p && typeof p.getPosition === 'function') {
-                p.seek(Math.max(0, p.getPosition() + $deltaSeconds));
-                return;
-              }
-            }
-            var v = document.querySelector('video');
-            if (v) {
-              v.currentTime = Math.max(0, v.currentTime + $deltaSeconds);
-            }
-          } catch (_) {}
-        })();
-      ''');
+      if (!_isScrubbing) {
+        _isScrubbing = true;
+        _scrubTargetSeconds = _webPosition.inSeconds;
+        _scrubDelta = 0;
+      }
+      _scrubDelta += deltaSeconds;
+      final dur = _webDuration.inSeconds > 0 ? _webDuration.inSeconds : 7200;
+      _scrubTargetSeconds = (_scrubTargetSeconds + deltaSeconds).clamp(0, dur);
+      setState(() {});
       _resetControlsTimer();
+      _scrubCommitTimer?.cancel();
+      _scrubCommitTimer = Timer(const Duration(milliseconds: 650), () {
+        _webViewController?.runJavaScript('''
+          (function() {
+            try {
+              if (window.jwplayer) {
+                var p = (window.jwplayer && window.jwplayer('ssPlay')) || window.jwplayer();
+                if (p && typeof p.seek === 'function') {
+                  p.seek($_scrubTargetSeconds);
+                  return;
+                }
+              }
+              var v = document.querySelector('video');
+              if (v) {
+                v.currentTime = $_scrubTargetSeconds;
+              }
+            } catch (_) {}
+          })();
+        ''');
+        if (mounted) {
+          setState(() {
+            _isScrubbing = false;
+            _scrubDelta = 0;
+          });
+          _resetControlsTimer();
+        }
+      });
       return;
     }
 
@@ -521,10 +540,12 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
 
     // 3. Left / Right scrubbing (Netflix style) or Rewind / FastForward keys
     if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.mediaRewind) {
+      if (_showEpisodesDrawer) return KeyEventResult.ignored;
       _handleDpadScrub(-10);
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowRight || key == LogicalKeyboardKey.mediaFastForward) {
+      if (_showEpisodesDrawer) return KeyEventResult.ignored;
       _handleDpadScrub(10);
       return KeyEventResult.handled;
     }
@@ -839,11 +860,28 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
 
                             return Focus(
                               autofocus: isCurrent,
+                              onFocusChange: (focused) {
+                                if (focused) {
+                                  Scrollable.ensureVisible(
+                                    context,
+                                    alignment: 0.5,
+                                    duration: const Duration(milliseconds: 200),
+                                  );
+                                }
+                              },
                               onKeyEvent: (node, event) {
-                                if (event is KeyDownEvent &&
-                                    [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
-                                  _switchEpisode(ep);
-                                  return KeyEventResult.handled;
+                                if (event is KeyDownEvent) {
+                                  if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(event.logicalKey)) {
+                                    _switchEpisode(ep);
+                                    setState(() => _showEpisodesDrawer = false);
+                                    _rootPlayerFocus.requestFocus();
+                                    return KeyEventResult.handled;
+                                  }
+                                  if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.escape || event.logicalKey == LogicalKeyboardKey.goBack) {
+                                    setState(() => _showEpisodesDrawer = false);
+                                    _rootPlayerFocus.requestFocus();
+                                    return KeyEventResult.handled;
+                                  }
                                 }
                                 return KeyEventResult.ignored;
                               },
@@ -851,29 +889,45 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
                                 builder: (ctx) {
                                   final isFocused = Focus.of(ctx).hasFocus;
                                   return GestureDetector(
-                                    onTap: () => _switchEpisode(ep),
-                                    child: AnimatedContainer(
+                                    onTap: () {
+                                      _switchEpisode(ep);
+                                      setState(() => _showEpisodesDrawer = false);
+                                    },
+                                    child: AnimatedScale(
+                                      scale: isFocused ? 1.08 : 1.0,
                                       duration: const Duration(milliseconds: 150),
-                                      width: 120,
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: isCurrent
-                                            ? AppTheme.primary
-                                            : (isFocused ? Colors.white24 : const Color(0xFF1E2230)),
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: isFocused ? Colors.white : Colors.transparent,
-                                          width: 1.5,
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 150),
+                                        width: 124,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: isCurrent
+                                              ? AppTheme.primary
+                                              : (isFocused ? Colors.white24 : const Color(0xFF1E2230)),
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: isFocused ? Colors.white : (isCurrent ? AppTheme.primary : Colors.transparent),
+                                            width: isFocused ? 2.5 : 1.5,
+                                          ),
+                                          boxShadow: isFocused
+                                              ? [
+                                                  BoxShadow(
+                                                    color: AppTheme.primary.withOpacity(0.6),
+                                                    blurRadius: 14,
+                                                    spreadRadius: 2,
+                                                  ),
+                                                ]
+                                              : null,
                                         ),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          ep.name,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
-                                            fontSize: 13,
+                                        child: Center(
+                                          child: Text(
+                                            ep.name,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: isCurrent || isFocused ? FontWeight.bold : FontWeight.w500,
+                                              fontSize: 13,
+                                            ),
                                           ),
                                         ),
                                       ),

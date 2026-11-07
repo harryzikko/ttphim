@@ -25,8 +25,9 @@ class _TvMainScreenState extends State<TvMainScreen> {
   bool _isSidebarExpanded = false;
   Map<String, dynamic>? _user;
 
+  final GlobalKey _tvHomeKey = GlobalKey();
   final List<FocusNode> _navFocusNodes = List.generate(4, (_) => FocusNode());
-  final FocusNode _contentFocusNode = FocusNode();
+  final FocusNode _contentFocusNode = FocusNode(skipTraversal: true, canRequestFocus: false);
 
   @override
   void initState() {
@@ -177,19 +178,30 @@ class _TvMainScreenState extends State<TvMainScreen> {
                         onKeyEvent: (node, event) {
                           if (event is KeyDownEvent) {
                             final key = event.logicalKey;
-                            // Enter / Select: Switch to this tab
-                            if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(key)) {
-                              setState(() => _selectedNavIndex = index);
-                              _contentFocusNode.requestFocus();
-                              return KeyEventResult.handled;
-                            }
-                            // Right arrow: Move smoothly to content canvas and collapse sidebar
-                            if (key == LogicalKeyboardKey.arrowRight) {
+                            void activateTabAndFocusContent() {
                               setState(() {
                                 _selectedNavIndex = index;
                                 _isSidebarExpanded = false;
                               });
-                              _contentFocusNode.requestFocus();
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (index == 0) {
+                                  try {
+                                    (_tvHomeKey.currentState as dynamic)?.focusHero();
+                                  } catch (_) {}
+                                } else {
+                                  node.focusScope?.nextFocus();
+                                }
+                              });
+                            }
+
+                            // Enter / Select: Switch to this tab
+                            if ([LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.space].contains(key)) {
+                              activateTabAndFocusContent();
+                              return KeyEventResult.handled;
+                            }
+                            // Right arrow: Move smoothly to content canvas and collapse sidebar
+                            if (key == LogicalKeyboardKey.arrowRight) {
+                              activateTabAndFocusContent();
                               return KeyEventResult.handled;
                             }
                           }
@@ -200,8 +212,15 @@ class _TvMainScreenState extends State<TvMainScreen> {
                             final isFocused = Focus.of(ctx).hasFocus;
                             return GestureDetector(
                               onTap: () {
-                                setState(() => _selectedNavIndex = index);
-                                _contentFocusNode.requestFocus();
+                                setState(() {
+                                  _selectedNavIndex = index;
+                                  _isSidebarExpanded = false;
+                                });
+                                if (index == 0) {
+                                  try {
+                                    (_tvHomeKey.currentState as dynamic)?.focusHero();
+                                  } catch (_) {}
+                                }
                               },
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 150),
@@ -209,17 +228,25 @@ class _TvMainScreenState extends State<TvMainScreen> {
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? AppTheme.primary
-                                      : (isFocused ? Colors.white12 : Colors.transparent),
+                                      : (isFocused ? Colors.white24 : Colors.transparent),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isFocused ? Colors.white : Colors.transparent,
-                                    width: 1.5,
+                                    width: isFocused ? 2.5 : 1.5,
                                   ),
-                                  boxShadow: isSelected
+                                  boxShadow: isFocused
                                       ? [
-                                          BoxShadow(color: AppTheme.primary.withOpacity(0.4), blurRadius: 10),
+                                          BoxShadow(
+                                            color: isSelected ? AppTheme.primary.withOpacity(0.8) : Colors.white.withOpacity(0.4),
+                                            blurRadius: 12,
+                                            spreadRadius: 1,
+                                          ),
                                         ]
-                                      : null,
+                                      : (isSelected
+                                          ? [
+                                              BoxShadow(color: AppTheme.primary.withOpacity(0.4), blurRadius: 10),
+                                            ]
+                                          : null),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: _isSidebarExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
@@ -291,6 +318,7 @@ class _TvMainScreenState extends State<TvMainScreen> {
     switch (_selectedNavIndex) {
       case 0:
         return TvHomeScreen(
+          key: _tvHomeKey,
           onMovieSelect: _onMovieSelected,
           onRequestSidebar: _focusSidebar,
         );
@@ -316,6 +344,7 @@ class _TvMainScreenState extends State<TvMainScreen> {
         }
       default:
         return TvHomeScreen(
+          key: _tvHomeKey,
           onMovieSelect: _onMovieSelected,
           onRequestSidebar: _focusSidebar,
         );

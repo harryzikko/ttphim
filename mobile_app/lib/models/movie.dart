@@ -224,21 +224,28 @@ class Movie {
 
   /// Get absolute URL for poster image
   String get fullPosterUrl {
-    return _resolveImageUrl(posterUrl.isNotEmpty ? posterUrl : thumbUrl);
+    return _resolveImageUrl(posterUrl.isNotEmpty ? posterUrl : thumbUrl, isBackdrop: false);
   }
 
   /// Get absolute URL for thumbnail/backdrop image
   String get fullThumbUrl {
-    return _resolveImageUrl(thumbUrl.isNotEmpty ? thumbUrl : posterUrl);
+    return _resolveImageUrl(thumbUrl.isNotEmpty ? thumbUrl : posterUrl, isBackdrop: true);
   }
 
-  static String _resolveImageUrl(String url) {
+  static String _resolveImageUrl(String url, {bool isBackdrop = false}) {
     if (url.isEmpty) return 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba';
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
+    String resolved = url.trim();
+    if (!resolved.startsWith('http://') && !resolved.startsWith('https://')) {
+      final cleanPath = resolved.startsWith('/') ? resolved.substring(1) : resolved;
+      resolved = 'https://phimimg.com/$cleanPath';
     }
-    // Handle relative path like 'uploads/movies/...' or '/uploads/...'
-    final cleanPath = url.startsWith('/') ? url.substring(1) : url;
-    return 'https://phimimg.com/$cleanPath';
+    // Optimize high-res TMDb original assets to avoid OOM, network lag and decode crashes on Android TV
+    if (resolved.contains('image.tmdb.org/t/p/original/')) {
+      resolved = resolved.replaceAll(
+        'image.tmdb.org/t/p/original/',
+        isBackdrop ? 'image.tmdb.org/t/p/w1280/' : 'image.tmdb.org/t/p/w780/',
+      );
+    }
+    return resolved;
   }
 }
