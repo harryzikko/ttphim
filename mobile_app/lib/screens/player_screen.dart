@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
@@ -17,6 +18,13 @@ import '../services/storage_service.dart';
 import '../services/embed_policy.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
+
+class _SubCue {
+  final Duration start;
+  final Duration end;
+  final String text;
+  const _SubCue({required this.start, required this.end, required this.text});
+}
 
 enum VideoFitMode {
   original, // 16:9 or native aspect ratio
@@ -63,6 +71,12 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   bool _webIsPlaying = false;
   String _currentAudioTrack = 'original';
   String _currentSubMode = 'bilingual';
+
+  // Native Subtitles State (Bilingual / Vi / En)
+  List<_SubCue> _viSubCues = [];
+  List<_SubCue> _enSubCues = [];
+  String _activeViSubText = '';
+  String _activeEnSubText = '';
 
   // Netflix-style Overlay Controls
   bool _showControls = true;
@@ -417,6 +431,87 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     }
   }
 
+  /// Extract ViCDN Video ID from URL (e.g. tv-286171-1-1 or movie-123)
+  String? _extractVicdnId(String url) {
+    if (url.isEmpty) return null;
+    final reg = RegExp(r'(?:embed/vicdn/|stream/vicdn/|vicdn\.cc/)([\w-]+)');
+    final m = reg.firstMatch(url);
+    if (m != null) return m.group(1);
+    final reg2 = RegExp(r'(tv-\d+-\d+-\d+|movie-\d+)');
+    final m2 = reg2.firstMatch(url);
+    if (m2 != null) return m2.group(1);
+    return null;
+  }
+
+  /// Parse WebVTT subtitle into cues for native rendering
+  List<_SubCue> _parseVtt(String vttContent) {
+    final List<_SubCue> cues = [];
+    final lines = vttContent.split('\n');
+    final timeRegex = RegExp(r'(\d{2}:)?(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(\d{2}:)?(\d{2}):(\d{2})\.(\d{3})');
+
+    Duration parseDuration(String? hh, String mm, String ss, String ms) {
+      final hours = hh != null ? int.tryParse(hh.replaceAll(':', '')) ?? 0 : 0;
+      final minutes = int.tryParse(mm) ?? 0;
+      final seconds = int.tryParse(ss) ?? 0;
+      final millis = int.tryParse(ms) ?? 0;
+      return Duration(hours: hours, minutes: minutes, seconds: seconds, milliseconds: millis);
+    }
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      final match = timeRegex.firstMatch(line);
+      if (match != null) {
+        final start = parseDuration(match.group(1), match.group(2)!, match.group(3)!, match.group(4)!);
+        final end = parseDuration(match.group(5), match.group(6)!, match.group(7)!, match.group(8)!);
+        final textBuffer = StringBuffer();
+        while (++i < lines.length && lines[i].trim().isNotEmpty) {
+          final cueLine = lines[i].replaceAll(RegExp(r'<[^>]*>'), '').trim();
+          if (cueLine.isNotEmpty) {
+            if (textBuffer.isNotEmpty) textBuffer.write('\n');
+            textBuffer.write(cueLine);
+          }
+        }
+        final text = textBuffer.toString().trim();
+        if (text.isNotEmpty) {
+          cues.add(_SubCue(start: start, end: end, text: text));
+        }
+      }
+    }
+    return cues;
+  }
+
+  Future<void> _loadNativeSubtitles(String videoId) async {
+    try {
+      final client = HttpClient();
+      final viUri = Uri.parse('https://cineviet.live/api/stream/vicdn/$videoId/vi.vtt');
+      final enUri = Uri.parse('https://cineviet.live/api/stream/vicdn/$videoId/en.vtt');
+
+      final results = await Future.wait([
+        _fetchString(client, viUri),
+        _fetchString(client, enUri),
+      ]);
+      client.close();
+
+      if (mounted) {
+        setState(() {
+          _viSubCues = _parseVtt(results[0]);
+          _enSubCues = _parseVtt(results[1]);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<String> _fetchString(HttpClient client, Uri uri) async {
+    try {
+      final req = await client.getUrl(uri).timeout(const Duration(seconds: 5));
+      final res = await req.close();
+      if (res.statusCode == 200) {
+        return await res.transform(utf8.decoder).join();
+      }
+    } catch (_) {}
+    return '';
+  }
+
   /// Helper: Extract direct .m3u8 playlist URL from embed wrapper URL if present
   String? _extractM3u8FromEmbed(String embedUrl) {
     if (embedUrl.isEmpty) return null;
@@ -486,6 +581,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           final msg = message.message;
           if (msg == 'toggle-fullscreen' || msg == 'request-fullscreen') {
             _toggleFullScreen();
+          } else if (msg == 'toggle-controls') {
+            _toggleControls();
           } else if (msg.startsWith('sync:')) {
             final parts = msg.split(':');
             if (parts.length >= 4) {
@@ -628,6 +725,15 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                     } catch (_) {}
                   }, 400);
                 }
+
+                // Forward click and touch events directly to Flutter native controls
+                document.addEventListener('click', function(e) {
+                  try {
+                    if (window.CineVietNative && window.CineVietNative.postMessage) {
+                      window.CineVietNative.postMessage('toggle-controls');
+                    }
+                  } catch (_) {}
+                }, true);
               })();
             ''');
           },
@@ -642,10 +748,11 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         ),
       );
 
+      final isNguonC = resolvedUrl.contains('streamc.xyz') || resolvedUrl.contains('nguonc.com');
       controller.loadRequest(
         Uri.parse(resolvedUrl),
-        headers: const {
-          'Referer': 'https://cineviet.live/',
+        headers: {
+          'Referer': isNguonC ? 'https://phim.nguonc.com/' : 'https://cineviet.live/',
         },
       );
       _webViewController = controller;
@@ -687,14 +794,20 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         episode.linkEmbed.contains('vicdn') ||
         (_activeMovie.hasSongNgu && episode.linkEmbed.contains('vicdn'));
 
-    // 1. Force Embed or Song Ngữ (Song Ngữ requires interactive embed web player for multi-audio and dual subtitles)
-    if ((forceEmbed || isSongNgu) && episode.linkEmbed.isNotEmpty) {
+    // 1. Force Embed ONLY if explicitly requested and linkEmbed is present
+    if (forceEmbed && episode.linkEmbed.isNotEmpty) {
       _initWebPlayer(episode.linkEmbed);
       return;
     }
 
     // 2. Resolve stream URL: Direct HLS or automatically extract from embed link
     String streamUrl = episode.linkM3u8.trim();
+    if (streamUrl.isEmpty && isSongNgu && episode.linkEmbed.isNotEmpty) {
+      final vid = _extractVicdnId(episode.linkEmbed);
+      if (vid != null && vid.isNotEmpty) {
+        streamUrl = 'https://cineviet.live/api/stream/vicdn/$vid/original.m3u8';
+      }
+    }
     if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
       final extracted = _extractM3u8FromEmbed(episode.linkEmbed);
       if (extracted != null && extracted.isNotEmpty) {
@@ -716,15 +829,16 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       }
     }
 
-    // 4. Play with native high-performance video engine
+    // 4. Play with native high-performance video engine (AVPlayer on iOS, ExoPlayer on Android)
     _isEmbedMode = false;
 
     try {
+      final isLocalStream = streamUrl.contains('cineviet.live') || streamUrl.contains('vicdn');
       final ctrl = VideoPlayerController.networkUrl(
         Uri.parse(streamUrl),
-        httpHeaders: const {
+        httpHeaders: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://phimapi.com/',
+          'Referer': isLocalStream ? 'https://cineviet.live/' : 'https://phimapi.com/',
         },
       );
       pendingController = ctrl;
@@ -768,6 +882,13 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           _isPlayerInitializing = false;
         });
         _resetControlsTimer();
+
+        if (isSongNgu) {
+          final vid = _extractVicdnId(streamUrl.isNotEmpty ? streamUrl : episode.linkEmbed);
+          if (vid != null && vid.isNotEmpty) {
+            _loadNativeSubtitles(vid);
+          }
+        }
       }
     } catch (e) {
       if (!isCurrent()) return;
@@ -797,6 +918,36 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     if (val.isInitialized && val.duration > Duration.zero) {
       if (val.position >= val.duration - const Duration(seconds: 1) && !_isShowingNextPrompt) {
         _checkAutoPlayNext();
+      }
+
+      // Update native subtitles
+      if (!_isEmbedMode && (_viSubCues.isNotEmpty || _enSubCues.isNotEmpty)) {
+        final pos = val.position;
+        String currentVi = '';
+        String currentEn = '';
+
+        if (_currentSubMode == 'vi' || _currentSubMode == 'bilingual') {
+          for (final cue in _viSubCues) {
+            if (pos >= cue.start && pos <= cue.end) {
+              currentVi = cue.text;
+              break;
+            }
+          }
+        }
+
+        if (_currentSubMode == 'en' || _currentSubMode == 'bilingual') {
+          for (final cue in _enSubCues) {
+            if (pos >= cue.start && pos <= cue.end) {
+              currentEn = cue.text;
+              break;
+            }
+          }
+        }
+
+        if (currentVi != _activeViSubText || currentEn != _activeEnSubText) {
+          _activeViSubText = currentVi;
+          _activeEnSubText = currentEn;
+        }
       }
     }
     setState(() {});
@@ -921,30 +1072,66 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     });
   }
 
-  void _setAudioTrack(String trackKey) {
+  void _setAudioTrack(String trackKey) async {
     setState(() => _currentAudioTrack = trackKey);
-    _webViewController?.runJavaScript('''
-      (function() {
-        try {
-          if (typeof switchAudio === 'function') {
-            switchAudio('$trackKey');
-            return;
-          }
-          if (window.jwplayer) {
-            var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
-            if (p && typeof p.getAudioTracks === 'function') {
-              var tracks = p.getAudioTracks() || [];
-              for (var i = 0; i < tracks.length; i++) {
-                var t = (tracks[i].name || '').toLowerCase();
-                if ('$trackKey' === 'female' && (t.includes('nữ') || t.includes('female'))) { p.setCurrentAudioTrack(i); break; }
-                if ('$trackKey' === 'male' && (t.includes('nam') || t.includes('male') || t.includes('lồng tiếng'))) { p.setCurrentAudioTrack(i); break; }
-                if ('$trackKey' === 'original' && (t.includes('gốc') || t.includes('original'))) { p.setCurrentAudioTrack(i); break; }
+    if (_isEmbedMode) {
+      _webViewController?.runJavaScript('''
+        (function() {
+          try {
+            if (typeof switchAudio === 'function') {
+              switchAudio('$trackKey');
+              return;
+            }
+            if (window.jwplayer) {
+              var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+              if (p && typeof p.getAudioTracks === 'function') {
+                var tracks = p.getAudioTracks() || [];
+                for (var i = 0; i < tracks.length; i++) {
+                  var t = (tracks[i].name || '').toLowerCase();
+                  if ('$trackKey' === 'female' && (t.includes('nữ') || t.includes('female'))) { p.setCurrentAudioTrack(i); break; }
+                  if ('$trackKey' === 'male' && (t.includes('nam') || t.includes('male') || t.includes('lồng tiếng'))) { p.setCurrentAudioTrack(i); break; }
+                  if ('$trackKey' === 'original' && (t.includes('gốc') || t.includes('original'))) { p.setCurrentAudioTrack(i); break; }
+                }
               }
             }
-          }
-        } catch (_) {}
-      })();
-    ''');
+          } catch (_) {}
+        })();
+      ''');
+      return;
+    }
+
+    final vid = _extractVicdnId(_currentEpisode.linkM3u8.isNotEmpty ? _currentEpisode.linkM3u8 : _currentEpisode.linkEmbed);
+    if (vid != null && vid.isNotEmpty && _videoPlayerController != null) {
+      final currentPos = _videoPlayerController!.value.position;
+      final wasPlaying = _videoPlayerController!.value.isPlaying;
+      final newStreamUrl = 'https://cineviet.live/api/stream/vicdn/$vid/$trackKey.m3u8';
+
+      final previous = _videoPlayerController;
+      _videoPlayerController = null;
+      previous?.removeListener(_videoListener);
+      await previous?.dispose();
+
+      try {
+        final newCtrl = VideoPlayerController.networkUrl(
+          Uri.parse(newStreamUrl),
+          httpHeaders: const {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://cineviet.live/',
+          },
+        );
+        await newCtrl.initialize();
+        if (mounted) {
+          setState(() {
+            _videoPlayerController = newCtrl;
+          });
+          newCtrl.addListener(_videoListener);
+          await newCtrl.seekTo(currentPos);
+          if (wasPlaying) await newCtrl.play();
+        }
+      } catch (e) {
+        debugPrint('Audio track switch error: $e');
+      }
+    }
   }
 
   void _setSubMode(String modeKey) {
@@ -1320,11 +1507,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               WebViewWidget(
                 key: _webViewKey,
                 controller: _webViewController!,
-                gestureRecognizers: {
-                  Factory<OneSequenceGestureRecognizer>(
-                    () => EagerGestureRecognizer(),
-                  ),
-                },
+                gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
               )
             else if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized)
               _buildFittedVideo()
@@ -1504,6 +1687,64 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
             // 9. AUTO NEXT EPISODE COUNTDOWN OVERLAY
             if (_isShowingNextPrompt && _nextEpisode != null)
               _buildNextEpisodeOverlay(),
+
+            // 9.5. NATIVE SUBTITLE DISPLAY (Bilingual / Vietnamese / English)
+            if (!_isEmbedMode && _currentSubMode != 'off' && (_activeViSubText.isNotEmpty || _activeEnSubText.isNotEmpty))
+              Positioned(
+                bottom: (_showControls && !_isScreenLocked) ? (isLandscape ? 96.0 : 80.0) : (isLandscape ? 36.0 : 28.0),
+                left: isLandscape ? 48.0 : 20.0,
+                right: isLandscape ? 48.0 : 20.0,
+                child: IgnorePointer(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_activeViSubText.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          margin: const EdgeInsets.only(bottom: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.72),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            _activeViSubText,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: (_currentSubMode == 'bilingual') ? const Color(0xFFFFD54F) : Colors.white,
+                              fontSize: isLandscape ? 17 : 14,
+                              fontWeight: FontWeight.w700,
+                              height: 1.25,
+                              shadows: const [
+                                Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (_activeEnSubText.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.72),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            _activeEnSubText,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isLandscape ? 16 : 13,
+                              fontWeight: FontWeight.w600,
+                              height: 1.25,
+                              shadows: const [
+                                Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
 
             // 10. NETFLIX-STYLE CONTROLS OVERLAY
             if (!_isScreenLocked && _showControls && !_isSwipingSeek)
@@ -1908,7 +2149,10 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final isSongNgu = _currentServer.serverName.toLowerCase().contains('song ngữ');
+            final isSongNgu = _currentServer.serverName.toLowerCase().contains('song ngữ') ||
+                _currentEpisode.linkEmbed.contains('vicdn') ||
+                _currentEpisode.linkM3u8.contains('/vicdn/') ||
+                (_activeMovie.hasSongNgu && (_currentEpisode.linkEmbed.contains('vicdn') || _currentEpisode.linkM3u8.contains('vicdn')));
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               constraints: BoxConstraints(

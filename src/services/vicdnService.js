@@ -436,7 +436,7 @@ class ViCDNService {
           slug: `tap-${num}`,
           filename: `Tập ${num}`,
           link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
-          link_m3u8: ''
+          link_m3u8: isVicdn ? `https://cineviet.live/api/stream/vicdn/${videoId}/original.m3u8` : (url.includes('.m3u8') ? url : '')
         };
       });
 
@@ -505,7 +505,7 @@ class ViCDNService {
         slug: `tap-${num}`,
         filename: `Tập ${num}`,
         link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
-        link_m3u8: ''
+        link_m3u8: isVicdn ? `https://cineviet.live/api/stream/vicdn/${videoId}/original.m3u8` : (url.includes('.m3u8') ? url : '')
       };
     });
 
@@ -709,7 +709,7 @@ class ViCDNService {
     const meta = await this.getStreamMetadata(videoId);
     if (!meta || !meta.audioSources || !meta.audioSources.original) return null;
 
-    const base = baseOrigin || '';
+    const base = baseOrigin || 'https://cineviet.live';
     let m3u8 = '#EXTM3U\n#EXT-X-VERSION:7\n\n';
 
     m3u8 += `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Audio Gốc",DEFAULT=YES,AUTOSELECT=YES,URI="${base}/api/stream/vicdn/${videoId}/original.m3u8"\n`;

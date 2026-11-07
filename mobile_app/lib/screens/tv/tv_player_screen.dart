@@ -172,12 +172,20 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
         episode.linkEmbed.contains('vicdn') ||
         (widget.movie.hasSongNgu && episode.linkEmbed.contains('vicdn'));
 
-    if ((forceEmbed || isSongNgu) && episode.linkEmbed.isNotEmpty) {
+    if (forceEmbed && episode.linkEmbed.isNotEmpty) {
       _initEmbedPlayer(episode.linkEmbed);
       return;
     }
 
     String streamUrl = episode.linkM3u8.trim();
+    if (streamUrl.isEmpty && isSongNgu && episode.linkEmbed.isNotEmpty) {
+      final reg = RegExp(r'(?:embed/vicdn/|stream/vicdn/|vicdn\.cc/)([\w-]+)');
+      final m = reg.firstMatch(episode.linkEmbed);
+      final vid = m?.group(1);
+      if (vid != null && vid.isNotEmpty) {
+        streamUrl = 'https://cineviet.live/api/stream/vicdn/$vid/original.m3u8';
+      }
+    }
     if (streamUrl.isEmpty && episode.linkEmbed.isNotEmpty) {
       final uri = Uri.tryParse(episode.linkEmbed);
       final param = uri?.queryParameters['url'] ?? uri?.queryParameters['file'];
@@ -202,11 +210,12 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
     _isEmbedMode = false;
     VideoPlayerController? pendingController;
     try {
+      final isLocal = streamUrl.contains('cineviet.live') || streamUrl.contains('vicdn');
       final ctrl = VideoPlayerController.networkUrl(
         Uri.parse(streamUrl),
-        httpHeaders: const {
+        httpHeaders: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://phimapi.com/',
+          'Referer': isLocal ? 'https://cineviet.live/' : 'https://phimapi.com/',
         },
       );
       pendingController = ctrl;

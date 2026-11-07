@@ -47,10 +47,6 @@ class _TvMovieCardState extends State<TvMovieCard> {
     return CachedNetworkImage(
       imageUrl: poster,
       fit: BoxFit.cover,
-      httpHeaders: const {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
-        'Referer': 'https://cineviet.live',
-      },
       placeholder: (_, __) => Container(color: AppTheme.card),
       errorWidget: (_, __, ___) {
         // Fallback 1: Try thumbnail URL (often high-res TMDb image)
@@ -58,10 +54,6 @@ class _TvMovieCardState extends State<TvMovieCard> {
           return CachedNetworkImage(
             imageUrl: thumb,
             fit: BoxFit.cover,
-            httpHeaders: const {
-              'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
-              'Referer': 'https://cineviet.live',
-            },
             placeholder: (_, __) => Container(color: AppTheme.card),
             errorWidget: (_, __, ___) => _buildDirectNetworkFallback(poster, thumb),
           );
@@ -75,17 +67,11 @@ class _TvMovieCardState extends State<TvMovieCard> {
     return Image.network(
       poster,
       fit: BoxFit.cover,
-      headers: const {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
-      },
       errorBuilder: (ctx, err, stack) {
         if (thumb.isNotEmpty && thumb != poster) {
           return Image.network(
             thumb,
             fit: BoxFit.cover,
-            headers: const {
-              'User-Agent': 'Mozilla/5.0 (Linux; Android TV; CineViet) AppleWebKit/537.36',
-            },
             errorBuilder: (_, __, ___) => _buildPlaceholderFallback(),
           );
         }
