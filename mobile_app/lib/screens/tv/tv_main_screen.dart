@@ -189,7 +189,7 @@ class _TvMainScreenState extends State<TvMainScreen> {
                                     (_tvHomeKey.currentState as dynamic)?.focusHero();
                                   } catch (_) {}
                                 } else {
-                                  node.focusScope?.nextFocus();
+                                  node.nearestScope?.nextFocus();
                                 }
                               });
                             }
