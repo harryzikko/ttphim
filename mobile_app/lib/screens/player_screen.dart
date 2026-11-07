@@ -68,6 +68,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   bool _showVolumeHud = false;
   Timer? _gestureHudTimer;
 
+  // Horizontal Swipe Seek
+  bool _isSwipingSeek = false;
+  Duration _swipeSeekStartPosition = Duration.zero;
+  Duration _swipeSeekTargetPosition = Duration.zero;
+  int _swipeSeekDeltaSeconds = 0;
+  double _swipeSeekAccumulatedDx = 0.0;
+  int _lastHapticDelta = 0;
+
   // Double-tap Seek Ripples
   bool _showSeekLeftRipple = false;
   bool _showSeekRightRipple = false;
@@ -758,6 +766,182 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     });
   }
 
+  void _handleHorizontalDragStart(DragStartDetails details) {
+    if (_isScreenLocked || _isEmbedMode || _videoPlayerController == null || !_videoPlayerController!.value.isInitialized) {
+      return;
+    }
+    _hideControlsTimer?.cancel();
+    _isSwipingSeek = true;
+    _swipeSeekStartPosition = _videoPlayerController!.value.position;
+    _swipeSeekTargetPosition = _swipeSeekStartPosition;
+    _swipeSeekDeltaSeconds = 0;
+    _swipeSeekAccumulatedDx = 0.0;
+    _lastHapticDelta = 0;
+    setState(() {});
+  }
+
+  void _handleHorizontalDragUpdate(DragUpdateDetails details, double screenWidth) {
+    if (!_isSwipingSeek || _videoPlayerController == null || !_videoPlayerController!.value.isInitialized) {
+      return;
+    }
+    final totalDuration = _videoPlayerController!.value.duration;
+    if (totalDuration <= Duration.zero) return;
+
+    _swipeSeekAccumulatedDx += details.primaryDelta ?? 0.0;
+
+    // Adaptive seek window based on video duration
+    final screenFraction = _swipeSeekAccumulatedDx / screenWidth;
+    final maxSeekWindow = (totalDuration.inSeconds * 0.15).clamp(90.0, 600.0);
+    final deltaSeconds = (screenFraction * maxSeekWindow).round();
+
+    final targetMillis = (_swipeSeekStartPosition.inMilliseconds + (deltaSeconds * 1000))
+        .clamp(0, totalDuration.inMilliseconds);
+    final newTarget = Duration(milliseconds: targetMillis);
+    final newDelta = (newTarget - _swipeSeekStartPosition).inSeconds;
+
+    if ((newDelta - _lastHapticDelta).abs() >= 10) {
+      _lastHapticDelta = newDelta;
+      HapticFeedback.selectionClick();
+    }
+
+    setState(() {
+      _swipeSeekTargetPosition = newTarget;
+      _swipeSeekDeltaSeconds = newDelta;
+    });
+  }
+
+  void _handleHorizontalDragEnd(DragEndDetails details) {
+    if (!_isSwipingSeek) return;
+    _isSwipingSeek = false;
+    if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+      _videoPlayerController!.seekTo(_swipeSeekTargetPosition);
+      HapticFeedback.mediumImpact();
+    }
+    _resetControlsTimer();
+    setState(() {});
+  }
+
+  void _handleHorizontalDragCancel() {
+    if (!_isSwipingSeek) return;
+    _isSwipingSeek = false;
+    _resetControlsTimer();
+    setState(() {});
+  }
+
+  Widget _buildSwipeSeekHud() {
+    final totalDuration = _videoPlayerController?.value.duration ?? Duration.zero;
+    final isForward = _swipeSeekDeltaSeconds >= 0;
+    final deltaMinutes = (_swipeSeekDeltaSeconds.abs() / 60).floor();
+    final deltaRemainingSeconds = _swipeSeekDeltaSeconds.abs() % 60;
+    final deltaFormatted = deltaMinutes > 0
+        ? '${isForward ? '+' : '-'}${deltaMinutes}m${deltaRemainingSeconds.toString().padLeft(2, '0')}s'
+        : '${isForward ? '+' : '-'}${deltaRemainingSeconds}s';
+
+    final progressRatio = totalDuration.inMilliseconds > 0
+        ? (_swipeSeekTargetPosition.inMilliseconds / totalDuration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.85),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isForward ? const Color(0xFF10B981).withOpacity(0.6) : AppTheme.gold.withOpacity(0.6),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.6),
+              blurRadius: 20,
+              spreadRadius: 4,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Direction & Delta badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: (isForward ? const Color(0xFF10B981) : AppTheme.gold).withOpacity(0.18),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isForward ? Icons.fast_forward_rounded : Icons.fast_rewind_rounded,
+                    color: isForward ? const Color(0xFF10B981) : AppTheme.gold,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    deltaFormatted,
+                    style: TextStyle(
+                      color: isForward ? const Color(0xFF10B981) : AppTheme.gold,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Time comparison
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  _formatDuration(_swipeSeekTargetPosition),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '/ ${_formatDuration(totalDuration)}',
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Progress Bar
+            SizedBox(
+              width: 200,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: progressRatio,
+                  minHeight: 5,
+                  backgroundColor: Colors.white24,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isForward ? const Color(0xFF10B981) : AppTheme.gold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -838,7 +1022,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 ),
               ),
 
-            // 3. GESTURE DETECTOR FOR TAP, DOUBLE-TAP & VERTICAL SWIPES
+            // 3. GESTURE DETECTOR FOR TAP, DOUBLE-TAP & VERTICAL/HORIZONTAL SWIPES
             if (!_isEmbedMode)
               Positioned.fill(
                 child: GestureDetector(
@@ -850,6 +1034,10 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                     _triggerDoubleTapSeek(isRight);
                   },
                   onVerticalDragUpdate: (details) => _handleVerticalDrag(details, screenWidth),
+                  onHorizontalDragStart: _handleHorizontalDragStart,
+                  onHorizontalDragUpdate: (details) => _handleHorizontalDragUpdate(details, screenWidth),
+                  onHorizontalDragEnd: _handleHorizontalDragEnd,
+                  onHorizontalDragCancel: _handleHorizontalDragCancel,
                 ),
               ),
 
@@ -894,6 +1082,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                   icon: _volume == 0 ? Icons.volume_off_rounded : Icons.volume_up_rounded,
                   value: _volume,
                   color: AppTheme.cyan,
+                ),
+              ),
+
+            // 6.5. HORIZONTAL SWIPE SEEK HUD
+            if (_isSwipingSeek)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: _buildSwipeSeekHud(),
                 ),
               ),
 
@@ -978,7 +1174,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               _buildNextEpisodeOverlay(),
 
             // 10. NETFLIX-STYLE CONTROLS OVERLAY
-            if (!_isScreenLocked && !_isEmbedMode && _showControls)
+            if (!_isScreenLocked && !_isEmbedMode && _showControls && !_isSwipingSeek)
               _buildNetflixOverlayControls(isLandscape),
 
             // 11. EMBED MODE FLOATING TOOLBAR
