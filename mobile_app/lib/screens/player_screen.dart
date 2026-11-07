@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
@@ -50,6 +52,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   // Video Controller
   VideoPlayerController? _videoPlayerController;
   WebViewController? _webViewController;
+  final GlobalKey _webViewKey = GlobalKey();
   bool _isEmbedMode = false;
   bool _isPlayerInitializing = true;
   String? _errorMessage;
@@ -373,8 +376,38 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         DeviceOrientation.portraitUp,
       ]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && !_isFullScreen) {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.portraitUp,
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ]);
+        }
+      });
     }
     HapticFeedback.lightImpact();
+  }
+
+  void _exitLandscapeMode() {
+    if (_isFullScreen) {
+      _toggleFullScreen();
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && !_isFullScreen) {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.portraitUp,
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ]);
+        }
+      });
+      HapticFeedback.lightImpact();
+    }
   }
 
   /// Helper: Extract direct .m3u8 playlist URL from embed wrapper URL if present
@@ -451,6 +484,32 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           onPageFinished: (url) {
             controller.runJavaScript('''
               (function() {
+                try {
+                  var meta = document.querySelector('meta[name="viewport"]');
+                  if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.name = 'viewport';
+                    document.head.appendChild(meta);
+                  }
+                  meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+
+                  var style = document.createElement('style');
+                  style.id = 'cineviet-touch-fix';
+                  style.innerHTML = `
+                    * {
+                      -webkit-tap-highlight-color: transparent !important;
+                      -webkit-touch-callout: none !important;
+                    }
+                    html, body, #ssPlay, #player, .jwplayer, video, .jw-controls, .jw-controlbar, .jw-media, .jw-aspect {
+                      touch-action: manipulation !important;
+                      pointer-events: auto !important;
+                    }
+                  `;
+                  if (!document.getElementById('cineviet-touch-fix')) {
+                    document.head.appendChild(style);
+                  }
+                } catch (_) {}
+
                 function fixVideos() {
                   var videos = document.querySelectorAll('video');
                   for (var i = 0; i < videos.length; i++) {
@@ -996,25 +1055,29 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape || _isFullScreen;
     final size = MediaQuery.of(context).size;
 
     return PopScope(
-      canPop: !_isFullScreen,
+      canPop: !isLandscape,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && _isFullScreen) {
-          _toggleFullScreen();
+        if (!didPop && isLandscape) {
+          _exitLandscapeMode();
         }
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: SafeArea(
-          top: !_isFullScreen,
-          bottom: !_isFullScreen,
-          left: false,
-          right: false,
-          child: _isFullScreen
-              ? _buildPlayerContainer(isLandscape: true)
-              : Column(
+        body: isLandscape
+            ? SizedBox.expand(
+                child: _buildPlayerContainer(isLandscape: true),
+              )
+            : SafeArea(
+                top: true,
+                bottom: true,
+                left: false,
+                right: false,
+                child: Column(
                   children: [
                     // Top Player Area
                     SizedBox(
@@ -1029,7 +1092,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                     ),
                   ],
                 ),
-        ),
+              ),
       ),
     );
   }
@@ -1044,7 +1107,15 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           children: [
             // 1. VIDEO VIEW OR WEB EMBED
             if (_isEmbedMode && _webViewController != null)
-              WebViewWidget(controller: _webViewController!)
+              WebViewWidget(
+                key: _webViewKey,
+                controller: _webViewController!,
+                gestureRecognizers: {
+                  Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer(),
+                  ),
+                },
+              )
             else if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized)
               _buildFittedVideo()
             else if (_isPlayerInitializing)
@@ -1298,7 +1369,12 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           left: 0,
           right: 0,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: EdgeInsets.only(
+              left: isLandscape ? (MediaQuery.of(context).padding.left > 0 ? MediaQuery.of(context).padding.left + 8 : 14) : 14,
+              right: isLandscape ? (MediaQuery.of(context).padding.right > 0 ? MediaQuery.of(context).padding.right + 8 : 14) : 14,
+              top: isLandscape ? (MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top + 4 : 8) : 8,
+              bottom: 8,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [Colors.black.withOpacity(0.85), Colors.transparent],
@@ -1311,8 +1387,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
                   onPressed: () {
-                    if (_isFullScreen) {
-                      _toggleFullScreen();
+                    if (isLandscape) {
+                      _exitLandscapeMode();
                     } else {
                       Navigator.pop(context);
                     }
@@ -1452,7 +1528,12 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           left: 0,
           right: 0,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: EdgeInsets.only(
+              left: isLandscape ? (MediaQuery.of(context).padding.left > 0 ? MediaQuery.of(context).padding.left + 8 : 16) : 16,
+              right: isLandscape ? (MediaQuery.of(context).padding.right > 0 ? MediaQuery.of(context).padding.right + 8 : 16) : 16,
+              bottom: isLandscape ? (MediaQuery.of(context).padding.bottom > 0 ? MediaQuery.of(context).padding.bottom + 4 : 10) : 10,
+              top: 10,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
@@ -1544,11 +1625,18 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                     // Fullscreen Toggle
                     IconButton(
                       icon: Icon(
-                        _isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                        isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
                         color: Colors.white,
                         size: 26,
                       ),
-                      onPressed: _toggleFullScreen,
+                      tooltip: isLandscape ? 'Thoát toàn màn hình' : 'Toàn màn hình',
+                      onPressed: () {
+                        if (isLandscape && !_isFullScreen) {
+                          _exitLandscapeMode();
+                        } else {
+                          _toggleFullScreen();
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -1561,10 +1649,15 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   Widget _buildEmbedFloatingControls(bool isLandscape) {
+    final padding = MediaQuery.of(context).padding;
+    final safeLeft = isLandscape ? (padding.left > 0 ? padding.left + 8 : 16.0) : 10.0;
+    final safeRight = isLandscape ? (padding.right > 0 ? padding.right + 8 : 16.0) : 10.0;
+    final safeTop = isLandscape ? (padding.top > 0 ? padding.top + 8 : 16.0) : 10.0;
+
     return Positioned(
-      top: 10,
-      left: 10,
-      right: 10,
+      top: safeTop,
+      left: safeLeft,
+      right: safeRight,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -1576,8 +1669,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
               onPressed: () {
-                if (_isFullScreen) {
-                  _toggleFullScreen();
+                if (isLandscape) {
+                  _exitLandscapeMode();
                 } else {
                   Navigator.pop(context);
                 }
@@ -1605,12 +1698,18 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 ),
                 child: IconButton(
                   icon: Icon(
-                    _isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                    isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
                     color: Colors.white,
                     size: 24,
                   ),
-                  tooltip: 'Toàn màn hình',
-                  onPressed: _toggleFullScreen,
+                  tooltip: isLandscape ? 'Thoát toàn màn hình' : 'Toàn màn hình',
+                  onPressed: () {
+                    if (isLandscape && !_isFullScreen) {
+                      _exitLandscapeMode();
+                    } else {
+                      _toggleFullScreen();
+                    }
+                  },
                 ),
               ),
             ],
