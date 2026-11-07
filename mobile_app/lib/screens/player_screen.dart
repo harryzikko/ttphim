@@ -57,6 +57,13 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   bool _isPlayerInitializing = true;
   String? _errorMessage;
 
+  // Embed Playback State Sync
+  Duration _webPosition = Duration.zero;
+  Duration _webDuration = Duration.zero;
+  bool _webIsPlaying = false;
+  String _currentAudioTrack = 'original';
+  String _currentSubMode = 'bilingual';
+
   // Netflix-style Overlay Controls
   bool _showControls = true;
   Timer? _hideControlsTimer;
@@ -441,6 +448,9 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       _isEmbedMode = true;
       _isPlayerInitializing = false;
       _errorMessage = null;
+      _webPosition = Duration.zero;
+      _webDuration = Duration.zero;
+      _webIsPlaying = false;
     });
 
     try {
@@ -473,8 +483,26 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       controller.addJavaScriptChannel(
         'CineVietNative',
         onMessageReceived: (JavaScriptMessage message) {
-          if (message.message == 'toggle-fullscreen' || message.message == 'request-fullscreen') {
+          final msg = message.message;
+          if (msg == 'toggle-fullscreen' || msg == 'request-fullscreen') {
             _toggleFullScreen();
+          } else if (msg.startsWith('sync:')) {
+            final parts = msg.split(':');
+            if (parts.length >= 4) {
+              final p = int.tryParse(parts[1]) ?? 0;
+              final d = int.tryParse(parts[2]) ?? 0;
+              final isPlaying = parts[3] == '1';
+              if (mounted) {
+                setState(() {
+                  _webPosition = Duration(seconds: p);
+                  if (d > 0) _webDuration = Duration(seconds: d);
+                  _webIsPlaying = isPlaying;
+                });
+                if (d > 0 && p >= d - 1 && !_isShowingNextPrompt) {
+                  _checkAutoPlayNext();
+                }
+              }
+            }
           }
         },
       );
@@ -500,15 +528,60 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                       -webkit-tap-highlight-color: transparent !important;
                       -webkit-touch-callout: none !important;
                     }
-                    html, body, #ssPlay, #player, .jwplayer, video, .jw-controls, .jw-controlbar, .jw-media, .jw-aspect {
+                    html, body, #ssPlay, #player, .jwplayer, video, .jw-media, .jw-aspect {
                       touch-action: manipulation !important;
                       pointer-events: auto !important;
+                    }
+                    .jw-controlbar {
+                      opacity: 0 !important;
+                      pointer-events: none !important;
                     }
                   `;
                   if (!document.getElementById('cineviet-touch-fix')) {
                     document.head.appendChild(style);
                   }
                 } catch (_) {}
+
+                // Continuously sync playback time, duration and play/pause state
+                setInterval(function() {
+                  try {
+                    var pos = 0, dur = 0, isPlaying = false;
+                    if (window.jwplayer) {
+                      var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+                      if (p && typeof p.getPosition === 'function') {
+                        pos = p.getPosition() || 0;
+                        dur = p.getDuration() || 0;
+                        isPlaying = (p.getState() === 'playing');
+                      }
+                    }
+                    if (!dur) {
+                      var v = document.querySelector('video');
+                      if (v) {
+                        pos = v.currentTime || 0;
+                        dur = v.duration || 0;
+                        isPlaying = !v.paused;
+                      }
+                    }
+                    if (dur > 0 && window.CineVietNative && window.CineVietNative.postMessage) {
+                      window.CineVietNative.postMessage('sync:' + Math.round(pos) + ':' + Math.round(dur) + ':' + (isPlaying ? '1' : '0'));
+                    }
+                  } catch (_) {}
+                }, 400);
+
+                function tryAutoPlay() {
+                  try {
+                    if (window.jwplayer) {
+                      var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+                      if (p && typeof p.play === 'function') p.play();
+                    }
+                    var v = document.querySelector('video');
+                    if (v && v.paused) {
+                      v.play().catch(function() {});
+                    }
+                  } catch (_) {}
+                }
+                setTimeout(tryAutoPlay, 500);
+                setTimeout(tryAutoPlay, 1500);
 
                 function fixVideos() {
                   var videos = document.querySelectorAll('video');
@@ -595,6 +668,9 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       _isPlayerInitializing = true;
       _errorMessage = null;
       _isShowingNextPrompt = false;
+      _webPosition = Duration.zero;
+      _webDuration = Duration.zero;
+      _webIsPlaying = false;
     });
 
     _nextCountdownTimer?.cancel();
@@ -750,9 +826,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   Future<void> _saveProgress() async {
-    if (_videoPlayerController == null || !_videoPlayerController!.value.isInitialized) return;
-    final pos = _videoPlayerController!.value.position.inSeconds;
-    final dur = _videoPlayerController!.value.duration.inSeconds;
+    final pos = _isEmbedMode ? _webPosition.inSeconds : (_videoPlayerController?.value.position.inSeconds ?? 0);
+    final dur = _isEmbedMode ? _webDuration.inSeconds : (_videoPlayerController?.value.duration.inSeconds ?? 0);
     if (dur > 0 && pos > 5) {
       final episode = _currentEpisode;
       final server = _currentServer;
@@ -802,7 +877,124 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     _initPlayer();
   }
 
+  void _seekEmbed(int seconds) {
+    _webViewController?.runJavaScript('''
+      (function() {
+        try {
+          if (window.jwplayer) {
+            var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+            if (p && typeof p.seek === 'function') {
+              p.seek($seconds);
+              return;
+            }
+          }
+          var v = document.querySelector('video');
+          if (v) {
+            v.currentTime = $seconds;
+          }
+        } catch (_) {}
+      })();
+    ''');
+  }
+
+  void _toggleEmbedPlayPause() {
+    _webViewController?.runJavaScript('''
+      (function() {
+        try {
+          if (window.jwplayer) {
+            var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+            if (p && typeof p.getState === 'function') {
+              var s = p.getState();
+              if (s === 'playing') p.pause(); else p.play();
+              return;
+            }
+          }
+          var v = document.querySelector('video');
+          if (v) {
+            if (v.paused) v.play(); else v.pause();
+          }
+        } catch (_) {}
+      })();
+    ''');
+    setState(() {
+      _webIsPlaying = !_webIsPlaying;
+    });
+  }
+
+  void _setAudioTrack(String trackKey) {
+    setState(() => _currentAudioTrack = trackKey);
+    _webViewController?.runJavaScript('''
+      (function() {
+        try {
+          if (typeof switchAudio === 'function') {
+            switchAudio('$trackKey');
+            return;
+          }
+          if (window.jwplayer) {
+            var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+            if (p && typeof p.getAudioTracks === 'function') {
+              var tracks = p.getAudioTracks() || [];
+              for (var i = 0; i < tracks.length; i++) {
+                var t = (tracks[i].name || '').toLowerCase();
+                if ('$trackKey' === 'female' && (t.includes('nữ') || t.includes('female'))) { p.setCurrentAudioTrack(i); break; }
+                if ('$trackKey' === 'male' && (t.includes('nam') || t.includes('male') || t.includes('lồng tiếng'))) { p.setCurrentAudioTrack(i); break; }
+                if ('$trackKey' === 'original' && (t.includes('gốc') || t.includes('original'))) { p.setCurrentAudioTrack(i); break; }
+              }
+            }
+          }
+        } catch (_) {}
+      })();
+    ''');
+  }
+
+  void _setSubMode(String modeKey) {
+    setState(() => _currentSubMode = modeKey);
+    _webViewController?.runJavaScript('''
+      (function() {
+        try {
+          if (typeof subMode !== 'undefined') {
+            subMode = '$modeKey';
+            try {
+              if (typeof LS !== 'undefined' && typeof VIDEO_ID !== 'undefined') {
+                LS.set('vp_submode_' + VIDEO_ID, '$modeKey');
+              }
+            } catch (_) {}
+            var viEl = (typeof getViEl === 'function') ? getViEl() : document.getElementById('sub-vi-overlay');
+            var enEl = (typeof getEnEl === 'function') ? getEnEl() : document.getElementById('sub-en-overlay');
+            if (viEl && '$modeKey' === 'off') { viEl.style.display = 'none'; viEl.textContent = ''; }
+            if (enEl && '$modeKey' === 'off') { enEl.style.display = 'none'; enEl.textContent = ''; }
+            if (typeof applyViStyle === 'function') applyViStyle();
+            if (typeof applyEnStyle === 'function') applyEnStyle();
+            return;
+          }
+          if (window.jwplayer) {
+            var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+            if (p && typeof p.setCaptions === 'function') {
+              if ('$modeKey' === 'off') {
+                p.setCurrentCaptions(0);
+              } else {
+                p.setCurrentCaptions(1);
+              }
+            }
+          }
+        } catch (_) {}
+      })();
+    ''');
+  }
+
   void _seekRelative(int seconds) {
+    if (_isEmbedMode) {
+      final cur = _webPosition;
+      final dur = _webDuration;
+      var target = cur + Duration(seconds: seconds);
+      if (target < Duration.zero) target = Duration.zero;
+      if (dur > Duration.zero && target > dur) target = dur;
+      _seekEmbed(target.inSeconds);
+      setState(() => _webPosition = target);
+      _resetControlsTimer();
+      HapticFeedback.lightImpact();
+      return;
+    }
     if (_videoPlayerController == null || !_videoPlayerController!.value.isInitialized) return;
     final pos = _videoPlayerController!.value.position;
     final dur = _videoPlayerController!.value.duration;
@@ -878,7 +1070,20 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   void _handleHorizontalDragStart(DragStartDetails details) {
-    if (_isScreenLocked || _isEmbedMode || _videoPlayerController == null || !_videoPlayerController!.value.isInitialized) {
+    if (_isScreenLocked) return;
+    if (_isEmbedMode) {
+      if (_webDuration <= Duration.zero) return;
+      _hideControlsTimer?.cancel();
+      _isSwipingSeek = true;
+      _swipeSeekStartPosition = _webPosition;
+      _swipeSeekTargetPosition = _webPosition;
+      _swipeSeekDeltaSeconds = 0;
+      _swipeSeekAccumulatedDx = 0.0;
+      _lastHapticDelta = 0;
+      setState(() {});
+      return;
+    }
+    if (_videoPlayerController == null || !_videoPlayerController!.value.isInitialized) {
       return;
     }
     _hideControlsTimer?.cancel();
@@ -892,10 +1097,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   void _handleHorizontalDragUpdate(DragUpdateDetails details, double screenWidth) {
-    if (!_isSwipingSeek || _videoPlayerController == null || !_videoPlayerController!.value.isInitialized) {
-      return;
-    }
-    final totalDuration = _videoPlayerController!.value.duration;
+    if (!_isSwipingSeek) return;
+    final totalDuration = _isEmbedMode ? _webDuration : (_videoPlayerController?.value.duration ?? Duration.zero);
     if (totalDuration <= Duration.zero) return;
 
     _swipeSeekAccumulatedDx += details.primaryDelta ?? 0.0;
@@ -924,6 +1127,13 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   void _handleHorizontalDragEnd(DragEndDetails details) {
     if (!_isSwipingSeek) return;
     _isSwipingSeek = false;
+    if (_isEmbedMode) {
+      _seekEmbed(_swipeSeekTargetPosition.inSeconds);
+      setState(() => _webPosition = _swipeSeekTargetPosition);
+      HapticFeedback.mediumImpact();
+      _resetControlsTimer();
+      return;
+    }
     if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
       _videoPlayerController!.seekTo(_swipeSeekTargetPosition);
       HapticFeedback.mediumImpact();
@@ -1138,7 +1348,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               Container(color: Colors.black),
 
             // 2. BRIGHTNESS SIMULATOR FILTER
-            if (_brightness < 1.0 && !_isEmbedMode)
+            if (_brightness < 1.0)
               IgnorePointer(
                 child: Container(
                   color: Colors.black.withOpacity((1.0 - _brightness).clamp(0.0, 0.85)),
@@ -1146,23 +1356,22 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               ),
 
             // 3. GESTURE DETECTOR FOR TAP, DOUBLE-TAP & VERTICAL/HORIZONTAL SWIPES
-            if (!_isEmbedMode)
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _toggleControls,
-                  onDoubleTapDown: (details) {
-                    if (_isScreenLocked) return;
-                    final isRight = details.localPosition.dx > screenWidth * 0.5;
-                    _triggerDoubleTapSeek(isRight);
-                  },
-                  onVerticalDragUpdate: (details) => _handleVerticalDrag(details, screenWidth),
-                  onHorizontalDragStart: _handleHorizontalDragStart,
-                  onHorizontalDragUpdate: (details) => _handleHorizontalDragUpdate(details, screenWidth),
-                  onHorizontalDragEnd: _handleHorizontalDragEnd,
-                  onHorizontalDragCancel: _handleHorizontalDragCancel,
-                ),
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _toggleControls,
+                onDoubleTapDown: (details) {
+                  if (_isScreenLocked) return;
+                  final isRight = details.localPosition.dx > screenWidth * 0.5;
+                  _triggerDoubleTapSeek(isRight);
+                },
+                onVerticalDragUpdate: (details) => _handleVerticalDrag(details, screenWidth),
+                onHorizontalDragStart: _handleHorizontalDragStart,
+                onHorizontalDragUpdate: (details) => _handleHorizontalDragUpdate(details, screenWidth),
+                onHorizontalDragEnd: _handleHorizontalDragEnd,
+                onHorizontalDragCancel: _handleHorizontalDragCancel,
               ),
+            ),
 
             // 4. DOUBLE-TAP RIPPLE HUDS
             if (_showSeekLeftRipple)
@@ -1297,12 +1506,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               _buildNextEpisodeOverlay(),
 
             // 10. NETFLIX-STYLE CONTROLS OVERLAY
-            if (!_isScreenLocked && !_isEmbedMode && _showControls && !_isSwipingSeek)
+            if (!_isScreenLocked && _showControls && !_isSwipingSeek)
               _buildNetflixOverlayControls(isLandscape),
-
-            // 11. EMBED MODE FLOATING TOOLBAR
-            if (_isEmbedMode)
-              _buildEmbedFloatingControls(isLandscape),
           ],
         );
       },
@@ -1348,9 +1553,9 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   Widget _buildNetflixOverlayControls(bool isLandscape) {
-    final isPlaying = _videoPlayerController?.value.isPlaying ?? false;
-    final pos = _videoPlayerController?.value.position ?? Duration.zero;
-    final dur = _videoPlayerController?.value.duration ?? Duration.zero;
+    final isPlaying = _isEmbedMode ? _webIsPlaying : (_videoPlayerController?.value.isPlaying ?? false);
+    final pos = _isEmbedMode ? _webPosition : (_videoPlayerController?.value.position ?? Duration.zero);
+    final dur = _isEmbedMode ? _webDuration : (_videoPlayerController?.value.duration ?? Duration.zero);
 
     return Stack(
       children: [
@@ -1456,6 +1661,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                   },
                 ),
 
+                // Reload button in embed mode
+                if (_isEmbedMode)
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                    tooltip: 'Tải lại video',
+                    onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
+                  ),
+
                 // Lock Screen
                 IconButton(
                   icon: const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 20),
@@ -1490,10 +1703,15 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               const SizedBox(width: 32),
               GestureDetector(
                 onTap: () {
-                  if (isPlaying) {
-                    _videoPlayerController?.pause();
+                  HapticFeedback.lightImpact();
+                  if (_isEmbedMode) {
+                    _toggleEmbedPlayPause();
                   } else {
-                    _videoPlayerController?.play();
+                    if (isPlaying) {
+                      _videoPlayerController?.pause();
+                    } else {
+                      _videoPlayerController?.play();
+                    }
                   }
                   _resetControlsTimer();
                 },
@@ -1564,7 +1782,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                         child: Slider(
                           value: _isDraggingSlider
                               ? _dragSliderPosition
-                              : pos.inSeconds.toDouble().clamp(0.0, dur.inSeconds.toDouble()),
+                              : pos.inSeconds.toDouble().clamp(0.0, dur.inSeconds > 0 ? dur.inSeconds.toDouble() : 1.0),
                           max: dur.inSeconds > 0 ? dur.inSeconds.toDouble() : 1.0,
                           onChangeStart: (_) {
                             _isDraggingSlider = true;
@@ -1575,7 +1793,12 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                           },
                           onChangeEnd: (val) {
                             _isDraggingSlider = false;
-                            _videoPlayerController?.seekTo(Duration(seconds: val.toInt()));
+                            if (_isEmbedMode) {
+                              _seekEmbed(val.toInt());
+                              setState(() => _webPosition = Duration(seconds: val.toInt()));
+                            } else {
+                              _videoPlayerController?.seekTo(Duration(seconds: val.toInt()));
+                            }
                             _resetControlsTimer();
                           },
                         ),
@@ -1592,34 +1815,59 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        // Next Episode Button
-                        TextButton.icon(
-                          onPressed: _playNextEpisodeDirect,
-                          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-                          icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 20),
-                          label: const Text('Tập Tiếp Theo', style: TextStyle(color: Colors.white, fontSize: 12)),
-                        ),
-                        const SizedBox(width: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            // Next Episode Button
+                            TextButton.icon(
+                              onPressed: _playNextEpisodeDirect,
+                              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                              icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 20),
+                              label: const Text('Tập Tiếp Theo', style: TextStyle(color: Colors.white, fontSize: 12)),
+                            ),
+                            const SizedBox(width: 6),
 
-                        // Episodes Drawer
-                        TextButton.icon(
-                          onPressed: _showEpisodesModal,
-                          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-                          icon: const Icon(Icons.video_library_rounded, color: Colors.white, size: 18),
-                          label: const Text('Danh Sách Tập', style: TextStyle(color: Colors.white, fontSize: 12)),
-                        ),
-                        const SizedBox(width: 8),
+                            // Audio & Song Ngu Selector Button
+                            TextButton.icon(
+                              onPressed: _showAudioAndSongNguModal,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                backgroundColor: _currentServer.serverName.toLowerCase().contains('song ngữ')
+                                    ? AppTheme.primary.withOpacity(0.2)
+                                    : Colors.white12,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              icon: const Icon(Icons.record_voice_over_rounded, color: AppTheme.gold, size: 18),
+                              label: Text(
+                                _currentServer.serverName.toLowerCase().contains('song ngữ')
+                                    ? 'Song Ngữ / Audio'
+                                    : 'Audio & Server',
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
 
-                        // Server Switcher
-                        TextButton.icon(
-                          onPressed: _showServersModal,
-                          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-                          icon: const Icon(Icons.dns_rounded, color: Colors.white, size: 18),
-                          label: Text(_currentServer.serverName, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                            // Episodes Drawer
+                            TextButton.icon(
+                              onPressed: _showEpisodesModal,
+                              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                              icon: const Icon(Icons.video_library_rounded, color: Colors.white, size: 18),
+                              label: const Text('Danh Sách Tập', style: TextStyle(color: Colors.white, fontSize: 12)),
+                            ),
+                            const SizedBox(width: 6),
+
+                            // Server Switcher
+                            TextButton.icon(
+                              onPressed: _showServersModal,
+                              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                              icon: const Icon(Icons.dns_rounded, color: Colors.white, size: 18),
+                              label: Text(_currentServer.serverName, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
 
                     // Fullscreen Toggle
@@ -1648,73 +1896,245 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _buildEmbedFloatingControls(bool isLandscape) {
-    final padding = MediaQuery.of(context).padding;
-    final safeLeft = isLandscape ? (padding.left > 0 ? padding.left + 8 : 16.0) : 10.0;
-    final safeRight = isLandscape ? (padding.right > 0 ? padding.right + 8 : 16.0) : 10.0;
-    final safeTop = isLandscape ? (padding.top > 0 ? padding.top + 8 : 16.0) : 10.0;
+  void _showAudioAndSongNguModal() {
+    _hideControlsTimer?.cancel();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF141722),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isSongNgu = _currentServer.serverName.toLowerCase().contains('song ngữ');
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.record_voice_over_rounded, color: AppTheme.gold, size: 22),
+                            SizedBox(width: 10),
+                            Text(
+                              'Âm Thanh & Song Ngữ',
+                              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const Divider(color: Colors.white12, height: 20),
 
-    return Positioned(
-      top: safeTop,
-      left: safeLeft,
-      right: safeRight,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black54,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
-              onPressed: () {
-                if (isLandscape) {
-                  _exitLandscapeMode();
-                } else {
-                  Navigator.pop(context);
-                }
-              },
-            ),
-          ),
-          Row(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
-                  tooltip: 'Tải lại',
-                  onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
+                    // Section 1: Audio / Giọng đọc (if Song Ngu)
+                    if (isSongNgu) ...[
+                      const Text(
+                        'GIỌNG ĐỌC / AUDIO (SONG NGỮ)',
+                        style: TextStyle(color: AppTheme.gold, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildAudioTrackOption(
+                        label: 'Audio Gốc (Nguyên Bản)',
+                        sublabel: 'Âm thanh diễn viên gốc',
+                        trackKey: 'original',
+                        setModalState: setModalState,
+                      ),
+                      _buildAudioTrackOption(
+                        label: 'Thuyết Minh Nữ',
+                        sublabel: 'Giọng đọc nữ truyền cảm',
+                        trackKey: 'female',
+                        setModalState: setModalState,
+                      ),
+                      _buildAudioTrackOption(
+                        label: 'Thuyết Minh Nam / Lồng Tiếng',
+                        sublabel: 'Giọng đọc nam rõ ràng',
+                        trackKey: 'male',
+                        setModalState: setModalState,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Section 2: Subtitle mode (if Song Ngu)
+                      const Text(
+                        'CHẾ ĐỘ PHỤ ĐỀ',
+                        style: TextStyle(color: AppTheme.cyan, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildSubModeOption(
+                        label: 'Song Ngữ (Việt + Anh)',
+                        sublabel: 'Hiển thị cả phụ đề tiếng Việt và tiếng Anh đồng thời',
+                        modeKey: 'bilingual',
+                        setModalState: setModalState,
+                      ),
+                      _buildSubModeOption(
+                        label: 'Phụ Đề Tiếng Việt',
+                        sublabel: 'Chỉ hiển thị phụ đề tiếng Việt',
+                        modeKey: 'vi',
+                        setModalState: setModalState,
+                      ),
+                      _buildSubModeOption(
+                        label: 'Phụ Đề Tiếng Anh (English)',
+                        sublabel: 'English subtitles only',
+                        modeKey: 'en',
+                        setModalState: setModalState,
+                      ),
+                      _buildSubModeOption(
+                        label: 'Tắt Phụ Đề',
+                        sublabel: 'Ẩn phụ đề trên màn hình',
+                        modeKey: 'off',
+                        setModalState: setModalState,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Section 3: Server selection
+                    const Text(
+                      'CHUYỂN NGUỒN PHÁT (SERVER)',
+                      style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
+                    const SizedBox(height: 8),
+                    ..._activeServers.map((s) {
+                      final isCurrent = s.serverName == _currentServer.serverName;
+                      final isSN = s.serverName.toLowerCase().contains('song ngữ');
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          color: isCurrent ? AppTheme.primary.withOpacity(0.15) : Colors.white.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isCurrent ? AppTheme.primary : (isSN ? AppTheme.gold.withOpacity(0.3) : Colors.transparent),
+                            width: 1,
+                          ),
+                        ),
+                        child: ListTile(
+                          dense: true,
+                          title: Text(
+                            s.serverName,
+                            style: TextStyle(
+                              color: isCurrent ? AppTheme.primaryLight : Colors.white,
+                              fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                            ),
+                          ),
+                          subtitle: isSN
+                              ? const Text(
+                                  'Đa Giọng (Audio Gốc + Thuyết Minh Nam/Nữ) & Song Ngữ',
+                                  style: TextStyle(color: AppTheme.gold, fontSize: 11),
+                                )
+                              : null,
+                          leading: Icon(
+                            isSN ? Icons.translate_rounded : Icons.dns_rounded,
+                            color: isCurrent ? AppTheme.primary : (isSN ? AppTheme.gold : Colors.white54),
+                          ),
+                          trailing: isCurrent ? const Icon(Icons.check_circle_rounded, color: AppTheme.primary) : null,
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _switchServer(s);
+                          },
+                        ),
+                      );
+                    }),
+                  ],
                 ),
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  tooltip: isLandscape ? 'Thoát toàn màn hình' : 'Toàn màn hình',
-                  onPressed: () {
-                    if (isLandscape && !_isFullScreen) {
-                      _exitLandscapeMode();
-                    } else {
-                      _toggleFullScreen();
-                    }
-                  },
-                ),
-              ),
-            ],
+            );
+          },
+        );
+      },
+    ).then((_) => _resetControlsTimer());
+  }
+
+  Widget _buildAudioTrackOption({
+    required String label,
+    required String sublabel,
+    required String trackKey,
+    required StateSetter setModalState,
+  }) {
+    final isSelected = _currentAudioTrack == trackKey;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: isSelected ? AppTheme.gold.withOpacity(0.15) : Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isSelected ? AppTheme.gold : Colors.transparent,
+          width: 1,
+        ),
+      ),
+      child: ListTile(
+        dense: true,
+        title: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? AppTheme.gold : Colors.white,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           ),
-        ],
+        ),
+        subtitle: Text(sublabel, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+        leading: Icon(
+          Icons.audiotrack_rounded,
+          color: isSelected ? AppTheme.gold : Colors.white54,
+        ),
+        trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppTheme.gold) : null,
+        onTap: () {
+          _setAudioTrack(trackKey);
+          setModalState(() {});
+          HapticFeedback.lightImpact();
+        },
+      ),
+    );
+  }
+
+  Widget _buildSubModeOption({
+    required String label,
+    required String sublabel,
+    required String modeKey,
+    required StateSetter setModalState,
+  }) {
+    final isSelected = _currentSubMode == modeKey;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: isSelected ? AppTheme.cyan.withOpacity(0.15) : Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isSelected ? AppTheme.cyan : Colors.transparent,
+          width: 1,
+        ),
+      ),
+      child: ListTile(
+        dense: true,
+        title: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? AppTheme.cyan : Colors.white,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(sublabel, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+        leading: Icon(
+          Icons.subtitles_rounded,
+          color: isSelected ? AppTheme.cyan : Colors.white54,
+        ),
+        trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppTheme.cyan) : null,
+        onTap: () {
+          _setSubMode(modeKey);
+          setModalState(() {});
+          HapticFeedback.lightImpact();
+        },
       ),
     );
   }
@@ -2448,7 +2868,22 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
             onTap: () {
               Navigator.pop(ctx);
               setState(() => _currentSpeed = s);
-              _videoPlayerController?.setPlaybackSpeed(s);
+              if (_isEmbedMode) {
+                _webViewController?.runJavaScript('''
+                  (function() {
+                    try {
+                      if (window.jwplayer) {
+                        var p = (window.jwplayer && window.jwplayer('ssPlay')) || (window.jwplayer && window.jwplayer());
+                        if (p && typeof p.setPlaybackRate === 'function') p.setPlaybackRate($s);
+                      }
+                      var v = document.querySelector('video');
+                      if (v) v.playbackRate = $s;
+                    } catch (_) {}
+                  })();
+                ''');
+              } else {
+                _videoPlayerController?.setPlaybackSpeed(s);
+              }
               _resetControlsTimer();
             },
           );
