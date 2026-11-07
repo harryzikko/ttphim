@@ -24,8 +24,8 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   package_info_plus: 8.1.0
   path_provider: ^2.1.4
-  screen_brightness: ^2.1.11
-  volume_controller: ^3.7.1
+  screen_brightness: ^2.1.0
+  volume_controller: 3.5.0
 
 dependency_overrides:
   package_info_plus: 8.1.0

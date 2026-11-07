@@ -50,7 +50,7 @@ jobs:
           cp config/debug.keystore ~/.android/debug.keystore
           cp pubspec.yaml /tmp/cineviet-pubspec.yaml
           rm -f pubspec.lock
-          flutter create --platforms=android --org "${{ matrix.organization }}" --project-name cineviet .
+          flutter create --no-pub --platforms=android --org "${{ matrix.organization }}" --project-name cineviet .
           mkdir -p android/app
           cp config/debug.keystore android/app/debug.keystore
           cp /tmp/cineviet-pubspec.yaml pubspec.yaml
@@ -171,7 +171,7 @@ jobs:
         run: |
           cp pubspec.yaml /tmp/cineviet-pubspec.yaml
           rm -f pubspec.lock
-          flutter create --platforms=ios --org com.cineviet.cinema --project-name cineviet .
+          flutter create --no-pub --platforms=ios --org com.cineviet.cinema --project-name cineviet .
           cp /tmp/cineviet-pubspec.yaml pubspec.yaml
           rm -f pubspec.lock
           rm -f test/widget_test.dart
