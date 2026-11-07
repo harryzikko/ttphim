@@ -96,7 +96,11 @@ jobs:
         working-directory: mobile_app
         run: |
           flutter clean
-          flutter pub get
+          if ! flutter pub get 2>&1 | tee /tmp/pubget.log; then
+            echo "::error title=Pub Get Failed::$(tail -n 20 /tmp/pubget.log | tr '\r\n' '  ')"
+            cat /tmp/pubget.log
+            exit 1
+          fi
       - name: Static analysis
         working-directory: mobile_app
         run: |
@@ -180,7 +184,11 @@ jobs:
         working-directory: mobile_app
         run: |
           flutter clean
-          flutter pub get
+          if ! flutter pub get 2>&1 | tee /tmp/pubget.log; then
+            echo "::error title=Pub Get Failed::$(tail -n 20 /tmp/pubget.log | tr '\r\n' '  ')"
+            cat /tmp/pubget.log
+            exit 1
+          fi
       - name: Static analysis
         working-directory: mobile_app
         run: |
