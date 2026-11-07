@@ -30,8 +30,17 @@ class EpisodeItem {
       m3u8 = '$base$m3u8';
     }
 
+    String rawName = json['name']?.toString().trim() ?? '';
+    final intVal = int.tryParse(rawName);
+    if (intVal != null) {
+      rawName = 'Tập $intVal';
+    } else if (RegExp(r'^(?:tập|tap)\s*(\d+)$', caseSensitive: false).hasMatch(rawName)) {
+      final m = RegExp(r'^(?:tập|tap)\s*(\d+)$', caseSensitive: false).firstMatch(rawName);
+      if (m != null) rawName = 'Tập ${int.tryParse(m.group(1)!) ?? m.group(1)}';
+    }
+
     return EpisodeItem(
-      name: json['name']?.toString() ?? '',
+      name: rawName,
       slug: json['slug']?.toString() ?? '',
       filename: json['filename']?.toString() ?? '',
       linkEmbed: embed,

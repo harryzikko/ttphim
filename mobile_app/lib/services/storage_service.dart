@@ -226,6 +226,12 @@ class StorageService {
   }
 
   static Future<void> saveHistory(WatchHistoryItem item) async {
+    final token = await getToken();
+    if (token == null) {
+      // History & continue watching is strictly for logged-in accounts
+      return;
+    }
+
     final scope = await _scope();
     final prefs = await SharedPreferences.getInstance();
 
@@ -253,9 +259,18 @@ class StorageService {
         }
       } catch (_) { /* Retry account-local progress when connectivity returns. */ }
     }
+
+    // Notify all UI listeners immediately to refresh Continue Watching
+    SessionService.changes.value++;
   }
 
   static Future<List<WatchHistoryItem>> getHistory() async {
+    final token = await getToken();
+    if (token == null) {
+      // Guest mode: do not show continue watching
+      return [];
+    }
+
     final scope = await _scope();
     final prefs = await SharedPreferences.getInstance();
     final key = _key('history', scope);

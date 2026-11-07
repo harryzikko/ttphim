@@ -148,8 +148,28 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   @override
+  void deactivate() {
+    _saveProgress();
+    _videoPlayerController?.pause();
+    try {
+      _webViewController?.runJavaScript(
+        "var v=document.querySelectorAll('video'); for(var i=0;i<v.length;i++) v[i].pause();"
+      );
+      _webViewController?.loadRequest(Uri.parse('about:blank'));
+    } catch (_) {}
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _saveProgress();
+    _videoPlayerController?.pause();
+    try {
+      _webViewController?.runJavaScript(
+        "var v=document.querySelectorAll('video'); for(var i=0;i<v.length;i++) v[i].pause();"
+      );
+      _webViewController?.loadRequest(Uri.parse('about:blank'));
+    } catch (_) {}
     _playerGeneration++;
     _hideControlsTimer?.cancel();
     _gestureHudTimer?.cancel();
@@ -368,6 +388,28 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     }
   }
 
+  void _handleExitPlayer() {
+    _saveProgress();
+    _videoPlayerController?.pause();
+    try {
+      _webViewController?.runJavaScript(
+        "var v=document.querySelectorAll('video'); for(var i=0;i<v.length;i++) v[i].pause();"
+      );
+      _webViewController?.loadRequest(Uri.parse('about:blank'));
+    } catch (_) {}
+
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+    if (mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
   void _toggleFullScreen() {
     setState(() {
       _isFullScreen = !_isFullScreen;
@@ -581,6 +623,33 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                     } catch (_) {}
                   }, 400);
                 }
+
+                setInterval(function() {
+                  try {
+                    var p = 0;
+                    var d = 0;
+                    var isPlaying = false;
+                    if (window.jwplayer) {
+                      var jw = (window.jwplayer && window.jwplayer('ssPlay')) || window.jwplayer();
+                      if (jw && typeof jw.getPosition === 'function') {
+                        p = Math.floor(jw.getPosition() || 0);
+                        d = Math.floor(jw.getDuration() || 0);
+                        isPlaying = jw.getState() === 'playing';
+                      }
+                    }
+                    if (d <= 0) {
+                      var v = document.querySelector('video');
+                      if (v) {
+                        p = Math.floor(v.currentTime || 0);
+                        d = Math.floor(v.duration || 0);
+                        isPlaying = !v.paused;
+                      }
+                    }
+                    if (d > 0 && window.CineVietNative && window.CineVietNative.postMessage) {
+                      window.CineVietNative.postMessage('sync:' + p + ':' + d + ':' + (isPlaying ? '1' : '0'));
+                    }
+                  } catch (_) {}
+                }, 2000);
               })();
             ''');
           },
@@ -1260,10 +1329,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     final size = MediaQuery.of(context).size;
 
     return PopScope(
-      canPop: !isLandscape,
+      canPop: !_isFullScreen,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && isLandscape) {
-          _exitLandscapeMode();
+        if (!didPop) {
+          if (_isFullScreen) {
+            _toggleFullScreen();
+          } else {
+            _handleExitPlayer();
+          }
         }
       },
       child: Scaffold(
@@ -1525,13 +1598,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
             ),
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
-              onPressed: () {
-                if (isLandscape) {
-                  _exitLandscapeMode();
-                } else {
-                  Navigator.pop(context);
-                }
-              },
+              onPressed: _handleExitPlayer,
             ),
           ),
           Row(
@@ -1560,13 +1627,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                     size: 24,
                   ),
                   tooltip: isLandscape ? 'Thoát toàn màn hình' : 'Toàn màn hình',
-                  onPressed: () {
-                    if (isLandscape && !_isFullScreen) {
-                      _exitLandscapeMode();
-                    } else {
-                      _toggleFullScreen();
-                    }
-                  },
+                  onPressed: _toggleFullScreen,
                 ),
               ),
             ],
@@ -1653,13 +1714,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               children: [
                 IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
-                  onPressed: () {
-                    if (isLandscape) {
-                      _exitLandscapeMode();
-                    } else {
-                      Navigator.pop(context);
-                    }
-                  },
+                  onPressed: _handleExitPlayer,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1889,43 +1944,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                               icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 20),
                               label: const Text('Tập Tiếp Theo', style: TextStyle(color: Colors.white, fontSize: 12)),
                             ),
-                            const SizedBox(width: 6),
-
-                            // Audio & Song Ngu Selector Button
-                            TextButton.icon(
-                              onPressed: _showAudioAndSongNguModal,
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                backgroundColor: _currentServer.serverName.toLowerCase().contains('song ngữ')
-                                    ? AppTheme.primary.withOpacity(0.2)
-                                    : Colors.white12,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              icon: const Icon(Icons.record_voice_over_rounded, color: AppTheme.gold, size: 18),
-                              label: Text(
-                                _currentServer.serverName.toLowerCase().contains('song ngữ')
-                                    ? 'Song Ngữ / Audio'
-                                    : 'Audio & Server',
-                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
 
                             // Episodes Drawer
                             TextButton.icon(
                               onPressed: _showEpisodesModal,
-                              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6)),
                               icon: const Icon(Icons.video_library_rounded, color: Colors.white, size: 18),
-                              label: const Text('Danh Sách Tập', style: TextStyle(color: Colors.white, fontSize: 12)),
-                            ),
-                            const SizedBox(width: 6),
-
-                            // Server Switcher
-                            TextButton.icon(
-                              onPressed: _showServersModal,
-                              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-                              icon: const Icon(Icons.dns_rounded, color: Colors.white, size: 18),
-                              label: Text(_currentServer.serverName, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                              label: const Text('Danh Sách Tập', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
@@ -1940,13 +1966,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                         size: 26,
                       ),
                       tooltip: isLandscape ? 'Thoát toàn màn hình' : 'Toàn màn hình',
-                      onPressed: () {
-                        if (isLandscape && !_isFullScreen) {
-                          _exitLandscapeMode();
-                        } else {
-                          _toggleFullScreen();
-                        }
-                      },
+                      onPressed: _toggleFullScreen,
                     ),
                   ],
                 ),

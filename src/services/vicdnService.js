@@ -432,7 +432,7 @@ class ViCDNService {
         const videoId = url.replace(/^https?:\/\/[^/]+\//, '');
         const isVicdn = /(?:vicdn\.cc|pages\.dev|^tv-|^movie-)/.test(url);
         return {
-          name: num,
+          name: /^\d+$/.test(num) ? `Tập ${num}` : num,
           slug: `tap-${num}`,
           filename: `Tập ${num}`,
           link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,
@@ -501,7 +501,7 @@ class ViCDNService {
       const videoId = url.replace(/^https?:\/\/[^/]+\//, '');
       const isVicdn = /(?:vicdn\.cc|pages\.dev|^tv-|^movie-)/.test(url);
       return {
-        name: num,
+        name: /^\d+$/.test(num) ? `Tập ${num}` : num,
         slug: `tap-${num}`,
         filename: `Tập ${num}`,
         link_embed: isVicdn ? `/embed/vicdn/${videoId}` : url,

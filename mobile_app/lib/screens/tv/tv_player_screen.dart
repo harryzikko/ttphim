@@ -44,6 +44,8 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   bool _showControls = true;
   Timer? _hideControlsTimer;
   Timer? _historyTimer;
+  Duration _webPosition = Duration.zero;
+  Duration _webDuration = Duration.zero;
 
   // Netflix-style D-pad Scrubbing (smooth debounce)
   bool _isScrubbing = false;
@@ -74,8 +76,28 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   }
 
   @override
+  void deactivate() {
+    _saveProgress();
+    _controller?.pause();
+    try {
+      _webViewController?.runJavaScript(
+        "var v=document.querySelectorAll('video'); for(var i=0;i<v.length;i++) v[i].pause();"
+      );
+      _webViewController?.loadRequest(Uri.parse('about:blank'));
+    } catch (_) {}
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _saveProgress();
+    _controller?.pause();
+    try {
+      _webViewController?.runJavaScript(
+        "var v=document.querySelectorAll('video'); for(var i=0;i<v.length;i++) v[i].pause();"
+      );
+      _webViewController?.loadRequest(Uri.parse('about:blank'));
+    } catch (_) {}
     _playerGeneration++;
     _hideControlsTimer?.cancel();
     _historyTimer?.cancel();
@@ -330,8 +352,56 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
         (controller.platform as AndroidWebViewController).setMediaPlaybackRequiresUserGesture(false);
       }
 
+      controller.addJavaScriptChannel(
+        'CineVietNative',
+        onMessageReceived: (JavaScriptMessage message) {
+          final msg = message.message;
+          if (msg.startsWith('sync:')) {
+            final parts = msg.split(':');
+            if (parts.length >= 3) {
+              final p = int.tryParse(parts[1]) ?? 0;
+              final d = int.tryParse(parts[2]) ?? 0;
+              if (mounted) {
+                _webPosition = Duration(seconds: p);
+                if (d > 0) _webDuration = Duration(seconds: d);
+              }
+            }
+          }
+        },
+      );
+
       controller.setNavigationDelegate(
         NavigationDelegate(
+          onPageFinished: (url) {
+            controller.runJavaScript('''
+              setInterval(function() {
+                try {
+                  var p = 0;
+                  var d = 0;
+                  var isPlaying = false;
+                  if (window.jwplayer) {
+                    var jw = (window.jwplayer && window.jwplayer('ssPlay')) || window.jwplayer();
+                    if (jw && typeof jw.getPosition === 'function') {
+                      p = Math.floor(jw.getPosition() || 0);
+                      d = Math.floor(jw.getDuration() || 0);
+                      isPlaying = jw.getState() === 'playing';
+                    }
+                  }
+                  if (d <= 0) {
+                    var v = document.querySelector('video');
+                    if (v) {
+                      p = Math.floor(v.currentTime || 0);
+                      d = Math.floor(v.duration || 0);
+                      isPlaying = !v.paused;
+                    }
+                  }
+                  if (d > 0 && window.CineVietNative && window.CineVietNative.postMessage) {
+                    window.CineVietNative.postMessage('sync:' + p + ':' + d + ':' + (isPlaying ? '1' : '0'));
+                  }
+                } catch (_) {}
+              }, 2000);
+            ''');
+          },
           onNavigationRequest: (request) {
             if (!request.isMainFrame) {
               return NavigationDecision.navigate;
@@ -390,9 +460,8 @@ class _TvPlayerScreenState extends State<TvPlayerScreen> {
   }
 
   Future<void> _saveProgress() async {
-    if (_controller == null || !_controller!.value.isInitialized) return;
-    final pos = _controller!.value.position.inSeconds;
-    final dur = _controller!.value.duration.inSeconds;
+    final pos = _isEmbedMode ? _webPosition.inSeconds : (_controller?.value.position.inSeconds ?? 0);
+    final dur = _isEmbedMode ? _webDuration.inSeconds : (_controller?.value.duration.inSeconds ?? 0);
     if (dur > 0 && pos > 5) {
       await StorageService.saveHistory(WatchHistoryItem(
         movieSlug: widget.movie.slug,
