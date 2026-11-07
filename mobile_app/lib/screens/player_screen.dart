@@ -803,7 +803,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         _showVolumeHud = true;
       });
       try {
-        VolumeController.instance.setVolume(newVolume, showSystemUI: false);
+        VolumeController.instance.showSystemUI = false;
+        VolumeController.instance.setVolume(newVolume);
       } catch (_) {}
       _videoPlayerController?.setVolume(newVolume);
     }
