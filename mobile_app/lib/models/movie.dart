@@ -232,6 +232,9 @@ class Movie {
     return _resolveImageUrl(thumbUrl.isNotEmpty ? thumbUrl : posterUrl, isBackdrop: true);
   }
 
+  /// Alias for actors
+  List<String> get casts => actors;
+
   static String _resolveImageUrl(String url, {bool isBackdrop = false}) {
     if (url.isEmpty) return 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba';
     String resolved = url.trim();

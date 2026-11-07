@@ -371,7 +371,7 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                             persons.add(CastMember(name: d.trim(), isDirector: true, avatar: ''));
                           }
                         }
-                        for (var c in movie.casts) {
+                        for (var c in movie.actors) {
                           if (c.trim().isNotEmpty) {
                             persons.add(CastMember(name: c.trim(), isDirector: false, avatar: ''));
                           }
