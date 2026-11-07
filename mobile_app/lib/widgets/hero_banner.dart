@@ -72,10 +72,18 @@ class _HeroBannerState extends State<HeroBanner> {
     if (widget.movies.isEmpty) return const SizedBox.shrink();
     final displayList = widget.movies.take(8).toList();
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth >= 600;
-    // Responsive cinematic height: 440px on phone, clamped 480-540px on tablet
-    final bannerHeight = isTablet ? (screenWidth * 0.50).clamp(480.0, 540.0) : 440.0;
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
+    final isLandscape = mediaQuery.orientation == Orientation.landscape;
+    final isTablet = mediaQuery.size.shortestSide >= 600;
+
+    // Responsive banner height:
+    // Landscape (tablet / iPad horizontal): clamped relative to screen height
+    // Portrait (phone & tablet portrait): responsive height showing vertical poster artwork
+    final bannerHeight = isLandscape
+        ? (isTablet ? (screenHeight * 0.65).clamp(440.0, 560.0) : (screenHeight * 0.85).clamp(320.0, 420.0))
+        : (isTablet ? (screenWidth * 0.70).clamp(520.0, 640.0) : (screenWidth * 1.22).clamp(420.0, 480.0));
 
     return SizedBox(
       height: bannerHeight,
@@ -92,11 +100,11 @@ class _HeroBannerState extends State<HeroBanner> {
             itemBuilder: (context, index) {
               final movie = displayList[index];
 
-              // Mobile uses vertical poster, iPad / Tablet uses horizontal thumb (or poster as fallback)
-              final primaryImage = isTablet
+              // Portrait (màn dọc) uses vertical poster; Landscape (màn ngang tablet/ipad) uses horizontal thumb
+              final primaryImage = isLandscape
                   ? (movie.fullThumbUrl.isNotEmpty ? movie.fullThumbUrl : movie.fullPosterUrl)
                   : (movie.fullPosterUrl.isNotEmpty ? movie.fullPosterUrl : movie.fullThumbUrl);
-              final fallbackImage = isTablet
+              final fallbackImage = isLandscape
                   ? movie.fullPosterUrl
                   : movie.fullThumbUrl;
 
@@ -106,8 +114,8 @@ class _HeroBannerState extends State<HeroBanner> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // 1. Ambient Blurred Glow Layer (fills entire banner with glowing cinema tones)
-                      if (isTablet)
+                      // 1. Ambient Blurred Glow Layer (fills entire banner with glowing cinema tones in landscape)
+                      if (isLandscape)
                         Positioned.fill(
                           child: ImageFiltered(
                             imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
@@ -128,7 +136,7 @@ class _HeroBannerState extends State<HeroBanner> {
                         ),
 
                       // Ambient tint to maintain deep cinema contrast
-                      if (isTablet)
+                      if (isLandscape)
                         Positioned.fill(
                           child: Container(
                             color: const Color(0xFF0B0D13).withOpacity(0.45),
@@ -140,20 +148,20 @@ class _HeroBannerState extends State<HeroBanner> {
                         child: CachedNetworkImage(
                           imageUrl: primaryImage,
                           fit: BoxFit.cover,
-                          alignment: isTablet ? Alignment.centerRight : Alignment.topCenter,
+                          alignment: isLandscape ? Alignment.centerRight : Alignment.topCenter,
                           placeholder: (context, url) => Container(color: AppTheme.card),
                           errorWidget: (context, url, error) => CachedNetworkImage(
                             imageUrl: fallbackImage,
                             fit: BoxFit.cover,
-                            alignment: isTablet ? Alignment.centerRight : Alignment.topCenter,
+                            alignment: isLandscape ? Alignment.centerRight : Alignment.topCenter,
                             placeholder: (context, url) => Container(color: AppTheme.card),
                             errorWidget: (context, url, error) => Container(color: AppTheme.card),
                           ),
                         ),
                       ),
 
-                      // 3. Multi-gradient Scrim Overlays (Netflix Signature Lighting)
-                      if (isTablet) ...[
+                      // 3. Multi-gradient Scrim Overlays (Cinema Lighting)
+                      if (isLandscape) ...[
                         // Left-to-Right Horizontal Scrim: dark black on the left for text contrast, fading across artwork
                         Positioned.fill(
                           child: Container(
@@ -192,7 +200,7 @@ class _HeroBannerState extends State<HeroBanner> {
                           ),
                         ),
                       ] else ...[
-                        // Phone Vertical Scrim: smooth bottom fade
+                        // Portrait Vertical Scrim: smooth bottom fade
                         Positioned.fill(
                           child: Container(
                             decoration: BoxDecoration(
@@ -233,8 +241,8 @@ class _HeroBannerState extends State<HeroBanner> {
                       ),
 
                       // 4. Movie Information & Action Buttons
-                      if (isTablet)
-                        // iPad / Tablet Layout: Left-aligned cinema typography
+                      if (isLandscape)
+                        // Landscape Layout (iPad / Tablet / Desktop): Left-aligned cinema typography
                         Positioned(
                           left: 44,
                           bottom: 36,
@@ -583,13 +591,13 @@ class _HeroBannerState extends State<HeroBanner> {
             },
           ),
 
-          // 5. Dots Indicator (Bottom-right on iPad, Bottom-center on Phone)
+          // 5. Dots Indicator (Bottom-right on Landscape, Bottom-center on Portrait)
           Positioned(
-            bottom: isTablet ? 24 : 8,
-            right: isTablet ? 44 : 0,
-            left: isTablet ? null : 0,
+            bottom: isLandscape ? 24 : 10,
+            right: isLandscape ? 44 : 0,
+            left: isLandscape ? null : 0,
             child: Row(
-              mainAxisAlignment: isTablet ? MainAxisAlignment.end : MainAxisAlignment.center,
+              mainAxisAlignment: isLandscape ? MainAxisAlignment.end : MainAxisAlignment.center,
               children: List.generate(displayList.length, (idx) {
                 final isActive = idx == _currentIndex;
                 return GestureDetector(
@@ -603,8 +611,8 @@ class _HeroBannerState extends State<HeroBanner> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: isActive ? (isTablet ? 22 : 18) : (isTablet ? 7 : 6),
-                    height: isTablet ? 5 : 4,
+                    width: isActive ? (isLandscape ? 22 : 18) : (isLandscape ? 7 : 6),
+                    height: isLandscape ? 5 : 4,
                     decoration: BoxDecoration(
                       color: isActive ? AppTheme.primary : Colors.white24,
                       borderRadius: BorderRadius.circular(3),

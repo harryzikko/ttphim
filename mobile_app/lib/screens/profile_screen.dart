@@ -9,6 +9,7 @@ import '../services/session_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'account_screen.dart';
+import 'login_screen.dart';
 import 'detail_screen.dart';
 import 'watchlist_screen.dart';
 import '../models/app_update_info.dart';
@@ -153,10 +154,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final platformName = _getDetectedPlatform(context);
-    final username = _user?['username']?.toString() ?? _user?['email']?.toString() ?? 'Khách xem phim';
+    final username = _user?['name']?.toString() ?? _user?['username']?.toString() ?? _user?['email']?.toString() ?? 'Khách xem phim';
     final userSubtitle = _user != null
         ? (_user?['email']?.toString() ?? 'Đã đăng nhập tài khoản CineViet')
-        : 'Chạm để đăng nhập & đồng bộ dữ liệu';
+        : 'Đăng nhập để đồng bộ lịch sử & yêu thích';
     final avatarInitial = username.isNotEmpty ? username[0].toUpperCase() : 'C';
 
     return Scaffold(
@@ -171,85 +172,284 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         physics: const BouncingScrollPhysics(),
         children: [
-          // 1. Account Profile Card
-          GestureDetector(
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AccountScreen()),
-              );
-              _loadUser();
-              _loadLibraryData();
-            },
-            child: Container(
-              padding: const EdgeInsets.all(16),
+          // 1. Account Profile Card (Gọn & Tiện lợi Đăng nhập / Đăng ký)
+          if (_user == null)
+            Container(
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppTheme.card,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E2230), Color(0xFF141722)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppTheme.border),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withOpacity(0.35),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
                 ],
               ),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        avatarInitial,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primary.withOpacity(0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.person_outline_rounded, color: Colors.white, size: 24),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text(
+                                  'Khách xem phim',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'Khách',
+                                    style: TextStyle(
+                                      color: AppTheme.textMuted,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              userSubtitle,
+                              style: const TextStyle(
+                                color: AppTheme.textMuted,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          username,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  const SizedBox(height: 12),
+                  // Nút bấm nhanh Đăng Nhập & Đăng Ký
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 36,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final ok = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const LoginScreen(initialTab: 0),
+                                ),
+                              );
+                              if (ok == true || mounted) {
+                                _loadUser();
+                                _loadLibraryData();
+                              }
+                            },
+                            icon: const Icon(Icons.login_rounded, size: 16, color: Colors.white),
+                            label: const Text(
+                              'Đăng nhập',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.zero,
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          userSubtitle,
-                          style: const TextStyle(
-                            color: AppTheme.textMuted,
-                            fontSize: 12,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 36,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final ok = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const LoginScreen(initialTab: 1),
+                                ),
+                              );
+                              if (ok == true || mounted) {
+                                _loadUser();
+                                _loadLibraryData();
+                              }
+                            },
+                            icon: const Icon(Icons.person_add_alt_1_rounded, size: 16, color: Colors.white),
+                            label: const Text(
+                              'Đăng ký',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(color: Colors.white.withOpacity(0.25)),
+                              backgroundColor: Colors.white.withOpacity(0.06),
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: AppTheme.textMuted,
-                    size: 15,
+                      ),
+                    ],
                   ),
                 ],
               ),
+            )
+          else
+            GestureDetector(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AccountScreen()),
+                );
+                _loadUser();
+                _loadLibraryData();
+              },
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E2230), Color(0xFF141722)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primary.withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          avatarInitial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  username,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFB800).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: const Color(0xFFFFB800).withOpacity(0.4), width: 0.8),
+                                ),
+                                child: const Text(
+                                  'VIP',
+                                  style: TextStyle(
+                                    color: Color(0xFFFFB800),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            userSubtitle,
+                            style: const TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: AppTheme.textMuted,
+                      size: 15,
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
 
           const SizedBox(height: 24),
 

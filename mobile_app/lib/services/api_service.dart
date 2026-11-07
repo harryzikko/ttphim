@@ -582,6 +582,40 @@ class ApiService {
       return {'status': false, 'message': 'Không thể kết nối máy chủ ($host): ' + e.toString().replaceAll('Exception:', '').trim()};
     }
   }
+
+  static Future<Map<String, dynamic>> register(
+    String email,
+    String password, {
+    String? name,
+    String gender = 'male',
+  }) async {
+    if (!AppConfig.hasBackend) return {'status': false, 'message': 'Chưa cấu hình BACKEND_URL cho ứng dụng'};
+    try {
+      final body = <String, dynamic>{
+        'email': email.trim(),
+        'password': password,
+        if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+        'gender': gender,
+      };
+      final response = await _backend('/api/auth/register', body: body);
+      if (response == null) {
+        final host = Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
+        return {'status': false, 'message': 'Không thể kết nối đến máy chủ ($host)'};
+      }
+      final data = response['data'];
+      if (response['status'] == true && data is Map<String, dynamic> && data['token'] is String) {
+        final token = data['token'] as String;
+        final user = data['user'] is Map<String, dynamic>
+            ? data['user'] as Map<String, dynamic>
+            : <String, dynamic>{'email': email.trim(), 'name': name?.trim() ?? email.trim().split('@')[0]};
+        await StorageService.saveSession(token, user);
+      }
+      return response;
+    } catch (e) {
+      final host = Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
+      return {'status': false, 'message': 'Không thể kết nối máy chủ ($host): ' + e.toString().replaceAll('Exception:', '').trim()};
+    }
+  }
   /// Fetch App Open Interstitial Banner config from backend
   static Future<AppBannerConfig> getAppBanner() async {
     try {
