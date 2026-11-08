@@ -1601,36 +1601,16 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               onPressed: _handleExitPlayer,
             ),
           ),
-          Row(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
-                  tooltip: 'Tải lại',
-                  onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    isLandscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  tooltip: isLandscape ? 'Thoát toàn màn hình' : 'Toàn màn hình',
-                  onPressed: _toggleFullScreen,
-                ),
-              ),
-            ],
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+              tooltip: 'Tải lại',
+              onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
+            ),
           ),
         ],
       ),
