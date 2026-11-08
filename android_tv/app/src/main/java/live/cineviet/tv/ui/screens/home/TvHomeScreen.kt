@@ -1,5 +1,7 @@
 package live.cineviet.tv.ui.screens.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,7 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import live.cineviet.tv.data.models.HomeData
 import live.cineviet.tv.data.models.MovieItem
@@ -63,7 +66,7 @@ fun TvHomeScreen(
                 homeData = it
                 isLoading = false
             }.onFailure {
-                errorMessage = it.message ?: "Không thể kết nối đến máy chủ CineViet"
+                errorMessage = it.message ?: "Không thể tải dữ liệu CineViet"
                 isLoading = false
             }
         }
@@ -130,14 +133,86 @@ fun TvHomeScreen(
 
     val data = homeData!!
 
+    // DEDICATED CATEGORY SCREEN FOR "PHIM BỘ" OR "PHIM LẺ" (Full 5-column Grid)
+    if (categoryFilter != null) {
+        val (title, subtitle, moviesList) = when (categoryFilter) {
+            "series" -> Triple(
+                "🎬 Kho Phim Bộ Đang Hot · Tuyển Chọn",
+                "Tuyển tập ${data.series.size} bộ phim truyền hình chất lượng cao cập nhật liên tục",
+                data.series
+            )
+            "singles" -> Triple(
+                "🍿 Kho Phim Lẻ Đặc Sắc · Chuẩn Điện Ảnh",
+                "Tuyển tập ${data.singles.size} siêu phẩm điện ảnh đặc sắc chất lượng cao",
+                data.singles
+            )
+            else -> Triple("Kho Phim CineViet", "", data.latest)
+        }
+
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 32.dp, top = 28.dp, end = 32.dp, bottom = 8.dp)
+                ) {
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    if (subtitle.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = subtitle,
+                            color = TvOnSurfaceVariant,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+
+            // 5-Column Grid Layout (Chunked by 5)
+            val chunks = moviesList.chunked(5)
+            items(chunks) { rowMovies ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    rowMovies.forEach { movie ->
+                        TvMovieCard(
+                            movie = movie,
+                            onClick = { onMovieClick(movie.slug) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // Fill remaining empty columns if last row has fewer items
+                    repeat(5 - rowMovies.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+        return
+    }
+
+    // MAIN EXPLORE / HOME FEED SCREEN
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
-        // 1. Featured Spotlight Carousel (Hero Banner - All 7 items)
-        if (categoryFilter == null && data.spotlights.isNotEmpty()) {
+        // 1. Featured Spotlight Carousel (Hero Banner - All 7 items with Mini Thumbnails)
+        if (data.spotlights.isNotEmpty()) {
             item {
                 TvSpotlightHero(
                     spotlights = data.spotlights,
@@ -147,8 +222,8 @@ fun TvHomeScreen(
             }
         }
 
-        // 2. BẢNG XẾP HẠNG / THỊNH HÀNH HÔM NAY (Real rankings 1..10)
-        if (categoryFilter == null && data.rankings.isNotEmpty()) {
+        // 2. BẢNG XẾP HẠNG / THỊNH HÀNH HÔM NAY (Real rankings 1..10 in Netflix-style poster cards)
+        if (data.rankings.isNotEmpty()) {
             item {
                 TvMovieSection(
                     title = "🔥 Bảng Xếp Hạng · Thịnh Hành Hôm Nay",
@@ -171,57 +246,47 @@ fun TvHomeScreen(
         }
 
         // 3. Category Swimlanes
-        if (categoryFilter == null || categoryFilter == "latest") {
-            if (data.latest.isNotEmpty()) {
-                item {
-                    TvMovieSection(title = "Phim Mới Cập Nhật") {
-                        TvMovieRow(movies = data.latest, onMovieClick = onMovieClick)
-                    }
+        if (data.latest.isNotEmpty()) {
+            item {
+                TvMovieSection(title = "Phim Mới Cập Nhật") {
+                    TvMovieRow(movies = data.latest, onMovieClick = onMovieClick)
                 }
             }
         }
 
-        if (categoryFilter == null || categoryFilter == "cinema") {
-            if (data.cinema.isNotEmpty()) {
-                item {
-                    TvMovieSection(title = "Phim Chiếu Rạp Đặc Sắc") {
-                        TvMovieRow(movies = data.cinema, onMovieClick = onMovieClick)
-                    }
+        if (data.cinema.isNotEmpty()) {
+            item {
+                TvMovieSection(title = "Phim Chiếu Rạp Đặc Sắc") {
+                    TvMovieRow(movies = data.cinema, onMovieClick = onMovieClick)
                 }
             }
         }
 
-        if (categoryFilter == null || categoryFilter == "series") {
-            if (data.series.isNotEmpty()) {
-                item {
-                    TvMovieSection(title = "Phim Bộ Đang Hot") {
-                        TvMovieRow(movies = data.series, onMovieClick = onMovieClick)
-                    }
+        if (data.series.isNotEmpty()) {
+            item {
+                TvMovieSection(title = "Phim Bộ Đang Hot") {
+                    TvMovieRow(movies = data.series, onMovieClick = onMovieClick)
                 }
             }
         }
 
-        if (categoryFilter == null || categoryFilter == "singles") {
-            if (data.singles.isNotEmpty()) {
-                item {
-                    TvMovieSection(title = "Phim Lẻ Chọn Lọc") {
-                        TvMovieRow(movies = data.singles, onMovieClick = onMovieClick)
-                    }
+        if (data.singles.isNotEmpty()) {
+            item {
+                TvMovieSection(title = "Phim Lẻ Chọn Lọc") {
+                    TvMovieRow(movies = data.singles, onMovieClick = onMovieClick)
                 }
             }
         }
 
-        if (categoryFilter == null || categoryFilter == "anime") {
-            if (data.anime.isNotEmpty()) {
-                item {
-                    TvMovieSection(title = "Hoạt Hình & Anime") {
-                        TvMovieRow(movies = data.anime, onMovieClick = onMovieClick)
-                    }
+        if (data.anime.isNotEmpty()) {
+            item {
+                TvMovieSection(title = "Hoạt Hình & Anime") {
+                    TvMovieRow(movies = data.anime, onMovieClick = onMovieClick)
                 }
             }
         }
 
-        if (categoryFilter == null && data.tvshows.isNotEmpty()) {
+        if (data.tvshows.isNotEmpty()) {
             item {
                 TvMovieSection(title = "Chương Trình TV Shows") {
                     TvMovieRow(movies = data.tvshows, onMovieClick = onMovieClick)
@@ -246,14 +311,24 @@ fun TvSpotlightHero(
     val detailSource = remember { MutableInteractionSource() }
     val isDetailFocused by detailSource.collectIsFocusedAsState()
 
+    // Auto-advance spotlight carousel every 8 seconds if neither button is focused
+    LaunchedEffect(isPlayFocused, isDetailFocused, spotlights.size) {
+        if (!isPlayFocused && !isDetailFocused && spotlights.size > 1) {
+            while (true) {
+                delay(8000)
+                currentIndex = (currentIndex + 1) % spotlights.size
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(420.dp)
+            .height(430.dp)
     ) {
-        // Backdrop Image with Gradient Vignette
+        // Backdrop Image with fallback to Poster
         AsyncImage(
-            model = currentMovie.displayBackdrop,
+            model = currentMovie.displayBackdrop.ifBlank { currentMovie.displayPoster },
             contentDescription = currentMovie.name,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -267,7 +342,7 @@ fun TvSpotlightHero(
                     Brush.horizontalGradient(
                         colors = listOf(
                             TvBackground,
-                            TvBackground.copy(alpha = 0.92f),
+                            TvBackground.copy(alpha = 0.94f),
                             TvBackground.copy(alpha = 0.65f),
                             Color.Transparent
                         ),
@@ -296,7 +371,7 @@ fun TvSpotlightHero(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = 36.dp, bottom = 28.dp)
-                .width(540.dp)
+                .width(560.dp)
         ) {
             // Badges Row
             Row(
@@ -306,10 +381,10 @@ fun TvSpotlightHero(
                 Box(
                     modifier = Modifier
                         .background(CineVietRed, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = "NỔI BẬT",
+                        text = "NỔI BẬT #${currentIndex + 1}",
                         color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black
@@ -391,7 +466,6 @@ fun TvSpotlightHero(
                         .clip(RoundedCornerShape(8.dp))
                         .background(if (isPlayFocused) Color.White else CineVietRed)
                         .border(2.dp, if (isPlayFocused) CineVietRed else Color.Transparent, RoundedCornerShape(8.dp))
-                        .shadow(if (isPlayFocused) 16.dp else 4.dp, RoundedCornerShape(8.dp), spotColor = CineVietRed)
                         .focusable(interactionSource = playSource)
                         .clickable(interactionSource = playSource, indication = null) {
                             onPlayClick(currentMovie.slug, currentMovie.firstEpisodeSlug)
@@ -448,12 +522,13 @@ fun TvSpotlightHero(
             }
         }
 
-        // Spotlight Carousel Indicators / Mini Thumbnails on Right
+        // Spotlight Carousel REAL Mini Poster Thumbnails on Bottom-Right
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 36.dp, bottom = 28.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             spotlights.forEachIndexed { index, movie ->
                 val isSelected = index == currentIndex
@@ -462,25 +537,25 @@ fun TvSpotlightHero(
 
                 Box(
                     modifier = Modifier
-                        .size(if (isSelected) 36.dp else 28.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (isSelected) CineVietRed else TvSurfaceHigh)
+                        .width(if (isSelected) 48.dp else 38.dp)
+                        .height(if (isSelected) 68.dp else 54.dp)
+                        .background(TvSurface, RoundedCornerShape(6.dp))
                         .border(
-                            width = if (isThumbFocused || isSelected) 2.dp else 0.dp,
-                            color = if (isThumbFocused) Color.White else if (isSelected) CineVietRed else Color.Transparent,
+                            width = if (isThumbFocused || isSelected) 2.5.dp else 1.dp,
+                            color = if (isThumbFocused) Color.White else if (isSelected) CineVietRed else Color.White.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(6.dp)
                         )
+                        .clip(RoundedCornerShape(6.dp))
                         .focusable(interactionSource = thumbSource)
                         .clickable(interactionSource = thumbSource, indication = null) {
                             currentIndex = index
-                        },
-                    contentAlignment = Alignment.Center
+                        }
                 ) {
-                    Text(
-                        text = "${index + 1}",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    AsyncImage(
+                        model = movie.displayPoster,
+                        contentDescription = movie.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
@@ -518,9 +593,11 @@ fun TvMovieSection(
 @Composable
 fun TvMovieRow(
     movies: List<MovieItem>,
-    onMovieClick: (String) -> Unit
+    onMovieClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     LazyRow(
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(horizontal = 32.dp)
     ) {

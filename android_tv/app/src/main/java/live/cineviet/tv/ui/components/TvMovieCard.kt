@@ -1,6 +1,7 @@
 package live.cineviet.tv.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -26,7 +26,6 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import live.cineviet.tv.data.models.MovieItem
 import live.cineviet.tv.ui.theme.CineVietRed
-import live.cineviet.tv.ui.theme.TvFocusBorder
 import live.cineviet.tv.ui.theme.TvOnSurface
 import live.cineviet.tv.ui.theme.TvOnSurfaceVariant
 import live.cineviet.tv.ui.theme.TvSurface
@@ -41,13 +40,14 @@ fun TvMovieCard(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.08f else 1.0f,
+        targetValue = if (isFocused) 1.10f else 1.0f,
+        animationSpec = tween(180),
         label = "cardScale"
     )
 
     Column(
         modifier = modifier
-            .width(150.dp)
+            .width(160.dp)
             .scale(scale)
             .focusable(interactionSource = interactionSource)
             .clickable(interactionSource = interactionSource, indication = null) { onClick() }
@@ -57,18 +57,17 @@ fun TvMovieCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(210.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(TvSurface)
-                .then(
-                    if (isFocused) {
-                        Modifier
-                            .border(2.5.dp, TvFocusBorder, RoundedCornerShape(10.dp))
-                            .shadow(16.dp, RoundedCornerShape(10.dp), spotColor = CineVietRed)
-                    } else {
-                        Modifier.border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
-                    }
+                .height(230.dp)
+                .background(
+                    color = TvSurface,
+                    shape = RoundedCornerShape(10.dp)
                 )
+                .border(
+                    width = if (isFocused) 3.dp else 1.dp,
+                    color = if (isFocused) CineVietRed else Color.White.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(10.dp)
+                )
+                .clip(RoundedCornerShape(10.dp))
         ) {
             AsyncImage(
                 model = movie.displayPoster,
@@ -81,15 +80,15 @@ fun TvMovieCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(6.dp),
+                    .padding(8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                val epText = movie.episodeCurrent ?: movie.quality
+                val epText = movie.episodeCurrent?.takeIf { it.isNotBlank() } ?: movie.quality
                 if (!epText.isNullOrBlank()) {
                     Box(
                         modifier = Modifier
-                            .background(CineVietRed.copy(alpha = 0.9f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                            .background(CineVietRed.copy(alpha = 0.92f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = epText,
@@ -105,7 +104,7 @@ fun TvMovieCard(
                 if (movie.hasSongNgu) {
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFF00ADB5).copy(alpha = 0.9f), RoundedCornerShape(4.dp))
+                            .background(Color(0xFF6D28D9).copy(alpha = 0.92f), RoundedCornerShape(4.dp))
                             .padding(horizontal = 5.dp, vertical = 2.dp)
                     ) {
                         Text(
@@ -118,15 +117,15 @@ fun TvMovieCard(
                 }
             }
 
-            // Bottom subtle gradient
+            // Bottom Gradient Scrim for text readability
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
+                    .height(50.dp)
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
                         )
                     )
             )

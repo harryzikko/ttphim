@@ -411,8 +411,29 @@ fun TvDetailScreen(
             }
 
             // 3. DIỄN VIÊN & ĐẠO DIỄN (Clean Director & Cast Portraits Section)
-            val castList = movie.tmdbCast ?: emptyList()
-            val directorList = movie.tmdbDirectors ?: emptyList()
+            val castList = if (!movie.tmdbCast.isNullOrEmpty()) {
+                movie.tmdbCast
+            } else {
+                movie.actor?.map { actorName ->
+                    live.cineviet.tv.data.models.TmdbCast(
+                        name = actorName,
+                        character = "Diễn viên",
+                        avatar = "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(actorName, "UTF-8")
+                    )
+                } ?: emptyList()
+            }
+
+            val directorList = if (!movie.tmdbDirectors.isNullOrEmpty()) {
+                movie.tmdbDirectors
+            } else {
+                movie.director?.map { dirName ->
+                    live.cineviet.tv.data.models.TmdbDirector(
+                        name = dirName,
+                        job = "Đạo diễn",
+                        avatar = "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(dirName, "UTF-8")
+                    )
+                } ?: emptyList()
+            }
 
             if (castList.isNotEmpty() || directorList.isNotEmpty()) {
                 item {

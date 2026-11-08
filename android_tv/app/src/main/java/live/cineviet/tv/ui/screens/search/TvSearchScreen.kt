@@ -1,5 +1,6 @@
 package live.cineviet.tv.ui.screens.search
 
+import android.view.KeyEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +13,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -23,11 +26,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import live.cineviet.tv.ui.components.TvLoadingSpinner
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import kotlinx.coroutines.Job
@@ -35,6 +40,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import live.cineviet.tv.data.models.MovieItem
 import live.cineviet.tv.data.repository.MovieRepository
+import live.cineviet.tv.ui.components.TvLoadingSpinner
 import live.cineviet.tv.ui.components.TvMovieCard
 import live.cineviet.tv.ui.theme.*
 
@@ -45,6 +51,7 @@ fun TvSearchScreen(
 ) {
     val repository = remember { MovieRepository() }
     val scope = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<MovieItem>>(emptyList()) }
@@ -66,7 +73,7 @@ fun TvSearchScreen(
             return
         }
         searchJob = scope.launch {
-            delay(350)
+            delay(300)
             isSearching = true
             val result = repository.searchMovies(query.trim())
             result.onSuccess {
@@ -79,12 +86,21 @@ fun TvSearchScreen(
         }
     }
 
-    // Auto focus the search input field when opening Search screen
+    // Auto focus the search input field and show IME when entering Search screen
     LaunchedEffect(Unit) {
-        delay(150)
+        delay(200)
         try {
             searchFocusRequester.requestFocus()
+            keyboardController?.show()
         } catch (_: Exception) {}
+    }
+
+    // Re-trigger IME when input field gains focus
+    LaunchedEffect(isSearchFocused) {
+        if (isSearchFocused) {
+            delay(100)
+            keyboardController?.show()
+        }
     }
 
     Column(
@@ -106,14 +122,18 @@ fun TvSearchScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(54.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(TvSurfaceHigh)
                 .border(
-                    width = 2.dp,
+                    width = if (isSearchFocused) 2.5.dp else 1.dp,
                     color = if (isSearchFocused) CineVietRed else Color.White.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(12.dp)
                 )
+                .clickable(interactionSource = searchInteractionSource, indication = null) {
+                    searchFocusRequester.requestFocus()
+                    keyboardController?.show()
+                }
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -144,14 +164,31 @@ fun TvSearchScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(searchFocusRequester)
-                        .focusable(interactionSource = searchInteractionSource),
+                        .focusable(interactionSource = searchInteractionSource)
+                        .onKeyEvent { keyEvent ->
+                            if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                                keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER
+                            ) {
+                                keyboardController?.show()
+                                false
+                            } else {
+                                false
+                            }
+                        },
                     textStyle = TextStyle(
                         color = Color.White,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold
                     ),
                     singleLine = true,
-                    cursorBrush = SolidColor(CineVietRed)
+                    cursorBrush = SolidColor(CineVietRed),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            keyboardController?.hide()
+                            performSearch(searchQuery)
+                        }
+                    )
                 )
             }
 
@@ -188,30 +225,30 @@ fun TvSearchScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            suggestions.forEach { tag ->
+            suggestions.forEach { suggestion ->
                 val chipSource = remember { MutableInteractionSource() }
                 val isChipFocused by chipSource.collectIsFocusedAsState()
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(if (isChipFocused) CineVietRed else TvSurface)
                         .border(
-                            width = 1.5.dp,
-                            color = if (isChipFocused) Color.White else Color.White.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(20.dp)
+                            width = 1.dp,
+                            color = if (isChipFocused) Color.White else Color.White.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(8.dp)
                         )
                         .focusable(interactionSource = chipSource)
                         .clickable(interactionSource = chipSource, indication = null) {
-                            searchQuery = tag
-                            performSearch(tag)
+                            searchQuery = suggestion
+                            performSearch(suggestion)
+                            keyboardController?.hide()
                         }
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = 14.dp, vertical = 7.dp)
                 ) {
                     Text(
-                        text = tag,
-                        color = if (isChipFocused) Color.White else TvOnSurfaceVariant,
+                        text = suggestion,
+                        color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = if (isChipFocused) FontWeight.Bold else FontWeight.Medium
                     )
@@ -233,16 +270,18 @@ fun TvSearchScreen(
             Text(
                 text = "Kết quả tìm kiếm (${searchResults.size} phim)",
                 color = TvOnSurfaceVariant,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
+
             Spacer(modifier = Modifier.height(12.dp))
 
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(150.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxSize()
+                columns = GridCells.Fixed(5),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 32.dp)
             ) {
                 items(searchResults) { movie ->
                     TvMovieCard(
@@ -251,7 +290,7 @@ fun TvSearchScreen(
                     )
                 }
             }
-        } else if (searchQuery.isNotBlank()) {
+        } else if (searchQuery.isNotEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -260,6 +299,17 @@ fun TvSearchScreen(
                     text = "Không tìm thấy phim phù hợp với \"$searchQuery\"",
                     color = TvOnSurfaceVariant,
                     fontSize = 15.sp
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Nhập từ khóa tìm kiếm hoặc chọn danh mục gợi ý ở trên",
+                    color = TvOnSurfaceVariant.copy(alpha = 0.5f),
+                    fontSize = 14.sp
                 )
             }
         }

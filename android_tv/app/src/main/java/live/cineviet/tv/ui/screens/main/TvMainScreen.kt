@@ -95,30 +95,22 @@ fun TvMainScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (isDrawerFocused) {
-                        // Expanded: "CineViet" text like website
+                        // Expanded: Exactly "CineViet" text like website (Cine in White, Viet in Red)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 8.dp, bottom = 28.dp)
+                            modifier = Modifier.padding(start = 12.dp, bottom = 28.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .background(CineVietRed, RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "C",
-                                    color = Color.White,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "CineViet",
+                                text = "Cine",
                                 color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.ExtraBold
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Text(
+                                text = "Viet",
+                                color = CineVietRed,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Black
                             )
                         }
                     } else {

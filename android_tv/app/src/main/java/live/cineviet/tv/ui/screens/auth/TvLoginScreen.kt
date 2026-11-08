@@ -203,17 +203,15 @@ fun TvLoginScreen(
                         }
                         Box(
                             modifier = Modifier
-                                .size(56.dp, 68.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(TvSurfaceHigh)
-                                .border(2.dp, CineVietRed, RoundedCornerShape(10.dp))
-                                .shadow(8.dp, RoundedCornerShape(10.dp), spotColor = CineVietRed),
+                                .size(56.dp, 72.dp)
+                                .background(Color(0xFF151824), RoundedCornerShape(12.dp))
+                                .border(2.5.dp, CineVietRed, RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = char.toString(),
                                 color = Color.White,
-                                fontSize = 32.sp,
+                                fontSize = 36.sp,
                                 fontWeight = FontWeight.Black,
                                 textAlign = TextAlign.Center
                             )

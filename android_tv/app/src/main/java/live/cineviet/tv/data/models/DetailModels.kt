@@ -64,13 +64,23 @@ data class TmdbCast(
     @SerializedName("id") val id: Any? = null,
     @SerializedName("name") val name: String = "",
     @SerializedName("character") val character: String? = null,
-    @SerializedName("profile_path") val profilePath: String? = null
+    @SerializedName("profile_path") val profilePath: String? = null,
+    @SerializedName("avatar") val avatar: String? = null
 ) {
     val portraitUrl: String
         get() {
-            if (profilePath.isNullOrBlank()) return ""
-            if (profilePath.startsWith("http://") || profilePath.startsWith("https://")) return profilePath
-            return "https://image.tmdb.org/t/p/w185$profilePath"
+            if (!avatar.isNullOrBlank()) {
+                if (avatar.startsWith("http://") || avatar.startsWith("https://")) return avatar
+                return "https://image.tmdb.org/t/p/w185$avatar"
+            }
+            if (!profilePath.isNullOrBlank()) {
+                if (profilePath.startsWith("http://") || profilePath.startsWith("https://")) return profilePath
+                return "https://image.tmdb.org/t/p/w185$profilePath"
+            }
+            if (name.isNotBlank()) {
+                return "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(name, "UTF-8")
+            }
+            return ""
         }
 }
 
@@ -78,13 +88,23 @@ data class TmdbDirector(
     @SerializedName("id") val id: Any? = null,
     @SerializedName("name") val name: String = "",
     @SerializedName("job") val job: String? = null,
-    @SerializedName("profile_path") val profilePath: String? = null
+    @SerializedName("profile_path") val profilePath: String? = null,
+    @SerializedName("avatar") val avatar: String? = null
 ) {
     val portraitUrl: String
         get() {
-            if (profilePath.isNullOrBlank()) return ""
-            if (profilePath.startsWith("http://") || profilePath.startsWith("https://")) return profilePath
-            return "https://image.tmdb.org/t/p/w185$profilePath"
+            if (!avatar.isNullOrBlank()) {
+                if (avatar.startsWith("http://") || avatar.startsWith("https://")) return avatar
+                return "https://image.tmdb.org/t/p/w185$avatar"
+            }
+            if (!profilePath.isNullOrBlank()) {
+                if (profilePath.startsWith("http://") || profilePath.startsWith("https://")) return profilePath
+                return "https://image.tmdb.org/t/p/w185$profilePath"
+            }
+            if (name.isNotBlank()) {
+                return "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(name, "UTF-8")
+            }
+            return ""
         }
 }
 
