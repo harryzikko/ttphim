@@ -17,8 +17,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.*
@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.launch
 import live.cineviet.tv.data.models.EpisodeServer
 import live.cineviet.tv.data.models.MovieDetailData
@@ -501,7 +502,7 @@ fun TvDetailScreen(
                             }
                         }
 
-                        // Bookmark / Watchlist Button
+                        // Favorite / Watchlist Button (Heart Icon)
                         val bookmarkScale by animateFloatAsState(
                             targetValue = if (isBookmarkFocused) 1.08f else 1.0f,
                             animationSpec = tween(150),
@@ -521,11 +522,19 @@ fun TvDetailScreen(
                                 .focusable(interactionSource = bookmarkSource)
                                 .clickable(interactionSource = bookmarkSource, indication = null) {
                                     isBookmarked = !isBookmarked
+                                    scope.launch {
+                                        repository.toggleWatchlist(
+                                            movieSlug = movie.slug,
+                                            movieName = movie.name,
+                                            posterUrl = movie.getPoster(),
+                                            originName = movie.originName
+                                        )
+                                    }
                                 },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                imageVector = if (isBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Yêu thích",
                                 tint = if (isBookmarked) CineVietRed else Color.White,
                                 modifier = Modifier.size(22.dp)
@@ -669,8 +678,7 @@ fun TvDetailScreen(
                 movie.actor?.map { actorName ->
                     TmdbCast(
                         name = actorName,
-                        character = "Diễn viên",
-                        avatar = "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(actorName, "UTF-8")
+                        character = "Diễn viên"
                     )
                 } ?: emptyList()
             }
@@ -681,8 +689,7 @@ fun TvDetailScreen(
                 movie.director?.map { dirName ->
                     TmdbDirector(
                         name = dirName,
-                        job = "Đạo diễn",
-                        avatar = "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(dirName, "UTF-8")
+                        job = "Đạo diễn"
                     )
                 } ?: emptyList()
             }
@@ -707,14 +714,16 @@ fun TvDetailScreen(
                                 TvPersonCard(
                                     name = director.name,
                                     role = director.job ?: "Đạo diễn",
-                                    imageUrl = director.portraitUrl
+                                    imageUrl = director.portraitUrl,
+                                    isDirector = true
                                 )
                             }
                             items(castList) { cast ->
                                 TvPersonCard(
                                     name = cast.name,
                                     role = cast.character ?: "Diễn viên",
-                                    imageUrl = cast.portraitUrl
+                                    imageUrl = cast.portraitUrl,
+                                    isDirector = false
                                 )
                             }
                         }
@@ -729,7 +738,8 @@ fun TvDetailScreen(
 fun TvPersonCard(
     name: String,
     role: String,
-    imageUrl: String
+    imageUrl: String,
+    isDirector: Boolean = false
 ) {
     val personSource = remember { MutableInteractionSource() }
     val isPersonFocused by personSource.collectIsFocusedAsState()
@@ -739,6 +749,10 @@ fun TvPersonCard(
         animationSpec = tween(150),
         label = "personScale"
     )
+
+    val initial = name.trim().take(1).uppercase()
+    val fallbackUrl = "https://ui-avatars.com/api/?name=${try { java.net.URLEncoder.encode(name, "UTF-8") } catch (_: Exception) { name }}&background=1d1f29&color=${if (isDirector) "f59e0b" else "e50914"}&size=256&bold=true"
+    val effectiveUrl = if (imageUrl.isBlank() || imageUrl.contains("/api/person/avatar")) fallbackUrl else imageUrl
 
     Column(
         modifier = Modifier
@@ -752,19 +766,58 @@ fun TvPersonCard(
             modifier = Modifier
                 .size(76.dp)
                 .clip(CircleShape)
-                .background(TvSurfaceContainer)
+                .background(
+                    Brush.radialGradient(
+                        listOf(TvSurfaceContainerHighest, TvSurfaceContainer)
+                    )
+                )
                 .border(
                     width = if (isPersonFocused) 2.5.dp else 1.dp,
-                    color = if (isPersonFocused) CineVietRed else Color.White.copy(alpha = 0.12f),
+                    color = if (isPersonFocused) CineVietRed else if (isDirector) CineVietGold.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.12f),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = imageUrl,
+            SubcomposeAsyncImage(
+                model = effectiveUrl,
                 contentDescription = name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                loading = {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = initial,
+                            color = if (isDirector) CineVietGold else CineVietRedLight,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                },
+                error = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        if (isDirector) Color(0xFF332505) else Color(0xFF2A1015),
+                                        TvSurfaceContainer
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = initial,
+                            color = if (isDirector) CineVietGold else CineVietRedLight,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
             )
         }
 

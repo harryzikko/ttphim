@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>
+@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}
+::-webkit-scrollbar{display:none;}
+
+/* Android TV / Jetpack Compose Focus & Motion System */
+.tv-focusable {
+  transition: transform 0.24s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.24s cubic-bezier(0.2, 0, 0, 1), border-color 0.24s cubic-bezier(0.2, 0, 0, 1), outline 0.24s cubic-bezier(0.2, 0, 0, 1);
+  position: relative;
+  outline: none;
+}
+
+.tv-focused {
+  transform: scale(1.08) !important;
+  z-index: 30 !important;
+  box-shadow: 0 16px 36px -4px rgba(138, 63, 252, 0.55), 0 0 0 3px #00eefc, 0 0 24px rgba(0, 238, 252, 0.45) !important;
+}
+
+/* Light specular sheen sweep across focused element */
+.tv-focused::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: skewX(-20deg);
+  animation: tvSheenSweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+@keyframes tvSheenSweep {
+  0% { left: -120%; }
+  60%, 100% { left: 160%; }
+}
+
+/* Ripple confirmation effect on OK/Click */
+.tv-ripple-wave {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(0, 238, 252, 0.7) 0%, rgba(138, 63, 252, 0.4) 60%, transparent 80%);
+  transform: translate(-50%, -50%) scale(0);
+  animation: tvRippleAnim 0.45s ease-out forwards;
+  pointer-events: none;
+  z-index: 50;
+}
+
+@keyframes tvRippleAnim {
+  0% { width: 0; height: 0; opacity: 1; }
+  100% { width: 320px; height: 320px; opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
+}
+</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed": "#002022", "surface-variant": "#32353c", "background": "#10131a", "on-secondary": "#00363a", "surface-container-lowest": "#0b0e14", "on-primary": "#41008b", "secondary-container": "#00eefc", "on-primary-fixed-variant": "#5d00c2", "tertiary": "#ffb1c3", "tertiary-fixed": "#ffd9e0", "inverse-primary": "#7825ea", "surface": "#10131a", "outline-variant": "#4b4455", "primary-fixed-dim": "#d4bbff", "surface-container-low": "#191c22", "primary-fixed": "#ebdcff", "surface-bright": "#363940", "tertiary-container": "#db0068", "error-container": "#93000a", "on-background": "#e1e2eb", "surface-container-high": "#272a31", "on-secondary-container": "#00686f", "on-tertiary": "#66002c", "surface-dim": "#10131a", "on-error": "#690005", "on-secondary-fixed-variant": "#004f54", "on-tertiary-container": "#fff1f2", "primary-container": "#8a3ffc", "inverse-on-surface": "#2e3037", "outline": "#968da1", "on-primary-container": "#faf1ff", "secondary-fixed": "#7df4ff", "on-surface-variant": "#cdc2d8", "surface-tint": "#d4bbff", "on-primary-fixed": "#270058", "surface-container-highest": "#32353c", "secondary-fixed-dim": "#00dbe9", "surface-container": "#1d2026", "primary": "#d4bbff", "on-error-container": "#ffdad6", "on-surface": "#e1e2eb", "on-tertiary-fixed-variant": "#8f0041", "secondary": "#d3fbff", "inverse-surface": "#e1e2eb", "tertiary-fixed-dim": "#ffb1c3", "error": "#ffb4ab", "on-tertiary-fixed": "#3f0019" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-xl": "3rem", "space-lg": "2rem", "space-md": "1.25rem", "gutter": "1.5rem", "margin": "3.5rem", "space-xs": "0.5rem", "space-sm": "0.75rem" }, "fontFamily": { "body-md": ["Manrope"], "headline-xl": ["Sora"], "title-sm": ["Manrope"], "headline-md": ["Sora"], "headline-lg": ["Sora"], "label-sm": ["Sora"], "body-lg": ["Manrope"], "title-md": ["Manrope"], "label-lg": ["Sora"], "title-lg": ["Manrope"], "label-md": ["Sora"], "body-sm": ["Manrope"], "headline-sm": ["Sora"] }, "fontSize": { "body-md": ["18px", {"lineHeight": "26px", "fontWeight": "400"}], "headline-xl": ["56px", {"lineHeight": "68px", "letterSpacing": "-0.02em", "fontWeight": "700"}], "title-sm": ["18px", {"lineHeight": "24px", "fontWeight": "500"}], "headline-md": ["32px", {"lineHeight": "40px", "fontWeight": "600"}], "headline-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.01em", "fontWeight": "600"}], "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.1em", "fontWeight": "700"}], "body-lg": ["20px", {"lineHeight": "30px", "fontWeight": "400"}], "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "500"}], "label-lg": ["16px", {"lineHeight": "22px", "letterSpacing": "0.04em", "fontWeight": "600"}], "title-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}], "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.08em", "fontWeight": "700"}], "body-sm": ["15px", {"lineHeight": "22px", "fontWeight": "400"}], "headline-sm": ["26px", {"lineHeight": "34px", "fontWeight": "600"}] } } } };</script></head><body class="bg-surface-container-lowest font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen"><aside class="fixed left-0 top-0 h-full w-24 z-50 flex flex-col items-center justify-between py-margin bg-surface-container-lowest/80 backdrop-blur-xl"><div class="flex flex-col items-center gap-space-xs"><div class="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center shadow-[0_0_24px_rgba(138,63,252,0.45)]"><span class="material-symbols-outlined text-on-primary-container text-headline-sm">tv</span></div></div><nav class="flex flex-col items-center gap-space-sm w-full px-space-xs"><a class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none" data-path="search" href="#" tabindex="0"><span class="material-symbols-outlined text-headline-sm">search</span></a><a class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none" data-path="home" href="#" tabindex="0"><span class="material-symbols-outlined text-headline-sm">home</span></a><a class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none" data-path="movies" href="#" tabindex="0"><span class="material-symbols-outlined text-headline-sm">movie</span></a><a class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none" data-path="tv-shows" href="#" tabindex="0"><span class="material-symbols-outlined text-headline-sm">live_tv</span></a><a class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none" data-path="live-channels" href="#" tabindex="0"><span class="material-symbols-outlined text-headline-sm">sensors</span></a><a class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none" data-path="watchlist" href="#" tabindex="0"><span class="material-symbols-outlined text-headline-sm">bookmarks</span></a></nav><div class="flex flex-col items-center gap-space-xs"><a class="tv-focusable flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none" data-path="settings" href="#" tabindex="0"><span class="material-symbols-outlined text-headline-sm">settings</span></a></div></aside><div class="pl-24"><header class="fixed top-0 left-24 right-0 h-24 z-40 bg-transparent flex items-center justify-end px-margin pointer-events-none"><div class="flex items-center gap-space-md pointer-events-auto"><div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-low/60 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><span class="material-symbols-outlined text-secondary text-title-sm">schedule</span><span class="font-label-md text-label-md text-on-surface tracking-wider">20:45</span></div><div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-low/60 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><span class="w-2 h-2 rounded-full bg-secondary-container shadow-[0_0_8px_#00eefc]"></span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase">4K HDR</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-24 bg-surface-container-lowest min-h-screen"><div class="flex flex-col w-full">
+<!-- Dynamic Audio Glow Ambient Backdrop -->
+<div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+<div class="absolute -top-32 left-1/3 w-[640px] h-[640px] rounded-full bg-primary-container/15 blur-[140px]"></div>
+<div class="absolute top-1/4 right-1/4 w-[420px] h-[420px] rounded-full bg-secondary-container/10 blur-[120px]"></div>
+<div class="absolute top-1/3 left-1/4 w-[380px] h-[380px] rounded-full bg-tertiary-container/10 blur-[130px]"></div>
+</div>
+<div class="relative z-10 flex flex-col w-full px-margin pb-margin space-y-space-xl">
+<!-- 1. Voice Recognition State Header Ribbon -->
+<section class="w-full flex items-center justify-between pt-space-xs">
+<div class="flex items-center gap-space-md">
+<!-- Voice Input Telemetry Pill -->
+<div class="flex items-center gap-space-sm bg-surface-container-high/80 backdrop-blur-xl px-space-md py-space-xs rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+<div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-tertiary-container/20">
+<span class="material-symbols-outlined text-tertiary text-title-md animate-pulse">mic_off</span>
+<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-tertiary shadow-[0_0_8px_#ffb1c3]"></span>
+</div>
+<div class="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+<span>Giọng nói nhận diện:</span>
+<span class="font-title-sm text-title-sm text-on-surface tracking-tight">“Phim viễn tưởng sao hỏa 2099 bản lồng tiếng”</span>
+</div>
+</div>
+<!-- System Diagnostic Status Pill -->
+<div class="flex items-center gap-space-xs bg-tertiary-container/30 px-space-sm py-space-xs rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider">0 Kết quả • Tín hiệu không xác định</span>
+</div>
+</div>
+<!-- Quick Action Keys Info -->
+<div class="hidden xl:flex items-center gap-space-sm font-label-md text-label-md text-on-surface-variant/70">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-headline-sm text-label-sm">MIC</span>
+<span>Giữ để thu âm</span>
+<span class="mx-1">•</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-headline-sm text-label-sm">Y</span>
+<span>Gõ văn bản</span>
+</div>
+</section>
+<!-- 2. Hero Error & Voice Fallback Stage (10-Foot Architecture) -->
+<section class="w-full relative rounded-xl bg-gradient-to-b from-surface-container/60 to-surface-container-lowest/90 backdrop-blur-2xl p-space-xl overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
+<!-- High-tech Sci-Fi Circular Sonar Grid & Radar Graphic -->
+<div class="flex flex-col lg:flex-row items-center gap-space-xl justify-between">
+<!-- Left Hero Visual Canvas (Radar & Soundwave searching) -->
+<div class="relative flex items-center justify-center w-64 h-64 flex-shrink-0">
+<!-- Concentric Audio Pulse Rings -->
+<div class="absolute inset-0 rounded-full bg-primary-container/10 animate-ping opacity-40 duration-1000"></div>
+<div class="absolute w-56 h-56 rounded-full bg-surface-container-high/40 shadow-[0_0_40px_rgba(138,63,252,0.15)] flex items-center justify-center">
+<div class="w-44 h-44 rounded-full bg-surface-container/80 flex items-center justify-center relative overflow-hidden">
+<!-- Rotating Search Beam / Radar -->
+<div class="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(0,238,252,0.25)_360deg)] animate-spin [animation-duration:5s]"></div>
+<!-- SVG Waveform Signal Disruption -->
+<svg class="relative z-10 w-24 h-16 text-primary" fill="none" stroke="currentColor" viewbox="0 0 120 40">
+<path d="M4 20h12l4-8 6 16 6-12 8 20 8-28 6 20 6-8 6 6h42" opacity="0.4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+<path class="text-secondary drop-shadow-[0_0_10px_#00eefc]" d="M28 20l4-6 6 12 8-16 8 24 6-14 4 6h12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+</svg>
+</div>
+</div>
+<!-- Floating Micro Badges -->
+<div class="absolute -bottom-2 bg-surface-container-highest/90 px-space-sm py-1 rounded-full shadow-lg flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-tertiary">graphic_eq</span>
+<span class="font-label-sm text-label-sm text-tertiary">Frequency 44.1kHz</span>
+</div>
+</div>
+<!-- Center Text Hierarchy & Intent Guidance -->
+<div class="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left space-y-space-xs max-w-3xl">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm uppercase tracking-wider mb-1">
+<span class="material-symbols-outlined text-[14px]">tune</span>
+            Hệ thống tìm kiếm thông minh
+          </div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">
+            Không tìm thấy nội dung phù hợp
+          </h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl leading-relaxed">
+            Chúng tôi không tìm thấy kết quả nào khớp với câu lệnh giọng nói vừa rồi. Vui lòng thử nói tên phim cụ thể, diễn viên, đạo diễn hoặc sử dụng các gợi ý bên dưới.
+          </p>
+<!-- Jetpack Compose for TV D-Pad Focus Button Row -->
+<div class="flex flex-wrap items-center gap-space-md pt-space-md" id="tv-action-row">
+<!-- Primary TV Button: Thử nói lại -->
+<button class="tv-focusable group relative flex items-center gap-space-sm px-space-lg py-space-sm rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg shadow-[0_0_24px_rgba(138,63,252,0.45)]" data-tv-action="retry_mic" id="btn-retry-mic" tabindex="0">
+<span class="material-symbols-outlined text-title-lg text-on-primary-container" style="font-variation-settings: 'FILL' 1;">mic</span>
+<span>Thử nói lại</span>
+<span class="ml-1 px-2 py-0.5 rounded bg-on-primary-container/20 text-on-primary-container font-label-sm text-label-sm tracking-widest uppercase">OK</span>
+</button>
+<!-- Secondary TV Button: Nhập bằng bàn phím -->
+<button class="tv-focusable group flex items-center gap-space-sm px-space-lg py-space-sm rounded-full bg-surface-container-high/80 hover:bg-surface-container-highest text-on-surface font-label-lg text-label-lg shadow-sm" data-tv-action="keyboard" id="btn-keyboard" tabindex="0">
+<span class="material-symbols-outlined text-title-md text-on-surface-variant">keyboard</span>
+<span>Nhập bằng bàn phím</span>
+<span class="ml-1 px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Y</span>
+</button>
+<!-- Reset & Home Escape TV Button -->
+<button class="tv-focusable flex items-center gap-space-xs px-space-md py-space-sm rounded-full bg-surface-container/60 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-lg text-label-lg" data-tv-action="home" id="btn-home" tabindex="0">
+<span class="material-symbols-outlined text-title-md">restart_alt</span>
+<span>Về Trang chủ</span>
+</button>
+</div>
+</div>
+<!-- Quick Voice Help Tile (TV Screen Side Info) -->
+<div class="hidden 2xl:flex flex-col gap-space-sm p-space-md rounded-xl bg-surface-container-lowest/80 w-72">
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-title-sm">tips_and_updates</span>
+<span class="font-label-md text-label-md uppercase tracking-wider">Mẹo nhận diện</span>
+</div>
+<ul class="space-y-space-xs font-body-sm text-body-sm text-on-surface-variant/80">
+<li class="flex items-start gap-2">
+<span class="text-secondary">•</span>
+<span>Nói chậm và rõ tên phim: "Người Nhện", "Ký Sinh Trùng".</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="text-secondary">•</span>
+<span>Tìm theo thể loại: "Phim bom tấn 2024", "Anime vietsub".</span>
+</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- 3. Popular Voice Suggestions (Horizontal Carousel Row) -->
+<section class="w-full flex flex-col space-y-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-title-lg">trending_up</span>
+<h2 class="font-title-lg text-title-lg text-on-surface">Gợi ý tìm kiếm phổ biến</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">D-PAD PHẢI ĐỂ XEM THÊM</span>
+</div>
+<!-- TvLazyRow Suggestion Pills with Infinite Open Boundary -->
+<div class="flex items-center gap-space-md overflow-x-visible py-space-xs" id="tv-suggestions-row">
+<div class="tv-focusable flex-shrink-0 flex items-center gap-space-sm px-space-md py-space-sm rounded-full bg-surface-container-high hover:bg-surface-container-highest cursor-pointer shadow-md group" tabindex="0">
+<span class="w-2 h-2 rounded-full bg-secondary-container shadow-[0_0_8px_#00eefc]"></span>
+<span class="font-title-sm text-title-sm text-on-surface">Sci-Fi thịnh hành 4K</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] group-hover:text-secondary">arrow_forward</span>
+</div>
+<div class="tv-focusable flex-shrink-0 flex items-center gap-space-sm px-space-md py-space-sm rounded-full bg-surface-container-low hover:bg-surface-container-high cursor-pointer group" tabindex="0">
+<span class="material-symbols-outlined text-primary text-[18px]">movie</span>
+<span class="font-title-sm text-title-sm text-on-surface">Chrono Odyssey: Season 2</span>
+</div>
+<div class="tv-focusable flex-shrink-0 flex items-center gap-space-sm px-space-md py-space-sm rounded-full bg-surface-container-low hover:bg-surface-container-high cursor-pointer group" tabindex="0">
+<span class="material-symbols-outlined text-secondary text-[18px]">military_tech</span>
+<span class="font-title-sm text-title-sm text-on-surface">Phim hành động đoạt giải</span>
+</div>
+<div class="tv-focusable flex-shrink-0 flex items-center gap-space-sm px-space-md py-space-sm rounded-full bg-surface-container-low hover:bg-surface-container-high cursor-pointer group" tabindex="0">
+<span class="material-symbols-outlined text-tertiary text-[18px]">local_fire_department</span>
+<span class="font-title-sm text-title-sm text-on-surface">Top 10 xem nhiều nhất tuần</span>
+</div>
+<div class="tv-focusable flex-shrink-0 flex items-center gap-space-sm px-space-md py-space-sm rounded-full bg-surface-container-low hover:bg-surface-container-high cursor-pointer group" tabindex="0">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">person_celebrate</span>
+<span class="font-title-sm text-title-sm text-on-surface">Denis K. Morales Collection</span>
+</div>
+</div>
+</section>
+<!-- 4. Recommended While You're Here (TvLazyRow Movie Posters) -->
+<section class="w-full flex flex-col space-y-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-title-lg">auto_awesome</span>
+<h2 class="font-title-lg text-title-lg text-on-surface">Nội dung viễn tưởng tương tự đề xuất</h2>
+</div>
+<span class="font-label-md text-label-md text-secondary tracking-wide">4K HDR Remastered</span>
+</div>
+<!-- TV 16:9 Landscape & Poster Rail with Glow Focus State -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter pt-space-xs" id="tv-cards-grid">
+<!-- Media Card 1 -->
+<div class="tv-focusable group relative flex flex-col rounded-xl overflow-hidden bg-surface-container-low cursor-pointer" tabindex="0">
+<div class="relative aspect-video w-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Cinematic dark sci-fi poster for Chrono Odyssey, an astronaut standing on a purple violet alien planet staring at a massive cybernetic monolith, cyan atmospheric volumetric dust, cinematic 8k wallpaper" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKf8LDb-unyzOSgW3x6LtaI6JR4mpyoda6EyvUxlxiyelqwhG1EEHaHQX-Qr3J12POzuZHXGwcgC4q2fJgY29cy8b-sNKBfW2P_78l3E20qFBs181MkemFzY3hjKKm7nsYS65QNQ7-xbgwCoY7S-mZpaLAITkjeIoPB_k6qGNjfuq94fg-45BLC3G0rfgE6XUBBbp5iS1Ah_Ab3d-82ZcE5c6rnnPzbuUmoovBQcH6"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<!-- Badges -->
+<div class="absolute top-space-xs left-space-xs flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur-md text-secondary font-label-sm text-label-sm">98% PHÙ HỢP</span>
+</div>
+<div class="absolute bottom-space-xs right-space-xs flex items-center gap-1">
+<span class="px-1.5 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-label-sm text-on-surface">4K UHD</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-label-sm text-on-surface">ATMOS</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col space-y-1">
+<h3 class="font-title-md text-title-md text-on-surface truncate group-hover:text-primary transition-colors">Chrono Odyssey</h3>
+<div class="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+<span>2024</span>
+<span>•</span>
+<span>Khoa học viễn tưởng</span>
+<span>•</span>
+<span>2g 24p</span>
+</div>
+</div>
+</div>
+<!-- Media Card 2 -->
+<div class="tv-focusable group relative flex flex-col rounded-xl overflow-hidden bg-surface-container-low cursor-pointer" tabindex="0">
+<div class="relative aspect-video w-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Dark dramatic space film poster Chronos The Time Rift, orbiting spacecraft entering a glowing neon purple wormhole event horizon, deep space obsidian background, hyper detailed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7kPN1d2QzJdEPiymHH2gQWqbq28yUSQ6I24Q7I8Q5d1RlZo0EfhWe5-iuGqyug7FEZk861yL7gYm_7nCa8eIoqeT3I1d-e7Ku5yT3vqMJyiqwUp9hBWhy1wzs1ktUABBjL9gAM9An6VsC5FbjPjWF-uku7IBAw3ED0ub5szulCsRNENyXwtaw6xWZJN022Cu6eFUe53PP6YppzOILkP2vVcr4dlQ_mWdUUG6XgzAU"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<div class="absolute top-space-xs left-space-xs flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">THỊNH HÀNH</span>
+</div>
+<div class="absolute bottom-space-xs right-space-xs flex items-center gap-1">
+<span class="px-1.5 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-label-sm text-on-surface">DOLBY VISION</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col space-y-1">
+<h3 class="font-title-md text-title-md text-on-surface truncate group-hover:text-primary transition-colors">Chronos: The Time Rift</h3>
+<div class="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+<span>2023</span>
+<span>•</span>
+<span>Du hành thời gian</span>
+<span>•</span>
+<span>1g 58p</span>
+</div>
+</div>
+</div>
+<!-- Media Card 3 -->
+<div class="tv-focusable group relative flex flex-col rounded-xl overflow-hidden bg-surface-container-low cursor-pointer" tabindex="0">
+<div class="relative aspect-video w-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Sci-fi space station hovering over an ocean planet Solaris Reborn, deep cyan lighting, futuristic holographic interface reflections, cinematic wide angle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrEj226OOs3577ZRqrWNk4C06e00LKibCduIbFugEQwKkIWWiiZbhCL36dbbS8wYQRott7VuOmgH8DXr33I1mFbWImHiSAKLxEvMkNvaDSnrEO9HIndQ6B8tt1ac9HvK0lJJuNGa0B1FG8-f7IPYIHhxedoPYpUDcVoAodiqQ1tv8ipi99ykod0g4-G829LGSMXSzv_IiKsRF8f9ruIotYmkzaEdWDWRIkFFs-JUwI"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<div class="absolute top-space-xs left-space-xs flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur-md text-secondary font-label-sm text-label-sm">94% PHÙ HỢP</span>
+</div>
+<div class="absolute bottom-space-xs right-space-xs flex items-center gap-1">
+<span class="px-1.5 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-label-sm text-on-surface">HDR10+</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col space-y-1">
+<h3 class="font-title-md text-title-md text-on-surface truncate group-hover:text-primary transition-colors">Solaris Reborn</h3>
+<div class="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+<span>2024</span>
+<span>•</span>
+<span>Thám hiểm vũ trụ</span>
+<span>•</span>
+<span>2g 12p</span>
+</div>
+</div>
+</div>
+<!-- Media Card 4 -->
+<div class="tv-focusable group relative flex flex-col rounded-xl overflow-hidden bg-surface-container-low cursor-pointer" tabindex="0">
+<div class="relative aspect-video w-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Futuristic cybernetic metropolis on Mars colony Chronicles of the Void, illuminated by neon purple towers and cyan speeders in dust storm, cinematic concept art" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2z-2aMFS2v3ii48V8W_5X9ux9O_Cwkli52Wup2UvCQgdCiByvLX-CymlCiRueu3V2jF41QA2FlorgoIdGteUe4-Sdg8mCs8tcXWZyfJa4ccu5vrr4FaMc_4lwbfwb74XDv-IlneS-NkT9gRAc8bpnxsJv6wSiJXSCEuyiykJmqWD00vXUHsMIvuWTHqREngRGmV9OwfwMXxDeUSJWTSr6PEy3CgjCH2t2cOOVZ8cl"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<div class="absolute top-space-xs left-space-xs flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur-md text-tertiary font-label-sm text-label-sm">MARS 2099</span>
+</div>
+<div class="absolute bottom-space-xs right-space-xs flex items-center gap-1">
+<span class="px-1.5 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-label-sm text-on-surface">4K UHD</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col space-y-1">
+<h3 class="font-title-md text-title-md text-on-surface truncate group-hover:text-primary transition-colors">Chronicles of the Void</h3>
+<div class="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+<span>2022</span>
+<span>•</span>
+<span>Chiến tranh viễn tưởng</span>
+<span>•</span>
+<span>2g 40p</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. Bottom Remote D-Pad Navigation Legend (10-Foot UI Safe Zone) -->
+<footer class="w-full pt-space-md border-t-0 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 font-label-md text-label-md text-on-surface-variant/80">
+<div class="flex items-center gap-space-lg flex-wrap">
+<div class="flex items-center gap-2">
+<span class="px-2 py-1 rounded bg-surface-container-high text-on-surface font-headline-sm text-label-sm tracking-wider">▲▼◀▶</span>
+<span>Di chuyển</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded bg-primary-container text-on-primary-container font-headline-sm text-label-sm shadow-[0_0_8px_#8a3ffc]">OK</span>
+<span class="text-on-surface font-medium">Chọn / Thử lại</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-1 rounded bg-surface-container-high text-secondary font-headline-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">mic</span> MIC
+          </span>
+<span>Giữ phím Micro để nói</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded bg-surface-container-high text-on-surface font-headline-sm text-label-sm">BACK</span>
+<span>Quay lại</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded bg-surface-container-high text-on-surface font-headline-sm text-label-sm">Y</span>
+<span>Mở bàn phím ảo</span>
+</div>
+<!-- Audio Feedback Toggle Switch -->
+<button class="tv-focusable flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high hover:bg-surface-container-highest cursor-pointer text-secondary" id="tv-audio-toggle" tabindex="0">
+<span class="material-symbols-outlined text-[16px]" id="tv-audio-icon">volume_up</span>
+<span class="font-label-sm text-label-sm" id="tv-audio-text">Audio Feedback: BẬT</span>
+</button>
+</div>
+<div class="flex items-center gap-space-sm text-on-surface-variant/50 font-label-sm text-label-sm">
+<span>NOCTURNE OS v4.2</span>
+<span>•</span>
+<span>VOICE ENGINE: SPEECH-TO-INTENT 3.0</span>
+</div>
+</footer>
+</div>
+<!-- Android TV D-Pad Focus & Web Audio Synthesizer Engine -->
+<script>
+(() => {
+  // 1. Web Audio API Synthesizer
+  class TvAudioFeedbackEngine {
+    constructor() {
+      this.ctx = null;
+      this.muted = false;
+    }
+
+    init() {
+      if (!this.ctx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          this.ctx = new AudioContextClass();
+        }
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+
+    // Crisp wooden/digital tick: 1200Hz -> 750Hz frequency sweep, 40ms fast decay
+    playFocusTick() {
+      if (this.muted) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1150, now);
+      osc.frequency.exponentialRampToValueAtTime(700, now + 0.038);
+
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.038);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.04);
+    }
+
+    // Dual frequency harmonic chime (880Hz + 1320Hz), positive confirm sound
+    playClickConfirm() {
+      if (this.muted) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+
+      // Primary tone
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now);
+      osc1.frequency.exponentialRampToValueAtTime(1175, now + 0.08);
+
+      gain1.gain.setValueAtTime(0.12, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc1.connect(gain1);
+      gain1.connect(this.ctx.destination);
+
+      // Harmonized overtone
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(1320, now);
+      osc2.frequency.exponentialRampToValueAtTime(1760, now + 0.09);
+
+      gain2.gain.setValueAtTime(0.07, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.2);
+      osc2.stop(now + 0.2);
+    }
+
+    // Low cancel/back whoosh pop (320Hz -> 140Hz)
+    playBackCancel() {
+      if (this.muted) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.13);
+    }
+
+    toggleMute() {
+      this.muted = !this.muted;
+      return !this.muted;
+    }
+  }
+
+  const audio = new TvAudioFeedbackEngine();
+
+  // 2. Spatial / Sequential D-Pad Focus Navigation Engine
+  document.addEventListener('DOMContentLoaded', () => {
+    const focusables = Array.from(document.querySelectorAll('.tv-focusable'));
+    if (!focusables.length) return;
+
+    // Start initial focus on the primary action button "Thử nói lại"
+    let currentIndex = focusables.findIndex(el => el.id === 'btn-retry-mic');
+    if (currentIndex === -1) currentIndex = 0;
+
+    function applyFocus(index, playSound = true) {
+      if (index < 0 || index >= focusables.length) return;
+
+      focusables.forEach((el, i) => {
+        if (i === index) {
+          el.classList.add('tv-focused');
+          el.focus({ preventScroll: true });
+
+          // Smoothly ensure element is visible in TV viewport safe area
+          const rect = el.getBoundingClientRect();
+          if (rect.top < 80 || rect.bottom > window.innerHeight - 80) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        } else {
+          el.classList.remove('tv-focused');
+        }
+      });
+
+      currentIndex = index;
+      if (playSound) {
+        audio.playFocusTick();
+      }
+    }
+
+    // Trigger visual ripple micro-animation on activation
+    function triggerActionRipple(target) {
+      const rect = target.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      ripple.className = 'tv-ripple-wave';
+      ripple.style.left = `${rect.width / 2}px`;
+      ripple.style.top = `${rect.height / 2}px`;
+      target.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 500);
+    }
+
+    // 2D Spatial Distance Calculation for Arrow Navigation
+    function findBestNeighbor(direction) {
+      const currentEl = focusables[currentIndex];
+      const curRect = currentEl.getBoundingClientRect();
+      const curCenter = {
+        x: curRect.left + curRect.width / 2,
+        y: curRect.top + curRect.height / 2
+      };
+
+      let bestCandidate = null;
+      let minDistance = Infinity;
+
+      focusables.forEach((el, idx) => {
+        if (idx === currentIndex) return;
+        const rect = el.getBoundingClientRect();
+        const center = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        };
+
+        const dx = center.x - curCenter.x;
+        const dy = center.y - curCenter.y;
+
+        let isValid = false;
+        let weightedDistance = Infinity;
+
+        if (direction === 'ArrowRight' && dx > 15) {
+          isValid = true;
+          weightedDistance = Math.hypot(dx, dy * 2.2);
+        } else if (direction === 'ArrowLeft' && dx < -15) {
+          isValid = true;
+          weightedDistance = Math.hypot(Math.abs(dx), dy * 2.2);
+        } else if (direction === 'ArrowDown' && dy > 15) {
+          isValid = true;
+          weightedDistance = Math.hypot(dx * 1.8, dy);
+        } else if (direction === 'ArrowUp' && dy < -15) {
+          isValid = true;
+          weightedDistance = Math.hypot(dx * 1.8, Math.abs(dy));
+        }
+
+        if (isValid && weightedDistance < minDistance) {
+          minDistance = weightedDistance;
+          bestCandidate = idx;
+        }
+      });
+
+      // Fallback: Circular next/prev if no strict spatial neighbor is found
+      if (bestCandidate === null) {
+        if (direction === 'ArrowRight' || direction === 'ArrowDown') {
+          bestCandidate = (currentIndex + 1) % focusables.length;
+        } else {
+          bestCandidate = (currentIndex - 1 + focusables.length) % focusables.length;
+        }
+      }
+
+      return bestCandidate;
+    }
+
+    // Keyboard / Remote Controller Event Listener
+    window.addEventListener('keydown', (e) => {
+      // First keydown unlock for browser AudioContext policy
+      audio.init();
+
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const nextIdx = findBestNeighbor(e.key);
+        if (nextIdx !== null) {
+          applyFocus(nextIdx, true);
+        }
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        audio.playClickConfirm();
+        const currentEl = focusables[currentIndex];
+        triggerActionRipple(currentEl);
+
+        // Special handling for audio toggle
+        if (currentEl.id === 'tv-audio-toggle') {
+          handleAudioToggle();
+        } else {
+          currentEl.click();
+        }
+      } else if (e.key === 'Escape' || e.key === 'Backspace') {
+        e.preventDefault();
+        audio.playBackCancel();
+        // Redirect focus back to Hero primary button
+        const heroBtnIndex = focusables.findIndex(el => el.id === 'btn-retry-mic');
+        if (heroBtnIndex !== -1) {
+          applyFocus(heroBtnIndex, false);
+        }
+      } else if (e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        audio.playClickConfirm();
+        const kbdBtn = document.getElementById('btn-keyboard');
+        const kbdIdx = focusables.indexOf(kbdBtn);
+        if (kbdIdx !== -1) {
+          applyFocus(kbdIdx, true);
+          triggerActionRipple(kbdBtn);
+        }
+      }
+    });
+
+    // Mouse & Touch integration
+    focusables.forEach((el, index) => {
+      el.addEventListener('mouseenter', () => {
+        applyFocus(index, true);
+      });
+      el.addEventListener('click', () => {
+        audio.playClickConfirm();
+        triggerActionRipple(el);
+      });
+    });
+
+    // Toggle Audio Feedback Handler
+    const audioToggleBtn = document.getElementById('tv-audio-toggle');
+    const audioIcon = document.getElementById('tv-audio-icon');
+    const audioText = document.getElementById('tv-audio-text');
+
+    function handleAudioToggle() {
+      const isEnabled = audio.toggleMute();
+      if (isEnabled) {
+        audioIcon.textContent = 'volume_up';
+        audioText.textContent = 'Audio Feedback: BẬT';
+        audioToggleBtn.classList.add('text-secondary');
+        audioToggleBtn.classList.remove('text-on-surface-variant');
+        audio.playClickConfirm();
+      } else {
+        audioIcon.textContent = 'volume_off';
+        audioText.textContent = 'Audio Feedback: TẮT';
+        audioToggleBtn.classList.remove('text-secondary');
+        audioToggleBtn.classList.add('text-on-surface-variant');
+      }
+    }
+
+    if (audioToggleBtn) {
+      audioToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleAudioToggle();
+      });
+    }
+
+    // Set initial focus on launch
+    applyFocus(currentIndex, false);
+  });
+})();
+</script>
+</div></main></div></body></html>

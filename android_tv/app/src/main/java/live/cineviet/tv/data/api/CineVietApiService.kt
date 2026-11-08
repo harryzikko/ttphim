@@ -2,10 +2,7 @@ package live.cineviet.tv.data.api
 
 import live.cineviet.tv.data.models.*
 import retrofit2.Response
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Path
-import retrofit2.http.Query
+import retrofit2.http.*
 
 interface CineVietApiService {
 
@@ -16,6 +13,13 @@ interface CineVietApiService {
     suspend fun getMovieDetail(
         @Path("slug") slug: String
     ): Response<ApiResponse<MovieDetailData>>
+
+    @GET("catalog")
+    suspend fun getCatalog(
+        @Query("type") type: String,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 40
+    ): Response<ApiResponse<CatalogData>>
 
     @GET("search")
     suspend fun searchMovies(
@@ -33,5 +37,18 @@ interface CineVietApiService {
     @POST("movies/{slug}/view")
     suspend fun trackView(
         @Path("slug") slug: String
+    ): Response<ApiResponse<Any>>
+
+    @GET("user/library")
+    suspend fun getUserLibrary(): Response<ApiResponse<UserLibraryData>>
+
+    @POST("user/history")
+    suspend fun saveHistory(
+        @Body data: Map<String, @JvmSuppressWildcards Any>
+    ): Response<ApiResponse<Any>>
+
+    @POST("user/watchlist/toggle")
+    suspend fun toggleWatchlist(
+        @Body data: Map<String, @JvmSuppressWildcards Any>
     ): Response<ApiResponse<Any>>
 }

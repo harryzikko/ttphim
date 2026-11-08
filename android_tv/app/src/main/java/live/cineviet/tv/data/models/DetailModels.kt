@@ -1,6 +1,7 @@
 package live.cineviet.tv.data.models
 
 import com.google.gson.annotations.SerializedName
+import java.net.URLEncoder
 
 data class MovieDetailData(
     @SerializedName("movie") val movie: MovieDetail = MovieDetail(),
@@ -69,7 +70,7 @@ data class TmdbCast(
 ) {
     val portraitUrl: String
         get() {
-            if (!avatar.isNullOrBlank()) {
+            if (!avatar.isNullOrBlank() && !avatar.contains("/api/person/avatar")) {
                 if (avatar.startsWith("http://") || avatar.startsWith("https://")) return avatar
                 return "https://image.tmdb.org/t/p/w185$avatar"
             }
@@ -78,7 +79,8 @@ data class TmdbCast(
                 return "https://image.tmdb.org/t/p/w185$profilePath"
             }
             if (name.isNotBlank()) {
-                return "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(name, "UTF-8")
+                val encoded = try { URLEncoder.encode(name, "UTF-8") } catch (_: Exception) { name }
+                return "https://ui-avatars.com/api/?name=$encoded&background=1d1f29&color=e50914&size=256&bold=true"
             }
             return ""
         }
@@ -93,7 +95,7 @@ data class TmdbDirector(
 ) {
     val portraitUrl: String
         get() {
-            if (!avatar.isNullOrBlank()) {
+            if (!avatar.isNullOrBlank() && !avatar.contains("/api/person/avatar")) {
                 if (avatar.startsWith("http://") || avatar.startsWith("https://")) return avatar
                 return "https://image.tmdb.org/t/p/w185$avatar"
             }
@@ -102,7 +104,8 @@ data class TmdbDirector(
                 return "https://image.tmdb.org/t/p/w185$profilePath"
             }
             if (name.isNotBlank()) {
-                return "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(name, "UTF-8")
+                val encoded = try { URLEncoder.encode(name, "UTF-8") } catch (_: Exception) { name }
+                return "https://ui-avatars.com/api/?name=$encoded&background=1d1f29&color=f59e0b&size=256&bold=true"
             }
             return ""
         }

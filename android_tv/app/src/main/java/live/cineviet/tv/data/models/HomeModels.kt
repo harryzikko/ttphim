@@ -30,8 +30,16 @@ data class MovieItem(
     @SerializedName("type") val type: String? = null,
     @SerializedName("view") val view: Any? = null,
     @SerializedName("imdb_rating") val imdbRating: Any? = null,
-    @SerializedName("has_song_ngu") val hasSongNgu: Boolean = false
+    @SerializedName("has_song_ngu") val rawHasSongNgu: Boolean? = null,
+    @SerializedName("hasSongNgu") val altHasSongNgu: Boolean? = null
 ) {
+    val hasSongNgu: Boolean
+        get() = rawHasSongNgu == true ||
+                altHasSongNgu == true ||
+                lang?.contains("Song Ngữ", ignoreCase = true) == true ||
+                lang?.contains("Song Ngu", ignoreCase = true) == true ||
+                type?.equals("song-ngu", ignoreCase = true) == true
+
     fun getFullImageUrl(url: String?): String {
         if (url.isNullOrBlank()) return ""
         if (url.startsWith("http://") || url.startsWith("https://")) return url
@@ -54,7 +62,10 @@ data class SpotlightMovie(
     @SerializedName("poster_url") val posterUrl: String? = null,
     @SerializedName("thumb_url") val thumbUrl: String? = null,
     @SerializedName("hero_backdrop_url") val heroBackdropUrl: String? = null,
+    @SerializedName("hero_backdrop_fallback") val heroBackdropFallback: String? = null,
     @SerializedName("hero_poster_url") val heroPosterUrl: String? = null,
+    @SerializedName("hero_poster_fallback") val heroPosterFallback: String? = null,
+    @SerializedName("banner_mobile") val bannerMobile: String? = null,
     @SerializedName("year") val year: Any? = null,
     @SerializedName("time") val time: String? = null,
     @SerializedName("quality") val quality: String? = null,
@@ -66,17 +77,42 @@ data class SpotlightMovie(
     @SerializedName("trailer_url") val trailerUrl: String? = null,
     @SerializedName("cta_label") val ctaLabel: String? = null
 ) {
+    private fun sanitizeTmdb(url: String?): String {
+        if (url.isNullOrBlank()) return ""
+        // Replace 4K TMDB "original" image with 1080p/720p "w1280" to save memory and avoid TV timeout
+        if (url.contains("image.tmdb.org/t/p/original/")) {
+            return url.replace("image.tmdb.org/t/p/original/", "image.tmdb.org/t/p/w1280/")
+        }
+        return url
+    }
+
+    private fun sanitizePosterTmdb(url: String?): String {
+        if (url.isNullOrBlank()) return ""
+        if (url.contains("image.tmdb.org/t/p/original/")) {
+            return url.replace("image.tmdb.org/t/p/original/", "image.tmdb.org/t/p/w500/")
+        }
+        return url
+    }
+
     val displayBackdrop: String
         get() {
-            val candidate = heroBackdropUrl ?: thumbUrl ?: posterUrl ?: ""
+            val candidate = sanitizeTmdb(heroBackdropUrl)
             if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate
-            if (candidate.isNotBlank()) return "https://phimimg.com/$candidate"
+            return backdropFallback
+        }
+
+    val backdropFallback: String
+        get() {
+            val fallback = heroBackdropFallback ?: thumbUrl ?: posterUrl ?: ""
+            if (fallback.startsWith("http://") || fallback.startsWith("https://")) return fallback
+            if (fallback.isNotBlank()) return "https://phimimg.com/$fallback"
             return ""
         }
 
+    // Direct KKPhim CDN is 100% reliable and fast in Vietnam
     val displayPoster: String
         get() {
-            val candidate = heroPosterUrl ?: posterUrl ?: thumbUrl ?: ""
+            val candidate = heroPosterFallback ?: posterUrl ?: sanitizePosterTmdb(heroPosterUrl) ?: thumbUrl ?: ""
             if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate
             if (candidate.isNotBlank()) return "https://phimimg.com/$candidate"
             return ""
@@ -109,7 +145,13 @@ data class RankingMovie(
         get() {
             if (views != null) {
                 val str = views.toString().trim()
-                if (str.isNotEmpty() && str != "null") return str
+                if (str.isNotEmpty() && str != "null") {
+                    val num = str.toDoubleOrNull()
+                    if (num != null) {
+                        return if (num >= 1000) String.format("%.1fk", num / 1000) else num.toLong().toString()
+                    }
+                    return str
+                }
             }
             if (realViews != null) {
                 val num = realViews.toString().toDoubleOrNull()?.toLong()
@@ -120,4 +162,52 @@ data class RankingMovie(
 
     val rankNumber: Int
         get() = rank?.toString()?.toDoubleOrNull()?.toInt() ?: 1
+}
+
+data class CatalogData(
+    @SerializedName("items") val items: List<MovieItem> = emptyList(),
+    @SerializedName("pagination") val pagination: CatalogPagination? = null
+)
+
+data class CatalogPagination(
+    @SerializedName("totalItems") val totalItems: Any? = null,
+    @SerializedName("totalItemsPerPage") val totalItemsPerPage: Any? = null,
+    @SerializedName("currentPage") val currentPage: Any? = null,
+    @SerializedName("totalPages") val totalPages: Any? = null
+)
+
+data class UserLibraryData(
+    @SerializedName("watchlist") val watchlist: List<MovieItem> = emptyList(),
+    @SerializedName("history") val history: List<WatchHistoryItem> = emptyList(),
+    @SerializedName("continueWatching") val continueWatching: List<WatchHistoryItem> = emptyList()
+)
+
+data class WatchHistoryItem(
+    @SerializedName("movie_slug") val movieSlug: String = "",
+    @SerializedName("movie_name") val movieName: String = "",
+    @SerializedName("poster_url") val posterUrl: String? = null,
+    @SerializedName("thumb_url") val thumbUrl: String? = null,
+    @SerializedName("episode_name") val episodeName: String? = null,
+    @SerializedName("episode_slug") val episodeSlug: String? = null,
+    @SerializedName("current_time") val currentTime: Any? = null,
+    @SerializedName("duration") val duration: Any? = null,
+    @SerializedName("progress_percent") val progressPercent: Any? = null,
+    @SerializedName("has_song_ngu") val hasSongNgu: Boolean = false
+) {
+    val displayThumb: String
+        get() {
+            val url = thumbUrl ?: posterUrl ?: ""
+            if (url.startsWith("http://") || url.startsWith("https://")) return url
+            if (url.isNotBlank()) return "https://phimimg.com/$url"
+            return ""
+        }
+
+    val progressRatio: Float
+        get() {
+            val p = progressPercent?.toString()?.toFloatOrNull()
+            if (p != null && p > 0f) return (p / 100f).coerceIn(0f, 1f)
+            val curr = currentTime?.toString()?.toFloatOrNull() ?: 0f
+            val dur = duration?.toString()?.toFloatOrNull() ?: 1f
+            return if (dur > 0f) (curr / dur).coerceIn(0f, 1f) else 0f
+        }
 }

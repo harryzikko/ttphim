@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,11 +35,11 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import live.cineviet.tv.data.models.HomeData
-import live.cineviet.tv.data.models.MovieItem
-import live.cineviet.tv.data.models.SpotlightMovie
+import live.cineviet.tv.data.local.TvSessionManager
+import live.cineviet.tv.data.models.*
 import live.cineviet.tv.data.repository.MovieRepository
 import live.cineviet.tv.ui.components.TvLoadingSpinner
 import live.cineviet.tv.ui.components.TvMovieCard
@@ -48,6 +49,7 @@ import live.cineviet.tv.ui.theme.*
 @Composable
 fun TvHomeScreen(
     categoryFilter: String?,
+    sessionManager: TvSessionManager? = null,
     onMovieClick: (String) -> Unit,
     onPlayClick: (String, String?) -> Unit,
     modifier: Modifier = Modifier
@@ -58,6 +60,13 @@ fun TvHomeScreen(
     var homeData by remember { mutableStateOf<HomeData?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // User Continue Watching list
+    var continueWatchingList by remember { mutableStateOf<List<WatchHistoryItem>>(emptyList()) }
+
+    // Full 40-movie catalog for Phim bộ & Phim lẻ tabs
+    var catalogMovies by remember { mutableStateOf<List<MovieItem>>(emptyList()) }
+    var isCatalogLoading by remember { mutableStateOf(false) }
 
     fun loadData() {
         isLoading = true
@@ -76,6 +85,31 @@ fun TvHomeScreen(
 
     LaunchedEffect(Unit) {
         loadData()
+    }
+
+    // Load continue watching when user is logged in
+    LaunchedEffect(sessionManager?.isLoggedIn()) {
+        if (sessionManager?.isLoggedIn() == true) {
+            val libResult = repository.getUserLibrary()
+            libResult.onSuccess { lib ->
+                continueWatchingList = lib.continueWatching
+            }
+        }
+    }
+
+    // Fetch full 40-item catalog when switching to Phim bộ or Phim lẻ tab
+    LaunchedEffect(categoryFilter) {
+        if (categoryFilter != null) {
+            isCatalogLoading = true
+            val catalogType = if (categoryFilter == "series") "phim-bo" else "phim-le"
+            val result = repository.getCatalog(type = catalogType, page = 1, limit = 40)
+            result.onSuccess { items ->
+                catalogMovies = items
+                isCatalogLoading = false
+            }.onFailure {
+                isCatalogLoading = false
+            }
+        }
     }
 
     if (isLoading) {
@@ -139,21 +173,23 @@ fun TvHomeScreen(
 
     val data = homeData!!
 
-    // DEDICATED FULL SCREEN GRID FOR PHIM BỘ / PHIM LẺ (5-Column Fullbleed Grid)
+    // DEDICATED FULL SCREEN GRID FOR PHIM BỘ / PHIM LẺ (Full 40-Movie Catalog Grid)
     if (categoryFilter != null) {
-        val (title, subtitle, moviesList) = when (categoryFilter) {
+        val (title, defaultSubtitle, fallbackMovies) = when (categoryFilter) {
             "series" -> Triple(
                 "Kho Phim Bộ Đang Hot",
-                "Tuyển chọn những bộ phim truyền hình hấp dẫn chất lượng cao",
+                "Tuyển chọn 40+ bộ phim truyền hình hấp dẫn chất lượng cao",
                 data.series
             )
             "singles" -> Triple(
                 "Kho Phim Lẻ Đặc Sắc",
-                "Tuyển tập các siêu phẩm điện ảnh đặc sắc chuẩn rạp",
+                "Tuyển tập 40+ siêu phẩm điện ảnh đặc sắc chuẩn rạp",
                 data.singles
             )
             else -> Triple("Kho Phim CineViet", "", data.latest)
         }
+
+        val effectiveMovies = if (catalogMovies.isNotEmpty()) catalogMovies else fallbackMovies
 
         LazyColumn(
             modifier = modifier
@@ -174,19 +210,17 @@ fun TvHomeScreen(
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Black
                     )
-                    if (subtitle.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = subtitle,
-                            color = TvOnSurfaceVariant,
-                            fontSize = 13.sp
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (effectiveMovies.isNotEmpty()) "${effectiveMovies.size} phim được tuyển chọn cập nhật liên tục" else defaultSubtitle,
+                        color = TvOnSurfaceVariant,
+                        fontSize = 13.sp
+                    )
                 }
             }
 
-            // 5-Column Grid Layout
-            val chunks = moviesList.chunked(5)
+            // 5-Column Grid Layout displaying all movies
+            val chunks = effectiveMovies.chunked(5)
             items(chunks) { rowMovies ->
                 Row(
                     modifier = Modifier
@@ -229,7 +263,29 @@ fun TvHomeScreen(
             }
         }
 
-        // 2. TOP TRENDING TODAY / BẢNG XẾP HẠNG (Netflix Style Poster Rail with Big Rank Overlay)
+        // 2. TIẾP TỤC XEM (CONTINUE WATCHING) ROW
+        if (continueWatchingList.isNotEmpty()) {
+            item {
+                TvMovieSection(
+                    title = "Tiếp Tục Xem",
+                    subtitle = "XEM TIẾP DỞ DANG"
+                ) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(horizontal = 36.dp)
+                    ) {
+                        items(continueWatchingList) { item ->
+                            TvContinueWatchingCard(
+                                item = item,
+                                onClick = { onPlayClick(item.movieSlug, item.episodeSlug) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. TOP TRENDING TODAY / BẢNG XẾP HẠNG (Netflix Style Poster Rail with Big Rank Overlay)
         if (data.rankings.isNotEmpty()) {
             item {
                 TvMovieSection(
@@ -252,7 +308,7 @@ fun TvHomeScreen(
             }
         }
 
-        // 3. PHIM MỚI CẬP NHẬT
+        // 4. PHIM MỚI CẬP NHẬT
         if (data.latest.isNotEmpty()) {
             item {
                 TvMovieSection(
@@ -264,7 +320,7 @@ fun TvHomeScreen(
             }
         }
 
-        // 4. PHIM CHIẾU RẠP ĐẶC SẮC
+        // 5. PHIM CHIẾU RẠP ĐẶC SẮC
         if (data.cinema.isNotEmpty()) {
             item {
                 TvMovieSection(
@@ -276,7 +332,7 @@ fun TvHomeScreen(
             }
         }
 
-        // 5. PHIM BỘ ĐANG HOT
+        // 6. PHIM BỘ ĐANG HOT
         if (data.series.isNotEmpty()) {
             item {
                 TvMovieSection(
@@ -288,7 +344,7 @@ fun TvHomeScreen(
             }
         }
 
-        // 6. PHIM LẺ CHỌN LỌC
+        // 7. PHIM LẺ CHỌN LỌC
         if (data.singles.isNotEmpty()) {
             item {
                 TvMovieSection(
@@ -300,7 +356,7 @@ fun TvHomeScreen(
             }
         }
 
-        // 7. HOẠT HÌNH & ANIME
+        // 8. HOẠT HÌNH & ANIME
         if (data.anime.isNotEmpty()) {
             item {
                 TvMovieSection(
@@ -311,6 +367,121 @@ fun TvHomeScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun TvContinueWatchingCard(
+    item: WatchHistoryItem,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.08f else 1.0f,
+        animationSpec = tween(160),
+        label = "continueScale"
+    )
+
+    Column(
+        modifier = modifier
+            .width(240.dp)
+            .scale(scale)
+            .focusable(interactionSource = interactionSource)
+            .clickable(interactionSource = interactionSource, indication = null) { onClick() }
+            .padding(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(135.dp)
+                .background(TvSurfaceContainer, RoundedCornerShape(10.dp))
+                .border(
+                    width = if (isFocused) 2.5.dp else 1.dp,
+                    color = if (isFocused) CineVietRed else Color.White.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(10.dp)
+                )
+                .clip(RoundedCornerShape(10.dp))
+        ) {
+            SubcomposeAsyncImage(
+                model = item.displayThumb,
+                contentDescription = item.movieName,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                error = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(TvSurfaceContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.3f),
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+            )
+
+            // Center Play Icon Overlay when focused
+            if (isFocused) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(CineVietRed.copy(alpha = 0.9f))
+                        .align(Alignment.Center),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Xem tiếp",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            // Bottom Progress Bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .align(Alignment.BottomStart)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fraction = item.progressRatio.coerceIn(0.05f, 1.0f))
+                        .background(CineVietRed)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = item.movieName,
+            color = if (isFocused) CineVietRedLight else Color.White,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        val epText = item.episodeName?.takeIf { it.isNotBlank() } ?: "Đang xem dở"
+        Text(
+            text = epText,
+            color = TvOnSurfaceVariant,
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -344,12 +515,28 @@ fun TvSpotlightHero(
             .fillMaxWidth()
             .height(510.dp)
     ) {
-        // Fullbleed Backdrop Image
-        AsyncImage(
-            model = currentMovie.displayBackdrop.ifBlank { currentMovie.displayPoster },
+        // Fullbleed Backdrop Image with SubcomposeAsyncImage & Fallback (NEVER RENDERS BLACK)
+        SubcomposeAsyncImage(
+            model = currentMovie.displayBackdrop.ifBlank { currentMovie.backdropFallback },
             contentDescription = currentMovie.name,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            loading = {
+                AsyncImage(
+                    model = currentMovie.backdropFallback,
+                    contentDescription = currentMovie.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            },
+            error = {
+                AsyncImage(
+                    model = currentMovie.backdropFallback.ifBlank { currentMovie.displayPoster },
+                    contentDescription = currentMovie.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         )
 
         // Directional Obsidian Scrims (Left to Right & Bottom to Top)
@@ -439,7 +626,7 @@ fun TvSpotlightHero(
                     modifier = Modifier
                         .background(TvSurfaceHighest.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
                         .padding(horizontal = 7.dp, vertical = 3.dp)
-                ) {
+                    ) {
                     Text(
                         text = "DOLBY AUDIO",
                         color = TvGold,
@@ -525,7 +712,7 @@ fun TvSpotlightHero(
                             if (isPlayFocused) {
                                 Brush.horizontalGradient(listOf(CineVietRed, CineVietRedLight))
                             } else {
-                                androidx.compose.ui.graphics.SolidColor(CineVietRed)
+                                SolidColor(CineVietRed)
                             }
                         )
                         .border(
@@ -552,26 +739,25 @@ fun TvSpotlightHero(
                             text = currentMovie.ctaLabel ?: "Xem ngay",
                             color = Color.White,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp
+                            fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Box(
                             modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                                .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
                         ) {
                             Text(
                                 text = "OK",
-                                color = Color.White.copy(alpha = 0.85f),
+                                color = Color.White,
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Black
                             )
                         }
                     }
                 }
 
-                // Secondary Details Pill ("Chi tiết")
+                // Secondary Detail Pill ("Chi tiết")
                 val detailScale by animateFloatAsState(
                     targetValue = if (isDetailFocused) 1.08f else 1.0f,
                     animationSpec = tween(150),
@@ -582,10 +768,10 @@ fun TvSpotlightHero(
                     modifier = Modifier
                         .scale(detailScale)
                         .clip(RoundedCornerShape(26.dp))
-                        .background(if (isDetailFocused) TvSurfaceHighest else TvSurfaceHigh.copy(alpha = 0.7f))
+                        .background(if (isDetailFocused) TvSurfaceHighest else TvSurfaceHigh.copy(alpha = 0.75f))
                         .border(
                             width = if (isDetailFocused) 2.dp else 1.dp,
-                            color = if (isDetailFocused) CineVietRed else Color.White.copy(alpha = 0.2f),
+                            color = if (isDetailFocused) CineVietRed else Color.White.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(26.dp)
                         )
                         .focusable(interactionSource = detailSource)
@@ -600,7 +786,7 @@ fun TvSpotlightHero(
                             imageVector = Icons.Default.Info,
                             contentDescription = "Chi tiết",
                             tint = Color.White,
-                            modifier = Modifier.size(19.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -643,11 +829,19 @@ fun TvSpotlightHero(
                             currentIndex = index
                         }
                 ) {
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = movie.displayPoster,
                         contentDescription = movie.name,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        error = {
+                            AsyncImage(
+                                model = movie.backdropFallback,
+                                contentDescription = movie.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     )
                 }
             }
@@ -672,7 +866,7 @@ fun TvMovieSection(
             Column {
                 if (!subtitle.isNullOrBlank()) {
                     Text(
-                        text = subtitle,
+                        text = subtitle.uppercase(),
                         color = CineVietRed,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
@@ -691,12 +885,12 @@ fun TvMovieSection(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
-                tint = TvOnSurfaceVariant.copy(alpha = 0.5f),
+                tint = TvOnSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.size(18.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         content()
     }
 }

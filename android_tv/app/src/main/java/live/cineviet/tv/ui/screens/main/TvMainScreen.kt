@@ -45,7 +45,7 @@ import live.cineviet.tv.ui.screens.search.TvSearchScreen
 import live.cineviet.tv.ui.theme.*
 
 enum class TvNavTab(val title: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
-    HOME("Khám phá", Icons.Filled.Home, Icons.Outlined.Home),
+    HOME("Trang chủ", Icons.Filled.Home, Icons.Outlined.Home),
     SERIES("Phim bộ", Icons.Filled.Tv, Icons.Outlined.Tv),
     SINGLES("Phim lẻ", Icons.Filled.Movie, Icons.Outlined.Movie),
     SEARCH("Tìm kiếm", Icons.Filled.Search, Icons.Outlined.Search),
@@ -242,6 +242,7 @@ fun TvMainScreen(
                 TvNavTab.HOME -> {
                     TvHomeScreen(
                         categoryFilter = null,
+                        sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
                         onPlayClick = { slug, ep -> onNavigateToPlayer(slug, ep) }
                     )
@@ -249,6 +250,7 @@ fun TvMainScreen(
                 TvNavTab.SERIES -> {
                     TvHomeScreen(
                         categoryFilter = "series",
+                        sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
                         onPlayClick = { slug, ep -> onNavigateToPlayer(slug, ep) }
                     )
@@ -256,6 +258,7 @@ fun TvMainScreen(
                 TvNavTab.SINGLES -> {
                     TvHomeScreen(
                         categoryFilter = "singles",
+                        sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
                         onPlayClick = { slug, ep -> onNavigateToPlayer(slug, ep) }
                     )

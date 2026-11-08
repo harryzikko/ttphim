@@ -92,21 +92,25 @@ fun TvMovieCard(
                 }
             }
 
-            // Top-Right Year / Rating Badge
-            val yearText = movie.year?.toString()?.takeIf { it.isNotBlank() }
-            if (!yearText.isNullOrBlank()) {
+            // Top-Right Song Ngữ Badge (when movie has bilingual server)
+            if (movie.hasSongNgu) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .background(TvBackground.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(CineVietGold, Color(0xFFD97706))
+                            ),
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = yearText,
-                        color = TvOnSurfaceVariant,
+                        text = "Song Ngữ",
+                        color = Color.Black,
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Black
                     )
                 }
             }
@@ -137,7 +141,7 @@ fun TvMovieCard(
             overflow = TextOverflow.Ellipsis
         )
 
-        // Subtitle (Original name or type)
+        // Subtitle (Original name or time)
         val subtitle = movie.originName ?: movie.time ?: ""
         if (subtitle.isNotBlank()) {
             Spacer(modifier = Modifier.height(2.dp))

@@ -23,8 +23,10 @@ val TvOnSurfaceMuted = Color(0xFF64748B)
 
 // Accents
 val TvGold = Color(0xFFFFB800)
+val CineVietGold = TvGold
 val GoldRating = Color(0xFFFFB800)
 val EmeraldGreen = Color(0xFF10B981)
+val TvSurfaceContainerHighest = TvSurfaceHighest
 val TvFocusBorder = CineVietRed
 val TvFocusGlow = Color(0x66E50914)
 

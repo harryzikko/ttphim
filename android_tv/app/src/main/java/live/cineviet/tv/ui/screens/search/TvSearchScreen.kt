@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import kotlinx.coroutines.Job
@@ -148,48 +149,54 @@ fun TvSearchScreen(
             Spacer(modifier = Modifier.width(12.dp))
 
             Box(modifier = Modifier.weight(1f)) {
-                if (searchQuery.isEmpty()) {
-                    Text(
-                        text = "Nhập tên phim, diễn viên hoặc thể loại...",
-                        color = TvOnSurfaceVariant.copy(alpha = 0.7f),
-                        fontSize = 15.sp
-                    )
-                }
-
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = {
-                        searchQuery = it
-                        performSearch(it)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(searchFocusRequester)
-                        .focusable(interactionSource = searchInteractionSource)
-                        .onKeyEvent { keyEvent ->
-                            if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                                keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER
-                            ) {
-                                keyboardController?.show()
-                                false
-                            } else {
-                                false
+                AndroidView(
+                    factory = { ctx ->
+                        android.widget.EditText(ctx).apply {
+                            hint = "Nhập tên phim, diễn viên hoặc thể loại..."
+                            setHintTextColor(android.graphics.Color.parseColor("#80FFFFFF"))
+                            setTextColor(android.graphics.Color.WHITE)
+                            textSize = 15f
+                            background = null
+                            isSingleLine = true
+                            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+                            setOnEditorActionListener { v, actionId, _ ->
+                                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                                    val imm = ctx.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                                    imm.hideSoftInputFromWindow(v.windowToken, 0)
+                                    performSearch(text.toString())
+                                    true
+                                } else false
                             }
-                        },
-                    textStyle = TextStyle(
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    singleLine = true,
-                    cursorBrush = SolidColor(CineVietRed),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = {
-                            keyboardController?.hide()
-                            performSearch(searchQuery)
+                            addTextChangedListener(object : android.text.TextWatcher {
+                                override fun afterTextChanged(s: android.text.Editable?) {
+                                    val q = s?.toString() ?: ""
+                                    if (q != searchQuery) {
+                                        searchQuery = q
+                                        performSearch(q)
+                                    }
+                                }
+                                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                            })
+                            setOnFocusChangeListener { v, hasFocus ->
+                                if (hasFocus) {
+                                    val imm = ctx.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                                    imm.showSoftInput(v, android.view.inputmethod.InputMethodManager.SHOW_FORCED)
+                                }
+                            }
+                            setOnClickListener { v ->
+                                val imm = ctx.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                                imm.showSoftInput(v, android.view.inputmethod.InputMethodManager.SHOW_FORCED)
+                            }
                         }
-                    )
+                    },
+                    update = { editText ->
+                        if (editText.text.toString() != searchQuery) {
+                            editText.setText(searchQuery)
+                            editText.setSelection(searchQuery.length)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 

@@ -48,6 +48,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
+import kotlinx.coroutines.*
 import kotlinx.coroutines.delay
 import live.cineviet.tv.data.models.EpisodeItem
 import live.cineviet.tv.data.models.MovieDetailData
@@ -69,6 +70,7 @@ fun TvPlayerScreen(
 ) {
     val context = LocalContext.current
     val repository = remember { MovieRepository() }
+    val scope = rememberCoroutineScope()
 
     var detailData by remember { mutableStateOf<MovieDetailData?>(null) }
     var currentEpisode by remember { mutableStateOf<EpisodeItem?>(null) }
@@ -95,6 +97,8 @@ fun TvPlayerScreen(
     }
 
     val playerFocusRequester = remember { FocusRequester() }
+    val playFocusRequester = remember { FocusRequester() }
+    val drawerFocusRequester = remember { FocusRequester() }
 
     // Native Media3 ExoPlayer instance
     val exoPlayer = remember {
@@ -118,7 +122,46 @@ fun TvPlayerScreen(
 
     DisposableEffect(exoPlayer) {
         onDispose {
+            val curr = exoPlayer.currentPosition / 1000L
+            val dur = exoPlayer.duration.coerceAtLeast(0L) / 1000L
+            val ep = currentEpisode
+            val detail = detailData
+            if (dur > 0 && curr > 0 && detail != null && ep != null) {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    repository.saveHistory(
+                        movieSlug = slug,
+                        movieName = detail.movie.name,
+                        posterUrl = detail.movie.getPoster(),
+                        thumbUrl = detail.movie.getBackdrop(),
+                        episodeName = ep.name,
+                        episodeSlug = ep.slug,
+                        currentTime = curr,
+                        duration = dur
+                    )
+                }
+            }
             exoPlayer.release()
+        }
+    }
+
+    // Periodic history progress tracking every 12 seconds
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (true) {
+                delay(12000)
+                if (duration > 0 && currentPosition > 0 && detailData != null && currentEpisode != null) {
+                    repository.saveHistory(
+                        movieSlug = slug,
+                        movieName = detailData!!.movie.name,
+                        posterUrl = detailData!!.movie.getPoster(),
+                        thumbUrl = detailData!!.movie.getBackdrop(),
+                        episodeName = currentEpisode!!.name,
+                        episodeSlug = currentEpisode!!.slug,
+                        currentTime = currentPosition / 1000L,
+                        duration = duration / 1000L
+                    )
+                }
+            }
         }
     }
 
@@ -204,6 +247,19 @@ fun TvPlayerScreen(
         }
     }
 
+    // Handle TV remote focus transitions
+    LaunchedEffect(showControls, showEpisodeDrawer) {
+        if (showEpisodeDrawer) {
+            delay(150)
+            try { drawerFocusRequester.requestFocus() } catch (_: Exception) {}
+        } else if (showControls) {
+            delay(100)
+            try { playFocusRequester.requestFocus() } catch (_: Exception) {}
+        } else {
+            try { playerFocusRequester.requestFocus() } catch (_: Exception) {}
+        }
+    }
+
     // Auto-focus player view to capture TV remote D-pad events
     LaunchedEffect(Unit) {
         delay(200)
@@ -236,47 +292,10 @@ fun TvPlayerScreen(
             .onKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.nativeKeyEvent.keyCode) {
-                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                            if (!showControls) {
-                                showControls = true
-                            } else {
-                                if (isPlaying) exoPlayer.pause() else exoPlayer.play()
-                            }
-                            return@onKeyEvent true
-                        }
-
-                        KeyEvent.KEYCODE_DPAD_DOWN -> {
-                            showControls = true
-                            showEpisodeDrawer = !showEpisodeDrawer
-                            return@onKeyEvent true
-                        }
-
-                        KeyEvent.KEYCODE_DPAD_UP -> {
-                            showControls = true
-                            return@onKeyEvent true
-                        }
-
-                        KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                            if (!showEpisodeDrawer) {
-                                showControls = true
-                                isSeekingContinuous = true
-                                continuousSeekDelta += 10L
-                                return@onKeyEvent true
-                            }
-                        }
-
-                        KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                            if (!showEpisodeDrawer) {
-                                showControls = true
-                                isSeekingContinuous = true
-                                continuousSeekDelta -= 10L
-                                return@onKeyEvent true
-                            }
-                        }
-
                         KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
                             if (showEpisodeDrawer) {
                                 showEpisodeDrawer = false
+                                playFocusRequester.requestFocus()
                                 return@onKeyEvent true
                             }
                             if (showControls) {
@@ -285,6 +304,48 @@ fun TvPlayerScreen(
                             }
                             onBack()
                             return@onKeyEvent true
+                        }
+
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            if (!showEpisodeDrawer) {
+                                showControls = true
+                                showEpisodeDrawer = true
+                                return@onKeyEvent true
+                            }
+                        }
+
+                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                            if (!showControls && !showEpisodeDrawer) {
+                                showControls = true
+                                playFocusRequester.requestFocus()
+                                return@onKeyEvent true
+                            }
+                        }
+
+                        KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                            if (!showControls && !showEpisodeDrawer) {
+                                showControls = true
+                                isSeekingContinuous = true
+                                continuousSeekDelta += 10L
+                                return@onKeyEvent true
+                            }
+                        }
+
+                        KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                            if (!showControls && !showEpisodeDrawer) {
+                                showControls = true
+                                isSeekingContinuous = true
+                                continuousSeekDelta -= 10L
+                                return@onKeyEvent true
+                            }
+                        }
+
+                        KeyEvent.KEYCODE_DPAD_UP -> {
+                            if (!showControls && !showEpisodeDrawer) {
+                                showControls = true
+                                playFocusRequester.requestFocus()
+                                return@onKeyEvent true
+                            }
                         }
                     }
                 } else if (keyEvent.type == KeyEventType.KeyUp) {
@@ -759,6 +820,7 @@ fun TvPlayerScreen(
 
                             Box(
                                 modifier = Modifier
+                                    .focusRequester(playFocusRequester)
                                     .scale(playScale)
                                     .height(56.dp)
                                     .clip(RoundedCornerShape(28.dp))
@@ -1060,12 +1122,14 @@ fun TvPlayerScreen(
                     ) {
                         items(currentEpisodes) { ep ->
                             val isCurrent = ep.slug == currentEpisode?.slug
+                            val isInitialFocusTarget = isCurrent || (currentEpisode == null && ep == currentEpisodes.firstOrNull())
                             val epSource = remember { MutableInteractionSource() }
                             val isEpFocused by epSource.collectIsFocusedAsState()
 
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .then(if (isInitialFocusTarget) Modifier.focusRequester(drawerFocusRequester) else Modifier)
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(
                                         when {
@@ -1081,9 +1145,20 @@ fun TvPlayerScreen(
                                     )
                                     .padding(horizontal = 16.dp, vertical = 12.dp)
                                     .focusable(interactionSource = epSource)
+                                    .onKeyEvent { event ->
+                                        if (event.type == androidx.compose.ui.input.key.KeyEventType.KeyDown) {
+                                            if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+                                                event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
+                                                showEpisodeDrawer = false
+                                                playFocusRequester.requestFocus()
+                                                true
+                                            } else false
+                                        } else false
+                                    }
                                     .clickable(interactionSource = epSource, indication = null) {
                                         playEpisode(ep)
                                         showEpisodeDrawer = false
+                                        playFocusRequester.requestFocus()
                                     }
                             ) {
                                 Row(

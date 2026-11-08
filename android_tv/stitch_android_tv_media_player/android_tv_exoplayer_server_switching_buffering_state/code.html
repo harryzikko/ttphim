@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}
+.tv-card-focus:focus-visible, .tv-card-focus.active-focused {
+  transform: scale(1.03);
+  outline: none;
+  border-color: #00eefc !important;
+  box-shadow: 0 0 28px rgba(138, 63, 252, 0.75), 0 0 16px rgba(0, 238, 252, 0.6), inset 0 0 10px rgba(138, 63, 252, 0.35);
+  background-color: rgba(43, 33, 64, 0.95) !important;
+  z-index: 20;
+}
+.tv-card-focus:focus-visible .tv-badge-glow, .tv-card-focus.active-focused .tv-badge-glow {
+  box-shadow: 0 0 14px #00eefc;
+}
+</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed": "#002022", "surface-variant": "#32353c", "background": "#10131a", "on-secondary": "#00363a", "surface-container-lowest": "#0b0e14", "on-primary": "#41008b", "secondary-container": "#00eefc", "on-primary-fixed-variant": "#5d00c2", "tertiary": "#ffb1c3", "tertiary-fixed": "#ffd9e0", "inverse-primary": "#7825ea", "surface": "#10131a", "outline-variant": "#4b4455", "primary-fixed-dim": "#d4bbff", "surface-container-low": "#191c22", "primary-fixed": "#ebdcff", "surface-bright": "#363940", "tertiary-container": "#db0068", "error-container": "#93000a", "on-background": "#e1e2eb", "surface-container-high": "#272a31", "on-secondary-container": "#00686f", "on-tertiary": "#66002c", "surface-dim": "#10131a", "on-error": "#690005", "on-secondary-fixed-variant": "#004f54", "on-tertiary-container": "#fff1f2", "primary-container": "#8a3ffc", "inverse-on-surface": "#2e3037", "outline": "#968da1", "on-primary-container": "#faf1ff", "secondary-fixed": "#7df4ff", "on-surface-variant": "#cdc2d8", "surface-tint": "#d4bbff", "on-primary-fixed": "#270058", "surface-container-highest": "#32353c", "secondary-fixed-dim": "#00dbe9", "surface-container": "#1d2026", "primary": "#d4bbff", "on-error-container": "#ffdad6", "on-surface": "#e1e2eb", "on-tertiary-fixed-variant": "#8f0041", "secondary": "#d3fbff", "inverse-surface": "#e1e2eb", "tertiary-fixed-dim": "#ffb1c3", "error": "#ffb4ab", "on-tertiary-fixed": "#3f0019" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-xl": "3rem", "space-lg": "2rem", "space-md": "1.25rem", "gutter": "1.5rem", "margin": "3.5rem", "space-xs": "0.5rem", "space-sm": "0.75rem" }, "fontFamily": { "body-md": ["Manrope"], "headline-xl": ["Sora"], "title-sm": ["Manrope"], "headline-md": ["Sora"], "headline-lg": ["Sora"], "label-sm": ["Sora"], "body-lg": ["Manrope"], "title-md": ["Manrope"], "label-lg": ["Sora"], "title-lg": ["Manrope"], "label-md": ["Sora"], "body-sm": ["Manrope"], "headline-sm": ["Sora"] }, "fontSize": { "body-md": ["18px", {"lineHeight": "26px", "fontWeight": "400"}], "headline-xl": ["56px", {"lineHeight": "68px", "letterSpacing": "-0.02em", "fontWeight": "700"}], "title-sm": ["18px", {"lineHeight": "24px", "fontWeight": "500"}], "headline-md": ["32px", {"lineHeight": "40px", "fontWeight": "600"}], "headline-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.01em", "fontWeight": "600"}], "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.1em", "fontWeight": "700"}], "body-lg": ["20px", {"lineHeight": "30px", "fontWeight": "400"}], "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "500"}], "label-lg": ["16px", {"lineHeight": "22px", "letterSpacing": "0.04em", "fontWeight": "600"}], "title-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}], "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.08em", "fontWeight": "700"}], "body-sm": ["15px", {"lineHeight": "22px", "fontWeight": "400"}], "headline-sm": ["26px", {"lineHeight": "34px", "fontWeight": "600"}] } } } };</script></head><body class="bg-surface-container-lowest font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen"><aside class="fixed left-0 top-0 h-full w-24 z-50 flex flex-col items-center justify-between py-margin bg-surface-container-lowest/80 backdrop-blur-xl"><div class="flex flex-col items-center gap-space-xs"><div class="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center shadow-[0_0_24px_rgba(138,63,252,0.45)]"><span class="material-symbols-outlined text-on-primary-container text-headline-sm">tv</span></div></div><nav class="flex flex-col items-center gap-space-sm w-full px-space-xs" data-active-classes="bg-primary-container text-on-primary-container shadow-[0_0_20px_rgba(138,63,252,0.5)] scale-105"><a class="flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none focus:scale-110 focus:bg-surface-container-high transition-all duration-200" data-path="search" href="#"><span class="material-symbols-outlined text-headline-sm">search</span></a><a class="flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none focus:scale-110 focus:bg-surface-container-high transition-all duration-200" data-path="home" href="#"><span class="material-symbols-outlined text-headline-sm">home</span></a><a class="flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none focus:scale-110 focus:bg-surface-container-high transition-all duration-200" data-path="movies" href="#"><span class="material-symbols-outlined text-headline-sm">movie</span></a><a class="flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none focus:scale-110 focus:bg-surface-container-high transition-all duration-200" data-path="tv-shows" href="#"><span class="material-symbols-outlined text-headline-sm">live_tv</span></a><a class="flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none focus:scale-110 focus:bg-surface-container-high transition-all duration-200" data-path="live-channels" href="#"><span class="material-symbols-outlined text-headline-sm">sensors</span></a><a class="flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none focus:scale-110 focus:bg-surface-container-high transition-all duration-200" data-path="watchlist" href="#"><span class="material-symbols-outlined text-headline-sm">bookmarks</span></a></nav><div class="flex flex-col items-center gap-space-xs"><a class="flex items-center justify-center w-14 h-14 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface focus:outline-none focus:scale-110 focus:bg-surface-container-high transition-all duration-200" data-path="settings" href="#"><span class="material-symbols-outlined text-headline-sm">settings</span></a></div></aside><div class="pl-24"><header class="fixed top-0 left-24 right-0 h-24 z-40 bg-transparent flex items-center justify-end px-margin pointer-events-none"><div class="flex items-center gap-space-md pointer-events-auto"><div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-low/60 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><span class="material-symbols-outlined text-secondary text-title-sm">schedule</span><span class="font-label-md text-label-md text-on-surface tracking-wider">20:45</span></div><div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-low/60 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><span class="w-2 h-2 rounded-full bg-secondary-container shadow-[0_0_8px_#00eefc]"></span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase">4K HDR</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-24 bg-surface-container-lowest min-h-screen"><div class="flex flex-col w-full text-on-surface select-none relative overflow-hidden">
+<!-- Audio Context Synthesizer & TV Key Navigation Script Hooked Inline -->
+<!-- Fullscreen 16:9 Video Canvas Mockup (Paused ExoPlayer Frame) -->
+<div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-surface-container-lowest">
+<div class="w-full h-full bg-cover bg-center scale-105 filter blur-[6px] brightness-[0.24] saturate-125 transition-all duration-700" data-alt="Cinematic high fantasy sci-fi frame from Chrono Odyssey, gigantic celestial chronometer suspended over misty jagged obsidian canyons, glowing cyan runes, ethereal violet auroras, hyper-detailed 4k IMAX capture with shallow depth of field" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAYWFERupV7XzZ-6uLn49cW-Dk0adQcEHeIJuFHuVl-8znsIOPi_4nIooEswWUmpS5bvD49oPo74XThZAIy7Ae0Nyeal_C8s4pyKEC2mpUi8spjoVGoe5nNsINmJC9s9HCV9IcVdSnKbVbBgeU0hNiET89Yhm3IHm_AsylHkoUfWoxjfCIEnLD8yY3MVlPHTU-pJFOlaXaDiKPjtyjWPvCD0WFbONFjnSEErbSwbTFg')">
+</div>
+<!-- Deep Vignette & Smoked Scrim for Ambient 10-foot Depth -->
+<div class="absolute inset-0 bg-radial-gradient from-transparent via-surface-container-lowest/60 to-surface-container-lowest"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/40 to-surface-container-lowest/90"></div>
+</div>
+<!-- Top Metadata HUD: Breadcrumbs & Media3 Engine Telemetry -->
+<header class="w-full px-margin pt-space-xs pb-space-sm flex items-center justify-between z-20">
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-space-xs px-space-sm py-1 rounded-full bg-surface-container-high/80 backdrop-blur-md shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary-container animate-pulse shadow-[0_0_10px_#db0068]"></span>
+<span class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider">MEDIA3 • EXOPLAYER 2.19</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-title-md text-title-md text-on-surface font-semibold tracking-tight">Chrono Odyssey: Beyond Time</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium">• S2:E1 "The First Divergence"</span>
+</div>
+<div class="flex items-center gap-space-sm text-on-surface-variant">
+<span class="font-label-sm text-label-sm text-secondary-fixed-dim tracking-widest uppercase">Paused [ 00:28:14 / 01:14:52 ]</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">H.265 Main 10 (Direct Play)</span>
+</div>
+</div>
+</div>
+<!-- Active Stream Quality Chips -->
+<div class="flex items-center gap-space-xs">
+<div class="px-space-xs py-0.5 rounded bg-surface-container-high/90 text-on-surface font-label-sm text-label-sm tracking-widest shadow-sm">4K UHD</div>
+<div class="px-space-xs py-0.5 rounded bg-surface-container-high/90 text-secondary-fixed-dim font-label-sm text-label-sm tracking-widest shadow-sm">HDR10+</div>
+<div class="px-space-xs py-0.5 rounded bg-surface-container-high/90 text-tertiary-fixed font-label-sm text-label-sm tracking-widest shadow-sm">ATMOS 7.1</div>
+<div class="flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-primary-container/20 text-primary-fixed font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] animate-spin text-secondary-fixed-dim">sync</span>
+<span>SWITCHING CDN</span>
+</div>
+</div>
+</header>
+<!-- Main 16:9 Canvas Work Area: Center Stage HUD + Collapsed Right Rail -->
+<div class="w-full px-margin py-space-sm grid grid-cols-12 gap-gutter items-center min-h-[calc(1080px-240px)] z-20">
+<!-- Center Stage: Server Switching & Handshake Telemetry HUD (Col 1-9) -->
+<section class="col-span-9 flex flex-col items-center justify-center relative">
+<!-- Glow Pod Behind Modal -->
+<div class="absolute w-[560px] h-[340px] bg-gradient-to-r from-primary-container/25 via-secondary-container/20 to-primary-container/25 rounded-full filter blur-[90px] pointer-events-none -z-10 animate-pulse"></div>
+<!-- ExoPlayer Handshake HUD Card -->
+<div class="w-full max-w-4xl rounded-xl bg-surface-container-low/85 backdrop-blur-2xl p-space-lg shadow-2xl flex flex-col gap-space-md relative overflow-hidden">
+<!-- Header: Switch Intent & Status -->
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-secondary-container text-headline-sm animate-pulse">cloud_sync</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h1 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Đang chuyển nguồn phát CDN</h1>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/15 text-secondary-container font-label-sm text-label-sm tracking-wider uppercase">Media3 Pipeline</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Thực hiện Handshake SSL, tải Audio Track đa kênh &amp; nạp trước bộ đệm 4K.</p>
+</div>
+</div>
+<!-- Live Handshake Latency -->
+<div class="flex flex-col items-end">
+<div class="flex items-center gap-1.5 text-secondary-fixed-dim">
+<span class="material-symbols-outlined text-[18px]">speed</span>
+<span class="font-label-md text-label-md tracking-wider">78.4 Mbps</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">RTT Handshake: 28ms</span>
+</div>
+</div>
+<!-- Flow Visualizer: From Server -> To Server -->
+<div class="grid grid-cols-11 gap-space-xs items-center bg-surface-container/70 rounded-xl p-space-md shadow-inner">
+<!-- Source A (Old) -->
+<div class="col-span-4 flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container-high/40 opacity-75">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-outline text-title-md">dns</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Nguồn cũ (Source A)</span>
+<span class="font-title-sm text-title-sm text-on-surface font-medium truncate">VIP 1 • Tokyo HND</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<span class="font-label-sm text-label-sm text-error">Packet Drop 4.2%</span>
+</div>
+</div>
+</div>
+<!-- Flow Beam Animation -->
+<div class="col-span-3 flex flex-col items-center justify-center px-1">
+<div class="w-full flex items-center justify-between text-secondary-container mb-1">
+<span class="material-symbols-outlined text-sm">wifi_tethering</span>
+<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase">HLS Shift</span>
+<span class="material-symbols-outlined text-sm">cloud_download</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden relative">
+<div class="absolute inset-y-0 left-0 bg-gradient-to-r from-primary-container via-secondary-container to-secondary w-full animate-[pulse_1.5s_infinite]"></div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-1.5">Mã hóa TLS 1.3 / HTTP/3</span>
+</div>
+<!-- Source B (Target) -->
+<div class="col-span-4 flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container-high/90 shadow-md">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shadow-[0_0_16px_rgba(138,63,252,0.6)] flex-shrink-0">
+<span class="material-symbols-outlined text-on-primary-container text-title-md">speed</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-secondary-fixed uppercase font-semibold">Đang kích hoạt (Target)</span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold truncate">VIP 2 • Singapore SIN</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="w-2 h-2 rounded-full bg-secondary-container shadow-[0_0_8px_#00eefc]"></span>
+<span class="font-label-sm text-label-sm text-secondary-container">Đang nạp Segment: 4/12</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Center Orbital ExoPlayer Buffer Gauge + Telemetry Info -->
+<div class="flex items-center justify-between gap-space-lg px-space-xs py-space-xs">
+<!-- Orbital Dual-Ring Circular Progress -->
+<div class="flex items-center gap-space-md">
+<div class="relative w-28 h-28 flex items-center justify-center flex-shrink-0">
+<!-- Outer Glow Layer -->
+<div class="absolute inset-0 rounded-full bg-primary-container/20 filter blur-md"></div>
+<!-- Dual SVG Spinning Buffer Ring -->
+<svg class="w-28 h-28 transform -rotate-90" viewbox="0 0 100 100">
+<circle class="text-surface-container-highest" cx="50" cy="50" fill="transparent" r="42" stroke="currentColor" stroke-width="5"></circle>
+<!-- Buffer progress circle (68%) -->
+<circle class="transition-all duration-300 ease-out" cx="50" cy="50" fill="transparent" id="buffer-progress-circle" r="42" stroke="url(#cyan-violet-grad)" stroke-dasharray="264" stroke-dashoffset="84" stroke-linecap="round" stroke-width="6.5"></circle>
+<defs>
+<lineargradient id="cyan-violet-grad" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#8a3ffc"></stop>
+<stop offset="100%" stop-color="#00eefc"></stop>
+</lineargradient>
+</defs>
+</svg>
+<!-- Center Typography -->
+<div class="absolute flex flex-col items-center justify-center text-center">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight" id="buffer-percent-text">68%</span>
+<span class="font-label-sm text-[10px] uppercase text-secondary tracking-widest -mt-1 font-semibold">ĐỆM SẴN</span>
+</div>
+</div>
+<!-- Buffer Specs String -->
+<div class="flex flex-col">
+<div class="flex items-baseline gap-2">
+<span class="font-title-lg text-title-lg text-on-surface font-semibold tracking-tight">Bộ đệm: 5.2s</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">/ Ngưỡng an toàn 12.0s</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-sm mt-1">
+                Đang nạp liền mạch khung hình video tiếp theo. Trải nghiệm phát sẽ tiếp tục tự động không gián đoạn.
+              </p>
+<div class="w-48 h-1.5 rounded-full bg-surface-container-highest mt-2 overflow-hidden">
+<div class="h-full bg-secondary-container w-[68%] transition-all duration-300" id="live-timeline-fill"></div>
+</div>
+</div>
+</div>
+<!-- Realtime Stream Diagnostics Grid (4 Cells) -->
+<div class="grid grid-cols-2 gap-space-xs bg-surface-container-high/40 p-space-sm rounded-lg max-w-sm w-full">
+<div class="p-2 rounded bg-surface-container-lowest/50">
+<span class="font-label-sm text-label-sm text-on-surface-variant block uppercase">Giao thức CDN</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate block mt-0.5">CMAF / m3u8 LL</span>
+</div>
+<div class="p-2 rounded bg-surface-container-lowest/50">
+<span class="font-label-sm text-label-sm text-on-surface-variant block uppercase">Băng thông đo</span>
+<span class="font-label-md text-label-md text-secondary-fixed-dim font-semibold truncate block mt-0.5">72.4 Mbps ▲</span>
+</div>
+<div class="p-2 rounded bg-surface-container-lowest/50">
+<span class="font-label-sm text-label-sm text-on-surface-variant block uppercase">Video Codec</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate block mt-0.5">HEVC Main 10 (HW)</span>
+</div>
+<div class="p-2 rounded bg-surface-container-lowest/50">
+<span class="font-label-sm text-label-sm text-on-surface-variant block uppercase">Loss / Dropped</span>
+<span class="font-label-md text-label-md text-tertiary font-semibold truncate block mt-0.5">0 Frames</span>
+</div>
+</div>
+</div>
+<!-- TV D-Pad Focused Action Buttons Rail -->
+<div class="pt-space-xs flex items-center justify-start gap-space-md" id="tv-action-row">
+<!-- Primary Focused Button (Action 0) -->
+<button class="tv-card-focus active-focused px-space-md py-space-sm rounded-full bg-primary-container text-on-primary-container flex items-center gap-space-xs transition-all duration-200 cursor-pointer shadow-lg" data-action-index="0" tabindex="0">
+<span class="material-symbols-outlined text-headline-sm">replay</span>
+<span class="font-label-lg text-label-lg font-bold tracking-wide">Hủy &amp; Quay lại VIP 1</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-lowest/40 font-label-sm text-label-sm text-on-primary-container ml-1">OK</span>
+</button>
+<!-- Secondary Button (Action 1) -->
+<button class="tv-card-focus px-space-md py-space-sm rounded-full bg-surface-container-high/90 text-on-surface flex items-center gap-space-xs transition-all duration-200 hover:bg-surface-container-highest cursor-pointer" data-action-index="1" tabindex="0">
+<span class="material-symbols-outlined text-secondary-fixed-dim text-headline-sm">backup</span>
+<span class="font-label-lg text-label-lg font-semibold tracking-wide">Thử Server Backup (45ms)</span>
+</button>
+<!-- Tertiary Button (Action 2) -->
+<button class="tv-card-focus px-space-md py-space-sm rounded-full bg-surface-container-high/90 text-on-surface flex items-center gap-space-xs transition-all duration-200 hover:bg-surface-container-highest cursor-pointer" data-action-index="2" tabindex="0">
+<span class="material-symbols-outlined text-on-surface-variant text-headline-sm">tune</span>
+<span class="font-label-lg text-label-lg font-semibold tracking-wide">Chuyển Auto-Bitrate</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Right Drawer: Minimized Live Server Fleet Selector (Col 10-12) -->
+<aside class="col-span-3 flex flex-col gap-space-sm rounded-xl bg-surface-container-low/70 backdrop-blur-xl p-space-md">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary-fixed-dim text-title-md">travel_explore</span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Danh sách CDN</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Live ping</span>
+</div>
+<!-- Server Cards List -->
+<div class="flex flex-col gap-space-xs">
+<!-- VIP 2 Singapore (Active Handshaking Node) -->
+<div class="p-space-sm rounded-lg bg-surface-container-highest/80 flex flex-col gap-1 shadow-sm relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-secondary-container"></div>
+<div class="flex items-center justify-between pl-2">
+<span class="font-label-md text-label-md text-secondary-container font-bold">VIP 2 - Singapore (SIN)</span>
+<span class="font-label-sm text-label-sm text-secondary-container px-2 py-0.5 rounded-full bg-secondary-container/10 animate-pulse">28ms</span>
+</div>
+<div class="flex items-center justify-between pl-2 text-on-surface-variant font-label-sm text-label-sm">
+<span>Direct 10Gbps • CMAF</span>
+<span class="text-secondary font-medium">Đang Handshake...</span>
+</div>
+</div>
+<!-- VIP 1 Tokyo (Previous / Disconnected) -->
+<div class="p-space-sm rounded-lg bg-surface-container/50 opacity-60 flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-medium">VIP 1 - Tokyo (HND)</span>
+<span class="font-label-sm text-label-sm text-error">94ms</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Direct 10Gbps</span>
+<span class="text-error font-medium">Ngắt kết nối</span>
+</div>
+</div>
+<!-- VIP 3 Hong Kong (Standby) -->
+<div class="p-space-sm rounded-lg bg-surface-container/40 opacity-70 flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-medium">VIP 3 - Hong Kong (HKG)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">42ms</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Transit Equinix</span>
+<span class="text-on-surface-variant font-medium">Sẵn sàng (Backup)</span>
+</div>
+</div>
+<!-- US West Cloudflare Direct -->
+<div class="p-space-sm rounded-lg bg-surface-container/30 opacity-60 flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-medium">Global - Cloudflare Anycast</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">145ms</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Edge Fallback</span>
+<span class="text-on-surface-variant font-medium">Dự phòng 3</span>
+</div>
+</div>
+</div>
+<!-- Quick Tips Box -->
+<div class="p-space-sm rounded-lg bg-surface-container-high/40 text-on-surface-variant font-body-sm text-body-sm flex items-start gap-space-xs mt-1">
+<span class="material-symbols-outlined text-secondary-fixed text-title-sm flex-shrink-0 mt-0.5">tips_and_updates</span>
+<span>Hệ thống tự động chọn tuyến CDN có độ trễ thấp nhất để hạn chế giật lag ở độ phân giải 4K HDR.</span>
+</div>
+</aside>
+</div>
+<!-- Bottom 10-Foot TV Remote Navigation Helper Bar (Overscan Protected) -->
+<footer class="w-full px-margin pb-space-sm pt-space-xs flex items-center justify-between z-20">
+<!-- D-Pad Directional Guidance -->
+<div class="flex items-center gap-space-md text-on-surface-variant">
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-1 rounded bg-surface-container-high text-on-surface font-label-md text-label-md shadow-sm">▲ ▼ ◀ ▶</span>
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Di chuyển Focus</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="px-2.5 py-1 rounded bg-primary-container text-on-primary-container font-label-md text-label-md shadow-sm font-bold">OK</span>
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Xác nhận / Thực thi</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-1 rounded bg-surface-container-high text-on-surface font-label-md text-label-md shadow-sm">BACK / ESC</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giữ nguyên luồng cũ</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-1 rounded bg-surface-container-high text-secondary-container font-label-md text-label-md shadow-sm">Y (VÀNG)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Nerd Stats (Thông số kỹ thuật)</span>
+</div>
+</div>
+<!-- Live Audio Feedback Status -->
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-high/60 backdrop-blur-md">
+<span class="material-symbols-outlined text-secondary-container text-title-sm">volume_up</span>
+<span class="font-label-sm text-label-sm text-on-surface uppercase tracking-wider">Audio Feedback: BẬT</span>
+</div>
+<div class="flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-high/60 backdrop-blur-md">
+<span class="w-2 h-2 rounded-full bg-secondary-container shadow-[0_0_8px_#00eefc]"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">ExoPlayer V2 Engine</span>
+</div>
+</div>
+</footer>
+<!-- Notification Toast for Remote Interaction Feedback -->
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 px-space-lg py-space-sm rounded-full bg-surface-container-highest/95 text-on-surface font-label-md text-label-md shadow-2xl backdrop-blur-xl opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-space-xs" id="tv-toast">
+<span class="material-symbols-outlined text-secondary-container">check_circle</span>
+<span id="toast-message">Đã gửi lệnh điều khiển tới Media3 ExoPlayer</span>
+</div>
+<!-- Inline TV Interaction Engine (Keyboard D-Pad, Audio Synth, Dynamic Progress) -->
+<script>
+    (function () {
+      // 1. Web Audio API Sound Synthesizer for Living-Room TV Remote Feedback
+      let audioCtx = null;
+      function initAudio() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      }
+
+      function playDpadSound(type) {
+        try {
+          initAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          if (type === 'focus') {
+            // High-tech subtle tick
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(620, now);
+            osc.frequency.exponentialRampToValueAtTime(840, now + 0.04);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            osc.start(now);
+            osc.stop(now + 0.045);
+          } else if (type === 'select') {
+            // Confirm resonant chime
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            osc.start(now);
+            osc.stop(now + 0.15);
+          } else if (type === 'back') {
+            // Low soft blip
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(320, now);
+            osc.frequency.linearRampToValueAtTime(220, now + 0.08);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.start(now);
+            osc.stop(now + 0.09);
+          }
+        } catch (e) {
+          // Audio safe fallback
+        }
+      }
+
+      // 2. D-Pad Focus Navigation Management
+      const buttons = Array.from(document.querySelectorAll('#tv-action-row button'));
+      let currentFocusIndex = 0;
+
+      function updateFocus(newIndex, playAudio = true) {
+        if (newIndex < 0 || newIndex >= buttons.length) return;
+        buttons[currentFocusIndex].classList.remove('active-focused');
+        currentFocusIndex = newIndex;
+        const targetBtn = buttons[currentFocusIndex];
+        targetBtn.classList.add('active-focused');
+        targetBtn.focus();
+        if (playAudio) playDpadSound('focus');
+      }
+
+      // 3. Remote Feedback Toast
+      const toast = document.getElementById('tv-toast');
+      const toastMsg = document.getElementById('toast-message');
+      let toastTimer = null;
+      function showToast(text) {
+        if (!toast) return;
+        toastMsg.textContent = text;
+        toast.classList.remove('opacity-0', 'translate-y-2');
+        toast.classList.add('opacity-100', 'translate-y-0');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toast.classList.remove('opacity-100', 'translate-y-0');
+          toast.classList.add('opacity-0', 'translate-y-2');
+        }, 2200);
+      }
+
+      // 4. Keyboard Listener for TV Remote Control Emulation
+      window.addEventListener('keydown', (e) => {
+        switch (e.key) {
+          case 'ArrowRight':
+          case 'Right':
+            e.preventDefault();
+            if (currentFocusIndex < buttons.length - 1) {
+              updateFocus(currentFocusIndex + 1);
+            }
+            break;
+          case 'ArrowLeft':
+          case 'Left':
+            e.preventDefault();
+            if (currentFocusIndex > 0) {
+              updateFocus(currentFocusIndex - 1);
+            }
+            break;
+          case 'Enter':
+          case 'Select':
+          case ' ':
+            e.preventDefault();
+            playDpadSound('select');
+            const actionText = buttons[currentFocusIndex].innerText.replace(/\n/g, ' ').trim();
+            showToast('Lệnh TV OK: ' + actionText);
+            break;
+          case 'Escape':
+          case 'Backspace':
+          case 'GoBack':
+            e.preventDefault();
+            playDpadSound('back');
+            showToast('Quay lại: Giữ nguyên kết nối CDN VIP 1');
+            break;
+          case 'y':
+          case 'Y':
+            e.preventDefault();
+            playDpadSound('select');
+            showToast('Nerd Stats: Bitrate 24.2 Mbps • HLS Chunk #1480 • Buffer Health 99.4%');
+            break;
+        }
+      });
+
+      // Mouse/Pointer hover alignment with TV focus
+      buttons.forEach((btn, index) => {
+        btn.addEventListener('mouseenter', () => {
+          updateFocus(index, false);
+        });
+        btn.addEventListener('click', () => {
+          playDpadSound('select');
+          showToast('Đã chọn: ' + btn.innerText.replace(/\n/g, ' ').trim());
+        });
+      });
+
+      // 5. Dynamic Buffer Progress Simulation (68% -> 96%)
+      let currentProgress = 68;
+      const progressCircle = document.getElementById('buffer-progress-circle');
+      const percentText = document.getElementById('buffer-percent-text');
+      const timelineFill = document.getElementById('live-timeline-fill');
+
+      setInterval(() => {
+        if (currentProgress < 98) {
+          currentProgress += Math.floor(Math.random() * 4) + 1;
+          if (currentProgress > 98) currentProgress = 98;
+          // strokeDashoffset: total circumference is ~264 (2 * pi * 42 = 263.89)
+          const offset = 264 - (264 * currentProgress / 100);
+          if (progressCircle) progressCircle.style.strokeDashoffset = offset;
+          if (percentText) percentText.textContent = currentProgress + '%';
+          if (timelineFill) timelineFill.style.width = currentProgress + '%';
+        }
+      }, 1400);
+
+      // Initial focus hook
+      setTimeout(() => {
+        if (buttons[0]) buttons[0].focus();
+      }, 100);
+    })();
+  </script>
+</div></main></div></body></html>
