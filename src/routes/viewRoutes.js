@@ -301,6 +301,10 @@ async function readWatchTemplate() {
   return fs.readFile(publicFile('xem-phim.html'), 'utf8').then(html => html.replace('<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>', ''));
 }
 async function decorateWatch(html) {
+  const ts = Date.now();
+  html = html
+    .replace(/\/js\/watch\.js(\?v=[^"']*)?/g, `/js/watch.js?v=${ts}`)
+    .replace(/\/css\/movie-phone\.css(\?v=[^"']*)?/g, `/css/movie-phone.css?v=${ts}`);
   return bannerService.decorate(html, await dbService.getSettings());
 }
 router.get('/xem-phim.html', async (req, res) => res.send(await decorateWatch(await readWatchTemplate())));

@@ -298,6 +298,28 @@ body:has(#watch-main-content) .cv-dock-reopen {
   height: 100% !important;
   border-radius: 0 !important;
 }
+
+/* Fullscreen Back Button ("Quay lại") & Quick Controls Bar */
+#btn-embed-back,
+#player-btn-fs-back {
+  position: absolute !important;
+  top: max(14px, env(safe-area-inset-top, 14px)) !important;
+  left: max(14px, env(safe-area-inset-left, 14px)) !important;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+}
+#embed-quick-bar {
+  position: absolute !important;
+  top: max(14px, env(safe-area-inset-top, 14px)) !important;
+  right: max(14px, env(safe-area-inset-right, 14px)) !important;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+}
+#player-viewport.w-web-fullscreen #player-controls-bottom {
+  z-index: 2147483646 !important;
+  pointer-events: auto !important;
+}
+
 body.m-web-fs-active,
 body.w-web-fs-active {
   overflow: hidden !important;

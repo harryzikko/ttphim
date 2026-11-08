@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('fullscreenchange', syncFullscreenUI);
   document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
 
-  // Native Mobile Fullscreen Controller for KKPhim and NguonC
+  // Mobile Fullscreen Controller for KKPhim and NguonC
   async function openNativeMobileFullscreen(enable) {
     const isCurrentlyFs = Boolean(
       document.fullscreenElement ||
@@ -185,16 +185,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       viewport?.classList.contains('w-web-fullscreen')
     );
     const video = viewport?.querySelector('video');
-    const iframe = viewport?.querySelector('iframe');
-    const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isIphone = /iPhone|iPod/i.test(navigator.userAgent);
     const should = enable !== undefined ? Boolean(enable) : !isCurrentlyFs;
-
-    const bottomBar = viewport?.querySelector('#player-controls-bottom');
-    const topBar = viewport?.querySelector('#player-controls-top');
-    const gestures = viewport?.querySelector('.absolute.inset-0.z-10.flex');
-    const embedBackBtn = viewport?.querySelector('#btn-embed-back');
-    const m3u8BackBtn = viewport?.querySelector('#player-btn-fs-back');
 
     if (!should) {
       if (document.fullscreenElement) {
@@ -203,134 +195,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.webkitExitFullscreen();
       }
       if (video) {
-        video.controls = false;
         if (video.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
           video.webkitExitFullscreen();
         }
       }
-      viewport?.classList.remove('w-web-fullscreen');
-      document.body.classList.remove('w-web-fs-active');
-      if (bottomBar) bottomBar.classList.remove('hidden');
-      if (topBar) topBar.classList.remove('hidden');
-      if (gestures) gestures.style.pointerEvents = '';
-      if (embedBackBtn) { embedBackBtn.classList.add('hidden'); embedBackBtn.classList.remove('flex'); }
-      if (m3u8BackBtn) { m3u8BackBtn.classList.add('hidden'); m3u8BackBtn.classList.remove('flex'); }
-
-      unlockOrientation();
+      toggleWebFullscreen(false);
       return;
     }
 
-    // --- ENTER FULLSCREEN: AUTO ROTATE TO LANDSCAPE ---
-    try {
-      history.pushState({ cvFs: true }, '');
-    } catch (_) {}
-
-    if (video) {
-      // KKPhim (HLS stream)
-      // 1. Try iOS native Apple AVPlayer
-      if (isIos && video.webkitEnterFullscreen) {
-        try {
-          video.play().catch(() => {});
-          video.webkitEnterFullscreen();
-          return;
-        } catch (_) {}
-      }
-
-      // 2. Try native hardware fullscreen on container or video
-      const container = document.getElementById('TTPhim-player-wrapper') || video;
-      let enteredNative = false;
-
+    // On iPhone: Try Apple native player for direct video streams
+    if (video && isIphone && video.webkitEnterFullscreen) {
       try {
-        if (container.requestFullscreen) {
-          await container.requestFullscreen();
-          enteredNative = true;
-        } else if (video.requestFullscreen) {
-          await video.requestFullscreen();
-          enteredNative = true;
-        } else if (container.webkitRequestFullscreen) {
-          await container.webkitRequestFullscreen();
-          enteredNative = true;
-        }
+        video.play().catch(() => {});
+        video.webkitEnterFullscreen();
+        return;
       } catch (_) {}
-
-      // Try orientation lock
-      let locked = await lockOrientationLandscape();
-      setTimeout(lockOrientationLandscape, 150);
-      setTimeout(lockOrientationLandscape, 350);
-
-      // If hardware fullscreen could not be entered, OR orientation lock failed in portrait:
-      // Guarantee horizontal view via CSS landscape rotation!
-      if (!enteredNative || (!locked && checkIsPortrait())) {
-        viewport?.classList.add('w-web-fullscreen');
-        document.body.classList.add('w-web-fs-active');
-      }
-
-      if (m3u8BackBtn) {
-        m3u8BackBtn.classList.remove('hidden');
-        m3u8BackBtn.classList.add('flex');
-      }
-      return;
-
-    } else if (iframe) {
-      // NguonC embed stream
-      let enteredNative = false;
-      try {
-        if (iframe.requestFullscreen) {
-          await iframe.requestFullscreen();
-          enteredNative = true;
-        } else if (iframe.webkitRequestFullscreen) {
-          await iframe.webkitRequestFullscreen();
-          enteredNative = true;
-        }
-      } catch (_) {}
-
-      if (!enteredNative) {
-        const container = iframe.parentElement || viewport;
-        try {
-          if (container?.requestFullscreen) {
-            await container.requestFullscreen();
-            enteredNative = true;
-          } else if (container?.webkitRequestFullscreen) {
-            await container.webkitRequestFullscreen();
-            enteredNative = true;
-          }
-        } catch (_) {}
-      }
-
-      let locked = await lockOrientationLandscape();
-      setTimeout(lockOrientationLandscape, 150);
-      setTimeout(lockOrientationLandscape, 350);
-
-      // If hardware fullscreen failed OR orientation lock failed while in portrait:
-      // Guarantee horizontal view via CSS landscape rotation!
-      if (!enteredNative || (!locked && checkIsPortrait())) {
-        viewport?.classList.add('w-web-fullscreen');
-        document.body.classList.add('w-web-fs-active');
-      }
-
-      if (embedBackBtn) {
-        embedBackBtn.classList.remove('hidden');
-        embedBackBtn.classList.add('flex');
-      }
-      return;
     }
+
+    // On Android & standard mobile: Use Web Fullscreen with guaranteed landscape auto-rotation!
+    toggleWebFullscreen(true);
   }
 
   function toggleWebFullscreen(enable) {
     if (!viewport) return;
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (isMobile && !isSongNguActive()) {
-      openNativeMobileFullscreen(enable);
-      return;
-    }
-
     const isNow = viewport.classList.contains('w-web-fullscreen');
     const should = enable !== undefined ? Boolean(enable) : !isNow;
+
     viewport.classList.toggle('w-web-fullscreen', should);
     document.body.classList.toggle('w-web-fs-active', should);
 
-    const isViCdn = isSongNguActive();
     const embedFsBtn = viewport.querySelector('#btn-embed-fs');
     if (embedFsBtn) {
       const textSpan = embedFsBtn.querySelector('span:last-child');
@@ -341,10 +234,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? 'px-3.5 py-1.5 rounded-full bg-red-600/90 hover:bg-red-700 text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all'
         : 'px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-primary-container text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all';
     }
+
+    const fsIcon = viewport.querySelector('#player-btn-fullscreen .material-symbols-outlined');
+    if (fsIcon) {
+      fsIcon.textContent = should ? 'fullscreen_exit' : 'fullscreen';
+    }
+
     const backBtn = viewport.querySelector('#btn-embed-back');
     if (backBtn) {
       backBtn.classList.toggle('hidden', !should);
       backBtn.classList.toggle('flex', should);
+    }
+    const m3u8Back = viewport.querySelector('#player-btn-fs-back');
+    if (m3u8Back) {
+      m3u8Back.classList.toggle('hidden', !should);
+      m3u8Back.classList.toggle('flex', should);
     }
     const chooseEpBtn = viewport.querySelector('#btn-embed-choose-ep');
     if (chooseEpBtn) chooseEpBtn.style.display = should ? 'flex' : 'none';
