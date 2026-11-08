@@ -178,14 +178,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
 
   // Mobile Fullscreen Controller for KKPhim and NguonC
-  async function openNativeMobileFullscreen(enable) {
+  function openNativeMobileFullscreen(enable) {
+    const video = viewport?.querySelector('video');
+    const iframe = viewport?.querySelector('iframe');
+    const container = viewport?.querySelector('#TTPhim-player-wrapper') || viewport?.firstElementChild || viewport;
     const isCurrentlyFs = Boolean(
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
+      (video && video.webkitDisplayingFullscreen) ||
       viewport?.classList.contains('w-web-fullscreen')
     );
-    const video = viewport?.querySelector('video');
-    const isIphone = /iPhone|iPod/i.test(navigator.userAgent);
+    const isIphone = /iPhone|iPod/i.test(navigator.userAgent) ||
+                     (Boolean(video && video.webkitEnterFullscreen) && !/Android/i.test(navigator.userAgent));
     const should = enable !== undefined ? Boolean(enable) : !isCurrentlyFs;
 
     if (!should) {
@@ -195,24 +199,82 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.webkitExitFullscreen();
       }
       if (video) {
+        video.controls = false;
         if (video.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
           video.webkitExitFullscreen();
         }
       }
       toggleWebFullscreen(false);
+      unlockOrientation();
       return;
     }
 
-    // On iPhone: Try Apple native player for direct video streams
-    if (video && isIphone && video.webkitEnterFullscreen) {
-      try {
-        video.play().catch(() => {});
-        video.webkitEnterFullscreen();
-        return;
-      } catch (_) {}
+    // 1. KKPHIM (Direct <video> stream with HLS): Open DEFAULT VIDEOPLAYER
+    if (video) {
+      // iOS Safari (iPhone / iPad) -> Apple native AVPlayer
+      if (isIphone && video.webkitEnterFullscreen) {
+        try {
+          video.play().catch(() => {});
+          video.webkitEnterFullscreen();
+          return;
+        } catch (err) {
+          console.warn('iOS webkitEnterFullscreen failed:', err);
+        }
+      }
+
+      // Android Chrome & standard mobile browsers -> Default Native Videoplayer
+      if (video.requestFullscreen || video.webkitRequestFullscreen) {
+        try {
+          video.controls = true; // Enables native Android timeline, time, scrubber & gestures
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+          }
+          const req = video.requestFullscreen ? video.requestFullscreen() : video.webkitRequestFullscreen();
+          if (req && req.then) {
+            req.then(() => {
+              if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {});
+              }
+            }).catch(() => {
+              video.controls = false;
+              toggleWebFullscreen(true);
+            });
+          }
+          return;
+        } catch (err) {
+          console.warn('Native video fullscreen failed:', err);
+          video.controls = false;
+        }
+      }
+
+      // Fallback
+      toggleWebFullscreen(true);
+      return;
     }
 
-    // On Android & standard mobile: Use Web Fullscreen with guaranteed landscape auto-rotation!
+    // 2. NGUONC (Embedded Iframe stream that is not Song Ngữ)
+    if (iframe && !isSongNguActive()) {
+      if (container && (container.requestFullscreen || container.webkitRequestFullscreen)) {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+        const req = container.requestFullscreen ? container.requestFullscreen() : container.webkitRequestFullscreen();
+        if (req && req.then) {
+          req.then(() => {
+            if (screen.orientation && screen.orientation.lock) {
+              screen.orientation.lock('landscape').catch(() => {});
+            }
+          }).catch(() => {
+            toggleWebFullscreen(true);
+          });
+        }
+        return;
+      }
+      toggleWebFullscreen(true);
+      return;
+    }
+
+    // Fallback
     toggleWebFullscreen(true);
   }
 
@@ -620,6 +682,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (savedSpeed !== null) video.playbackRate = parseFloat(savedSpeed);
 
     container.appendChild(video);
+
+    // Sync when entering/exiting native fullscreen on mobile (iOS & Android)
+    video.addEventListener('webkitendfullscreen', () => {
+      video.controls = false;
+      unlockOrientation();
+      syncFullscreenUI();
+    });
+    video.addEventListener('fullscreenchange', syncFullscreenUI);
+    video.addEventListener('webkitfullscreenchange', syncFullscreenUI);
 
     // Fullscreen Back Button ("Quay lại") for M3u8/KKPhim Player
     const m3u8BackBtn = document.createElement('button');

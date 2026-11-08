@@ -758,12 +758,58 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       const isIphone = /iPhone|iPod/i.test(navigator.userAgent);
-      if (videoEl && !videoEl.classList.contains('hidden') && isIphone && videoEl.webkitEnterFullscreen) {
-        try {
-          videoEl.play().catch(() => {});
-          videoEl.webkitEnterFullscreen();
+      if (videoEl && !videoEl.classList.contains('hidden')) {
+        if (isIphone && videoEl.webkitEnterFullscreen) {
+          try {
+            videoEl.play().catch(() => {});
+            videoEl.webkitEnterFullscreen();
+            return;
+          } catch (_) {}
+        }
+
+        // On Android / Mobile: Open default native videoplayer
+        if (videoEl.requestFullscreen || videoEl.webkitRequestFullscreen) {
+          try {
+            videoEl.controls = true;
+            if (screen.orientation && screen.orientation.lock) {
+              screen.orientation.lock('landscape').catch(() => {});
+            }
+            const req = videoEl.requestFullscreen ? videoEl.requestFullscreen() : videoEl.webkitRequestFullscreen();
+            if (req && req.then) {
+              req.then(() => {
+                if (screen.orientation && screen.orientation.lock) {
+                  screen.orientation.lock('landscape').catch(() => {});
+                }
+              }).catch(() => {
+                videoEl.controls = false;
+                toggleWebFullscreen(true);
+              });
+            }
+            return;
+          } catch (_) {
+            videoEl.controls = false;
+          }
+        }
+      }
+
+      // If iframe (NguonC) on Android: enter real fullscreen so it locks landscape
+      if (iframeEl && !iframeEl.classList.contains('hidden') && !isSongNgu) {
+        if (playerWrapper && (playerWrapper.requestFullscreen || playerWrapper.webkitRequestFullscreen)) {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+          }
+          const req = playerWrapper.requestFullscreen ? playerWrapper.requestFullscreen() : playerWrapper.webkitRequestFullscreen();
+          if (req && req.then) {
+            req.then(() => {
+              if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {});
+              }
+            }).catch(() => {
+              toggleWebFullscreen(true);
+            });
+          }
           return;
-        } catch (_) {}
+        }
       }
 
       toggleWebFullscreen(true);
