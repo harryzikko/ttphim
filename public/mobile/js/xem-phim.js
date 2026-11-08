@@ -757,53 +757,69 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isPortrait = window.innerHeight > window.innerWidth;
 
       // KKPhim and NguonC: default videoplayer with auto-landscape
       if (videoEl && !videoEl.classList.contains('hidden')) {
         // KKPhim: use native videoplayer controls
         if (isIos && videoEl.webkitEnterFullscreen) {
-          videoEl.play().catch(() => {});
-          videoEl.webkitEnterFullscreen();
-          return;
+          try {
+            videoEl.play().catch(() => {});
+            videoEl.webkitEnterFullscreen();
+            return;
+          } catch (_) {}
         }
 
         videoEl.controls = true;
-        const req = videoEl.requestFullscreen ? videoEl.requestFullscreen() : (videoEl.webkitRequestFullscreen ? videoEl.webkitRequestFullscreen() : null);
-        lockLand();
-        if (req && req.then) {
-          req.then(() => {
-            lockLand();
-            setTimeout(lockLand, 100);
-            setTimeout(lockLand, 300);
-            setTimeout(lockLand, 600);
-          }).catch(() => {});
+        let entered = false;
+        try {
+          if (videoEl.requestFullscreen) {
+            await videoEl.requestFullscreen();
+            entered = true;
+          } else if (playerWrapper?.requestFullscreen) {
+            await playerWrapper.requestFullscreen();
+            entered = true;
+          } else if (videoEl.webkitRequestFullscreen) {
+            await videoEl.webkitRequestFullscreen();
+            entered = true;
+          }
+        } catch (_) {}
+
+        let locked = await lockLand();
+        setTimeout(lockLand, 150);
+        setTimeout(lockLand, 350);
+
+        if (!entered || (!locked && isPortrait)) {
+          playerWrapper?.classList.add('m-web-fullscreen');
+          document.body.classList.add('m-web-fs-active');
         }
-        setTimeout(lockLand, 100);
-        setTimeout(lockLand, 300);
-        setTimeout(lockLand, 600);
 
       } else if (iframeEl && !iframeEl.classList.contains('hidden')) {
         // NguonC
-        if (isIos) {
-          try { iframeEl.contentWindow?.postMessage({ type: 'request-fullscreen' }, '*'); } catch (_) {}
-          toggleWebFullscreen(true);
-          return;
-        }
+        let entered = false;
+        try {
+          if (iframeEl.requestFullscreen) {
+            await iframeEl.requestFullscreen();
+            entered = true;
+          } else if (playerWrapper?.requestFullscreen) {
+            await playerWrapper.requestFullscreen();
+            entered = true;
+          } else if (iframeEl.webkitRequestFullscreen) {
+            await iframeEl.webkitRequestFullscreen();
+            entered = true;
+          }
+        } catch (_) {}
 
-        const req = iframeEl.requestFullscreen ? iframeEl.requestFullscreen() : (iframeEl.webkitRequestFullscreen ? iframeEl.webkitRequestFullscreen() : null);
-        lockLand();
-        if (req && req.then) {
-          req.then(() => {
-            lockLand();
-            setTimeout(lockLand, 100);
-            setTimeout(lockLand, 300);
-            setTimeout(lockLand, 600);
-          }).catch(() => {});
+        let locked = await lockLand();
+        setTimeout(lockLand, 150);
+        setTimeout(lockLand, 350);
+
+        if (!entered || (!locked && isPortrait)) {
+          playerWrapper?.classList.add('m-web-fullscreen');
+          document.body.classList.add('m-web-fs-active');
         }
-        setTimeout(lockLand, 100);
-        setTimeout(lockLand, 300);
-        setTimeout(lockLand, 600);
       }
     });
   }

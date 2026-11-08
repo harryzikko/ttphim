@@ -133,8 +133,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isFs = Boolean(
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
-      (isSongNguActive() && viewport?.classList.contains('w-web-fullscreen'))
+      viewport?.classList.contains('w-web-fullscreen')
     );
+
+    const embedBackBtn = viewport?.querySelector('#btn-embed-back');
+    const m3u8BackBtn = viewport?.querySelector('#player-btn-fs-back');
 
     if (!isFs) {
       unlockOrientation();
@@ -146,9 +149,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (tb) tb.classList.remove('hidden');
       const gestures = viewport?.querySelector('.absolute.inset-0.z-10.flex');
       if (gestures) gestures.style.pointerEvents = '';
-      const exitFsBtn = viewport?.querySelector('#mobile-native-fs-exit');
-      if (exitFsBtn) exitFsBtn.classList.add('hidden');
+      viewport?.classList.remove('w-web-fullscreen');
+      document.body.classList.remove('w-web-fs-active');
+      if (embedBackBtn) { embedBackBtn.classList.add('hidden'); embedBackBtn.classList.remove('flex'); }
+      if (m3u8BackBtn) { m3u8BackBtn.classList.add('hidden'); m3u8BackBtn.classList.remove('flex'); }
     } else {
+      if (embedBackBtn) { embedBackBtn.classList.remove('hidden'); embedBackBtn.classList.add('flex'); }
+      if (m3u8BackBtn) { m3u8BackBtn.classList.remove('hidden'); m3u8BackBtn.classList.add('flex'); }
       if (document.fullscreenElement || document.webkitFullscreenElement) {
         lockOrientationLandscape().catch(() => {});
         setTimeout(lockOrientationLandscape, 100);
@@ -166,14 +173,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const exitBtn = viewport?.querySelector('#btn-embed-fs-exit');
     if (exitBtn) exitBtn.classList.toggle('hidden', true);
-
-    if (isSongNguActive()) {
-      viewport?.classList.toggle('w-web-fullscreen', isFs);
-      document.body.classList.toggle('w-web-fs-active', isFs);
-    } else {
-      viewport?.classList.remove('w-web-fullscreen');
-      document.body.classList.remove('w-web-fs-active');
-    }
   }
   document.addEventListener('fullscreenchange', syncFullscreenUI);
   document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
@@ -182,17 +181,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function openNativeMobileFullscreen(enable) {
     const isCurrentlyFs = Boolean(
       document.fullscreenElement ||
-      document.webkitFullscreenElement
+      document.webkitFullscreenElement ||
+      viewport?.classList.contains('w-web-fullscreen')
     );
     const video = viewport?.querySelector('video');
     const iframe = viewport?.querySelector('iframe');
-    const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const should = enable !== undefined ? Boolean(enable) : !isCurrentlyFs;
 
     const bottomBar = viewport?.querySelector('#player-controls-bottom');
     const topBar = viewport?.querySelector('#player-controls-top');
     const gestures = viewport?.querySelector('.absolute.inset-0.z-10.flex');
-    const exitFsBtn = viewport?.querySelector('#mobile-native-fs-exit');
+    const embedBackBtn = viewport?.querySelector('#btn-embed-back');
+    const m3u8BackBtn = viewport?.querySelector('#player-btn-fs-back');
 
     if (!should) {
       if (document.fullscreenElement) {
@@ -211,85 +213,113 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (bottomBar) bottomBar.classList.remove('hidden');
       if (topBar) topBar.classList.remove('hidden');
       if (gestures) gestures.style.pointerEvents = '';
-      if (exitFsBtn) exitFsBtn.classList.add('hidden');
+      if (embedBackBtn) { embedBackBtn.classList.add('hidden'); embedBackBtn.classList.remove('flex'); }
+      if (m3u8BackBtn) { m3u8BackBtn.classList.add('hidden'); m3u8BackBtn.classList.remove('flex'); }
 
       unlockOrientation();
       return;
     }
 
-    // --- ENTER FULLSCREEN: DEFAULT VIDEOPLAYER + AUTO ROTATE TO LANDSCAPE ---
+    // --- ENTER FULLSCREEN: AUTO ROTATE TO LANDSCAPE ---
+    try {
+      history.pushState({ cvFs: true }, '');
+    } catch (_) {}
+
     if (video) {
-      // KKPhim & direct streams: Use default videoplayer
-      if (isIos) {
-        // iOS Safari: Open native Apple AVPlayer directly
-        if (video.webkitEnterFullscreen) {
+      // KKPhim (HLS stream)
+      // 1. Try iOS native Apple AVPlayer
+      if (isIos && video.webkitEnterFullscreen) {
+        try {
           video.play().catch(() => {});
           video.webkitEnterFullscreen();
           return;
+        } catch (_) {}
+      }
+
+      // 2. Try native hardware fullscreen on container or video
+      const container = document.getElementById('TTPhim-player-wrapper') || video;
+      let enteredNative = false;
+
+      try {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+          enteredNative = true;
+        } else if (video.requestFullscreen) {
+          await video.requestFullscreen();
+          enteredNative = true;
+        } else if (container.webkitRequestFullscreen) {
+          await container.webkitRequestFullscreen();
+          enteredNative = true;
         }
+      } catch (_) {}
+
+      // Try orientation lock
+      let locked = await lockOrientationLandscape();
+      setTimeout(lockOrientationLandscape, 150);
+      setTimeout(lockOrientationLandscape, 350);
+
+      // If hardware fullscreen could not be entered, OR orientation lock failed in portrait:
+      // Guarantee horizontal view via CSS landscape rotation!
+      if (!enteredNative || (!locked && checkIsPortrait())) {
+        viewport?.classList.add('w-web-fullscreen');
+        document.body.classList.add('w-web-fs-active');
       }
 
-      // Android & mobile browsers:
-      // Enable native browser videoplayer controls
-      video.controls = true;
-      if (bottomBar) bottomBar.classList.add('hidden');
-      if (topBar) topBar.classList.add('hidden');
-      if (gestures) gestures.style.pointerEvents = 'none';
-
-      // Fullscreen directly on the <video> element (triggers browser's native video player)
-      const req = video.requestFullscreen
-        ? video.requestFullscreen()
-        : (video.webkitRequestFullscreen ? video.webkitRequestFullscreen() : null);
-
-      lockOrientationLandscape();
-      if (req && req.then) {
-        req.then(() => {
-          lockOrientationLandscape();
-          setTimeout(lockOrientationLandscape, 100);
-          setTimeout(lockOrientationLandscape, 300);
-          setTimeout(lockOrientationLandscape, 600);
-        }).catch(() => {});
+      if (m3u8BackBtn) {
+        m3u8BackBtn.classList.remove('hidden');
+        m3u8BackBtn.classList.add('flex');
       }
-      setTimeout(lockOrientationLandscape, 100);
-      setTimeout(lockOrientationLandscape, 300);
-      setTimeout(lockOrientationLandscape, 600);
       return;
 
     } else if (iframe) {
-      // NguonC embed stream: Open default videoplayer fullscreen with landscape
-      if (isIos) {
-        // iOS Safari: iframe cannot request fullscreen natively
+      // NguonC embed stream
+      let enteredNative = false;
+      try {
+        if (iframe.requestFullscreen) {
+          await iframe.requestFullscreen();
+          enteredNative = true;
+        } else if (iframe.webkitRequestFullscreen) {
+          await iframe.webkitRequestFullscreen();
+          enteredNative = true;
+        }
+      } catch (_) {}
+
+      if (!enteredNative) {
+        const container = iframe.parentElement || viewport;
         try {
-          iframe.contentWindow?.postMessage({ type: 'request-fullscreen' }, '*');
+          if (container?.requestFullscreen) {
+            await container.requestFullscreen();
+            enteredNative = true;
+          } else if (container?.webkitRequestFullscreen) {
+            await container.webkitRequestFullscreen();
+            enteredNative = true;
+          }
         } catch (_) {}
-        toggleWebFullscreen(true);
-        return;
       }
 
-      // Android & standard mobile: Native fullscreen on iframe
-      const req = iframe.requestFullscreen
-        ? iframe.requestFullscreen()
-        : (iframe.webkitRequestFullscreen ? iframe.webkitRequestFullscreen() : null);
+      let locked = await lockOrientationLandscape();
+      setTimeout(lockOrientationLandscape, 150);
+      setTimeout(lockOrientationLandscape, 350);
 
-      lockOrientationLandscape();
-      if (req && req.then) {
-        req.then(() => {
-          lockOrientationLandscape();
-          setTimeout(lockOrientationLandscape, 100);
-          setTimeout(lockOrientationLandscape, 300);
-          setTimeout(lockOrientationLandscape, 600);
-        }).catch(() => {});
+      // If hardware fullscreen failed OR orientation lock failed while in portrait:
+      // Guarantee horizontal view via CSS landscape rotation!
+      if (!enteredNative || (!locked && checkIsPortrait())) {
+        viewport?.classList.add('w-web-fullscreen');
+        document.body.classList.add('w-web-fs-active');
       }
-      setTimeout(lockOrientationLandscape, 100);
-      setTimeout(lockOrientationLandscape, 300);
-      setTimeout(lockOrientationLandscape, 600);
+
+      if (embedBackBtn) {
+        embedBackBtn.classList.remove('hidden');
+        embedBackBtn.classList.add('flex');
+      }
       return;
     }
   }
 
   function toggleWebFullscreen(enable) {
     if (!viewport) return;
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     if (isMobile && !isSongNguActive()) {
       openNativeMobileFullscreen(enable);
       return;
@@ -311,6 +341,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? 'px-3.5 py-1.5 rounded-full bg-red-600/90 hover:bg-red-700 text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all'
         : 'px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-primary-container text-white text-xs font-semibold backdrop-blur-md shadow-xl border border-white/20 flex items-center gap-1.5 active:scale-95 cursor-pointer select-none transition-all';
     }
+    const backBtn = viewport.querySelector('#btn-embed-back');
+    if (backBtn) {
+      backBtn.classList.toggle('hidden', !should);
+      backBtn.classList.toggle('flex', should);
+    }
     const chooseEpBtn = viewport.querySelector('#btn-embed-choose-ep');
     if (chooseEpBtn) chooseEpBtn.style.display = should ? 'flex' : 'none';
     const nextEpBtn = viewport.querySelector('#btn-embed-next-ep');
@@ -328,19 +363,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (should) {
       try {
-        if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch(() => {});
-        }
+        history.pushState({ cvFs: true }, '');
       } catch (_) {}
+      lockOrientationLandscape();
       if (window.showToast) window.showToast('Toàn màn hình');
     } else {
-      try {
-        if (screen.orientation && screen.orientation.unlock) {
-          screen.orientation.unlock();
-        }
-      } catch (_) {}
+      unlockOrientation();
     }
   }
+
+  window.addEventListener('popstate', () => {
+    if (viewport?.classList.contains('w-web-fullscreen') || document.fullscreenElement || document.webkitFullscreenElement) {
+      toggleWebFullscreen(false);
+      openNativeMobileFullscreen(false);
+    }
+  });
 
   window.addEventListener('message', (e) => {
     const iframe = viewport?.querySelector('iframe');
@@ -679,6 +716,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (savedSpeed !== null) video.playbackRate = parseFloat(savedSpeed);
 
     container.appendChild(video);
+
+    // Fullscreen Back Button ("Quay lại") for M3u8/KKPhim Player
+    const m3u8BackBtn = document.createElement('button');
+    m3u8BackBtn.id = 'player-btn-fs-back';
+    m3u8BackBtn.type = 'button';
+    m3u8BackBtn.className = 'absolute top-3 left-3 z-50 px-3 py-1.5 rounded-full bg-black/85 hover:bg-black text-white text-xs font-semibold backdrop-blur-md shadow-2xl border border-white/20 items-center gap-1.5 cursor-pointer active:scale-95 select-none transition-all hidden';
+    m3u8BackBtn.title = 'Quay lại';
+    m3u8BackBtn.innerHTML = `
+      <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+      <span>Quay lại</span>
+    `;
+    m3u8BackBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleFullscreen();
+    };
+    container.appendChild(m3u8BackBtn);
 
     // Click & Gesture Zones Overlay (behind controls, above video)
     const gestureOverlay = document.createElement('div');
@@ -1031,7 +1084,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Helper: Toggle Fullscreen
     function toggleFullscreen() {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       if (isMobile) {
         openNativeMobileFullscreen();
         return;
@@ -1053,9 +1107,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Update Fullscreen Icon on State Change
     function onFullscreenChange() {
-      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      const isFs = !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        viewport?.classList.contains('w-web-fullscreen')
+      );
       if (fullscreenIcon) {
         fullscreenIcon.innerText = isFs ? 'fullscreen_exit' : 'fullscreen';
+      }
+      const m3u8Back = container.querySelector('#player-btn-fs-back');
+      if (m3u8Back) {
+        m3u8Back.classList.toggle('hidden', !isFs);
+        m3u8Back.classList.toggle('flex', isFs);
       }
       if (!isFs) {
         video.controls = false;
@@ -1714,6 +1777,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Quick Controls Bar: Only on Mobile, single clean button (PC uses player native controls)
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const isNowFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement || viewport.classList.contains('w-web-fullscreen'));
+
+    // Dedicated Fullscreen Back Button ("Quay lại") for Song Ngữ & NguonC
+    const backBtn = document.createElement('button');
+    backBtn.id = 'btn-embed-back';
+    backBtn.type = 'button';
+    backBtn.className = `absolute top-3 left-3 z-50 px-3 py-1.5 rounded-full bg-black/85 hover:bg-black text-white text-xs font-semibold backdrop-blur-md shadow-2xl border border-white/20 items-center gap-1.5 cursor-pointer active:scale-95 select-none transition-all ${isNowFs ? 'flex' : 'hidden'}`;
+    backBtn.title = 'Quay lại';
+    backBtn.innerHTML = `
+      <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+      <span>Quay lại</span>
+    `;
+    backBtn.onclick = (e) => {
+      e.stopPropagation();
+      manualFullscreenToggleTime = Date.now();
+      toggleWebFullscreen(false);
+      openNativeMobileFullscreen(false);
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+      unlockOrientation();
+    };
+    container.appendChild(backBtn);
 
     const quickBar = document.createElement('div');
     quickBar.id = 'embed-quick-bar';
