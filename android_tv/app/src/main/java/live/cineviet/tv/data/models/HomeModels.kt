@@ -18,6 +18,8 @@ data class MovieItem(
     @SerializedName("id") val id: String? = null,
     @SerializedName("name") val name: String = "",
     @SerializedName("slug") val slug: String = "",
+    @SerializedName("movie_slug") val movieSlug: String? = null,
+    @SerializedName("movie_name") val movieName: String? = null,
     @SerializedName("origin_name") val originName: String? = null,
     @SerializedName("poster_url") val posterUrl: String? = null,
     @SerializedName("thumb_url") val thumbUrl: String? = null,
@@ -33,6 +35,12 @@ data class MovieItem(
     @SerializedName("has_song_ngu") val rawHasSongNgu: Boolean? = null,
     @SerializedName("hasSongNgu") val altHasSongNgu: Boolean? = null
 ) {
+    val effectiveSlug: String
+        get() = if (slug.isNotBlank()) slug else (movieSlug ?: "")
+
+    val effectiveName: String
+        get() = if (name.isNotBlank()) name else (movieName ?: "")
+
     val hasSongNgu: Boolean
         get() = rawHasSongNgu == true ||
                 altHasSongNgu == true ||
@@ -57,6 +65,8 @@ data class SpotlightMovie(
     @SerializedName("id") val id: String? = null,
     @SerializedName("name") val name: String = "",
     @SerializedName("slug") val slug: String = "",
+    @SerializedName("banner_title") val bannerTitle: String? = null,
+    @SerializedName("banner_description") val bannerDescription: String? = null,
     @SerializedName("origin_name") val originName: String? = null,
     @SerializedName("type") val type: String? = null,
     @SerializedName("poster_url") val posterUrl: String? = null,
@@ -77,6 +87,11 @@ data class SpotlightMovie(
     @SerializedName("trailer_url") val trailerUrl: String? = null,
     @SerializedName("cta_label") val ctaLabel: String? = null
 ) {
+    val displayName: String
+        get() = bannerTitle?.takeIf { it.isNotBlank() } ?: name
+
+    val displayContent: String
+        get() = bannerDescription?.takeIf { it.isNotBlank() } ?: content ?: ""
     private fun sanitizeTmdb(url: String?): String {
         if (url.isNullOrBlank()) return ""
         // Replace 4K TMDB "original" image with 1080p/720p "w1280" to save memory and avoid TV timeout

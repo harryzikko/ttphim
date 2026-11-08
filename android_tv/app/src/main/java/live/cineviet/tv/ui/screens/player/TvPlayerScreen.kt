@@ -323,7 +323,7 @@ fun TvPlayerScreen(
                         }
 
                         KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                            if (!showControls && !showEpisodeDrawer) {
+                            if (!showEpisodeDrawer) {
                                 showControls = true
                                 isSeekingContinuous = true
                                 continuousSeekDelta += 10L
@@ -332,7 +332,7 @@ fun TvPlayerScreen(
                         }
 
                         KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                            if (!showControls && !showEpisodeDrawer) {
+                            if (!showEpisodeDrawer) {
                                 showControls = true
                                 isSeekingContinuous = true
                                 continuousSeekDelta -= 10L
@@ -341,9 +341,14 @@ fun TvPlayerScreen(
                         }
 
                         KeyEvent.KEYCODE_DPAD_UP -> {
-                            if (!showControls && !showEpisodeDrawer) {
-                                showControls = true
-                                playFocusRequester.requestFocus()
+                            if (!showEpisodeDrawer) {
+                                if (!showControls) {
+                                    showControls = true
+                                    playFocusRequester.requestFocus()
+                                } else {
+                                    showControls = false
+                                    playerFocusRequester.requestFocus()
+                                }
                                 return@onKeyEvent true
                             }
                         }
@@ -481,8 +486,7 @@ fun TvPlayerScreen(
                                     color = if (isBackFocused) Color.White else Color.White.copy(alpha = 0.2f),
                                     shape = CircleShape
                                 )
-                                .focusable(interactionSource = backSource)
-                                .clickable(interactionSource = backSource, indication = null) { onBack() },
+                                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onBack() },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -838,6 +842,41 @@ fun TvPlayerScreen(
                                     )
                                     .padding(horizontal = 26.dp)
                                     .focusable(interactionSource = playSource)
+                                    .onKeyEvent { keyEvent ->
+                                        if (keyEvent.type == KeyEventType.KeyDown) {
+                                            when (keyEvent.nativeKeyEvent.keyCode) {
+                                                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                                                    isSeekingContinuous = true
+                                                    continuousSeekDelta -= 10L
+                                                    return@onKeyEvent true
+                                                }
+                                                KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                                                    isSeekingContinuous = true
+                                                    continuousSeekDelta += 10L
+                                                    return@onKeyEvent true
+                                                }
+                                                KeyEvent.KEYCODE_DPAD_UP -> {
+                                                    showControls = false
+                                                    playerFocusRequester.requestFocus()
+                                                    return@onKeyEvent true
+                                                }
+                                            }
+                                        } else if (keyEvent.type == KeyEventType.KeyUp) {
+                                            when (keyEvent.nativeKeyEvent.keyCode) {
+                                                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND,
+                                                KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                                                    if (isSeekingContinuous && continuousSeekDelta != 0L) {
+                                                        val target = (currentPosition + continuousSeekDelta * 1000L).coerceIn(0L, duration)
+                                                        exoPlayer.seekTo(target)
+                                                        isSeekingContinuous = false
+                                                        continuousSeekDelta = 0L
+                                                        return@onKeyEvent true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        false
+                                    }
                                     .clickable(interactionSource = playSource, indication = null) {
                                         if (isPlaying) exoPlayer.pause() else exoPlayer.play()
                                     },
@@ -905,6 +944,12 @@ fun TvPlayerScreen(
                                         )
                                         .padding(horizontal = 18.dp)
                                         .focusable(interactionSource = nextSource)
+                                        .onKeyEvent { event ->
+                                            if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                                                playFocusRequester.requestFocus()
+                                                true
+                                            } else false
+                                        }
                                         .clickable(interactionSource = nextSource, indication = null) {
                                             playEpisode(nextEpisode)
                                         },
@@ -951,6 +996,12 @@ fun TvPlayerScreen(
                                 )
                                 .padding(horizontal = 18.dp)
                                 .focusable(interactionSource = epsSource)
+                                .onKeyEvent { event ->
+                                    if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                                        playFocusRequester.requestFocus()
+                                        true
+                                    } else false
+                                }
                                 .clickable(interactionSource = epsSource, indication = null) {
                                     showEpisodeDrawer = !showEpisodeDrawer
                                 },

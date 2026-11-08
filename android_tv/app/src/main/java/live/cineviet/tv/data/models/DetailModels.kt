@@ -32,8 +32,15 @@ data class MovieDetail(
     @SerializedName("category") val category: List<CategoryItem>? = emptyList(),
     @SerializedName("country") val country: List<CountryItem>? = emptyList(),
     @SerializedName("tmdb_cast") val tmdbCast: List<TmdbCast>? = emptyList(),
-    @SerializedName("tmdb_directors") val tmdbDirectors: List<TmdbDirector>? = emptyList()
+    @SerializedName("tmdb_directors") val tmdbDirectors: List<TmdbDirector>? = emptyList(),
+    @SerializedName("credits") val credits: CreditsData? = null
 ) {
+    val allCast: List<TmdbCast>
+        get() = if (!tmdbCast.isNullOrEmpty()) tmdbCast else (credits?.cast ?: emptyList())
+
+    val allDirectors: List<TmdbDirector>
+        get() = if (!tmdbDirectors.isNullOrEmpty()) tmdbDirectors else (credits?.directors ?: emptyList())
+
     fun getBackdrop(): String {
         val candidate = thumbUrl ?: posterUrl ?: ""
         if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate
@@ -110,6 +117,11 @@ data class TmdbDirector(
             return ""
         }
 }
+
+data class CreditsData(
+    @SerializedName("cast") val cast: List<TmdbCast>? = emptyList(),
+    @SerializedName("directors") val directors: List<TmdbDirector>? = emptyList()
+)
 
 data class EpisodeServer(
     @SerializedName("server_name") val serverName: String = "",

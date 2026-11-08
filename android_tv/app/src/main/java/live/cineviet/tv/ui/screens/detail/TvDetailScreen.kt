@@ -672,9 +672,7 @@ fun TvDetailScreen(
             }
 
             // Real TMDb Cast & Director Section (Circular Avatars)
-            val castList = if (!movie.tmdbCast.isNullOrEmpty()) {
-                movie.tmdbCast
-            } else {
+            val castList = movie.allCast.ifEmpty {
                 movie.actor?.map { actorName ->
                     TmdbCast(
                         name = actorName,
@@ -683,9 +681,7 @@ fun TvDetailScreen(
                 } ?: emptyList()
             }
 
-            val directorList = if (!movie.tmdbDirectors.isNullOrEmpty()) {
-                movie.tmdbDirectors
-            } else {
+            val directorList = movie.allDirectors.ifEmpty {
                 movie.director?.map { dirName ->
                     TmdbDirector(
                         name = dirName,

@@ -92,29 +92,6 @@ fun TvMovieCard(
                 }
             }
 
-            // Top-Right Song Ngữ Badge (when movie has bilingual server)
-            if (movie.hasSongNgu) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(CineVietGold, Color(0xFFD97706))
-                            ),
-                            RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "Song Ngữ",
-                        color = Color.Black,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
-
             // Bottom Gradient Scrim for text readability
             Box(
                 modifier = Modifier
@@ -133,7 +110,7 @@ fun TvMovieCard(
 
         // Title
         Text(
-            text = movie.name,
+            text = movie.effectiveName,
             color = if (isFocused) CineVietRedLight else Color.White,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,

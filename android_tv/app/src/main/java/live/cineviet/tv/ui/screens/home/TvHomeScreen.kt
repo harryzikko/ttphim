@@ -13,12 +13,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +68,8 @@ fun TvHomeScreen(
 
     // User Continue Watching list
     var continueWatchingList by remember { mutableStateOf<List<WatchHistoryItem>>(emptyList()) }
+    var selectedContinueItem by remember { mutableStateOf<WatchHistoryItem?>(null) }
+    val listState = rememberLazyListState()
 
     // Full 40-movie catalog for Phim bộ & Phim lẻ tabs
     var catalogMovies by remember { mutableStateOf<List<MovieItem>>(emptyList()) }
@@ -245,45 +252,52 @@ fun TvHomeScreen(
     }
 
     // MAIN EXPLORE HOME FEED (Nocturne Cinema Layout + CineViet Red Theme)
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(TvBackground)
-            .padding(bottom = 36.dp),
-        verticalArrangement = Arrangement.spacedBy(32.dp)
-    ) {
-        // 1. IMMERSIVE HERO BILLBOARD BANNER
-        if (data.spotlights.isNotEmpty()) {
-            item {
-                TvSpotlightHero(
-                    spotlights = data.spotlights,
-                    onPlayClick = { slug, ep -> onPlayClick(slug, ep) },
-                    onDetailClick = { slug -> onMovieClick(slug) }
-                )
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(TvBackground)
+                .padding(bottom = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp)
+        ) {
+            // 1. IMMERSIVE HERO BILLBOARD BANNER
+            if (data.spotlights.isNotEmpty()) {
+                item {
+                    TvSpotlightHero(
+                        spotlights = data.spotlights,
+                        onPlayClick = { slug, ep -> onPlayClick(slug, ep) },
+                        onDetailClick = { slug -> onMovieClick(slug) },
+                        onFocused = {
+                            scope.launch {
+                                listState.animateScrollToItem(0, 0)
+                            }
+                        }
+                    )
+                }
             }
-        }
 
-        // 2. TIẾP TỤC XEM (CONTINUE WATCHING) ROW
-        if (continueWatchingList.isNotEmpty()) {
-            item {
-                TvMovieSection(
-                    title = "Tiếp Tục Xem",
-                    subtitle = "XEM TIẾP DỞ DANG"
-                ) {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(horizontal = 36.dp)
+            // 2. TIẾP TỤC XEM (CONTINUE WATCHING) ROW
+            if (continueWatchingList.isNotEmpty()) {
+                item {
+                    TvMovieSection(
+                        title = "Tiếp Tục Xem",
+                        subtitle = "XEM TIẾP DỞ DANG"
                     ) {
-                        items(continueWatchingList) { item ->
-                            TvContinueWatchingCard(
-                                item = item,
-                                onClick = { onPlayClick(item.movieSlug, item.episodeSlug) }
-                            )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(horizontal = 36.dp)
+                        ) {
+                            items(continueWatchingList) { item ->
+                                TvContinueWatchingCard(
+                                    item = item,
+                                    onClick = { selectedContinueItem = item }
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
         // 3. TOP TRENDING TODAY / BẢNG XẾP HẠNG (Netflix Style Poster Rail with Big Rank Overlay)
         if (data.rankings.isNotEmpty()) {
@@ -368,6 +382,31 @@ fun TvHomeScreen(
             }
         }
     }
+
+    if (selectedContinueItem != null) {
+        val continueItem = selectedContinueItem!!
+        TvContinueActionDialog(
+            item = continueItem,
+            onResume = {
+                val slug = continueItem.movieSlug
+                val ep = continueItem.episodeSlug
+                selectedContinueItem = null
+                onPlayClick(slug, ep)
+            },
+            onDelete = {
+                val slug = continueItem.movieSlug
+                scope.launch {
+                    repository.removeFromHistory(slug)
+                    continueWatchingList = continueWatchingList.filter { it.movieSlug != slug }
+                }
+                selectedContinueItem = null
+            },
+            onDismiss = {
+                selectedContinueItem = null
+            }
+        )
+    }
+}
 }
 
 @Composable
@@ -489,7 +528,8 @@ fun TvContinueWatchingCard(
 fun TvSpotlightHero(
     spotlights: List<SpotlightMovie>,
     onPlayClick: (String, String?) -> Unit,
-    onDetailClick: (String) -> Unit
+    onDetailClick: (String) -> Unit,
+    onFocused: () -> Unit = {}
 ) {
     var currentIndex by remember { mutableStateOf(0) }
     val currentMovie = spotlights.getOrNull(currentIndex) ?: return
@@ -499,6 +539,12 @@ fun TvSpotlightHero(
 
     val detailSource = remember { MutableInteractionSource() }
     val isDetailFocused by detailSource.collectIsFocusedAsState()
+
+    LaunchedEffect(isPlayFocused, isDetailFocused) {
+        if (isPlayFocused || isDetailFocused) {
+            onFocused()
+        }
+    }
 
     // Auto-advance carousel every 7s if not interacting with action buttons
     LaunchedEffect(isPlayFocused, isDetailFocused, spotlights.size) {
@@ -655,7 +701,7 @@ fun TvSpotlightHero(
 
             // Main Title
             Text(
-                text = currentMovie.name,
+                text = currentMovie.displayName,
                 color = Color.White,
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Black,
@@ -679,9 +725,9 @@ fun TvSpotlightHero(
             Spacer(modifier = Modifier.height(10.dp))
 
             // Synopsis
-            if (!currentMovie.content.isNullOrBlank()) {
+            if (currentMovie.displayContent.isNotBlank()) {
                 Text(
-                    text = currentMovie.content,
+                    text = currentMovie.displayContent,
                     color = TvOnSurface.copy(alpha = 0.85f),
                     fontSize = 13.sp,
                     maxLines = 2,
@@ -813,6 +859,12 @@ fun TvSpotlightHero(
                 val thumbSource = remember { MutableInteractionSource() }
                 val isThumbFocused by thumbSource.collectIsFocusedAsState()
 
+                LaunchedEffect(isThumbFocused) {
+                    if (isThumbFocused) {
+                        onFocused()
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .width(if (isSelected) 48.dp else 38.dp)
@@ -909,6 +961,165 @@ fun TvMovieRow(
                 movie = movie,
                 onClick = { onMovieClick(movie.slug) }
             )
+        }
+    }
+}
+
+@Composable
+fun TvContinueActionDialog(
+    item: WatchHistoryItem,
+    onResume: () -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val resumeSource = remember { MutableInteractionSource() }
+    val isResumeFocused by resumeSource.collectIsFocusedAsState()
+
+    val deleteSource = remember { MutableInteractionSource() }
+    val isDeleteFocused by deleteSource.collectIsFocusedAsState()
+
+    val dismissSource = remember { MutableInteractionSource() }
+    val isDismissFocused by dismissSource.collectIsFocusedAsState()
+
+    val resumeRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        delay(120)
+        try { resumeRequester.requestFocus() } catch (_: Exception) {}
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.85f))
+            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() }
+            .onKeyEvent { event ->
+                if (event.nativeKeyEvent.action == android.view.KeyEvent.ACTION_DOWN) {
+                    if (event.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_BACK ||
+                        event.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ESCAPE
+                    ) {
+                        onDismiss()
+                        return@onKeyEvent true
+                    }
+                }
+                false
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .width(480.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(TvSurfaceContainer)
+                .border(1.5.dp, CineVietRed.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = item.movieName.ifBlank { item.movieSlug },
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val epInfo = item.episodeName?.let { "Đang xem: $it" } ?: "Đang xem dở dang"
+            val pctInfo = (item.progressPercent as? Number)?.toInt()?.let { " • Đã xem $it%" } ?: ""
+            Text(
+                text = "$epInfo$pctInfo",
+                color = TvOnSurfaceVariant,
+                fontSize = 13.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Action 1: Resume Playing
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .focusRequester(resumeRequester)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isResumeFocused) CineVietRed else TvSurfaceHigh)
+                    .border(2.dp, if (isResumeFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+                    .focusable(interactionSource = resumeSource)
+                    .clickable(interactionSource = resumeSource, indication = null) { onResume() },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Xem Tiếp",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Action 2: Delete from Continue Watching
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isDeleteFocused) Color(0xFF93000A) else TvSurfaceHigh)
+                    .border(2.dp, if (isDeleteFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+                    .focusable(interactionSource = deleteSource)
+                    .clickable(interactionSource = deleteSource, indication = null) { onDelete() },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Xóa Khỏi Danh Sách Tiếp Tục Xem",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Action 3: Cancel / Dismiss
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isDismissFocused) TvSurfaceHighest else Color.Transparent)
+                    .border(1.dp, if (isDismissFocused) Color.White else Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .focusable(interactionSource = dismissSource)
+                    .clickable(interactionSource = dismissSource, indication = null) { onDismiss() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Đóng",
+                    color = TvOnSurfaceVariant,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }

@@ -47,6 +47,11 @@ interface CineVietApiService {
         @Body data: Map<String, @JvmSuppressWildcards Any>
     ): Response<ApiResponse<Any>>
 
+    @POST("user/history/remove")
+    suspend fun removeFromHistory(
+        @Body data: Map<String, @JvmSuppressWildcards Any>
+    ): Response<ApiResponse<Any>>
+
     @POST("user/watchlist/toggle")
     suspend fun toggleWatchlist(
         @Body data: Map<String, @JvmSuppressWildcards Any>

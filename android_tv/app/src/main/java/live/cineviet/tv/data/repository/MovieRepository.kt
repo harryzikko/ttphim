@@ -115,6 +115,19 @@ class MovieRepository {
         } catch (_: Exception) {}
     }
 
+    suspend fun removeFromHistory(movieSlug: String): Result<Unit> {
+        return try {
+            val response = api.removeFromHistory(mapOf("movie_slug" to movieSlug))
+            if (response.isSuccessful && response.body()?.status == true) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Lỗi xóa phim khỏi danh sách tiếp tục xem"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun toggleWatchlist(
         movieSlug: String,
         movieName: String,

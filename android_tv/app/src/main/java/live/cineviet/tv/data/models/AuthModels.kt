@@ -25,4 +25,12 @@ data class UserDto(
     @SerializedName("email") val email: String? = null,
     @SerializedName("role") val role: String? = null,
     @SerializedName("avatar") val avatar: String? = null
-)
+) {
+    val displayAvatar: String
+        get() {
+            if (avatar.isNullOrBlank()) return ""
+            if (avatar.startsWith("http://") || avatar.startsWith("https://")) return avatar
+            val clean = if (avatar.startsWith("/")) avatar else "/$avatar"
+            return "https://cineviet.live$clean"
+        }
+}

@@ -37,7 +37,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.SubcomposeAsyncImage
+import kotlinx.coroutines.launch
 import live.cineviet.tv.data.local.TvSessionManager
+import live.cineviet.tv.data.models.MovieItem
+import live.cineviet.tv.data.repository.MovieRepository
+import live.cineviet.tv.ui.components.TvLoadingSpinner
+import live.cineviet.tv.ui.components.TvMovieCard
 import live.cineviet.tv.ui.navigation.TvScreen
 import live.cineviet.tv.ui.screens.auth.TvLoginScreen
 import live.cineviet.tv.ui.screens.home.TvHomeScreen
@@ -205,15 +215,45 @@ fun TvMainScreen(
                         Box(
                             modifier = Modifier
                                 .size(30.dp)
+                                .clip(CircleShape)
                                 .background(TvSurfaceHighest, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = (user?.name?.firstOrNull() ?: 'K').toString().uppercase(),
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            if (!user?.displayAvatar.isNullOrBlank()) {
+                                SubcomposeAsyncImage(
+                                    model = user!!.displayAvatar,
+                                    contentDescription = user.name,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    loading = {
+                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = (user.name?.firstOrNull() ?: 'U').toString().uppercase(),
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    },
+                                    error = {
+                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = (user.name?.firstOrNull() ?: 'U').toString().uppercase(),
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                )
+                            } else {
+                                Text(
+                                    text = (user?.name?.firstOrNull() ?: 'K').toString().uppercase(),
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -272,6 +312,7 @@ fun TvMainScreen(
                     if (sessionManager.isLoggedIn()) {
                         TvAccountInfoScreen(
                             sessionManager = sessionManager,
+                            onNavigateToDetail = onNavigateToDetail,
                             onLoggedOut = { selectedTab = TvNavTab.HOME }
                         )
                     } else {
@@ -290,71 +331,172 @@ fun TvMainScreen(
 @Composable
 fun TvAccountInfoScreen(
     sessionManager: TvSessionManager,
+    onNavigateToDetail: (String) -> Unit,
     onLoggedOut: () -> Unit
 ) {
     val user = sessionManager.getUser()
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    val repository = remember { MovieRepository() }
+    var watchlist by remember { mutableStateOf<List<MovieItem>>(emptyList()) }
+    var isLoadingWatchlist by remember { mutableStateOf(true) }
 
-    Column(
+    val logoutSource = remember { MutableInteractionSource() }
+    val isLogoutFocused by logoutSource.collectIsFocusedAsState()
+
+    LaunchedEffect(Unit) {
+        val result = repository.getUserLibrary()
+        result.onSuccess { lib ->
+            watchlist = lib.watchlist
+        }
+        isLoadingWatchlist = false
+    }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(48.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 48.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(32.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(CineVietRed, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = (user?.name?.firstOrNull() ?: 'U').toString().uppercase(),
-                color = Color.White,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = user?.name ?: "Khán giả CineViet",
-            color = Color.White,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        if (!user?.email.isNullOrBlank()) {
-            Text(
-                text = user?.email!!,
-                color = TvOnSurfaceVariant,
-                fontSize = 14.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .background(if (isFocused) CineVietRed else TvSurfaceHigh)
-                .border(2.dp, if (isFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
-                .focusable(interactionSource = interactionSource)
-                .clickable(interactionSource = interactionSource, indication = null) {
-                    sessionManager.logout()
-                    onLoggedOut()
+        // 1. User Profile Header
+        item {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(CineVietRed, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!user?.displayAvatar.isNullOrBlank()) {
+                        SubcomposeAsyncImage(
+                            model = user!!.displayAvatar,
+                            contentDescription = user.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            loading = {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = (user.name?.firstOrNull() ?: 'U').toString().uppercase(),
+                                        color = Color.White,
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            },
+                            error = {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = (user.name?.firstOrNull() ?: 'U').toString().uppercase(),
+                                        color = Color.White,
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        )
+                    } else {
+                        Text(
+                            text = (user?.name?.firstOrNull() ?: 'U').toString().uppercase(),
+                            color = Color.White,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-                .padding(horizontal = 28.dp, vertical = 14.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Đăng xuất tài khoản",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = user?.name ?: "Khán giả CineViet",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (!user?.email.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = user.email!!,
+                            color = TvOnSurfaceVariant,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isLogoutFocused) CineVietRed else TvSurfaceHigh)
+                        .border(2.dp, if (isLogoutFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+                        .focusable(interactionSource = logoutSource)
+                        .clickable(interactionSource = logoutSource, indication = null) {
+                            sessionManager.logout()
+                            onLoggedOut()
+                        }
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Đăng xuất tài khoản",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // 2. Favorites Section (Watchlist)
+        item {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Danh Sách Yêu Thích (${watchlist.size} phim)",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (isLoadingWatchlist) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        TvLoadingSpinner()
+                    }
+                } else if (watchlist.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Chưa có phim nào trong danh sách yêu thích.\nHãy nhấn biểu tượng trái tim ở trang chi tiết phim để lưu vào đây!",
+                            color = TvOnSurfaceVariant,
+                            fontSize = 14.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            lineHeight = 22.sp
+                        )
+                    }
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(watchlist) { movie ->
+                            TvMovieCard(
+                                movie = movie,
+                                onClick = { onNavigateToDetail(movie.effectiveSlug) }
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
