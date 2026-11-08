@@ -686,7 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Fullscreen button
   if (fullscreenBtn) {
-    fullscreenBtn.addEventListener('click', (e) => {
+    fullscreenBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const sName = (allServers[currentServerIndex]?.server_name || '').toLowerCase();
       const currentEp = currentEpisodes[currentEpIndex];
@@ -698,19 +698,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
       if (document.fullscreenElement || document.webkitFullscreenElement) {
-        if (document.exitFullscreen) document.exitFullscreen();
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         if (videoEl) videoEl.controls = false;
         try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (_) {}
         return;
       }
-
-      // Auto-rotate to landscape
-      try {
-        if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch(() => {});
-        }
-      } catch (_) {}
 
       if (isSongNgu) {
         // Song Ngữ: keep opening old way
@@ -718,33 +711,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      // KKPhim and NguonC: default videoplayer / native fullscreen
-      const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (videoEl && !videoEl.classList.contains('hidden')) {
-        // KKPhim
-        if (isIos && videoEl.webkitEnterFullscreen) {
-          videoEl.play().catch(() => {});
-          videoEl.webkitEnterFullscreen();
-        } else {
-          videoEl.controls = true;
-          if (videoEl.requestFullscreen) {
-            videoEl.requestFullscreen().catch(() => {
-              playerWrapper?.requestFullscreen?.().catch(() => {});
-            });
-          } else if (videoEl.webkitRequestFullscreen) {
-            videoEl.webkitRequestFullscreen();
+      // Helper for orientation lock
+      const lockLand = async () => {
+        if (screen.orientation && screen.orientation.lock) {
+          try { await screen.orientation.lock('landscape'); return true; } catch (_) {
+            try { await screen.orientation.lock('landscape-primary'); return true; } catch (_) { return false; }
           }
+        }
+        return false;
+      };
+
+      // KKPhim and NguonC: default videoplayer with auto-landscape
+      const isPortrait = window.innerHeight > window.innerWidth;
+      let locked = false;
+
+      if (videoEl && !videoEl.classList.contains('hidden')) {
+        // KKPhim: use native videoplayer controls
+        videoEl.controls = true;
+        const req = playerWrapper?.requestFullscreen ? playerWrapper.requestFullscreen() : (videoEl.requestFullscreen ? videoEl.requestFullscreen() : null);
+        if (req && req.then) {
+          try {
+            await req;
+            locked = await lockLand();
+          } catch (_) {}
+        } else {
+          locked = await lockLand();
+        }
+
+        // If orientation lock didn't rotate (or on iOS), use CSS rotation
+        if (!locked || isPortrait) {
+          playerWrapper?.classList.add('m-web-fullscreen');
+          document.body.classList.add('m-web-fs-active');
         }
       } else if (iframeEl && !iframeEl.classList.contains('hidden')) {
         // NguonC
-        if (iframeEl.requestFullscreen) {
-          iframeEl.requestFullscreen().catch(() => {
-            playerWrapper?.requestFullscreen?.().catch(() => {});
-          });
-        } else if (iframeEl.webkitRequestFullscreen) {
-          iframeEl.webkitRequestFullscreen();
-        } else if (playerWrapper?.requestFullscreen) {
-          playerWrapper.requestFullscreen().catch(() => {});
+        const req = iframeEl.requestFullscreen ? iframeEl.requestFullscreen() : (playerWrapper?.requestFullscreen ? playerWrapper.requestFullscreen() : null);
+        if (req && req.then) {
+          try {
+            await req;
+            locked = await lockLand();
+          } catch (_) {}
+        } else {
+          locked = await lockLand();
+        }
+
+        if (!locked || isPortrait) {
+          playerWrapper?.classList.add('m-web-fullscreen');
+          document.body.classList.add('m-web-fs-active');
         }
       }
     });

@@ -90,8 +90,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     return Boolean(s?.is_nguonc || s?.server_type === 'nguonc' || sName.includes('nguonc') || linkEmbed.includes('streamc') || linkEmbed.includes('nguonc'));
   }
 
+  // Helper: Lock orientation to landscape across mobile browsers
+  async function lockOrientationLandscape() {
+    if (screen.orientation && screen.orientation.lock) {
+      try {
+        await screen.orientation.lock('landscape');
+        return true;
+      } catch (_) {
+        try {
+          await screen.orientation.lock('landscape-primary');
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+
   function syncFullscreenUI() {
-    const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    const isFs = Boolean(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      viewport?.classList.contains('w-web-fullscreen')
+    );
+
     if (!isFs) {
       try {
         if (screen.orientation && screen.orientation.unlock) {
@@ -100,7 +123,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (_) {}
       const v = viewport?.querySelector('video');
       if (v) v.controls = false;
+      const bb = viewport?.querySelector('#player-controls-bottom');
+      if (bb) bb.classList.remove('hidden');
+      const tb = viewport?.querySelector('#player-controls-top');
+      if (tb) tb.classList.remove('hidden');
+      const gestures = viewport?.querySelector('.absolute.inset-0.z-10.flex');
+      if (gestures) gestures.style.pointerEvents = '';
+      const exitFsBtn = viewport?.querySelector('#mobile-native-fs-exit');
+      if (exitFsBtn) exitFsBtn.classList.add('hidden');
+    } else {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        lockOrientationLandscape().catch(() => {});
+      }
     }
+
     const embedFsBtn = viewport?.querySelector('#btn-embed-fs');
     if (embedFsBtn) {
       const textSpan = embedFsBtn.querySelector('span:last-child');
@@ -111,25 +147,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     const exitBtn = viewport?.querySelector('#btn-embed-fs-exit');
     if (exitBtn) exitBtn.classList.toggle('hidden', true);
 
-    // Only apply pseudo-fullscreen (w-web-fullscreen) for Song Ngữ server!
     if (isSongNguActive()) {
       viewport?.classList.toggle('w-web-fullscreen', isFs);
       document.body.classList.toggle('w-web-fs-active', isFs);
-    } else {
-      viewport?.classList.remove('w-web-fullscreen');
-      document.body.classList.remove('w-web-fs-active');
     }
   }
   document.addEventListener('fullscreenchange', syncFullscreenUI);
   document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
 
   // Native Mobile Fullscreen Controller for KKPhim and NguonC
-  function openNativeMobileFullscreen(enable) {
-    const isCurrentlyFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  async function openNativeMobileFullscreen(enable) {
+    const isCurrentlyFs = Boolean(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      viewport?.classList.contains('w-web-fullscreen')
+    );
     const video = viewport?.querySelector('video');
     const iframe = viewport?.querySelector('iframe');
     const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const should = enable !== undefined ? Boolean(enable) : !(isCurrentlyFs || (isIos && video?.webkitDisplayingFullscreen));
+    const should = enable !== undefined ? Boolean(enable) : !isCurrentlyFs;
+
+    const bottomBar = viewport?.querySelector('#player-controls-bottom');
+    const topBar = viewport?.querySelector('#player-controls-top');
+    const gestures = viewport?.querySelector('.absolute.inset-0.z-10.flex');
+    let exitFsBtn = viewport?.querySelector('#mobile-native-fs-exit');
 
     if (!should) {
       if (document.fullscreenElement) {
@@ -143,6 +184,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           video.webkitExitFullscreen();
         }
       }
+      viewport?.classList.remove('w-web-fullscreen');
+      document.body.classList.remove('w-web-fs-active');
+      if (bottomBar) bottomBar.classList.remove('hidden');
+      if (topBar) topBar.classList.remove('hidden');
+      if (gestures) gestures.style.pointerEvents = '';
+      if (exitFsBtn) exitFsBtn.classList.add('hidden');
+
       try {
         if (screen.orientation && screen.orientation.unlock) {
           screen.orientation.unlock();
@@ -151,45 +199,89 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Auto rotate screen horizontally to landscape
-    try {
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(() => {});
-      }
-    } catch (_) {}
+    // --- ENTER FULLSCREEN: AUTO ROTATE TO LANDSCAPE ---
+    const isPortrait = checkIsPortrait();
 
     if (video) {
-      // KKPhim & direct streams: Open browser default videoplayer
-      if (isIos && video.webkitEnterFullscreen) {
-        video.play().catch(() => {});
-        video.webkitEnterFullscreen();
-      } else {
-        video.controls = true;
-        if (video.requestFullscreen) {
-          video.requestFullscreen().catch(() => {
-            const container = document.getElementById('TTPhim-player-wrapper') || viewport;
-            container?.requestFullscreen?.().catch(() => {});
-          });
-        } else if (video.webkitRequestFullscreen) {
-          video.webkitRequestFullscreen();
-        }
+      // KKPhim & direct streams: Use default videoplayer with native controls
+      video.controls = true;
+      if (bottomBar) bottomBar.classList.add('hidden');
+      if (topBar) topBar.classList.add('hidden');
+      if (gestures) gestures.style.pointerEvents = 'none';
+
+      // Ensure floating Exit button in top-right corner
+      if (!exitFsBtn && viewport) {
+        exitFsBtn = document.createElement('button');
+        exitFsBtn.id = 'mobile-native-fs-exit';
+        exitFsBtn.className = 'absolute top-3 right-3 z-50 px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-red-600 text-white text-xs font-semibold backdrop-blur-md shadow-2xl border border-white/20 flex items-center gap-1.5 cursor-pointer select-none transition-all active:scale-95';
+        exitFsBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">fullscreen_exit</span><span>Thu nhỏ</span>';
+        exitFsBtn.onclick = (e) => {
+          e.stopPropagation();
+          openNativeMobileFullscreen(false);
+        };
+        viewport.appendChild(exitFsBtn);
       }
+      if (exitFsBtn) exitFsBtn.classList.remove('hidden');
+
+      // Request hardware fullscreen on container or video
+      const container = document.getElementById('TTPhim-player-wrapper') || video;
+      let reqPromise = null;
+      if (container.requestFullscreen) {
+        reqPromise = container.requestFullscreen();
+      } else if (video.requestFullscreen) {
+        reqPromise = video.requestFullscreen();
+      } else if (container.webkitRequestFullscreen) {
+        reqPromise = container.webkitRequestFullscreen();
+      }
+
+      let locked = false;
+      if (reqPromise && reqPromise.then) {
+        try {
+          await reqPromise;
+          locked = await lockOrientationLandscape();
+        } catch (_) {}
+      } else {
+        locked = await lockOrientationLandscape();
+      }
+
+      // If orientation lock was not applied (e.g. iOS Safari, or in portrait):
+      // Apply CSS landscape rotation (w-web-fullscreen) so it ALWAYS displays horizontally!
+      if (!locked || isPortrait) {
+        viewport?.classList.add('w-web-fullscreen');
+        document.body.classList.add('w-web-fs-active');
+      }
+
     } else if (iframe) {
-      // NguonC embed: True hardware fullscreen on iframe with landscape rotation
+      // NguonC embed stream
+      let reqPromise = null;
       if (iframe.requestFullscreen) {
-        iframe.requestFullscreen().catch(() => {
-          const container = iframe.parentElement || viewport;
-          container?.requestFullscreen?.().catch(() => {});
-        });
+        reqPromise = iframe.requestFullscreen();
       } else if (iframe.webkitRequestFullscreen) {
-        iframe.webkitRequestFullscreen();
+        reqPromise = iframe.webkitRequestFullscreen();
       } else {
         const container = iframe.parentElement || viewport;
         if (container?.requestFullscreen) {
-          container.requestFullscreen().catch(() => {});
+          reqPromise = container.requestFullscreen();
         } else if (container?.webkitRequestFullscreen) {
-          container.webkitRequestFullscreen();
+          reqPromise = container.webkitRequestFullscreen();
         }
+      }
+
+      let locked = false;
+      if (reqPromise && reqPromise.then) {
+        try {
+          await reqPromise;
+          locked = await lockOrientationLandscape();
+        } catch (_) {}
+      } else {
+        locked = await lockOrientationLandscape();
+      }
+
+      // If orientation lock was not applied (e.g. iOS Safari, or in portrait):
+      // Apply CSS landscape rotation (w-web-fullscreen)
+      if (!locked || isPortrait) {
+        viewport?.classList.add('w-web-fullscreen');
+        document.body.classList.add('w-web-fs-active');
       }
     }
   }
