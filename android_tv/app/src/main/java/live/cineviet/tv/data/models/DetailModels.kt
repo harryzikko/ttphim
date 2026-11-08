@@ -25,7 +25,7 @@ data class MovieDetail(
     @SerializedName("quality") val quality: String? = null,
     @SerializedName("lang") val lang: String? = null,
     @SerializedName("year") val year: Any? = null,
-    @SerializedName("view") val view: Long? = 0,
+    @SerializedName("view") val view: Any? = null,
     @SerializedName("actor") val actor: List<String>? = emptyList(),
     @SerializedName("director") val director: List<String>? = emptyList(),
     @SerializedName("category") val category: List<CategoryItem>? = emptyList(),
@@ -61,7 +61,7 @@ data class CountryItem(
 )
 
 data class TmdbCast(
-    @SerializedName("id") val id: Long? = null,
+    @SerializedName("id") val id: Any? = null,
     @SerializedName("name") val name: String = "",
     @SerializedName("character") val character: String? = null,
     @SerializedName("profile_path") val profilePath: String? = null
@@ -75,7 +75,7 @@ data class TmdbCast(
 }
 
 data class TmdbDirector(
-    @SerializedName("id") val id: Long? = null,
+    @SerializedName("id") val id: Any? = null,
     @SerializedName("name") val name: String = "",
     @SerializedName("job") val job: String? = null,
     @SerializedName("profile_path") val profilePath: String? = null

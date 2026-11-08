@@ -28,7 +28,7 @@ data class MovieItem(
     @SerializedName("episode_current") val episodeCurrent: String? = null,
     @SerializedName("episode_total") val episodeTotal: String? = null,
     @SerializedName("type") val type: String? = null,
-    @SerializedName("view") val view: Long? = 0,
+    @SerializedName("view") val view: Any? = null,
     @SerializedName("imdb_rating") val imdbRating: Any? = null,
     @SerializedName("has_song_ngu") val hasSongNgu: Boolean = false
 ) {
@@ -93,9 +93,9 @@ data class RankingMovie(
     @SerializedName("year") val year: Any? = null,
     @SerializedName("quality") val quality: String? = null,
     @SerializedName("episode_current") val episodeCurrent: String? = null,
-    @SerializedName("views") val views: Long? = 0,
-    @SerializedName("real_views") val realViews: Long? = 0,
-    @SerializedName("rank") val rank: Int? = 1
+    @SerializedName("views") val views: Any? = null,
+    @SerializedName("real_views") val realViews: Any? = null,
+    @SerializedName("rank") val rank: Any? = 1
 ) {
     val displayPoster: String
         get() {
@@ -104,4 +104,20 @@ data class RankingMovie(
             if (url.isNotBlank()) return "https://phimimg.com/$url"
             return ""
         }
+
+    val displayViews: String
+        get() {
+            if (views != null) {
+                val str = views.toString().trim()
+                if (str.isNotEmpty() && str != "null") return str
+            }
+            if (realViews != null) {
+                val num = realViews.toString().toDoubleOrNull()?.toLong()
+                if (num != null && num > 0) return String.format("%,d", num).replace(',', '.')
+            }
+            return ""
+        }
+
+    val rankNumber: Int
+        get() = rank?.toString()?.toDoubleOrNull()?.toInt() ?: 1
 }

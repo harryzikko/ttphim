@@ -99,8 +99,8 @@ fun TvRankingCard(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                val views = movie.realViews ?: movie.views
-                if (views != null && views > 0) {
+                val viewsText = movie.displayViews
+                if (viewsText.isNotBlank()) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -109,7 +109,7 @@ fun TvRankingCard(
                             .padding(horizontal = 4.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "${formatViews(views)} lượt xem",
+                            text = "$viewsText lượt xem",
                             color = Color.White,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Medium
@@ -129,13 +129,5 @@ fun TvRankingCard(
                 overflow = TextOverflow.Ellipsis
             )
         }
-    }
-}
-
-private fun formatViews(count: Long): String {
-    return when {
-        count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
-        count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
-        else -> count.toString()
     }
 }
