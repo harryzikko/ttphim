@@ -3,30 +3,32 @@ package live.cineviet.tv.ui.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
+// CineViet Brand Palette (Unified across Web, Mobile Flutter & Android TV)
 val CineVietRed = Color(0xFFE50914)
+val CineVietRedLight = Color(0xFFFF334B)
 val CineVietRedDark = Color(0xFF990008)
-val CineVietRedLight = Color(0xFFFF5252)
 
-// Nocturne Cinema System Palette (from stitch_android_tv_media_player)
-val TvBackground = Color(0xFF0B0E14)
-val TvSurface = Color(0xFF10131A)
-val TvSurfaceLow = Color(0xFF191C22)
-val TvSurfaceContainer = Color(0xFF1D2026)
-val TvSurfaceHigh = Color(0xFF272A31)
-val TvSurfaceHighest = Color(0xFF32353C)
+// Obsidian Cinema Dark Surfaces
+val TvBackground = Color(0xFF0B0D13)
+val TvSurface = Color(0xFF131722)
+val TvSurfaceLow = Color(0xFF161A26)
+val TvSurfaceContainer = Color(0xFF1B2030)
+val TvSurfaceHigh = Color(0xFF242A3E)
+val TvSurfaceHighest = Color(0xFF2B3248)
 
-val TvOnSurface = Color(0xFFE1E2EB)
+// Text Colors
+val TvOnSurface = Color(0xFFF8FAFC)
 val TvOnSurfaceVariant = Color(0xFF94A3B8)
+val TvOnSurfaceMuted = Color(0xFF64748B)
 
-val ElectricViolet = Color(0xFF8A3FFC)
-val CyberCyan = Color(0xFF00EEFC)
-val NeonMagenta = Color(0xFFFF007A)
-
-val FocusGradientVioletCyan = Brush.horizontalGradient(listOf(ElectricViolet, CyberCyan))
-val FocusGradientRedViolet = Brush.horizontalGradient(listOf(CineVietRed, ElectricViolet))
-
+// Accents
+val TvGold = Color(0xFFFFB800)
+val GoldRating = Color(0xFFFFB800)
+val EmeraldGreen = Color(0xFF10B981)
 val TvFocusBorder = CineVietRed
 val TvFocusGlow = Color(0x66E50914)
 
-val GoldRating = Color(0xFFFFB800)
-val EmeraldGreen = Color(0xFF10B981)
+// Brand Gradients
+val PrimaryRedGradient = Brush.horizontalGradient(listOf(CineVietRed, CineVietRedLight))
+val CardSurfaceGradient = Brush.verticalGradient(listOf(Color(0xFF1B2030), Color(0xFF131722)))
+val ScrimDarkGradient = Brush.verticalGradient(listOf(Color.Transparent, Color(0x990B0D13), Color(0xFF0B0D13)))

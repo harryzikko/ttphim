@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.*
@@ -38,6 +37,7 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import live.cineviet.tv.data.models.EpisodeServer
 import live.cineviet.tv.data.models.MovieDetailData
 import live.cineviet.tv.data.models.TmdbCast
 import live.cineviet.tv.data.models.TmdbDirector
@@ -71,7 +71,7 @@ fun TvDetailScreen(
             isLoading = false
             repository.trackView(slug)
         }.onFailure {
-            errorMessage = it.message ?: "Lỗi tải thông tin phim"
+            errorMessage = it.message ?: "Không thể tải chi tiết phim"
             isLoading = false
         }
     }
@@ -83,12 +83,23 @@ fun TvDetailScreen(
                 .background(TvBackground),
             contentAlignment = Alignment.Center
         ) {
-            TvLoadingSpinner(color = CineVietRed)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                TvLoadingSpinner(color = CineVietRed)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Đang tải thông tin phim...",
+                    color = TvOnSurfaceVariant,
+                    fontSize = 14.sp
+                )
+            }
         }
         return
     }
 
     if (errorMessage != null || detailData == null) {
+        val retrySource = remember { MutableInteractionSource() }
+        val isRetryFocused by retrySource.collectIsFocusedAsState()
+
         Box(
             modifier = modifier
                 .fillMaxSize()
@@ -97,32 +108,60 @@ fun TvDetailScreen(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = errorMessage ?: "Không tìm thấy phim",
-                    color = Color(0xFFFF5252),
-                    fontSize = 18.sp,
+                    text = errorMessage ?: "Lỗi tải dữ liệu",
+                    color = CineVietRedLight,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                val backSource = remember { MutableInteractionSource() }
-                val isBackFocused by backSource.collectIsFocusedAsState()
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isBackFocused) CineVietRed else TvSurfaceHigh)
-                        .focusable(interactionSource = backSource)
-                        .clickable(interactionSource = backSource, indication = null) { onBack() }
-                        .padding(horizontal = 24.dp, vertical = 10.dp)
+                        .background(if (isRetryFocused) CineVietRed else TvSurfaceHigh)
+                        .border(2.dp, if (isRetryFocused) Color.White else Color.Transparent, RoundedCornerShape(8.dp))
+                        .focusable(interactionSource = retrySource)
+                        .clickable(interactionSource = retrySource, indication = null) {
+                            scope.launch {
+                                isLoading = true
+                                repository.getMovieDetail(slug).onSuccess {
+                                    detailData = it
+                                    isLoading = false
+                                }.onFailure {
+                                    errorMessage = it.message
+                                    isLoading = false
+                                }
+                            }
+                        }
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
                 ) {
-                    Text("Quay lại", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Thử lại",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
         return
     }
 
-    val data = detailData!!
-    val movie = data.movie
-    val episodes = data.episodes
+    val movie = detailData!!.movie
+
+    // FILTER ONLY KKPHIM SOURCES (Direct HLS - No NguonC, No ViCDN Song Ngu)
+    val rawEpisodes = detailData!!.episodes
+    val kkphimServers = rawEpisodes.filter { srv ->
+        val name = srv.serverName.lowercase()
+        !name.contains("nc") && !name.contains("nguonc") && !name.contains("song ngữ") && !name.contains("vicdn")
+    }.ifEmpty {
+        rawEpisodes.filter { srv -> srv.serverData.any { !it.linkM3u8.isNullOrBlank() } }
+    }.ifEmpty {
+        rawEpisodes
+    }
+
+    val activeServer = kkphimServers.getOrNull(selectedServerIndex) ?: kkphimServers.firstOrNull()
+    // Map selected KKPhim server back to the raw index for playback
+    val realServerIndex = rawEpisodes.indexOfFirst { it.serverName == activeServer?.serverName }.coerceAtLeast(0)
 
     val playSource = remember { MutableInteractionSource() }
     val isPlayFocused by playSource.collectIsFocusedAsState()
@@ -148,7 +187,7 @@ fun TvDetailScreen(
                 .height(520.dp)
         )
 
-        // Asymmetrical Ambient Obsidian Scrims (from stitch_android_tv_media_player)
+        // Asymmetrical Ambient Obsidian Scrims (CineViet Dark Theme)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -156,12 +195,12 @@ fun TvDetailScreen(
                     Brush.horizontalGradient(
                         colors = listOf(
                             TvBackground,
-                            TvBackground.copy(alpha = 0.95f),
-                            TvBackground.copy(alpha = 0.70f),
+                            TvBackground.copy(alpha = 0.96f),
+                            TvBackground.copy(alpha = 0.75f),
                             Color.Transparent
                         ),
                         startX = 0f,
-                        endX = 1450f
+                        endX = 1400f
                     )
                 )
         )
@@ -172,10 +211,10 @@ fun TvDetailScreen(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            TvBackground.copy(alpha = 0.85f),
+                            TvBackground.copy(alpha = 0.60f),
                             TvBackground
                         ),
-                        startY = 200f
+                        startY = 180f
                     )
                 )
         )
@@ -185,70 +224,70 @@ fun TvDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 36.dp),
-            contentPadding = PaddingValues(horizontal = 48.dp, vertical = 28.dp),
+            contentPadding = PaddingValues(horizontal = 48.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
-            // Top Bar with Back Button & Brand Tag
+            // Top Navigation & Movie Meta Info Section
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(if (isBackFocused) CineVietRed else TvSurfaceLow.copy(alpha = 0.8f))
-                            .border(
-                                width = if (isBackFocused) 2.dp else 1.dp,
-                                color = if (isBackFocused) Color.White else Color.White.copy(alpha = 0.15f),
-                                shape = CircleShape
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Back Button & Brand Micro-Tag
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(if (isBackFocused) CineVietRed else TvSurfaceHigh.copy(alpha = 0.8f))
+                                .border(
+                                    width = if (isBackFocused) 2.dp else 1.dp,
+                                    color = if (isBackFocused) Color.White else Color.White.copy(alpha = 0.15f),
+                                    shape = CircleShape
+                                )
+                                .focusable(interactionSource = backSource)
+                                .clickable(interactionSource = backSource, indication = null) { onBack() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Quay lại",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
                             )
-                            .focusable(interactionSource = backSource)
-                            .clickable(interactionSource = backSource, indication = null) { onBack() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Quay lại",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        }
+
+                        // CineViet Brand Badge
+                        Box(
+                            modifier = Modifier
+                                .background(CineVietRed.copy(alpha = 0.18f), RoundedCornerShape(20.dp))
+                                .border(1.dp, CineVietRed.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "CINEVIET CINEMA",
+                                color = CineVietRedLight,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.width(18.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    // Brand Micro-Tag
-                    val franchiseTag = if (movie.type == "series") "CINEVIET PHIM BỘ • CHUẨN RẠP" else "CINEVIET PHIM LẺ • CHUẨN ĐIỆN ẢNH"
-                    Box(
-                        modifier = Modifier
-                            .background(Color(0xFF8A3FFC).copy(alpha = 0.25f), RoundedCornerShape(4.dp))
-                            .border(1.dp, Color(0xFF00EEFC).copy(alpha = 0.35f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = franchiseTag,
-                            color = CyberCyan,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                    }
-                }
-            }
-
-            // Hero Details & Primary Actions
-            item {
-                Column(modifier = Modifier.fillMaxWidth(0.68f)) {
                     // Movie Title
                     Text(
                         text = movie.name,
                         color = Color.White,
                         fontSize = 38.sp,
                         fontWeight = FontWeight.Black,
-                        lineHeight = 44.sp
+                        lineHeight = 46.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
 
+                    // Original Title
                     if (!movie.originName.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -264,64 +303,91 @@ fun TvDetailScreen(
                     // Technical Badges Strip
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Rating
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .background(CineVietRed, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = movie.quality ?: "4K ULTRA HD",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .background(TvSurfaceHighest.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "DOLBY AUDIO",
+                                color = TvGold,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        movie.year?.let { y ->
+                            Box(
+                                modifier = Modifier
+                                    .background(TvSurfaceHighest.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = y.toString(),
+                                    color = TvOnSurface,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+
+                        val epCurr = movie.episodeCurrent
+                        if (!epCurr.isNullOrBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .background(TvSurfaceHighest.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = epCurr,
+                                    color = TvOnSurface,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+
+                        movie.time?.let { t ->
+                            Text(
+                                text = t,
+                                color = TvOnSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        val ratingVal = (movie.view?.toString()?.toDoubleOrNull() ?: 8.5).coerceIn(1.0, 10.0)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .background(TvSurfaceHighest.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = "Rating",
-                                tint = GoldRating,
-                                modifier = Modifier.size(16.dp)
+                                tint = TvGold,
+                                modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "9.4",
-                                color = GoldRating,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Text(text = "•", color = TvOnSurfaceVariant)
-
-                        movie.year?.let { y ->
-                            Text(text = y.toString(), color = Color.White, fontSize = 13.sp)
-                            Text(text = "•", color = TvOnSurfaceVariant)
-                        }
-
-                        // Duration / Episode Current
-                        val dur = movie.time?.takeIf { it.isNotBlank() && it != "N/A" } ?: movie.episodeCurrent
-                        if (!dur.isNullOrBlank()) {
-                            Text(text = dur, color = Color.White, fontSize = 13.sp)
-                            Text(text = "•", color = TvOnSurfaceVariant)
-                        }
-
-                        // Hardware Micro Capsules (4K UHD, Dolby Vision, Atmos)
-                        Box(
-                            modifier = Modifier
-                                .background(TvSurfaceHigh.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
-                                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = movie.quality?.takeIf { it.isNotBlank() } ?: "4K ULTRA HD",
+                                text = String.format("%.1f", ratingVal),
                                 color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .background(TvSurfaceHigh.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
-                                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "DOLBY ATMOS",
-                                color = CyberCyan,
-                                fontSize = 10.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -329,24 +395,28 @@ fun TvDetailScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Description (Synopsis)
+                    // Synopsis
                     if (!movie.content.isNullOrBlank()) {
+                        val cleanContent = movie.content
+                            .replace(Regex("<[^>]*>"), "")
+                            .replace("&nbsp;", " ")
                         Text(
-                            text = movie.content,
+                            text = cleanContent,
                             color = TvOnSurface.copy(alpha = 0.88f),
-                            fontSize = 14.sp,
-                            lineHeight = 22.sp,
-                            maxLines = 4,
-                            overflow = TextOverflow.Ellipsis
+                            fontSize = 13.sp,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 20.sp,
+                            modifier = Modifier.widthIn(max = 750.dp)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Meta: Starring & Director & Category
+                    // Meta Row: Cast, Director, Categories
                     val castNames = movie.actor?.take(4)?.joinToString(", ")
                     val dirName = movie.director?.firstOrNull()
-                    val catNames = movie.category?.take(3)?.map { it.name }?.joinToString(", ")
+                    val catNames = movie.category?.joinToString(", ") { it.name }
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (!castNames.isNullOrBlank()) {
@@ -368,7 +438,7 @@ fun TvDetailScreen(
                         if (!catNames.isNullOrBlank()) {
                             Text(
                                 text = "Thể loại: $catNames",
-                                color = CyberCyan.copy(alpha = 0.85f),
+                                color = CineVietRedLight,
                                 fontSize = 12.sp
                             )
                         }
@@ -376,37 +446,39 @@ fun TvDetailScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Primary Action Bar (Play Pill + Server Switches + Watchlist)
-                    val firstEpSlug = episodes.getOrNull(selectedServerIndex)?.serverData?.firstOrNull()?.slug
-                    val firstEpName = episodes.getOrNull(selectedServerIndex)?.serverData?.firstOrNull()?.name ?: "Tập 1"
+                    // Primary Action Bar (Xem Phim + Yêu Thích)
+                    val firstEpSlug = activeServer?.serverData?.firstOrNull()?.slug
+                    val firstEpName = activeServer?.serverData?.firstOrNull()?.name ?: "Tập 1"
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Play/Resume Primary Pill Button (Luminous High Contrast)
+                        // Play Pill Button
                         val playScale by animateFloatAsState(
                             targetValue = if (isPlayFocused) 1.08f else 1.0f,
-                            animationSpec = tween(180),
+                            animationSpec = tween(150),
                             label = "playScale"
                         )
                         Box(
                             modifier = Modifier
                                 .scale(playScale)
-                                .clip(RoundedCornerShape(32.dp))
+                                .clip(RoundedCornerShape(28.dp))
                                 .background(
-                                    if (isPlayFocused) FocusGradientRedViolet else Brush.horizontalGradient(
-                                        listOf(CineVietRed, Color(0xFFB8000A))
-                                    )
+                                    if (isPlayFocused) {
+                                        Brush.horizontalGradient(listOf(CineVietRed, CineVietRedLight))
+                                    } else {
+                                        androidx.compose.ui.graphics.SolidColor(CineVietRed)
+                                    }
                                 )
                                 .border(
                                     width = if (isPlayFocused) 2.5.dp else 0.dp,
-                                    color = if (isPlayFocused) CyberCyan else Color.Transparent,
-                                    shape = RoundedCornerShape(32.dp)
+                                    color = if (isPlayFocused) Color.White else Color.Transparent,
+                                    shape = RoundedCornerShape(28.dp)
                                 )
                                 .focusable(interactionSource = playSource)
                                 .clickable(interactionSource = playSource, indication = null) {
-                                    onPlayEpisode(movie.slug, firstEpSlug, selectedServerIndex)
+                                    onPlayEpisode(movie.slug, firstEpSlug, realServerIndex)
                                 }
                                 .padding(horizontal = 28.dp, vertical = 14.dp),
                             contentAlignment = Alignment.Center
@@ -423,26 +495,27 @@ fun TvDetailScreen(
                                     text = "Xem Ngay ($firstEpName)",
                                     color = Color.White,
                                     fontSize = 15.sp,
-                                    fontWeight = FontWeight.Black
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.5.sp
                                 )
                             }
                         }
 
                         // Bookmark / Watchlist Button
                         val bookmarkScale by animateFloatAsState(
-                            targetValue = if (isBookmarkFocused) 1.12f else 1.0f,
-                            animationSpec = tween(180),
+                            targetValue = if (isBookmarkFocused) 1.08f else 1.0f,
+                            animationSpec = tween(150),
                             label = "bmScale"
                         )
                         Box(
                             modifier = Modifier
-                                .size(50.dp)
+                                .size(52.dp)
                                 .scale(bookmarkScale)
                                 .clip(CircleShape)
-                                .background(if (isBookmarkFocused) TvSurfaceHighest else TvSurfaceHigh.copy(alpha = 0.8f))
+                                .background(if (isBookmarkFocused) TvSurfaceHighest else TvSurfaceHigh.copy(alpha = 0.7f))
                                 .border(
                                     width = if (isBookmarkFocused) 2.dp else 1.dp,
-                                    color = if (isBookmarkFocused) CyberCyan else Color.White.copy(alpha = 0.15f),
+                                    color = if (isBookmarkFocused) CineVietRed else Color.White.copy(alpha = 0.15f),
                                     shape = CircleShape
                                 )
                                 .focusable(interactionSource = bookmarkSource)
@@ -454,7 +527,7 @@ fun TvDetailScreen(
                             Icon(
                                 imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                                 contentDescription = "Yêu thích",
-                                tint = if (isBookmarked) CyberCyan else Color.White,
+                                tint = if (isBookmarked) CineVietRed else Color.White,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -462,111 +535,117 @@ fun TvDetailScreen(
                 }
             }
 
-            // Server Selection & Horizontal Episode Rail
-            if (episodes.isNotEmpty()) {
+            // KKPhim Episodes Rail
+            if (activeServer != null && activeServer.serverData.isNotEmpty()) {
                 item {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        // Server Switcher Header
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text(
-                                text = "Nguồn Phát (Server):",
-                                color = TvOnSurfaceVariant,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        // Server Switcher Header (if KKPhim has multiple variants like Vietsub / Thuyết minh)
+                        if (kkphimServers.size > 1) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(
+                                    text = "Phiên Bản:",
+                                    color = TvOnSurfaceVariant,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
 
-                            episodes.forEachIndexed { index, server ->
-                                val isSelected = index == selectedServerIndex
-                                val serverSource = remember { MutableInteractionSource() }
-                                val isServerFocused by serverSource.collectIsFocusedAsState()
+                                kkphimServers.forEachIndexed { index, srv ->
+                                    val isSelected = index == selectedServerIndex
+                                    val srvSource = remember { MutableInteractionSource() }
+                                    val isSrvFocused by srvSource.collectIsFocusedAsState()
 
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            when {
-                                                isServerFocused -> Color.White
-                                                isSelected -> CineVietRed
-                                                else -> TvSurfaceHigh
-                                            }
-                                        )
-                                        .border(
-                                            width = if (isServerFocused) 2.dp else 1.dp,
-                                            color = if (isServerFocused) CyberCyan else Color.Transparent,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .focusable(interactionSource = serverSource)
-                                        .clickable(interactionSource = serverSource, indication = null) {
-                                            selectedServerIndex = index
-                                        }
-                                        .padding(horizontal = 14.dp, vertical = 7.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        if (isSelected) {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = "Selected",
-                                                tint = if (isServerFocused) Color.Black else Color.White,
-                                                modifier = Modifier.size(14.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                when {
+                                                    isSrvFocused -> CineVietRedLight
+                                                    isSelected -> CineVietRed
+                                                    else -> TvSurfaceHigh
+                                                }
                                             )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                        }
+                                            .border(
+                                                width = if (isSrvFocused) 2.dp else 1.dp,
+                                                color = if (isSrvFocused) Color.White else Color.Transparent,
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .focusable(interactionSource = srvSource)
+                                            .clickable(interactionSource = srvSource, indication = null) {
+                                                selectedServerIndex = index
+                                            }
+                                            .padding(horizontal = 14.dp, vertical = 7.dp)
+                                    ) {
                                         Text(
-                                            text = server.serverName,
-                                            color = if (isServerFocused) Color.Black else Color.White,
+                                            text = srv.serverName,
+                                            color = Color.White,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(14.dp))
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        // Episodes Header
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "Danh Sách Tập Phim",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "(${activeServer.serverData.size} tập · Chuẩn rạp HLS)",
+                                color = TvOnSurfaceVariant,
+                                fontSize = 13.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         // Horizontal Episodes Rail
-                        val currentServerEpisodes = episodes.getOrNull(selectedServerIndex)?.serverData ?: emptyList()
-                        Text(
-                            text = "Danh Sách Tập Phim (${currentServerEpisodes.size} tập)",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(vertical = 4.dp)
                         ) {
-                            items(currentServerEpisodes) { ep ->
+                            itemsIndexed(activeServer.serverData) { _, ep ->
                                 val epSource = remember { MutableInteractionSource() }
                                 val isEpFocused by epSource.collectIsFocusedAsState()
 
                                 val epScale by animateFloatAsState(
-                                    targetValue = if (isEpFocused) 1.10f else 1.0f,
-                                    animationSpec = tween(180),
+                                    targetValue = if (isEpFocused) 1.08f else 1.0f,
+                                    animationSpec = tween(150),
                                     label = "epScale"
                                 )
 
                                 Box(
                                     modifier = Modifier
-                                        .width(115.dp)
-                                        .height(56.dp)
                                         .scale(epScale)
+                                        .width(96.dp)
+                                        .height(48.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isEpFocused) CineVietRed else TvSurfaceHigh)
+                                        .background(
+                                            when {
+                                                isEpFocused -> CineVietRed
+                                                else -> TvSurfaceContainer
+                                            }
+                                        )
                                         .border(
                                             width = if (isEpFocused) 2.dp else 1.dp,
-                                            color = if (isEpFocused) Color.White else Color.White.copy(alpha = 0.1f),
+                                            color = if (isEpFocused) Color.White else Color.White.copy(alpha = 0.08f),
                                             shape = RoundedCornerShape(10.dp)
                                         )
                                         .focusable(interactionSource = epSource)
                                         .clickable(interactionSource = epSource, indication = null) {
-                                            onPlayEpisode(movie.slug, ep.slug, selectedServerIndex)
+                                            onPlayEpisode(movie.slug, ep.slug, realServerIndex)
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -574,9 +653,7 @@ fun TvDetailScreen(
                                         text = ep.name,
                                         color = Color.White,
                                         fontSize = 13.sp,
-                                        fontWeight = if (isEpFocused) FontWeight.Black else FontWeight.Bold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
@@ -585,7 +662,7 @@ fun TvDetailScreen(
                 }
             }
 
-            // Real Cast & Director Section (with TMDb Avatars)
+            // Real TMDb Cast & Director Section (Circular Avatars)
             val castList = if (!movie.tmdbCast.isNullOrEmpty()) {
                 movie.tmdbCast
             } else {
@@ -616,7 +693,7 @@ fun TvDetailScreen(
                         Text(
                             text = "Đạo Diễn & Diễn Viên",
                             color = Color.White,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
 
@@ -658,8 +735,8 @@ fun TvPersonCard(
     val isPersonFocused by personSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPersonFocused) 1.12f else 1.0f,
-        animationSpec = tween(180),
+        targetValue = if (isPersonFocused) 1.10f else 1.0f,
+        animationSpec = tween(150),
         label = "personScale"
     )
 
@@ -675,38 +752,29 @@ fun TvPersonCard(
             modifier = Modifier
                 .size(76.dp)
                 .clip(CircleShape)
-                .background(TvSurfaceHigh)
+                .background(TvSurfaceContainer)
                 .border(
                     width = if (isPersonFocused) 2.5.dp else 1.dp,
-                    color = if (isPersonFocused) CyberCyan else Color.White.copy(alpha = 0.15f),
+                    color = if (isPersonFocused) CineVietRed else Color.White.copy(alpha = 0.12f),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
-            if (imageUrl.isNotBlank()) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Text(
-                    text = (name.firstOrNull() ?: '?').toString().uppercase(),
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = name,
-            color = if (isPersonFocused) Color.White else TvOnSurface,
+            color = if (isPersonFocused) CineVietRedLight else Color.White,
             fontSize = 12.sp,
-            fontWeight = if (isPersonFocused) FontWeight.Bold else FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

@@ -25,10 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import live.cineviet.tv.data.models.MovieItem
-import live.cineviet.tv.ui.theme.CineVietRed
-import live.cineviet.tv.ui.theme.TvOnSurface
-import live.cineviet.tv.ui.theme.TvOnSurfaceVariant
-import live.cineviet.tv.ui.theme.TvSurface
+import live.cineviet.tv.ui.theme.*
 
 @Composable
 fun TvMovieCard(
@@ -40,8 +37,8 @@ fun TvMovieCard(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.10f else 1.0f,
-        animationSpec = tween(180),
+        targetValue = if (isFocused) 1.08f else 1.0f,
+        animationSpec = tween(160),
         label = "cardScale"
     )
 
@@ -59,11 +56,11 @@ fun TvMovieCard(
                 .fillMaxWidth()
                 .height(230.dp)
                 .background(
-                    color = TvSurface,
+                    color = TvSurfaceContainer,
                     shape = RoundedCornerShape(10.dp)
                 )
                 .border(
-                    width = if (isFocused) 3.dp else 1.dp,
+                    width = if (isFocused) 2.5.dp else 1.dp,
                     color = if (isFocused) CineVietRed else Color.White.copy(alpha = 0.08f),
                     shape = RoundedCornerShape(10.dp)
                 )
@@ -76,44 +73,41 @@ fun TvMovieCard(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Top Badges
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                val epText = movie.episodeCurrent?.takeIf { it.isNotBlank() } ?: movie.quality
-                if (!epText.isNullOrBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .background(CineVietRed.copy(alpha = 0.92f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = epText,
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.width(1.dp))
+            // Top-Left Episode or Quality Badge
+            val epText = movie.episodeCurrent?.takeIf { it.isNotBlank() } ?: movie.quality
+            if (!epText.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .background(CineVietRed.copy(alpha = 0.95f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = epText,
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+            }
 
-                if (movie.hasSongNgu) {
-                    Box(
-                        modifier = Modifier
-                            .background(Color(0xFF6D28D9).copy(alpha = 0.92f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 5.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "Song Ngữ",
-                            color = Color.White,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+            // Top-Right Year / Rating Badge
+            val yearText = movie.year?.toString()?.takeIf { it.isNotBlank() }
+            if (!yearText.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .background(TvBackground.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = yearText,
+                        color = TvOnSurfaceVariant,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 
@@ -121,7 +115,7 @@ fun TvMovieCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
+                    .height(60.dp)
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
@@ -131,23 +125,24 @@ fun TvMovieCard(
             )
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Title
         Text(
             text = movie.name,
-            color = if (isFocused) Color.White else TvOnSurface,
+            color = if (isFocused) CineVietRedLight else Color.White,
             fontSize = 13.sp,
-            fontWeight = if (isFocused) FontWeight.Bold else FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
 
-        // Subtitle / Year
-        val sub = listOfNotNull(movie.originName?.takeIf { it.isNotBlank() }, movie.year?.toString()).joinToString(" · ")
-        if (sub.isNotBlank()) {
+        // Subtitle (Original name or type)
+        val subtitle = movie.originName ?: movie.time ?: ""
+        if (subtitle.isNotBlank()) {
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = sub,
+                text = subtitle,
                 color = TvOnSurfaceVariant,
                 fontSize = 11.sp,
                 maxLines = 1,

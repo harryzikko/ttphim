@@ -106,6 +106,7 @@ fun TvSearchScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(TvBackground)
             .padding(horizontal = 36.dp, vertical = 24.dp)
     ) {
         // Search Header & Input Box

@@ -10,13 +10,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -24,15 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import live.cineviet.tv.data.models.RankingMovie
-import live.cineviet.tv.ui.theme.CineVietRed
-import live.cineviet.tv.ui.theme.TvFocusBorder
-import live.cineviet.tv.ui.theme.TvOnSurface
-import live.cineviet.tv.ui.theme.TvOnSurfaceVariant
-import live.cineviet.tv.ui.theme.TvSurface
+import live.cineviet.tv.ui.theme.*
 
 @Composable
 fun TvRankingCard(
@@ -45,34 +39,34 @@ fun TvRankingCard(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.10f else 1.0f,
-        animationSpec = tween(180),
+        targetValue = if (isFocused) 1.08f else 1.0f,
+        animationSpec = tween(160),
         label = "rankScale"
     )
 
     Column(
         modifier = modifier
-            .width(160.dp)
+            .width(165.dp)
             .scale(scale)
             .focusable(interactionSource = interactionSource)
             .clickable(interactionSource = interactionSource, indication = null) { onClick() }
             .padding(4.dp)
     ) {
-        // Poster Box with Rank Badge Overlay
+        // 2:3 Vertical Poster with Big Stylized Rank Overlay
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(230.dp)
+                .height(235.dp)
                 .background(
-                    color = TvSurface,
-                    shape = RoundedCornerShape(10.dp)
+                    color = TvSurfaceContainer,
+                    shape = RoundedCornerShape(12.dp)
                 )
                 .border(
-                    width = if (isFocused) 3.dp else 1.dp,
+                    width = if (isFocused) 2.5.dp else 1.dp,
                     color = if (isFocused) CineVietRed else Color.White.copy(alpha = 0.08f),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(12.dp)
                 )
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(12.dp))
         ) {
             // Poster Image
             AsyncImage(
@@ -82,117 +76,94 @@ fun TvRankingCard(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Bottom Gradient Scrim
+            // Deep Gradient Scrim from bottom for rank number visibility
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .align(Alignment.BottomCenter)
+                    .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.88f))
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.65f),
+                                Color.Black.copy(alpha = 0.95f)
+                            )
                         )
                     )
             )
 
-            // Top-Left Rank Medal Badge (Gold / Silver / Bronze)
-            val badgeBrush = when (rank) {
-                1 -> Brush.horizontalGradient(listOf(Color(0xFFFFDF00), Color(0xFFD97706)))
-                2 -> Brush.horizontalGradient(listOf(Color(0xFFF1F5F9), Color(0xFF64748B)))
-                3 -> Brush.horizontalGradient(listOf(Color(0xFFFED7AA), Color(0xFFC2410C)))
-                else -> Brush.horizontalGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A)))
-            }
-            val badgeBorderColor = when (rank) {
-                1 -> Color(0xFFFFE082)
-                2 -> Color.White.copy(alpha = 0.7f)
-                3 -> Color(0xFFFFCC80)
-                else -> Color.White.copy(alpha = 0.2f)
-            }
-            val textColor = if (rank <= 2) Color.Black else Color.White
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
-                    .background(badgeBrush, RoundedCornerShape(6.dp))
-                    .border(1.dp, badgeBorderColor, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 7.dp, vertical = 3.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (rank == 1) {
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = "Top 1",
-                            tint = Color.Black,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                    }
-                    Text(
-                        text = "#$rank",
-                        color = textColor,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
-
-            // Top-Right Quality / Episode Badge
-            val topBadgeText = movie.episodeCurrent?.takeIf { it.isNotBlank() } ?: movie.quality
-            if (!topBadgeText.isNullOrBlank()) {
+            // Top-Right Metric Badge (Views or Quality)
+            val metricText = movie.displayViews.takeIf { it.isNotBlank() && it != "0 lượt xem" }
+                ?: movie.episodeCurrent?.takeIf { it.isNotBlank() }
+                ?: movie.quality
+            if (!metricText.isNullOrBlank()) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .background(CineVietRed.copy(alpha = 0.9f), RoundedCornerShape(4.dp))
+                        .background(TvBackground.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                        .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = topBadgeText,
-                        color = Color.White,
-                        fontSize = 9.sp,
+                        text = metricText,
+                        color = if (rank <= 3) TvGold else TvOnSurfaceVariant,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            // Bottom-Right Views Overlay
-            val viewsText = movie.displayViews
-            if (viewsText.isNotBlank()) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(6.dp)
-                        .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 5.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "$viewsText lượt xem",
-                        color = Color(0xFFFFB800),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+            // MASSIVE Stylized Rank Number Overlaid on bottom left (Netflix / Nocturne Cinema Style)
+            val rankNumberColor = when (rank) {
+                1 -> Color(0xFFFFD700) // Gold
+                2 -> Color(0xFFE2E8F0) // Silver
+                3 -> Color(0xFFFFB366) // Bronze
+                else -> Color.White.copy(alpha = 0.90f)
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 8.dp, bottom = 4.dp)
+            ) {
+                // Drop shadow effect with offset
+                Text(
+                    text = rank.toString(),
+                    color = Color.Black.copy(alpha = 0.85f),
+                    fontSize = 58.sp,
+                    fontWeight = FontWeight.Black,
+                    lineHeight = 58.sp,
+                    modifier = Modifier.offset(x = 2.dp, y = 2.dp)
+                )
+                Text(
+                    text = rank.toString(),
+                    color = rankNumberColor,
+                    fontSize = 58.sp,
+                    fontWeight = FontWeight.Black,
+                    lineHeight = 58.sp
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Movie Title
+        // Title
         Text(
             text = movie.name,
-            color = if (isFocused) Color.White else TvOnSurface,
+            color = if (isFocused) CineVietRedLight else Color.White,
             fontSize = 13.sp,
-            fontWeight = if (isFocused) FontWeight.Bold else FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
 
-        // Subtitle / Year
-        val sub = listOfNotNull(movie.originName?.takeIf { it.isNotBlank() }, movie.year?.toString()).joinToString(" · ")
-        if (sub.isNotBlank()) {
+        // Subtitle (Original name or quality)
+        val subtitle = movie.originName ?: movie.quality ?: ""
+        if (subtitle.isNotBlank()) {
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = sub,
+                text = subtitle,
                 color = TvOnSurfaceVariant,
                 fontSize = 11.sp,
                 maxLines = 1,
