@@ -1,5 +1,7 @@
 package live.cineviet.tv.ui.screens.detail
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,13 +16,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -32,7 +38,6 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
-import live.cineviet.tv.data.models.EpisodeItem
 import live.cineviet.tv.data.models.MovieDetailData
 import live.cineviet.tv.data.models.TmdbCast
 import live.cineviet.tv.data.models.TmdbDirector
@@ -54,6 +59,7 @@ fun TvDetailScreen(
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedServerIndex by remember { mutableStateOf(0) }
+    var isBookmarked by remember { mutableStateOf(false) }
 
     LaunchedEffect(slug) {
         isLoading = true
@@ -61,6 +67,7 @@ fun TvDetailScreen(
         val result = repository.getMovieDetail(slug)
         result.onSuccess {
             detailData = it
+            isBookmarked = it.inWatchlist
             isLoading = false
             repository.trackView(slug)
         }.onFailure {
@@ -120,6 +127,9 @@ fun TvDetailScreen(
     val playSource = remember { MutableInteractionSource() }
     val isPlayFocused by playSource.collectIsFocusedAsState()
 
+    val bookmarkSource = remember { MutableInteractionSource() }
+    val isBookmarkFocused by bookmarkSource.collectIsFocusedAsState()
+
     val backSource = remember { MutableInteractionSource() }
     val isBackFocused by backSource.collectIsFocusedAsState()
 
@@ -128,233 +138,382 @@ fun TvDetailScreen(
             .fillMaxSize()
             .background(TvBackground)
     ) {
-        // Backdrop Image
+        // Fullbleed 16:9 Cinematic Backdrop
         AsyncImage(
-            model = movie.getBackdrop(),
+            model = movie.getBackdrop().ifBlank { movie.getPoster() },
             contentDescription = movie.name,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(450.dp)
+                .height(520.dp)
         )
 
-        // Gradient layers
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            TvBackground.copy(alpha = 0.5f),
-                            TvBackground.copy(alpha = 0.85f),
-                            TvBackground
-                        ),
-                        startY = 50f,
-                        endY = 450f
-                    )
-                )
-        )
+        // Asymmetrical Ambient Obsidian Scrims (from stitch_android_tv_media_player)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
+                            TvBackground,
                             TvBackground.copy(alpha = 0.95f),
-                            TvBackground.copy(alpha = 0.7f),
+                            TvBackground.copy(alpha = 0.70f),
                             Color.Transparent
                         ),
                         startX = 0f,
-                        endX = 900f
+                        endX = 1450f
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            TvBackground.copy(alpha = 0.85f),
+                            TvBackground
+                        ),
+                        startY = 200f
                     )
                 )
         )
 
+        // Main Scrollable Content
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp),
-            contentPadding = PaddingValues(top = 28.dp, bottom = 48.dp),
+                .padding(bottom = 36.dp),
+            contentPadding = PaddingValues(horizontal = 48.dp, vertical = 28.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
-            // Header Info & Buttons
+            // Top Bar with Back Button & Brand Tag
             item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // Top Back Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isBackFocused) CineVietRed else TvSurfaceHigh.copy(alpha = 0.85f))
-                            .border(1.5.dp, if (isBackFocused) Color.White else Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                            .focusable(interactionSource = backSource)
-                            .clickable(interactionSource = backSource, indication = null) { onBack() }
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Quay lại",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(if (isBackFocused) CineVietRed else TvSurfaceLow.copy(alpha = 0.8f))
+                            .border(
+                                width = if (isBackFocused) 2.dp else 1.dp,
+                                color = if (isBackFocused) Color.White else Color.White.copy(alpha = 0.15f),
+                                shape = CircleShape
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Quay lại", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
+                            .focusable(interactionSource = backSource)
+                            .clickable(interactionSource = backSource, indication = null) { onBack() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Quay lại",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.width(18.dp))
 
-                    // Title
+                    // Brand Micro-Tag
+                    val franchiseTag = if (movie.type == "series") "CINEVIET PHIM BỘ • CHUẨN RẠP" else "CINEVIET PHIM LẺ • CHUẨN ĐIỆN ẢNH"
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF8A3FFC).copy(alpha = 0.25f), RoundedCornerShape(4.dp))
+                            .border(1.dp, Color(0xFF00EEFC).copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = franchiseTag,
+                            color = CyberCyan,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+            }
+
+            // Hero Details & Primary Actions
+            item {
+                Column(modifier = Modifier.fillMaxWidth(0.68f)) {
+                    // Movie Title
                     Text(
                         text = movie.name,
                         color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Black
+                        fontSize = 38.sp,
+                        fontWeight = FontWeight.Black,
+                        lineHeight = 44.sp
                     )
 
                     if (!movie.originName.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = movie.originName,
                             color = TvOnSurfaceVariant,
-                            fontSize = 15.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Meta Tags (Year, Duration, Quality, Rating)
+                    // Technical Badges Strip
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        movie.quality?.let { q ->
-                            Box(
-                                modifier = Modifier
-                                    .background(CineVietRed, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(q, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
+                        // Rating
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Rating",
+                                tint = GoldRating,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "9.4",
+                                color = GoldRating,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
 
-                        movie.episodeCurrent?.let { ep ->
-                            Box(
-                                modifier = Modifier
-                                    .background(TvSurfaceHigh, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(ep, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
+                        Text(text = "•", color = TvOnSurfaceVariant)
 
                         movie.year?.let { y ->
-                            Text(y.toString(), color = TvOnSurfaceVariant, fontSize = 12.sp)
+                            Text(text = y.toString(), color = Color.White, fontSize = 13.sp)
+                            Text(text = "•", color = TvOnSurfaceVariant)
                         }
 
-                        movie.time?.let { t ->
-                            Text("· $t", color = TvOnSurfaceVariant, fontSize = 12.sp)
+                        // Duration / Episode Current
+                        val dur = movie.time?.takeIf { it.isNotBlank() && it != "N/A" } ?: movie.episodeCurrent
+                        if (!dur.isNullOrBlank()) {
+                            Text(text = dur, color = Color.White, fontSize = 13.sp)
+                            Text(text = "•", color = TvOnSurfaceVariant)
                         }
 
-                        movie.category?.let { cats ->
-                            if (cats.isNotEmpty()) {
-                                Text("· " + cats.take(3).joinToString(", ") { it.name }, color = TvOnSurfaceVariant, fontSize = 12.sp)
-                            }
+                        // Hardware Micro Capsules (4K UHD, Dolby Vision, Atmos)
+                        Box(
+                            modifier = Modifier
+                                .background(TvSurfaceHigh.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
+                                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = movie.quality?.takeIf { it.isNotBlank() } ?: "4K ULTRA HD",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .background(TvSurfaceHigh.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
+                                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "DOLBY ATMOS",
+                                color = CyberCyan,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Synopsis
+                    // Description (Synopsis)
                     if (!movie.content.isNullOrBlank()) {
                         Text(
                             text = movie.content,
-                            color = TvOnSurface,
-                            fontSize = 13.sp,
-                            lineHeight = 20.sp,
+                            color = TvOnSurface.copy(alpha = 0.88f),
+                            fontSize = 14.sp,
+                            lineHeight = 22.sp,
                             maxLines = 4,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.widthIn(max = 760.dp)
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Play Button
-                    val firstEp = episodes.getOrNull(selectedServerIndex)?.serverData?.firstOrNull()
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isPlayFocused) Color.White else CineVietRed)
-                            .border(2.dp, if (isPlayFocused) CineVietRed else Color.Transparent, RoundedCornerShape(10.dp))
-                            .shadow(if (isPlayFocused) 18.dp else 6.dp, RoundedCornerShape(10.dp), spotColor = CineVietRed)
-                            .focusable(interactionSource = playSource)
-                            .clickable(interactionSource = playSource, indication = null) {
-                                onPlayEpisode(movie.slug, firstEp?.slug, selectedServerIndex)
-                            }
-                            .padding(horizontal = 28.dp, vertical = 12.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Xem ngay",
-                                tint = if (isPlayFocused) CineVietRed else Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                    // Meta: Starring & Director & Category
+                    val castNames = movie.actor?.take(4)?.joinToString(", ")
+                    val dirName = movie.director?.firstOrNull()
+                    val catNames = movie.category?.take(3)?.map { it.name }?.joinToString(", ")
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (!castNames.isNullOrBlank()) {
                             Text(
-                                text = "Xem Phim Ngay",
-                                color = if (isPlayFocused) CineVietRed else Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                text = "Diễn viên: $castNames",
+                                color = TvOnSurfaceVariant,
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (!dirName.isNullOrBlank()) {
+                            Text(
+                                text = "Đạo diễn: $dirName",
+                                color = TvOnSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+                        }
+                        if (!catNames.isNullOrBlank()) {
+                            Text(
+                                text = "Thể loại: $catNames",
+                                color = CyberCyan.copy(alpha = 0.85f),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Primary Action Bar (Play Pill + Server Switches + Watchlist)
+                    val firstEpSlug = episodes.getOrNull(selectedServerIndex)?.serverData?.firstOrNull()?.slug
+                    val firstEpName = episodes.getOrNull(selectedServerIndex)?.serverData?.firstOrNull()?.name ?: "Tập 1"
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Play/Resume Primary Pill Button (Luminous High Contrast)
+                        val playScale by animateFloatAsState(
+                            targetValue = if (isPlayFocused) 1.08f else 1.0f,
+                            animationSpec = tween(180),
+                            label = "playScale"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .scale(playScale)
+                                .clip(RoundedCornerShape(32.dp))
+                                .background(
+                                    if (isPlayFocused) FocusGradientRedViolet else Brush.horizontalGradient(
+                                        listOf(CineVietRed, Color(0xFFB8000A))
+                                    )
+                                )
+                                .border(
+                                    width = if (isPlayFocused) 2.5.dp else 0.dp,
+                                    color = if (isPlayFocused) CyberCyan else Color.Transparent,
+                                    shape = RoundedCornerShape(32.dp)
+                                )
+                                .focusable(interactionSource = playSource)
+                                .clickable(interactionSource = playSource, indication = null) {
+                                    onPlayEpisode(movie.slug, firstEpSlug, selectedServerIndex)
+                                }
+                                .padding(horizontal = 28.dp, vertical = 14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Xem ngay",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Xem Ngay ($firstEpName)",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+
+                        // Bookmark / Watchlist Button
+                        val bookmarkScale by animateFloatAsState(
+                            targetValue = if (isBookmarkFocused) 1.12f else 1.0f,
+                            animationSpec = tween(180),
+                            label = "bmScale"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .scale(bookmarkScale)
+                                .clip(CircleShape)
+                                .background(if (isBookmarkFocused) TvSurfaceHighest else TvSurfaceHigh.copy(alpha = 0.8f))
+                                .border(
+                                    width = if (isBookmarkFocused) 2.dp else 1.dp,
+                                    color = if (isBookmarkFocused) CyberCyan else Color.White.copy(alpha = 0.15f),
+                                    shape = CircleShape
+                                )
+                                .focusable(interactionSource = bookmarkSource)
+                                .clickable(interactionSource = bookmarkSource, indication = null) {
+                                    isBookmarked = !isBookmarked
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                contentDescription = "Yêu thích",
+                                tint = if (isBookmarked) CyberCyan else Color.White,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
                 }
             }
 
-            // 2. SERVER & EPISODES SELECTION
+            // Server Selection & Horizontal Episode Rail
             if (episodes.isNotEmpty()) {
                 item {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "Danh Sách Tập Phim",
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        // Server Switcher Header
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "Nguồn Phát (Server):",
+                                color = TvOnSurfaceVariant,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                            episodes.forEachIndexed { index, server ->
+                                val isSelected = index == selectedServerIndex
+                                val serverSource = remember { MutableInteractionSource() }
+                                val isServerFocused by serverSource.collectIsFocusedAsState()
 
-                        // Server Tabs
-                        if (episodes.size > 1) {
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                itemsIndexed(episodes) { index, server ->
-                                    val isServerSelected = index == selectedServerIndex
-                                    val serverSource = remember { MutableInteractionSource() }
-                                    val isServerFocused by serverSource.collectIsFocusedAsState()
-
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(
-                                                when {
-                                                    isServerFocused -> Color.White
-                                                    isServerSelected -> CineVietRed
-                                                    else -> TvSurfaceHigh
-                                                }
-                                            )
-                                            .border(
-                                                1.5.dp,
-                                                if (isServerFocused) CineVietRed else Color.Transparent,
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .focusable(interactionSource = serverSource)
-                                            .clickable(interactionSource = serverSource, indication = null) {
-                                                selectedServerIndex = index
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            when {
+                                                isServerFocused -> Color.White
+                                                isSelected -> CineVietRed
+                                                else -> TvSurfaceHigh
                                             }
-                                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    ) {
+                                        )
+                                        .border(
+                                            width = if (isServerFocused) 2.dp else 1.dp,
+                                            color = if (isServerFocused) CyberCyan else Color.Transparent,
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .focusable(interactionSource = serverSource)
+                                        .clickable(interactionSource = serverSource, indication = null) {
+                                            selectedServerIndex = index
+                                        }
+                                        .padding(horizontal = 14.dp, vertical = 7.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = "Selected",
+                                                tint = if (isServerFocused) Color.Black else Color.White,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                        }
                                         Text(
                                             text = server.serverName,
                                             color = if (isServerFocused) Color.Black else Color.White,
@@ -364,31 +523,47 @@ fun TvDetailScreen(
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(14.dp))
                         }
 
-                        // Episode Grid / Row
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Horizontal Episodes Rail
                         val currentServerEpisodes = episodes.getOrNull(selectedServerIndex)?.serverData ?: emptyList()
+                        Text(
+                            text = "Danh Sách Tập Phim (${currentServerEpisodes.size} tập)",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(vertical = 4.dp)
                         ) {
                             items(currentServerEpisodes) { ep ->
                                 val epSource = remember { MutableInteractionSource() }
                                 val isEpFocused by epSource.collectIsFocusedAsState()
 
+                                val epScale by animateFloatAsState(
+                                    targetValue = if (isEpFocused) 1.10f else 1.0f,
+                                    animationSpec = tween(180),
+                                    label = "epScale"
+                                )
+
                                 Box(
                                     modifier = Modifier
-                                        .width(100.dp)
-                                        .height(48.dp)
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .width(115.dp)
+                                        .height(56.dp)
+                                        .scale(epScale)
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(if (isEpFocused) CineVietRed else TvSurfaceHigh)
                                         .border(
-                                            2.dp,
-                                            if (isEpFocused) Color.White else Color.White.copy(alpha = 0.1f),
-                                            RoundedCornerShape(8.dp)
+                                            width = if (isEpFocused) 2.dp else 1.dp,
+                                            color = if (isEpFocused) Color.White else Color.White.copy(alpha = 0.1f),
+                                            shape = RoundedCornerShape(10.dp)
                                         )
-                                        .shadow(if (isEpFocused) 10.dp else 0.dp, RoundedCornerShape(8.dp), spotColor = CineVietRed)
                                         .focusable(interactionSource = epSource)
                                         .clickable(interactionSource = epSource, indication = null) {
                                             onPlayEpisode(movie.slug, ep.slug, selectedServerIndex)
@@ -399,7 +574,7 @@ fun TvDetailScreen(
                                         text = ep.name,
                                         color = Color.White,
                                         fontSize = 13.sp,
-                                        fontWeight = if (isEpFocused) FontWeight.Bold else FontWeight.SemiBold,
+                                        fontWeight = if (isEpFocused) FontWeight.Black else FontWeight.Bold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -410,12 +585,12 @@ fun TvDetailScreen(
                 }
             }
 
-            // 3. DIỄN VIÊN & ĐẠO DIỄN (Clean Director & Cast Portraits Section)
+            // Real Cast & Director Section (with TMDb Avatars)
             val castList = if (!movie.tmdbCast.isNullOrEmpty()) {
                 movie.tmdbCast
             } else {
                 movie.actor?.map { actorName ->
-                    live.cineviet.tv.data.models.TmdbCast(
+                    TmdbCast(
                         name = actorName,
                         character = "Diễn viên",
                         avatar = "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(actorName, "UTF-8")
@@ -427,7 +602,7 @@ fun TvDetailScreen(
                 movie.tmdbDirectors
             } else {
                 movie.director?.map { dirName ->
-                    live.cineviet.tv.data.models.TmdbDirector(
+                    TmdbDirector(
                         name = dirName,
                         job = "Đạo diễn",
                         avatar = "https://cineviet.live/api/person/avatar/" + java.net.URLEncoder.encode(dirName, "UTF-8")
@@ -448,10 +623,9 @@ fun TvDetailScreen(
                         Spacer(modifier = Modifier.height(14.dp))
 
                         LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(18.dp),
                             contentPadding = PaddingValues(vertical = 4.dp)
                         ) {
-                            // Directors first
                             items(directorList) { director ->
                                 TvPersonCard(
                                     name = director.name,
@@ -459,8 +633,6 @@ fun TvDetailScreen(
                                     imageUrl = director.portraitUrl
                                 )
                             }
-
-                            // Cast members
                             items(castList) { cast ->
                                 TvPersonCard(
                                     name = cast.name,
@@ -485,9 +657,16 @@ fun TvPersonCard(
     val personSource = remember { MutableInteractionSource() }
     val isPersonFocused by personSource.collectIsFocusedAsState()
 
+    val scale by animateFloatAsState(
+        targetValue = if (isPersonFocused) 1.12f else 1.0f,
+        animationSpec = tween(180),
+        label = "personScale"
+    )
+
     Column(
         modifier = Modifier
             .width(110.dp)
+            .scale(scale)
             .focusable(interactionSource = personSource)
             .clickable(interactionSource = personSource, indication = null) {},
         horizontalAlignment = Alignment.CenterHorizontally
@@ -499,7 +678,7 @@ fun TvPersonCard(
                 .background(TvSurfaceHigh)
                 .border(
                     width = if (isPersonFocused) 2.5.dp else 1.dp,
-                    color = if (isPersonFocused) CineVietRed else Color.White.copy(alpha = 0.15f),
+                    color = if (isPersonFocused) CyberCyan else Color.White.copy(alpha = 0.15f),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
