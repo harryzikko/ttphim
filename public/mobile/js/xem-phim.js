@@ -684,6 +684,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Helper for orientation lock
+  const lockLand = async () => {
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        try { await screen.orientation.lock('landscape'); return true; } catch (_) {
+          try { await screen.orientation.lock('landscape-primary'); return true; } catch (_) { return false; }
+        }
+      }
+    } catch (_) {}
+    try {
+      const legacyLock = screen.lockOrientation || screen.mozLockOrientation || screen.msLockOrientation;
+      if (legacyLock) {
+        return legacyLock.call(screen, 'landscape') || legacyLock.call(screen, 'landscape-primary');
+      }
+    } catch (_) {}
+    return false;
+  };
+
+  const unlockLand = () => {
+    try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (_) {}
+    try {
+      const legacyUnlock = screen.unlockOrientation || screen.mozUnlockOrientation || screen.msUnlockOrientation;
+      if (legacyUnlock) legacyUnlock.call(screen);
+    } catch (_) {}
+  };
+
+  document.addEventListener('fullscreenchange', () => {
+    const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    if (!isFs) {
+      if (videoEl) videoEl.controls = false;
+      unlockLand();
+    } else {
+      lockLand();
+      setTimeout(lockLand, 100);
+      setTimeout(lockLand, 300);
+      setTimeout(lockLand, 600);
+    }
+  });
+
+  if (videoEl) {
+    videoEl.addEventListener('webkitendfullscreen', () => {
+      videoEl.controls = false;
+      unlockLand();
+    });
+  }
+
   // Fullscreen button
   if (fullscreenBtn) {
     fullscreenBtn.addEventListener('click', async (e) => {
@@ -701,7 +747,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         if (videoEl) videoEl.controls = false;
-        try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (_) {}
+        unlockLand();
         return;
       }
 
@@ -711,54 +757,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      // Helper for orientation lock
-      const lockLand = async () => {
-        if (screen.orientation && screen.orientation.lock) {
-          try { await screen.orientation.lock('landscape'); return true; } catch (_) {
-            try { await screen.orientation.lock('landscape-primary'); return true; } catch (_) { return false; }
-          }
-        }
-        return false;
-      };
+      const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
       // KKPhim and NguonC: default videoplayer with auto-landscape
-      const isPortrait = window.innerHeight > window.innerWidth;
-      let locked = false;
-
       if (videoEl && !videoEl.classList.contains('hidden')) {
         // KKPhim: use native videoplayer controls
-        videoEl.controls = true;
-        const req = playerWrapper?.requestFullscreen ? playerWrapper.requestFullscreen() : (videoEl.requestFullscreen ? videoEl.requestFullscreen() : null);
-        if (req && req.then) {
-          try {
-            await req;
-            locked = await lockLand();
-          } catch (_) {}
-        } else {
-          locked = await lockLand();
+        if (isIos && videoEl.webkitEnterFullscreen) {
+          videoEl.play().catch(() => {});
+          videoEl.webkitEnterFullscreen();
+          return;
         }
 
-        // If orientation lock didn't rotate (or on iOS), use CSS rotation
-        if (!locked || isPortrait) {
-          playerWrapper?.classList.add('m-web-fullscreen');
-          document.body.classList.add('m-web-fs-active');
+        videoEl.controls = true;
+        const req = videoEl.requestFullscreen ? videoEl.requestFullscreen() : (videoEl.webkitRequestFullscreen ? videoEl.webkitRequestFullscreen() : null);
+        lockLand();
+        if (req && req.then) {
+          req.then(() => {
+            lockLand();
+            setTimeout(lockLand, 100);
+            setTimeout(lockLand, 300);
+            setTimeout(lockLand, 600);
+          }).catch(() => {});
         }
+        setTimeout(lockLand, 100);
+        setTimeout(lockLand, 300);
+        setTimeout(lockLand, 600);
+
       } else if (iframeEl && !iframeEl.classList.contains('hidden')) {
         // NguonC
-        const req = iframeEl.requestFullscreen ? iframeEl.requestFullscreen() : (playerWrapper?.requestFullscreen ? playerWrapper.requestFullscreen() : null);
-        if (req && req.then) {
-          try {
-            await req;
-            locked = await lockLand();
-          } catch (_) {}
-        } else {
-          locked = await lockLand();
+        if (isIos) {
+          try { iframeEl.contentWindow?.postMessage({ type: 'request-fullscreen' }, '*'); } catch (_) {}
+          toggleWebFullscreen(true);
+          return;
         }
 
-        if (!locked || isPortrait) {
-          playerWrapper?.classList.add('m-web-fullscreen');
-          document.body.classList.add('m-web-fs-active');
+        const req = iframeEl.requestFullscreen ? iframeEl.requestFullscreen() : (iframeEl.webkitRequestFullscreen ? iframeEl.webkitRequestFullscreen() : null);
+        lockLand();
+        if (req && req.then) {
+          req.then(() => {
+            lockLand();
+            setTimeout(lockLand, 100);
+            setTimeout(lockLand, 300);
+            setTimeout(lockLand, 600);
+          }).catch(() => {});
         }
+        setTimeout(lockLand, 100);
+        setTimeout(lockLand, 300);
+        setTimeout(lockLand, 600);
       }
     });
   }
