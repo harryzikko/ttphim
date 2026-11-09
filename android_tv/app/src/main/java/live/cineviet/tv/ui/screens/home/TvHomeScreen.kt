@@ -1,7 +1,10 @@
 package live.cineviet.tv.ui.screens.home
 
+import android.view.KeyEvent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.relocation.BringIntoViewResponder
+import androidx.compose.foundation.relocation.bringIntoViewResponder
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,7 +28,10 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -308,7 +316,7 @@ fun TvHomeScreen(
                         onDetailClick = { slug -> onMovieClick(slug) },
                         onFocused = {
                             scope.launch {
-                                listState.animateScrollToItem(0, 0)
+                                listState.scrollToItem(0, 0)
                             }
                         }
                     )
@@ -421,23 +429,27 @@ fun TvHomeScreen(
         }
     }
 
+    BackHandler(enabled = selectedContinueItem != null) {
+        selectedContinueItem = null
+    }
+
     if (selectedContinueItem != null) {
         val continueItem = selectedContinueItem!!
         TvContinueActionDialog(
             item = continueItem,
             onResume = {
                 val slug = continueItem.movieSlug
-                val ep = continueItem.episodeSlug
+                val ep = continueItem.episodeSlug?.takeIf { it.isNotBlank() }
                 selectedContinueItem = null
                 onPlayClick(slug, ep)
             },
             onDelete = {
                 val slug = continueItem.movieSlug
+                continueWatchingList = continueWatchingList.filter { it.movieSlug != slug }
+                selectedContinueItem = null
                 scope.launch {
                     repository.removeFromHistory(slug)
-                    continueWatchingList = continueWatchingList.filter { it.movieSlug != slug }
                 }
-                selectedContinueItem = null
             },
             onDismiss = {
                 selectedContinueItem = null
@@ -562,6 +574,13 @@ fun TvContinueWatchingCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+private class HeroBringIntoViewResponder : BringIntoViewResponder {
+    override fun calculateRectForParent(localRect: Rect): Rect = Rect.Zero
+    override suspend fun bringChildIntoView(localRect: () -> Rect?) {}
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TvSpotlightHero(
     spotlights: List<SpotlightMovie>,
@@ -571,6 +590,7 @@ fun TvSpotlightHero(
 ) {
     var currentIndex by remember { mutableStateOf(0) }
     val currentMovie = spotlights.getOrNull(currentIndex) ?: return
+    val heroResponder = remember { HeroBringIntoViewResponder() }
 
     val playSource = remember { MutableInteractionSource() }
     val isPlayFocused by playSource.collectIsFocusedAsState()
@@ -598,6 +618,7 @@ fun TvSpotlightHero(
         modifier = Modifier
             .fillMaxWidth()
             .height(510.dp)
+            .bringIntoViewResponder(heroResponder)
     ) {
         // Layer 1: Fast direct CDN fallback backdrop (Never black, loads instantly)
         if (currentMovie.backdropFallback.isNotBlank()) {
@@ -871,8 +892,8 @@ fun TvSpotlightHero(
 
                 Box(
                     modifier = Modifier
-                        .width(if (isSelected) 48.dp else 38.dp)
-                        .height(if (isSelected) 68.dp else 54.dp)
+                        .size(width = 44.dp, height = 62.dp)
+                        .scale(if (isThumbFocused) 1.12f else if (isSelected) 1.05f else 1.0f)
                         .background(TvSurfaceContainer, RoundedCornerShape(6.dp))
                         .border(
                             width = if (isThumbFocused || isSelected) 2.5.dp else 1.dp,
@@ -881,8 +902,19 @@ fun TvSpotlightHero(
                         )
                         .clip(RoundedCornerShape(6.dp))
                         .focusable(interactionSource = thumbSource)
+                        .onKeyEvent { keyEvent ->
+                            if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                                (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                                 keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER ||
+                                 keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                                currentIndex = index
+                                onFocused()
+                                true
+                            } else false
+                        }
                         .clickable(interactionSource = thumbSource, indication = null) {
                             currentIndex = index
+                            onFocused()
                         }
                 ) {
                     SubcomposeAsyncImage(
@@ -992,137 +1024,163 @@ fun TvContinueActionDialog(
         try { resumeRequester.requestFocus() } catch (_: Exception) {}
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.85f))
-            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() }
-            .onKeyEvent { event ->
-                if (event.nativeKeyEvent.action == android.view.KeyEvent.ACTION_DOWN) {
-                    if (event.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_BACK ||
-                        event.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ESCAPE
-                    ) {
-                        onDismiss()
-                        return@onKeyEvent true
-                    }
-                }
-                false
-            },
-        contentAlignment = Alignment.Center
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .width(480.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(TvSurfaceContainer)
-                .border(1.5.dp, CineVietRed.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.85f))
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = item.movieName.ifBlank { item.movieSlug },
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            val epInfo = item.episodeName?.let { "Đang xem: $it" } ?: "Đang xem dở dang"
-            val pctInfo = (item.progressPercent as? Number)?.toInt()?.let { " • Đã xem $it%" } ?: ""
-            Text(
-                text = "$epInfo$pctInfo",
-                color = TvOnSurfaceVariant,
-                fontSize = 13.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Action 1: Resume Playing
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .focusRequester(resumeRequester)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isResumeFocused) CineVietRed else TvSurfaceHigh)
-                    .border(2.dp, if (isResumeFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
-                    .focusable(interactionSource = resumeSource)
-                    .clickable(interactionSource = resumeSource, indication = null) { onResume() },
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Xem Tiếp",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Action 2: Delete from Continue Watching
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isDeleteFocused) Color(0xFF93000A) else TvSurfaceHigh)
-                    .border(2.dp, if (isDeleteFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
-                    .focusable(interactionSource = deleteSource)
-                    .clickable(interactionSource = deleteSource, indication = null) { onDelete() },
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Xóa Khỏi Danh Sách Tiếp Tục Xem",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Action 3: Cancel / Dismiss
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isDismissFocused) TvSurfaceHighest else Color.Transparent)
-                    .border(1.dp, if (isDismissFocused) Color.White else Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                    .focusable(interactionSource = dismissSource)
-                    .clickable(interactionSource = dismissSource, indication = null) { onDismiss() },
-                contentAlignment = Alignment.Center
+                    .width(480.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(TvSurfaceContainer)
+                    .border(1.5.dp, CineVietRed.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+                    .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {}
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Đóng",
+                    text = item.movieName.ifBlank { item.movieSlug },
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val epInfo = item.episodeName?.let { "Đang xem: $it" } ?: "Đang xem dở dang"
+                val pctInfo = (item.progressPercent as? Number)?.toInt()?.let { " • Đã xem $it%" } ?: ""
+                Text(
+                    text = "$epInfo$pctInfo",
                     color = TvOnSurfaceVariant,
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Action 1: Resume Playing
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .focusRequester(resumeRequester)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isResumeFocused) CineVietRed else TvSurfaceHigh)
+                        .border(2.dp, if (isResumeFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+                        .focusable(interactionSource = resumeSource)
+                        .onKeyEvent { keyEvent ->
+                            if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                                (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                                 keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER ||
+                                 keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                                onResume()
+                                true
+                            } else false
+                        }
+                        .clickable(interactionSource = resumeSource, indication = null) { onResume() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Xem Tiếp",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Action 2: Delete from Continue Watching
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isDeleteFocused) Color(0xFF93000A) else TvSurfaceHigh)
+                        .border(2.dp, if (isDeleteFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+                        .focusable(interactionSource = deleteSource)
+                        .onKeyEvent { keyEvent ->
+                            if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                                (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                                 keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER ||
+                                 keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                                onDelete()
+                                true
+                            } else false
+                        }
+                        .clickable(interactionSource = deleteSource, indication = null) { onDelete() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Xóa Khỏi Danh Sách Tiếp Tục Xem",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Action 3: Cancel / Dismiss
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isDismissFocused) TvSurfaceHighest else Color.Transparent)
+                        .border(1.dp, if (isDismissFocused) Color.White else Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                        .focusable(interactionSource = dismissSource)
+                        .onKeyEvent { keyEvent ->
+                            if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                                (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                                 keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER ||
+                                 keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                                onDismiss()
+                                true
+                            } else false
+                        }
+                        .clickable(interactionSource = dismissSource, indication = null) { onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Đóng",
+                        color = TvOnSurfaceVariant,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
