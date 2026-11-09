@@ -1097,20 +1097,24 @@ router.get('/app-update', async (req, res) => {
     const settings = await dbService.getSettings();
     const update = { ...defaultAppUpdate, ...(settings.app_update || {}) };
 
-    const origin = `${req.protocol}://${req.get('host')}`;
-    const resolveUrl = (url) => {
-      if (!url || typeof url !== 'string') return '';
-      const trimmed = url.trim();
+    const host = req.get('host') || 'cineviet.live';
+    const origin = `https://${host}`;
+    const resolveUrl = (url, fallbackPath) => {
+      let trimmed = (typeof url === 'string' ? url.trim() : '') || fallbackPath;
+      trimmed = trimmed.replace(/TTPhim-AndroidTV/gi, 'CineViet-AndroidTV');
+      trimmed = trimmed.replace(/TTPhim-Mobile/gi, 'CineViet-Mobile');
+      if (trimmed.startsWith('http://cineviet.live')) {
+        trimmed = trimmed.replace('http://cineviet.live', 'https://cineviet.live');
+      }
       if (trimmed.startsWith('/')) return `${origin}${trimmed}`;
       return trimmed;
     };
 
     const resolved = {
       ...update,
-      apk_mobile_url: resolveUrl(update.apk_mobile_url),
-      apk_tv_url: resolveUrl(update.apk_tv_url),
+      apk_mobile_url: resolveUrl(update.apk_mobile_url, '/downloads/CineViet-Mobile-release.apk'),
+      apk_tv_url: resolveUrl(update.apk_tv_url, '/downloads/CineViet-AndroidTV-release.apk'),
     };
-
     res.json({ status: true, data: resolved });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Lỗi tải thông tin cập nhật ứng dụng' });
