@@ -64,6 +64,30 @@
 
   // Highlight active navigation tab & handle dropdowns
   function initNavigation() {
+    // Dynamic Header App Button (if not already in static template)
+    try {
+      const rightCluster = document.querySelector('header .btn-rice-donate')?.parentElement;
+      if (rightCluster && !rightCluster.querySelector('.btn-header-app')) {
+        const riceBtn = rightCluster.querySelector('.btn-rice-donate');
+        const appBtn = document.createElement('a');
+        appBtn.href = '/tai-ung-dung';
+        appBtn.className = 'btn-header-app';
+        appBtn.title = 'Tải ứng dụng CineViet cho Android, iOS & Android TV';
+        appBtn.innerHTML = `
+          <span class="app-icon-wrap" aria-hidden="true">
+            <span class="material-symbols-outlined">install_mobile</span>
+          </span>
+          <span class="app-btn-text">Tải App</span>
+          <span class="app-badge-new">v1.0</span>
+        `;
+        if (riceBtn) {
+          riceBtn.before(appBtn);
+        } else {
+          rightCluster.prepend(appBtn);
+        }
+      }
+    } catch (_) {}
+
     document.querySelectorAll('header nav').forEach(nav => {
       if (nav.querySelector('[data-path="song-ngu"]')) return;
       const cinema = nav.querySelector('a[data-path="chieu-rap"], a[href="/kham-pha?type=chieu-rap"]');
@@ -720,6 +744,23 @@
 
       <!-- Scrollable Navigation Items -->
       <div class="flex-1 overflow-y-auto p-3.5 space-y-1 font-label-md text-sm">
+        <!-- App Download Feature Pill in Mobile Drawer -->
+        <a href="/tai-ung-dung" class="mb-2 p-3 rounded-2xl bg-gradient-to-r from-red-600/20 via-red-500/10 to-transparent border border-red-500/30 flex items-center justify-between text-white hover:border-red-500/60 transition-all">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-9 h-9 rounded-xl bg-red-600/25 border border-red-500/40 text-red-500 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[20px]">install_mobile</span>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold text-xs text-white">Tải CineViet App</span>
+                <span class="px-1.5 py-0.2 rounded-full bg-red-600 text-[9px] font-black uppercase text-white">v1.0</span>
+              </div>
+              <div class="text-[11px] text-slate-400 truncate">Android • iOS • Smart TV</div>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-red-500 text-[18px]">arrow_forward</span>
+        </a>
+
         <a href="/" class="mobile-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-surface-container transition-colors ${currentPath === '/' ? 'bg-primary-container text-on-primary-container font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}">
           <span class="material-symbols-outlined text-[20px]">home</span>
           <span>Trang Chủ</span>

@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  
   <style>
     @layer base {
       html, body {
@@ -30,6 +31,7 @@
       scrollbar-width: none;
     }
   </style>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script id="tailwind-config">
     tailwind.config = {
@@ -84,144 +86,157 @@
       }
     };
   </script>
+
+  <!-- Global Custom Styles & Footer Styles (Respects sessionStorage.getItem('hide_footer_ad')) -->
+  <link rel="stylesheet" href="/css/custom.css?v=3.1.0"/>
+  <link rel="stylesheet" href="/css/site-footer.css?v=1.0.0"/>
 </head>
 <body class="bg-surface-base text-slate-200 antialiased selection:bg-primary-container selection:text-white">
 
+  <!-- Toast Notification (Copied Link) -->
+  <div id="copy-toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-surface-elevated text-white px-5 py-2.5 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.8)] border border-white/10 flex items-center gap-2.5 transition-all duration-300 opacity-0 pointer-events-none -translate-y-2">
+    <span class="material-symbols-outlined text-[20px] text-green-400">check_circle</span>
+    <span id="toast-text" class="text-xs sm:text-sm font-semibold tracking-wide">Đã sao chép link tải vào khay nhớ tạm!</span>
+  </div>
+
   <!-- Fixed Top Header & Navbar -->
   <header class="fixed top-0 left-0 w-full z-50 bg-surface-base/90 backdrop-blur-xl border-b border-white/5 shadow-[0_1px_8px_rgba(0,0,0,0.5)]">
-    <div class="h-20 w-full px-4 md:px-margin-desktop flex items-center justify-between gap-space-lg max-w-[1600px] mx-auto">
-      <div class="flex items-center gap-space-xl">
+    <div class="h-20 w-full px-4 md:px-margin-desktop flex items-center justify-between gap-space-md max-w-[1600px] mx-auto">
+      <div class="flex items-center gap-space-lg">
         <a class="flex items-center gap-1 group" href="/">
-          <span class="font-headline-xl text-2xl font-black tracking-tight text-white group-hover:scale-105 transition-transform">CINE<span class="text-primary-container">VIET</span></span>
+          <span class="font-headline-xl text-xl sm:text-2xl font-black tracking-tight text-white group-hover:scale-105 transition-transform">CINE<span class="text-primary-container">VIET</span></span>
         </a>
         <nav class="hidden xl:flex items-center gap-1 text-sm font-medium">
-          <a class="px-3.5 py-2 rounded-full text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors font-headline-md text-sm" href="/">Trang Chủ</a>
-          <a class="px-3.5 py-2 rounded-full text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors font-headline-md text-sm" href="/kham-pha?type=phim-bo">Phim Bộ</a>
-          <a class="px-3.5 py-2 rounded-full text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors font-headline-md text-sm" href="/kham-pha?type=phim-le">Phim Lẻ</a>
-          <a class="px-3.5 py-2 rounded-full text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors font-headline-md text-sm" href="/kham-pha?type=hoat-hinh">Hoạt Hình</a>
-          <a class="px-3.5 py-2 rounded-full text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors font-headline-md text-sm" href="/kham-pha?type=tv-shows">TV Shows</a>
-          <a class="px-3.5 py-2 rounded-full text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors font-headline-md text-sm" href="/kham-pha?type=chieu-rap">Chiếu Rạp</a>
-          <a aria-current="page" class="px-4 py-2 transition-all bg-primary-container text-white font-headline-md text-sm rounded-full shadow-[0_0_16px_rgba(229,9,20,0.45)] flex items-center gap-1.5" href="/tai-ung-dung">
-            <span class="material-symbols-outlined text-[18px]">install_mobile</span>
-            <span>Tải App</span>
-          </a>
+          <a class="px-3 py-1.5 rounded-lg text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors" href="/">Trang Chủ</a>
+          <a class="px-3 py-1.5 rounded-lg text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors" href="/kham-pha?type=phim-bo">Phim Bộ</a>
+          <a class="px-3 py-1.5 rounded-lg text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors" href="/kham-pha?type=phim-le">Phim Lẻ</a>
+          <a class="px-3 py-1.5 rounded-lg text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors" href="/kham-pha?type=hoat-hinh">Hoạt Hình</a>
+          <a class="px-3 py-1.5 rounded-lg text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors" href="/kham-pha?type=tv-shows">TV Shows</a>
+          <a class="px-3 py-1.5 rounded-lg text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors" href="/kham-pha?type=chieu-rap">Chiếu Rạp</a>
+          <a class="px-3 py-1.5 rounded-lg text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors" href="/kham-pha">Khám Phá</a>
         </nav>
       </div>
 
-      <div class="flex items-center gap-3 sm:gap-4">
-        <a class="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 text-white font-bold text-xs sm:text-sm shadow-[0_4px_14px_rgba(229,9,20,0.4)] border border-white/20 hover:scale-105 active:scale-95 transition-all whitespace-nowrap" href="/ung-ho" title="Ủng hộ CineViet">
-          <span class="material-symbols-outlined text-[18px]">volunteer_activism</span>
-          <span class="hidden sm:inline">Cứu tui chén cơm 🍚</span>
-          <span class="sm:hidden">Ủng hộ</span>
+      <!-- Right Header Actions -->
+      <div class="flex items-center gap-1.5 sm:gap-space-md shrink-0">
+        <a href="/tai-ung-dung" class="btn-header-app" title="Tải ứng dụng CineViet cho Android, iOS & Android TV">
+          <span class="app-icon-wrap" aria-hidden="true">
+            <span class="material-symbols-outlined">install_mobile</span>
+          </span>
+          <span class="app-btn-text">Tải App</span>
+          <span class="app-badge-new">v1.0</span>
         </a>
-        <a class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-text-secondary hover:text-white hover:bg-surface-bright transition-colors" href="/kham-pha" title="Tìm kiếm">
-          <span class="material-symbols-outlined text-[20px]">search</span>
-        </a>
-        <a class="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-text-secondary hover:text-white hover:bg-surface-bright transition-colors" href="/tai-khoan" title="Tài khoản">
-          <span class="material-symbols-outlined text-[20px]">person</span>
+        <a href="/ung-ho" class="btn-rice-donate" title="Cứu tui chén cơm - Tiếp sức CineViet duy trì server qua noza.site">
+          <span class="rice-icon-wrap" aria-hidden="true">
+            <svg class="rice-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 11C4 16.5 8 20 12 20C16 20 20 16.5 20 11H4Z" fill="#FFF" fill-opacity="0.95" stroke="#FEF08A" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M4 11C4 9.5 7.5 8 12 8C16.5 8 20 9.5 20 11H4Z" fill="#FEF08A" stroke="#FEF08A" stroke-width="1.5"/>
+              <path d="M9 5.5C9 4.5 10 3.5 10 2.5" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M12 5.5C12 4.5 13 3.5 13 2.5" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M15 5.5C15 4.5 16 3.5 16 2.5" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="18" cy="4" r="1.5" fill="#FEF08A"/>
+            </svg>
+          </span>
+          <span class="rice-btn-text">
+            <span class="rice-btn-text-full">Cứu tui chén cơm</span>
+            <span class="rice-btn-text-short">Cứu tui</span>
+          </span>
+          <span class="rice-sparkle-dot" aria-hidden="true"></span>
         </a>
       </div>
     </div>
   </header>
 
-  <main class="w-full pt-20 bg-surface-base">
-    <div class="flex flex-col w-full max-w-[1600px] mx-auto">
+  <!-- Page Content Shell -->
+  <main class="w-full pt-20 bg-surface-base min-h-screen">
+    <div class="flex flex-col w-full relative">
 
-      <!-- Toast Notification (Hidden by default, triggered by JS) -->
-      <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-space-sm px-space-md py-space-sm rounded-xl bg-surface-elevated text-text-primary shadow-2xl border border-primary-container/40">
-        <span class="material-symbols-outlined text-primary-container text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-        <span id="toast-msg" class="font-body-md text-sm font-medium">Đã sao chép đường dẫn tải vào bộ nhớ tạm!</span>
-      </div>
+      <!-- HERO SECTION -->
+      <section class="relative w-full px-4 md:px-margin-desktop pt-space-lg pb-space-lg overflow-hidden">
+        <!-- Ambient Glows -->
+        <div class="absolute top-0 left-1/4 w-[400px] h-[400px] bg-primary-container/15 rounded-full blur-[140px] pointer-events-none"></div>
+        <div class="absolute top-1/3 right-0 w-[450px] h-[450px] bg-secondary-container/15 rounded-full blur-[160px] pointer-events-none"></div>
 
-      <!-- Hero Cinematic Marquee Section -->
-      <section class="relative w-full overflow-hidden px-4 md:px-margin-desktop py-space-xl">
-        <!-- Atmospheric Ambient Glows -->
-        <div class="absolute -top-32 -left-32 w-96 h-96 bg-primary-container/20 rounded-full blur-[140px] pointer-events-none"></div>
-        <div class="absolute top-1/2 right-0 w-[500px] h-[500px] bg-secondary-container/15 rounded-full blur-[160px] pointer-events-none"></div>
-
-        <!-- Main Hero Banner Box -->
-        <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-surface-card via-surface-elevated to-surface-container-low p-6 md:p-12 shadow-2xl border border-white/5">
-          <!-- Backdrop Movie Collage Mockup Effect -->
-          <div class="absolute inset-0 opacity-15 mix-blend-luminosity pointer-events-none bg-cover bg-center" style="background-image: url('/images/banners/app_showcase_banner_faded.webp')"></div>
-          <div class="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-surface-card via-surface-card/90 to-transparent pointer-events-none"></div>
-
+        <!-- Main Hero Box -->
+        <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-surface-card via-surface-elevated to-surface-container-low p-5 sm:p-8 md:p-12 shadow-2xl border border-white/5 max-w-[1600px] mx-auto">
           <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-center">
-            <!-- Left Content -->
-            <div class="lg:col-span-7 flex flex-col gap-space-md">
+            
+            <!-- Left Typography Column -->
+            <div class="lg:col-span-7 flex flex-col gap-space-md text-center lg:text-left">
               <!-- Top Badges -->
-              <div class="flex flex-wrap items-center gap-space-xs">
+              <div class="flex flex-wrap items-center justify-center lg:justify-start gap-space-xs">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/20 text-primary-container font-label-caps text-xs tracking-wider uppercase font-bold border border-primary-container/30">
                   <span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
                   BỘ CÀI ĐẶT CHÍNH THỨC 2026
                 </span>
-                <span class="px-3 py-1 rounded-full bg-badge-dolby text-badge-gold font-label-caps text-xs tracking-wider uppercase font-bold border border-badge-gold/20">
+                <span class="px-3 py-1 rounded-full bg-surface-base text-badge-gold font-label-caps text-xs tracking-wider uppercase font-bold border border-badge-gold/20 shadow-sm">
                   Miễn Phí 100%
                 </span>
               </div>
 
               <!-- Main Title -->
-              <h1 class="font-display-hero text-3xl sm:text-4xl md:text-5xl font-extrabold text-text-primary tracking-tight leading-tight">
+              <h1 class="font-display-hero text-2xl sm:text-4xl md:text-5xl font-black text-text-primary tracking-tight leading-tight">
                 Xem Phim Đỉnh Cao Trên <br class="hidden sm:block"/>
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400">
-                  Smart TV, Android & iOS
+                  Smart TV, Android &amp; iOS
                 </span>
               </h1>
 
-              <!-- Description (Bỏ chất lượng & âm thanh) -->
-              <p class="font-body-lg text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed">
+              <!-- Description (Đã bỏ chất lượng & âm thanh) -->
+              <p class="font-body-lg text-xs sm:text-base text-text-secondary max-w-2xl mx-auto lg:mx-0 leading-relaxed">
                 Tận hưởng kho phim điện ảnh không quảng cáo, điều khiển remote mượt mà và tự động cập nhật bản mới trực tiếp trong ứng dụng.
               </p>
 
               <!-- Platform Chips -->
-              <div class="flex flex-wrap items-center gap-space-sm pt-space-xs">
-                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-md text-xs sm:text-sm border border-white/5">
-                  <span class="material-symbols-outlined text-[18px] text-green-400">android</span>
+              <div class="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-space-xs">
+                <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-on-surface font-label-md text-xs border border-white/5">
+                  <span class="material-symbols-outlined text-[17px] text-green-400">android</span>
                   <span>Android Mobile (APK)</span>
                 </div>
-                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-md text-xs sm:text-sm border border-white/5">
-                  <span class="material-symbols-outlined text-[18px] text-blue-400">phone_iphone</span>
-                  <span>iPhone & iPad (iOS)</span>
+                <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-on-surface font-label-md text-xs border border-white/5">
+                  <span class="material-symbols-outlined text-[17px] text-blue-400">phone_iphone</span>
+                  <span>iPhone &amp; iPad (iOS)</span>
                 </div>
-                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-md text-xs sm:text-sm border border-white/5">
-                  <span class="material-symbols-outlined text-[18px] text-badge-gold">tv</span>
+                <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-on-surface font-label-md text-xs border border-white/5">
+                  <span class="material-symbols-outlined text-[17px] text-cyan-400">tv</span>
                   <span>Android TV (Remote)</span>
                 </div>
               </div>
 
-              <!-- Main Action & Sub-info -->
-              <div class="flex flex-col sm:flex-row sm:items-center gap-space-md pt-space-sm">
-                <a class="inline-flex items-center justify-center gap-space-xs px-space-lg py-3.5 rounded-xl bg-gradient-to-r from-primary-container to-secondary-container hover:opacity-95 text-white font-headline-md text-base shadow-[0_0_24px_rgba(229,9,20,0.5)] transition-all transform hover:-translate-y-0.5 font-bold" href="#download-matrix">
-                  <span class="material-symbols-outlined text-[22px]">download</span>
-                  <span>Tải Ứng Dụng Ngay</span>
-                  <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </a>
-                <div class="flex items-center gap-2 text-text-muted font-body-sm text-xs sm:text-sm">
-                  <span class="material-symbols-outlined text-[18px] text-green-400">verified_user</span>
-                  <span id="lbl-version-hero">v1.0.0 chính thức • Cài đè tự động</span>
-                </div>
+              <!-- Key Specs Bar (Chỉ giữ lại Phiên bản & Cập nhật tự động) -->
+              <div class="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-2">
+                <span class="app-version-chip bg-surface-base/80 border border-white/10 px-3 py-1.5 rounded-xl font-label-md text-xs font-bold text-white shadow-sm">
+                  v1.0.0 (Build 1)
+                </span>
+                <span class="bg-surface-base/80 border border-white/10 px-3 py-1.5 rounded-xl font-label-md text-xs font-bold text-green-400 flex items-center gap-1.5 shadow-sm">
+                  <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> Tự Động Cài Đè
+                </span>
+                <span class="bg-surface-base/80 border border-white/10 px-3 py-1.5 rounded-xl font-label-md text-xs font-bold text-amber-400 flex items-center gap-1.5 shadow-sm">
+                  <span class="material-symbols-outlined text-[15px]">key</span> Mã TV: 6004607
+                </span>
               </div>
 
-              <!-- Specs Highlights Bar (Chỉ giữ lại Phiên bản & Cập nhật) -->
-              <div class="grid grid-cols-2 gap-space-sm pt-space-md mt-space-xs max-w-md">
-                <div class="p-space-sm rounded-lg bg-surface-base/70 border border-white/5 backdrop-blur-sm flex flex-col">
-                  <span class="text-text-muted font-label-caps text-[11px] uppercase tracking-wider font-bold">PHIÊN BẢN</span>
-                  <span id="lbl-version-tag" class="text-text-primary font-headline-md text-sm font-bold">v1.0.0 • Build 1</span>
-                </div>
-                <div class="p-space-sm rounded-lg bg-surface-base/70 border border-white/5 backdrop-blur-sm flex flex-col">
-                  <span class="text-text-muted font-label-caps text-[11px] uppercase tracking-wider font-bold">CẬP NHẬT</span>
-                  <span class="text-text-primary font-headline-md text-sm font-bold">Tự Động Cài Đè</span>
-                </div>
+              <!-- Main Hero Actions -->
+              <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-space-sm pt-space-xs">
+                <a class="w-full sm:w-auto inline-flex items-center justify-center gap-space-xs px-6 py-3.5 rounded-xl bg-gradient-to-r from-primary-container via-red-600 to-secondary-container hover:opacity-95 text-white font-headline-md text-sm sm:text-base shadow-[0_0_24px_rgba(229,9,20,0.5)] transition-all font-bold" href="#platform-hub">
+                  <span class="material-symbols-outlined text-[20px]">download</span>
+                  <span>Chọn Bản Cài Đặt Ngay</span>
+                  <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+                </a>
+                <span class="text-xs text-text-muted flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[16px] text-green-400">verified</span>
+                  <span id="lbl-version-hero">v1.0.0 chính thức • Cài đè tự động</span>
+                </span>
               </div>
             </div>
 
-            <!-- Right Visual Mockups Matching Stitch Design -->
-            <div class="lg:col-span-5 relative flex justify-center items-center py-4">
-              <div class="relative w-full max-w-[480px] rounded-2xl overflow-hidden shadow-2xl bg-[#141824] border border-white/10 p-3 sm:p-4 transition-transform duration-500 group-hover:scale-105">
+            <!-- Right Visual Mockups Column -->
+            <div class="lg:col-span-5 relative flex justify-center items-center py-2">
+              <div class="relative w-full max-w-[480px] rounded-2xl overflow-hidden shadow-2xl bg-[#141824] border border-white/10 p-3 sm:p-4 transition-transform duration-500 hover:scale-105">
                 <div class="relative w-full rounded-xl overflow-hidden aspect-[16/9] bg-black">
-                  <img src="/images/banners/cineviet_stitch_devices.webp" alt="CineViet Smart TV, Android & iOS" class="w-full h-full object-cover" />
+                  <img src="/images/banners/cineviet_stitch_devices.webp" alt="CineViet Smart TV, Android & iOS" class="w-full h-full object-cover" loading="lazy" />
                 </div>
-                <!-- Glass overlay tag -->
-                <div class="mt-3 px-3 py-1.5 rounded-xl bg-[#0B0E14]/85 backdrop-blur-md flex items-center justify-between border border-white/5">
+                <div class="mt-2.5 px-3 py-1.5 rounded-xl bg-[#0B0E14]/85 backdrop-blur-md flex items-center justify-between border border-white/5">
                   <div class="flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                     <span class="text-text-primary font-label-md text-xs font-semibold">Đồng bộ đám mây liên thiết bị</span>
@@ -234,50 +249,224 @@
         </div>
       </section>
 
-      <!-- Release Notes Alert Strip -->
-      <section class="w-full px-4 md:px-margin-desktop pb-space-lg">
-        <div class="w-full rounded-xl bg-surface-card border border-white/5 p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md">
-          <div class="flex items-start gap-space-sm">
-            <div class="w-10 h-10 rounded-lg bg-primary-container/20 border border-primary-container/30 flex items-center justify-center shrink-0 text-primary-container mt-0.5">
-              <span class="material-symbols-outlined text-[22px]">campaign</span>
-            </div>
-            <div class="flex flex-col">
-              <span id="title-release-notes" class="font-headline-md text-base font-bold text-text-primary">Nhật Ký Bản Phát Hành v1.0.0</span>
-              <p id="text-release-notes" class="font-body-sm text-xs sm:text-sm text-text-secondary mt-1 whitespace-pre-line leading-relaxed">
-                Phiên bản chính thức hoàn thiện hệ sinh thái đa nền tảng • Tối ưu máy chủ ViCDN tốc độ cao • Hỗ trợ cập nhật cài đè trực tiếp trong app không mất dữ liệu.
-              </p>
-            </div>
+      <!-- RELEASE MARQUEE STRIP -->
+      <section class="w-full px-4 md:px-margin-desktop pb-space-lg max-w-[1600px] mx-auto">
+        <div class="w-full rounded-xl bg-surface-card border border-white/5 p-3.5 sm:p-4 flex items-center gap-space-sm shadow-sm">
+          <div class="w-9 h-9 rounded-lg bg-primary-container/20 flex items-center justify-center shrink-0 text-primary-container">
+            <span class="material-symbols-outlined text-[20px]">campaign</span>
           </div>
-          <div class="shrink-0">
-            <span class="px-3.5 py-1.5 rounded-full bg-surface-elevated text-badge-gold font-label-caps text-xs uppercase tracking-wider font-bold border border-badge-gold/30">
-              Ổn định 100%
-            </span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="font-label-caps text-xs text-badge-gold uppercase tracking-wider font-bold">Cập Nhật <span class="app-version-short">v1.0.0</span></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+            </div>
+            <p id="marquee-release-text" class="font-body-sm text-xs sm:text-sm text-text-secondary truncate">
+              Hỗ trợ nâng cấp cài đè trực tiếp trong app không mất lịch sử xem, tối ưu CDN KKPhim &amp; ViCDN tốc độ cao.
+            </p>
           </div>
         </div>
       </section>
 
-      <!-- Download Matrix: 3 Dedicated Platform Cards -->
-      <section class="w-full px-4 md:px-margin-desktop py-space-xl" id="download-matrix">
-        <div class="text-center max-w-2xl mx-auto mb-space-xl">
+      <!-- PLATFORM DOWNLOAD HUB -->
+      <section class="w-full px-4 md:px-margin-desktop py-space-lg max-w-[1600px] mx-auto" id="platform-hub">
+        <div class="text-center max-w-2xl mx-auto mb-space-lg">
           <span class="font-label-caps text-xs text-primary-container uppercase tracking-widest font-bold">HỆ SINH THÁI CINEVIET</span>
-          <h2 class="font-headline-xl text-2xl sm:text-3xl text-text-primary font-bold mt-1">Chọn Phiên Bản Phù Hợp Với Bạn</h2>
-          <p class="font-body-md text-sm text-text-secondary mt-2">Tất cả các phiên bản đều miễn phí 100%, không quảng cáo, tối ưu tốc độ tối đa cho từng tỷ lệ màn hình.</p>
+          <h2 class="font-headline-xl text-2xl sm:text-3xl text-text-primary font-bold mt-1">Chọn Phiên Bản Cài Đặt</h2>
+          <p class="font-body-md text-xs sm:text-sm text-text-secondary mt-1">Tất cả phiên bản đều miễn phí 100%, không quảng cáo, tối ưu cho từng kích cỡ màn hình.</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter-desktop items-stretch">
+        <!-- ========================================================
+             MOBILE VIEW (< 1024px): SEGMENTED CONTROL TABS (STITCH REDESIGN)
+             ======================================================== -->
+        <div class="lg:hidden w-full flex flex-col gap-space-md">
+          <!-- Segmented Control Bar -->
+          <div class="bg-surface-container-low p-1.5 rounded-2xl flex items-center border border-white/5 shadow-inner">
+            <button class="flex-1 py-2.5 rounded-xl font-label-badge text-xs uppercase tracking-wider font-bold transition-all text-white bg-primary-container shadow-md flex items-center justify-center gap-1.5" id="tab-btn-android" onclick="switchPlatformTab('android')" type="button">
+              <span class="material-symbols-outlined text-[17px]">android</span>
+              <span>Android</span>
+            </button>
+            <button class="flex-1 py-2.5 rounded-xl font-label-badge text-xs uppercase tracking-wider font-bold transition-all text-text-muted hover:text-white flex items-center justify-center gap-1.5" id="tab-btn-ios" onclick="switchPlatformTab('ios')" type="button">
+              <span class="material-symbols-outlined text-[17px]">phone_iphone</span>
+              <span>iOS / PWA</span>
+            </button>
+            <button class="flex-1 py-2.5 rounded-xl font-label-badge text-xs uppercase tracking-wider font-bold transition-all text-text-muted hover:text-white flex items-center justify-center gap-1.5" id="tab-btn-tv" onclick="switchPlatformTab('tv')" type="button">
+              <span class="material-symbols-outlined text-[17px]">tv</span>
+              <span>Android TV</span>
+            </button>
+          </div>
+
+          <!-- TAB CONTENT: ANDROID MOBILE -->
+          <div class="flex flex-col gap-space-sm" id="tab-content-android">
+            <div class="bg-surface-card rounded-2xl p-space-md border border-white/5 shadow-xl flex flex-col gap-space-md relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-space-sm">
+                  <div class="w-11 h-11 rounded-xl bg-surface-elevated flex items-center justify-center text-green-400 shadow-sm border border-white/5">
+                    <span class="material-symbols-outlined text-[24px]">android</span>
+                  </div>
+                  <div>
+                    <h3 class="font-headline-md text-base font-bold text-text-primary">CineViet Mobile APK</h3>
+                    <p class="font-body-sm text-xs text-text-muted">Samsung, Xiaomi, OPPO, Pixel...</p>
+                  </div>
+                </div>
+                <span class="app-version-short bg-surface-elevated text-green-400 font-label-badge text-xs px-2.5 py-1 rounded-full font-bold border border-green-500/20">v1.0.0</span>
+              </div>
+
+              <!-- Features list -->
+              <div class="bg-surface-container-low rounded-xl p-space-sm flex flex-col gap-2 border border-white/5">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-green-400 text-[18px] shrink-0">check_circle</span>
+                  <span class="font-body-sm text-xs sm:text-sm text-text-secondary">Tải tệp APK cài trực tiếp, không cần Google Play</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-green-400 text-[18px] shrink-0">check_circle</span>
+                  <span class="font-body-sm text-xs sm:text-sm text-text-secondary">Cử chỉ vuốt âm lượng / độ sáng &amp; thu nhỏ góc PiP</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-green-400 text-[18px] shrink-0">check_circle</span>
+                  <span class="font-body-sm text-xs sm:text-sm text-text-secondary">Tự động báo bản mới &amp; nâng cấp cài đè 1 chạm</span>
+                </div>
+              </div>
+
+              <!-- Action CTAs -->
+              <div class="flex flex-col gap-2 pt-1">
+                <a class="link-download-android w-full h-12 rounded-xl bg-gradient-to-r from-primary-container via-red-600 to-secondary-container text-white font-headline-md text-sm font-bold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(229,9,20,0.4)] active:scale-[0.98] transition-transform" href="/downloads/CineViet-Mobile-release.apk" download>
+                  <span class="material-symbols-outlined text-[20px]">download</span>
+                  <span>Tải APK Android Mobile</span>
+                </a>
+                <button class="w-full h-10 rounded-xl bg-surface-elevated text-text-secondary hover:text-white font-label-md text-xs flex items-center justify-center gap-1.5 active:bg-surface-variant transition-colors border border-white/5" onclick="copyDownloadUrl('btn-download-android', 'APK Android Mobile')" type="button">
+                  <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                  <span>Sao chép link tải APK</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB CONTENT: IOS -->
+          <div class="hidden flex flex-col gap-space-sm" id="tab-content-ios">
+            <div class="bg-surface-card rounded-2xl p-space-md border border-white/5 shadow-xl flex flex-col gap-space-md relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-space-sm">
+                  <div class="w-11 h-11 rounded-xl bg-surface-elevated flex items-center justify-center text-blue-400 shadow-sm border border-white/5">
+                    <span class="material-symbols-outlined text-[24px]">phone_iphone</span>
+                  </div>
+                  <div>
+                    <h3 class="font-headline-md text-base font-bold text-text-primary">CineViet cho iOS</h3>
+                    <p class="font-body-sm text-xs text-text-muted">iPhone &amp; iPad (iOS 14.0+)</p>
+                  </div>
+                </div>
+                <span class="bg-surface-elevated text-blue-400 font-label-badge text-xs px-2.5 py-1 rounded-full font-bold border border-blue-500/20">PWA / IPA</span>
+              </div>
+
+              <!-- Features list -->
+              <div class="bg-surface-container-low rounded-xl p-space-sm flex flex-col gap-2 border border-white/5">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-blue-400 text-[18px] shrink-0">check_circle</span>
+                  <span class="font-body-sm text-xs sm:text-sm text-text-secondary">Tải tệp IPA cài qua AltStore, SideStore, Scarlet</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-blue-400 text-[18px] shrink-0">check_circle</span>
+                  <span class="font-body-sm text-xs sm:text-sm text-text-secondary">Hoặc thêm vào MH chính (PWA) xem toàn màn hình</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-blue-400 text-[18px] shrink-0">check_circle</span>
+                  <span class="font-body-sm text-xs sm:text-sm text-text-secondary">Hỗ trợ phát AirPlay truyền hình ảnh lên Smart TV</span>
+                </div>
+              </div>
+
+              <!-- Action CTAs -->
+              <div class="flex flex-col gap-2 pt-1">
+                <a class="link-download-ios w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white font-headline-md text-sm font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform" href="/downloads/CineViet-iOS-IPA-Unsigned.ipa" download>
+                  <span class="material-symbols-outlined text-[20px]">download</span>
+                  <span>Tải File IPA Cho iOS (11.75 MB)</span>
+                </a>
+                <a class="w-full h-11 rounded-xl bg-surface-elevated text-white font-label-md text-xs flex items-center justify-center gap-1.5 active:bg-surface-variant transition-colors border border-white/5" href="https://cineviet.live" target="_blank">
+                  <span class="material-symbols-outlined text-[18px] text-badge-gold">ios_share</span>
+                  <span>Hoặc Mở Web App (PWA Safari)</span>
+                </a>
+                <button class="w-full h-10 rounded-xl bg-surface-container-low text-text-secondary hover:text-white font-label-md text-xs flex items-center justify-center gap-1.5 active:bg-surface-variant transition-colors border border-white/5" onclick="copyDownloadUrl('btn-download-ios', 'IPA iOS')" type="button">
+                  <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                  <span>Sao chép link tải IPA iOS</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB CONTENT: ANDROID TV -->
+          <div class="hidden flex flex-col gap-space-sm" id="tab-content-tv">
+            <div class="bg-surface-card rounded-2xl p-space-md border border-primary-container/40 shadow-[0_0_30px_rgba(229,9,20,0.2)] flex flex-col gap-space-md relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-space-sm">
+                  <div class="w-11 h-11 rounded-xl bg-primary-container/20 flex items-center justify-center text-primary-container shadow-sm border border-primary-container/30">
+                    <span class="material-symbols-outlined text-[24px]">tv</span>
+                  </div>
+                  <div>
+                    <h3 class="font-headline-md text-base font-bold text-text-primary">CineViet Android TV</h3>
+                    <p class="font-body-sm text-xs text-text-muted">Sony, TCL, Xiaomi, Mi Box, FPT Box...</p>
+                  </div>
+                </div>
+                <span class="bg-primary-container/20 text-primary-container font-label-badge text-xs px-2.5 py-1 rounded-full font-bold border border-primary-container/30">Leanback</span>
+              </div>
+
+              <!-- TV Quick Code Tip (Mã 6004607) -->
+              <div class="bg-surface-elevated rounded-xl p-space-sm flex items-center justify-between border border-white/10">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-badge-gold text-[20px]">key</span>
+                  <div>
+                    <p class="font-label-badge text-[10px] text-text-muted uppercase">Mã Downloader TV</p>
+                    <p class="font-headline-md text-base text-primary-container tracking-wider font-black font-mono">6004607</p>
+                  </div>
+                </div>
+                <span class="bg-surface-base text-text-secondary text-[11px] px-2.5 py-1 rounded-lg border border-white/5">Nhập vào app Downloader</span>
+              </div>
+
+              <!-- Features list -->
+              <div class="bg-surface-container-low rounded-xl p-space-sm flex flex-col gap-2 border border-white/5">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary-container text-[18px] shrink-0">check_circle</span>
+                  <span class="font-body-sm text-xs sm:text-sm text-text-secondary">Giao diện điều khiển 100% bằng Remote TV (D-pad)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary-container text-[18px] shrink-0">check_circle</span>
+                  <span class="font-body-sm text-xs sm:text-sm text-text-secondary">Phát trực tiếp nguồn KKPhim tốc độ cao, không quảng cáo</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary-container text-[18px] shrink-0">check_circle</span>
+                  <span class="font-body-sm text-xs sm:text-sm text-text-secondary">Tự động kiểm tra bản mới &amp; nâng cấp cài đè trong app</span>
+                </div>
+              </div>
+
+              <!-- Action CTAs -->
+              <div class="flex flex-col gap-2 pt-1">
+                <a class="link-download-tv w-full h-12 rounded-xl bg-gradient-to-r from-primary-container via-red-600 to-secondary-container text-white font-headline-md text-sm font-bold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(229,9,20,0.4)] active:scale-[0.98] transition-transform" href="/downloads/CineViet-AndroidTV-release.apk" download>
+                  <span class="material-symbols-outlined text-[20px]">download</span>
+                  <span>Tải APK Android TV (Remote)</span>
+                </a>
+                <button class="w-full h-10 rounded-xl bg-surface-elevated text-text-secondary hover:text-white font-label-md text-xs flex items-center justify-center gap-1.5 active:bg-surface-variant transition-colors border border-white/5" onclick="copyDownloadUrl('btn-download-tv', 'APK Android TV')" type="button">
+                  <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                  <span>Sao chép link APK TV</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================================
+             DESKTOP VIEW (≥ 1024px): 3 SIDE-BY-SIDE EXPANDED CARDS WITH QR CODES
+             ======================================================== -->
+        <div class="hidden lg:grid grid-cols-3 gap-gutter-desktop items-stretch">
           
           <!-- Card 1: Android Mobile -->
-          <div class="relative flex flex-col justify-between rounded-2xl bg-surface-card border border-white/5 p-6 md:p-8 hover:bg-surface-elevated hover:border-white/10 transition-all duration-300 shadow-xl group">
+          <div class="relative flex flex-col justify-between rounded-2xl bg-surface-card border border-white/5 p-8 hover:bg-surface-elevated hover:border-white/10 transition-all duration-300 shadow-xl group">
             <div>
               <div class="flex items-center justify-between mb-space-md">
                 <div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-green-400">
                   <span class="material-symbols-outlined text-[28px]">android</span>
                 </div>
-                <span class="px-space-sm py-1 rounded bg-surface-container-high text-text-secondary font-label-caps text-xs uppercase font-bold">APK Mobile</span>
+                <span class="app-version-short px-space-sm py-1 rounded bg-surface-container-high text-text-secondary font-label-caps text-xs uppercase font-bold">v1.0.0</span>
               </div>
               <h3 class="font-headline-lg text-xl font-bold text-text-primary">CineViet Mobile</h3>
               <p class="font-body-sm text-xs sm:text-sm text-text-secondary mt-1 mb-space-lg leading-relaxed">
-                Dành cho smartphone &amp; máy tính bảng Android (Samsung, Xiaomi, OPPO, Vivo, Pixel...).
+                Dành cho smartphone &amp; tablet Android (Samsung, Xiaomi, OPPO, Vivo, Pixel...).
               </p>
 
               <!-- Feature List -->
@@ -310,7 +499,7 @@
 
             <!-- Action Buttons -->
             <div class="flex flex-col gap-space-xs">
-              <a id="btn-download-android" class="w-full py-3 px-space-md rounded-xl bg-surface-bright hover:bg-surface-elevated text-text-primary font-headline-md text-sm font-bold flex items-center justify-center gap-space-xs transition-colors border border-white/10" href="/downloads/CineViet-Mobile-release.apk" download>
+              <a id="btn-download-android" class="link-download-android w-full py-3 px-space-md rounded-xl bg-surface-bright hover:bg-surface-elevated text-text-primary font-headline-md text-sm font-bold flex items-center justify-center gap-space-xs transition-colors border border-white/10" href="/downloads/CineViet-Mobile-release.apk" download>
                 <span class="material-symbols-outlined text-[20px] text-green-400">download</span>
                 <span>Tải APK Android Mobile</span>
               </a>
@@ -322,13 +511,13 @@
           </div>
 
           <!-- Card 2: iOS iPhone / iPad -->
-          <div class="relative flex flex-col justify-between rounded-2xl bg-surface-card border border-white/5 p-6 md:p-8 hover:bg-surface-elevated hover:border-white/10 transition-all duration-300 shadow-xl group">
+          <div class="relative flex flex-col justify-between rounded-2xl bg-surface-card border border-white/5 p-8 hover:bg-surface-elevated hover:border-white/10 transition-all duration-300 shadow-xl group">
             <div>
               <div class="flex items-center justify-between mb-space-md">
                 <div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-blue-400">
                   <span class="material-symbols-outlined text-[28px]">phone_iphone</span>
                 </div>
-                <span class="px-space-sm py-1 rounded bg-surface-container-high text-text-secondary font-label-caps text-xs uppercase font-bold">iOS 14+</span>
+                <span class="px-space-sm py-1 rounded bg-surface-container-high text-blue-400 font-label-caps text-xs uppercase font-bold">iOS 14+</span>
               </div>
               <h3 class="font-headline-lg text-xl font-bold text-text-primary">CineViet iOS</h3>
               <p class="font-body-sm text-xs sm:text-sm text-text-secondary mt-1 mb-space-lg leading-relaxed">
@@ -365,7 +554,7 @@
 
             <!-- Action Buttons -->
             <div class="flex flex-col gap-2">
-              <a id="btn-download-ios" class="w-full py-3 px-space-md rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white font-headline-md text-sm font-bold flex items-center justify-center gap-space-xs transition-colors shadow-lg" href="/downloads/CineViet-iOS-IPA-Unsigned.ipa" download>
+              <a id="btn-download-ios" class="link-download-ios w-full py-3 px-space-md rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white font-headline-md text-sm font-bold flex items-center justify-center gap-space-xs transition-colors shadow-lg" href="/downloads/CineViet-iOS-IPA-Unsigned.ipa" download>
                 <span class="material-symbols-outlined text-[20px]">download</span>
                 <span>Tải File IPA Cho iOS</span>
               </a>
@@ -380,8 +569,8 @@
             </div>
           </div>
 
-          <!-- Card 3: Android TV & TV Box (RECOMMENDED SPOTLIGHT) -->
-          <div class="relative flex flex-col justify-between rounded-2xl bg-gradient-to-b from-surface-elevated via-surface-card to-surface-card p-6 md:p-8 shadow-[0_0_40px_rgba(229,9,20,0.25)] ring-2 ring-primary-container group scale-100 lg:-translate-y-2">
+          <!-- Card 3: Android TV & TV Box -->
+          <div class="relative flex flex-col justify-between rounded-2xl bg-gradient-to-b from-surface-elevated via-surface-card to-surface-card p-8 shadow-[0_0_40px_rgba(229,9,20,0.25)] ring-2 ring-primary-container group scale-100 lg:-translate-y-2">
             <!-- Floating Recommendation Tag -->
             <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-space-md py-1 rounded-full bg-gradient-to-r from-badge-gold to-secondary-container text-surface-container-lowest font-headline-md text-xs font-bold shadow-lg flex items-center gap-1 whitespace-nowrap">
               <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
@@ -430,7 +619,7 @@
 
             <!-- Action Buttons -->
             <div class="flex flex-col gap-space-xs">
-              <a id="btn-download-tv" class="w-full py-3.5 px-space-md rounded-xl bg-gradient-to-r from-primary-container to-secondary-container hover:opacity-95 text-white font-headline-md text-sm font-bold flex items-center justify-center gap-space-xs shadow-lg transition-transform" href="/downloads/CineViet-AndroidTV-release.apk" download>
+              <a id="btn-download-tv" class="link-download-tv w-full py-3.5 px-space-md rounded-xl bg-gradient-to-r from-primary-container to-secondary-container hover:opacity-95 text-white font-headline-md text-sm font-bold flex items-center justify-center gap-space-xs shadow-lg transition-transform" href="/downloads/CineViet-AndroidTV-release.apk" download>
                 <span class="material-symbols-outlined text-[22px]">download</span>
                 <span>Tải APK Android TV (Remote)</span>
               </a>
@@ -443,46 +632,101 @@
         </div>
       </section>
 
-      <!-- Step-by-Step Installation Guides with Dynamic Tabs -->
-      <section class="w-full px-4 md:px-margin-desktop py-space-xl">
+      <!-- ĐẶC QUYỀN BẢN ỨNG DỤNG (FEATURE HIGHLIGHTS) -->
+      <section class="w-full px-4 md:px-margin-desktop py-space-lg max-w-[1600px] mx-auto">
+        <div class="mb-space-md text-center max-w-xl mx-auto">
+          <span class="font-label-caps text-xs text-primary-container uppercase tracking-wider font-bold">ƯU ĐIỂM NỔI BẬT</span>
+          <h2 class="font-headline-xl text-xl sm:text-2xl text-text-primary font-bold mt-1">Đặc Quyền Của Bản Ứng Dụng</h2>
+          <p class="font-body-sm text-xs sm:text-sm text-text-secondary mt-1">Những tính năng vượt trội được thiết kế riêng so với trình duyệt web thông thường</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+          <!-- Card 1 -->
+          <div class="bg-surface-card p-space-md rounded-2xl border border-white/5 shadow-sm flex items-start gap-space-sm">
+            <div class="w-11 h-11 rounded-xl bg-primary-container/20 flex items-center justify-center text-primary-container shrink-0">
+              <span class="material-symbols-outlined text-[24px]">speed</span>
+            </div>
+            <div>
+              <h4 class="font-headline-md text-sm font-bold text-text-primary">Tốc Độ Vượt Trội</h4>
+              <p class="font-body-sm text-xs text-text-secondary mt-1 leading-relaxed">Tối ưu giải mã GPU phần cứng native, tua nhanh tức thì, không giật lag.</p>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="bg-surface-card p-space-md rounded-2xl border border-white/5 shadow-sm flex items-start gap-space-sm">
+            <div class="w-11 h-11 rounded-xl bg-badge-gold/20 flex items-center justify-center text-badge-gold shrink-0">
+              <span class="material-symbols-outlined text-[24px]">block</span>
+            </div>
+            <div>
+              <h4 class="font-headline-md text-sm font-bold text-text-primary">0% Quảng Cáo</h4>
+              <p class="font-body-sm text-xs text-text-secondary mt-1 leading-relaxed">Loại bỏ sạch các pop-up nhảy tab khó chịu, bảo vệ trải nghiệm trọn vẹn.</p>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="bg-surface-card p-space-md rounded-2xl border border-white/5 shadow-sm flex items-start gap-space-sm">
+            <div class="w-11 h-11 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400 shrink-0">
+              <span class="material-symbols-outlined text-[24px]">sync</span>
+            </div>
+            <div>
+              <h4 class="font-headline-md text-sm font-bold text-text-primary">Cập Nhật Tự Động</h4>
+              <p class="font-body-sm text-xs text-text-secondary mt-1 leading-relaxed">Tự động phát hiện phiên bản mới và cài đè giữ nguyên 100% dữ liệu xem.</p>
+            </div>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="bg-surface-card p-space-md rounded-2xl border border-white/5 shadow-sm flex items-start gap-space-sm">
+            <div class="w-11 h-11 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+              <span class="material-symbols-outlined text-[24px]">devices</span>
+            </div>
+            <div>
+              <h4 class="font-headline-md text-sm font-bold text-text-primary">Giao Diện Chuyên Biệt</h4>
+              <p class="font-body-sm text-xs text-text-secondary mt-1 leading-relaxed">Thiết kế Leanback cho Remote TV và giao diện cảm ứng vuốt nhẹ cho mobile.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HƯỚNG DẪN CÀI ĐẶT 3 BƯỚC -->
+      <section class="w-full px-4 md:px-margin-desktop py-space-xl max-w-[1600px] mx-auto">
         <div class="mb-space-lg text-center max-w-xl mx-auto">
           <span class="font-label-caps text-xs text-primary-container uppercase tracking-wider font-bold">HƯỚNG DẪN CÀI ĐẶT</span>
           <h2 class="font-headline-xl text-2xl sm:text-3xl text-text-primary font-bold mt-1">Cài Đặt Chi Tiết Trong 3 Bước</h2>
-          <p class="font-body-md text-sm text-text-secondary mt-1">Lựa chọn thiết bị của bạn để xem từng bước thiết lập nhanh chóng nhất</p>
+          <p class="font-body-md text-xs sm:text-sm text-text-secondary mt-1">Lựa chọn thiết bị của bạn để xem từng bước thiết lập nhanh chóng nhất</p>
         </div>
 
-        <!-- Tabs Header -->
-        <div class="flex items-center justify-center gap-space-xs max-w-md mx-auto mb-space-xl p-1 bg-surface-card border border-white/5 rounded-full">
-          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-sm text-white bg-primary-container font-bold transition-all" id="tab-tv" onclick="switchGuide('tv')">Android TV</button>
-          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-sm text-text-secondary hover:text-white transition-all" id="tab-android" onclick="switchGuide('android')">Android Mobile</button>
-          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-sm text-text-secondary hover:text-white transition-all" id="tab-ios" onclick="switchGuide('ios')">iPhone / iPad</button>
+        <!-- Guide Tabs Header -->
+        <div class="flex items-center justify-center gap-space-xs max-w-md mx-auto mb-space-lg p-1 bg-surface-card border border-white/5 rounded-full">
+          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-white bg-primary-container font-bold transition-all" id="tab-guide-tv" onclick="switchGuide('tv')" type="button">Android TV</button>
+          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all" id="tab-guide-android" onclick="switchGuide('android')" type="button">Android Mobile</button>
+          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all" id="tab-guide-ios" onclick="switchGuide('ios')" type="button">iPhone / iPad</button>
         </div>
 
         <!-- Guides Content Panels -->
 
-        <!-- TV Panel -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter-desktop" id="guide-tv">
+        <!-- TV Guide Panel -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter-desktop" id="guide-content-tv">
           <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
             <div>
               <div class="w-10 h-10 rounded-full bg-primary-container text-white font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">1</div>
               <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Cách 1: Dùng Downloader (Mã 6004607)</h4>
-              <p class="font-body-md text-sm text-text-secondary leading-relaxed">
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
                 Mở app <strong>Downloader</strong> trên Smart TV (tìm trên Google Play TV), nhập mã Code: <span class="inline-block px-2.5 py-0.5 rounded-lg bg-red-600 text-white font-mono font-black text-base shadow tracking-wider">6004607</span> rồi bấm <strong>GO</strong> để tự động tải và cài đặt trực tiếp.
               </p>
             </div>
-            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs">
-              💡 Nhanh nhất cho Android TV, Sony, Google TV.
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              💡 Nhanh nhất cho Android TV, Sony, TCL, Google TV.
             </div>
           </div>
           <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
             <div>
               <div class="w-10 h-10 rounded-full bg-surface-elevated text-text-primary font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">2</div>
               <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Cách 2: Cài Qua USB</h4>
-              <p class="font-body-md text-sm text-text-secondary leading-relaxed">
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
                 Tải file APK về máy tính, chép vào USB, cắm vào Smart TV hoặc Box rồi mở trình Quản Lý Tệp (File Manager) trên TV để cài đặt.
               </p>
             </div>
-            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs">
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
               💡 Phù hợp cho Xiaomi TV, Casper và TV Box nội địa.
             </div>
           </div>
@@ -490,155 +734,167 @@
             <div>
               <div class="w-10 h-10 rounded-full bg-surface-elevated text-text-primary font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">3</div>
               <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Đồng Bộ &amp; Thưởng Thức</h4>
-              <p class="font-body-md text-sm text-text-secondary leading-relaxed">
-                Mở CineViet TV, hệ thống tự động nhận diện giao diện D-Pad Remote. Quét mã QR 6 số bằng điện thoại để đồng bộ danh sách yêu thích!
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Mở CineViet TV, hệ thống tự động nhận diện giao diện D-Pad Remote. Quét mã QR bằng điện thoại để đồng bộ danh sách xem!
               </p>
             </div>
-            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs">
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
               🍿 Trải nghiệm trọn vẹn rạp chiếu ngay tại phòng khách.
             </div>
           </div>
         </div>
 
-        <!-- Android Mobile Panel -->
-        <div class="hidden grid-cols-1 md:grid-cols-3 gap-gutter-desktop" id="guide-android">
+        <!-- Android Mobile Guide Panel -->
+        <div class="hidden grid grid-cols-1 md:grid-cols-3 gap-gutter-desktop" id="guide-content-android">
           <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
             <div>
-              <div class="w-10 h-10 rounded-full bg-green-500 text-white font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">1</div>
-              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Tải File APK Về Máy</h4>
-              <p class="font-body-md text-sm text-text-secondary leading-relaxed">
-                Bấm nút <strong>Tải APK Android Mobile</strong> ở trên hoặc quét mã QR bằng camera điện thoại để tải tệp cài đặt chính thức.
+              <div class="w-10 h-10 rounded-full bg-primary-container text-white font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">1</div>
+              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Nhấn Tải Tệp APK</h4>
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Nhấn nút <strong class="text-primary-container">Tải APK Android Mobile</strong> ở trên. Trình duyệt (Chrome/Cốc Cốc) sẽ tiến hành lưu tệp về máy bạn.
               </p>
+            </div>
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              💡 Hoặc quét mã QR trực tiếp từ điện thoại.
             </div>
           </div>
           <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
             <div>
               <div class="w-10 h-10 rounded-full bg-surface-elevated text-text-primary font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">2</div>
-              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Cấp Quyền Cài Đặt</h4>
-              <p class="font-body-md text-sm text-text-secondary leading-relaxed">
-                Mở tệp vừa tải về trong thư mục Downloads. Nếu máy hiện cảnh báo: Bật <strong>"Cho phép cài đặt từ nguồn này"</strong> trong phần Cài đặt rồi ấn Cài đặt.
+              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Cho Phép Nguồn Tin Cậy</h4>
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Mở tệp vừa tải. Nếu máy hỏi bảo mật: Bật chọn <strong class="text-white">"Cho phép cài đặt từ nguồn này"</strong> rồi bấm <strong class="text-white">Cài đặt</strong>.
               </p>
+            </div>
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              💡 Đây là cơ chế bảo mật tiêu chuẩn của hệ điều hành Android.
             </div>
           </div>
           <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
             <div>
               <div class="w-10 h-10 rounded-full bg-surface-elevated text-text-primary font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">3</div>
-              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Khám Phá &amp; Xem Ngay</h4>
-              <p class="font-body-md text-sm text-text-secondary leading-relaxed">
-                Mở app CineViet, đăng nhập tài khoản để lưu lịch sử xem. Ứng dụng sẽ tự động thông báo và cập nhật cài đè khi có phiên bản mới!
+              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Mở CineViet &amp; Thưởng Thức</h4>
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Biểu tượng CineViet xuất hiện trên màn hình chính. Mở ứng dụng, đăng nhập tài khoản để đồng bộ danh sách yêu thích và lịch sử xem!
               </p>
+            </div>
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              🍿 Tự động nhận bản cập nhật mới nhất in-app.
             </div>
           </div>
         </div>
 
-        <!-- iOS Panel -->
-        <div class="hidden grid-cols-1 md:grid-cols-3 gap-gutter-desktop" id="guide-ios">
+        <!-- iOS Guide Panel -->
+        <div class="hidden grid grid-cols-1 md:grid-cols-3 gap-gutter-desktop" id="guide-content-ios">
           <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
             <div>
-              <div class="w-10 h-10 rounded-full bg-blue-500 text-white font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">1</div>
-              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Cách Nhanh (PWA Safari)</h4>
-              <p class="font-body-md text-sm text-text-secondary leading-relaxed">
-                Mở <strong>cineviet.live</strong> bằng trình duyệt Safari trên iPhone/iPad, bấm nút <strong>Chia sẻ</strong> (icon hình vuông có mũi tên lên).
+              <div class="w-10 h-10 rounded-full bg-primary-container text-white font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">1</div>
+              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Cách 1: Thêm Vào MH Chính (PWA)</h4>
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Mở Safari truy cập <strong class="text-white">cineviet.live</strong>. Nhấn biểu tượng <strong class="text-blue-400">Chia sẻ (Share)</strong> ở thanh dưới cùng Safari, cuộn xuống chọn <strong class="text-white">"Thêm vào MH chính" (Add to Home Screen)</strong>.
               </p>
+            </div>
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              💡 Nhanh nhất, chạy toàn màn hình không có thanh URL.
             </div>
           </div>
           <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
             <div>
               <div class="w-10 h-10 rounded-full bg-surface-elevated text-text-primary font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">2</div>
-              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Thêm Vào Màn Hình Chính</h4>
-              <p class="font-body-md text-sm text-text-secondary leading-relaxed">
-                Kéo xuống chọn mục <strong>"Thêm vào MH chính"</strong> (Add to Home Screen), đặt tên CineViet và nhấn Thêm.
+              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Cách 2: Tải IPA Sideload</h4>
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Tải tệp <strong class="text-blue-400">CineViet.ipa</strong> trực tiếp từ nút trên. Sử dụng các công cụ ký ứng dụng như <strong>AltStore, SideStore, Scarlet hoặc TrollStore</strong> để cài đặt vào máy.
               </p>
+            </div>
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              💡 Dành cho người dùng quen sideload app qua máy tính / chứng chỉ.
             </div>
           </div>
           <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
             <div>
               <div class="w-10 h-10 rounded-full bg-surface-elevated text-text-primary font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">3</div>
-              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Cách Cài Tệp IPA (Sideload)</h4>
-              <p class="font-body-md text-sm text-text-secondary leading-relaxed">
-                Tải tệp IPA và tiến hành ký cài đặt qua các công cụ Sideload uy tín như <strong>AltStore</strong>, <strong>SideStore</strong>, hoặc <strong>Scarlet</strong>.
+              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Truyền AirPlay Lên TV</h4>
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Khi xem phim trên iPhone/iPad, chạm vào biểu tượng AirPlay ở góc trình phát để chiếu phim không dây lên Smart TV màn hình lớn.
               </p>
+            </div>
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              🍿 Tương thích Apple TV và mọi TV hỗ trợ AirPlay 2.
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Interactive FAQ Accordion -->
-      <section class="w-full px-4 md:px-margin-desktop py-space-xl">
-        <div class="max-w-3xl mx-auto flex flex-col gap-space-md">
-          <div class="flex items-center gap-space-xs">
-            <span class="material-symbols-outlined text-primary-container text-[24px]">help</span>
-            <h2 class="font-headline-xl text-2xl sm:text-3xl text-text-primary font-bold">Câu Hỏi Thường Gặp</h2>
+      <!-- CÂU HỎI THƯỜNG GẶP (FAQ ACCORDION) -->
+      <section class="w-full px-4 md:px-margin-desktop py-space-lg max-w-[1600px] mx-auto">
+        <div class="max-w-3xl mx-auto">
+          <div class="text-center mb-space-lg">
+            <span class="font-label-caps text-xs text-primary-container uppercase tracking-wider font-bold">FAQ</span>
+            <h2 class="font-headline-xl text-xl sm:text-2xl text-text-primary font-bold mt-1">Câu Hỏi Thường Gặp</h2>
           </div>
 
           <div class="flex flex-col gap-space-sm">
             <!-- Question 1 -->
-            <details class="group rounded-xl bg-surface-card border border-white/5 p-space-md open:bg-surface-elevated transition-colors">
+            <details class="group rounded-2xl bg-surface-card border border-white/5 p-4 sm:p-5 open:bg-surface-elevated transition-colors">
               <summary class="flex items-center justify-between cursor-pointer list-none text-text-primary font-headline-md text-sm sm:text-base font-bold">
                 <span>Cài đặt ứng dụng CineViet có mất phí không?</span>
-                <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform">expand_more</span>
+                <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform text-text-muted">expand_more</span>
               </summary>
-              <div class="mt-space-sm text-text-secondary font-body-md text-sm leading-relaxed">
+              <div class="mt-space-sm text-text-secondary font-body-md text-xs sm:text-sm leading-relaxed">
                 Hoàn toàn không. Toàn bộ các phiên bản ứng dụng CineViet trên Android, iOS và Android TV đều miễn phí 100%, không thu phí duy trì hay bắt buộc nâng cấp tài khoản VIP.
               </div>
             </details>
 
             <!-- Question 2 -->
-            <details class="group rounded-xl bg-surface-card border border-white/5 p-space-md open:bg-surface-elevated transition-colors">
+            <details class="group rounded-2xl bg-surface-card border border-white/5 p-4 sm:p-5 open:bg-surface-elevated transition-colors">
               <summary class="flex items-center justify-between cursor-pointer list-none text-text-primary font-headline-md text-sm sm:text-base font-bold">
                 <span>Xem trên app có ưu điểm gì so với xem trên web?</span>
-                <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform">expand_more</span>
+                <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform text-text-muted">expand_more</span>
               </summary>
-              <div class="mt-space-sm text-text-secondary font-body-md text-sm leading-relaxed">
+              <div class="mt-space-sm text-text-secondary font-body-md text-xs sm:text-sm leading-relaxed">
                 App được tối ưu mã nguồn native giúp phát phim mượt mà hơn, không bị nhà mạng chặn DNS, tự động lưu lịch sử xem và hỗ trợ điều khiển remote TV tiện lợi với giao diện Leanback.
               </div>
             </details>
 
             <!-- Question 3 -->
-            <details class="group rounded-xl bg-surface-card border border-white/5 p-space-md open:bg-surface-elevated transition-colors">
+            <details class="group rounded-2xl bg-surface-card border border-white/5 p-4 sm:p-5 open:bg-surface-elevated transition-colors">
               <summary class="flex items-center justify-between cursor-pointer list-none text-text-primary font-headline-md text-sm sm:text-base font-bold">
                 <span>Khi có bản cập nhật mới, tôi có phải gỡ app cũ ra cài lại không?</span>
-                <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform">expand_more</span>
+                <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform text-text-muted">expand_more</span>
               </summary>
-              <div class="mt-space-sm text-text-secondary font-body-md text-sm leading-relaxed">
+              <div class="mt-space-sm text-text-secondary font-body-md text-xs sm:text-sm leading-relaxed">
                 Không cần gỡ app. Ứng dụng Android và Android TV tự động phát hiện phiên bản mới và tải cài đè (nâng cấp trực tiếp), toàn bộ tài khoản và lịch sử xem của bạn được giữ nguyên 100%.
               </div>
             </details>
 
             <!-- Question 4 -->
-            <details class="group rounded-xl bg-surface-card border border-white/5 p-space-md open:bg-surface-elevated transition-colors">
+            <details class="group rounded-2xl bg-surface-card border border-white/5 p-4 sm:p-5 open:bg-surface-elevated transition-colors">
               <summary class="flex items-center justify-between cursor-pointer list-none text-text-primary font-headline-md text-sm sm:text-base font-bold">
                 <span>Tôi cần hỗ trợ kỹ thuật cài đặt thì liên hệ ở đâu?</span>
-                <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform">expand_more</span>
+                <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform text-text-muted">expand_more</span>
               </summary>
-              <div class="mt-space-sm text-text-secondary font-body-md text-sm leading-relaxed">
-                Bạn có thể gửi email hỗ trợ trực tiếp đến bộ phận kỹ thuật qua địa chỉ <strong>hotro@cineviet.live</strong> hoặc fanpage chính thức để được đội ngũ kỹ thuật viên CineViet hỗ trợ nhanh nhất.
+              <div class="mt-space-sm text-text-secondary font-body-md text-xs sm:text-sm leading-relaxed">
+                Bạn có thể gửi email hỗ trợ trực tiếp đến bộ phận kỹ thuật qua địa chỉ <strong>support@cineviet.live</strong> hoặc fanpage chính thức để được đội ngũ kỹ thuật viên CineViet hỗ trợ nhanh nhất.
               </div>
             </details>
           </div>
         </div>
       </section>
 
-      <!-- Cinema CTA Callout Banner -->
-      <section class="w-full px-4 md:px-margin-desktop py-space-xl">
-        <div class="w-full rounded-2xl bg-gradient-to-r from-surface-card via-surface-elevated to-surface-card border border-white/5 p-8 md:p-12 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-space-lg">
-          <div class="flex flex-col gap-space-xs max-w-xl">
-            <div class="flex items-center gap-space-xs text-primary-container font-label-caps text-xs uppercase tracking-wider font-bold">
-              <span class="w-2 h-2 rounded-full bg-primary-container"></span>
-              RẠP CHIẾU KỸ THUẬT SỐ TRỰC TUYẾN
-            </div>
-            <h3 class="font-headline-xl text-2xl sm:text-3xl font-bold text-text-primary">
-              Trải Nghiệm Điện Ảnh Đỉnh Cao Tại Gia Cùng <span class="text-primary-container">CineViet</span>
-            </h3>
-            <p class="font-body-md text-sm text-text-secondary leading-relaxed">
-              Thưởng thức không giới hạn hàng nghìn giờ phim điện ảnh siêu sắc nét, cập nhật liên tục mỗi ngày hoàn toàn miễn phí cho tất cả mọi người.
-            </p>
+      <!-- SUPPORT CARD -->
+      <section class="w-full px-4 md:px-margin-desktop py-space-lg max-w-[1600px] mx-auto">
+        <div class="bg-surface-container-low rounded-2xl p-space-lg text-center flex flex-col items-center border border-white/5 max-w-xl mx-auto">
+          <div class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center text-primary-container mb-space-xs">
+            <span class="material-symbols-outlined text-[24px]">support_agent</span>
           </div>
-          <div class="flex flex-col sm:flex-row items-center gap-space-sm w-full md:w-auto">
-            <a class="w-full sm:w-auto px-space-lg py-3.5 rounded-xl bg-gradient-to-r from-primary-container to-secondary-container text-white font-headline-md text-sm font-bold text-center shadow-lg hover:opacity-95 transition-all" href="#download-matrix">
-              Khám Phá Phim Ngay
-            </a>
-          </div>
+          <h3 class="font-headline-md text-lg font-bold text-text-primary mb-1">Cần Hỗ Trợ Kỹ Thuật Cài Đặt?</h3>
+          <p class="font-body-sm text-xs sm:text-sm text-text-secondary mb-space-md max-w-sm">
+            Đội ngũ kỹ thuật viên CineViet luôn sẵn sàng hỗ trợ trực tuyến giải đáp mọi thắc mắc cài đặt.
+          </p>
+          <a class="h-11 px-6 rounded-xl bg-surface-elevated hover:bg-surface-bright text-white font-label-md text-sm flex items-center gap-2 border border-white/10 transition-colors" href="mailto:support@cineviet.live">
+            <span class="material-symbols-outlined text-[18px] text-badge-gold">mail</span>
+            <span>support@cineviet.live</span>
+          </a>
         </div>
       </section>
 
@@ -671,9 +927,9 @@
         <div class="flex flex-col gap-space-sm">
           <h3 class="font-headline-md text-base font-bold text-text-primary">Ứng dụng &amp; Tiện ích</h3>
           <nav class="flex flex-col gap-space-xs text-sm">
-            <a class="text-text-secondary hover:text-white transition-colors" href="#download-matrix">Tải CineViet Android</a>
-            <a class="text-text-secondary hover:text-white transition-colors" href="#download-matrix">Tải CineViet iOS</a>
-            <a class="text-text-secondary hover:text-white transition-colors" href="#download-matrix">CineViet cho Smart TV</a>
+            <a class="text-text-secondary hover:text-white transition-colors" href="#platform-hub">Tải CineViet Android</a>
+            <a class="text-text-secondary hover:text-white transition-colors" href="#platform-hub">Tải CineViet iOS</a>
+            <a class="text-text-secondary hover:text-white transition-colors" href="#platform-hub">CineViet cho Smart TV</a>
             <a class="text-text-secondary hover:text-white transition-colors" href="/ung-ho">Ủng hộ CineViet 🍚</a>
           </nav>
         </div>
@@ -698,11 +954,12 @@
     </div>
   </footer>
 
-  <!-- Server Hydration Seed -->
+  <!-- Server Hydration Seed (Synchronized with admin app_update settings) -->
   <script id="server-app-data" type="application/json">__APP_UPDATE_DATA__</script>
 
   <!-- Interactive Logic & Dynamic Hydration -->
   <script>
+    // Copy URL with Toast Notification
     function copyDownloadUrl(btnId, platformName) {
       const btn = document.getElementById(btnId);
       const url = (btn && btn.href) ? btn.href : window.location.origin;
@@ -710,132 +967,136 @@
     }
 
     function copyToClipboard(text, customMessage) {
+      const toast = document.getElementById('copy-toast');
+      const toastText = document.getElementById('toast-text');
+      if (toastText && customMessage) toastText.textContent = customMessage;
+
+      const triggerToast = () => {
+        if (!toast) return;
+        toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-2');
+        toast.classList.add('opacity-100', 'translate-y-0');
+        setTimeout(() => {
+          toast.classList.remove('opacity-100', 'translate-y-0');
+          toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-2');
+        }, 2600);
+      };
+
       if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text);
+        navigator.clipboard.writeText(text).then(triggerToast).catch(() => alert('Đã sao chép: ' + text));
       } else {
         const textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
-        textarea.style.left = '-999999px';
+        textarea.style.opacity = '0';
         document.body.appendChild(textarea);
-        textarea.focus();
         textarea.select();
         try {
           document.execCommand('copy');
-        } catch (err) {}
+          triggerToast();
+        } catch (_) {
+          alert('Đã sao chép: ' + text);
+        }
         document.body.removeChild(textarea);
       }
-      
-      const toast = document.getElementById('toast');
-      const toastMsg = document.getElementById('toast-msg');
-      if (toast) {
-        if (toastMsg && customMessage) {
-          toastMsg.textContent = customMessage;
+    }
+
+    // Switch Platform Segmented Tabs on Mobile (from stitch redesign)
+    function switchPlatformTab(platform) {
+      const platforms = ['android', 'ios', 'tv'];
+      platforms.forEach(p => {
+        const content = document.getElementById('tab-content-' + p);
+        const btn = document.getElementById('tab-btn-' + p);
+        if (p === platform) {
+          if (content) content.classList.remove('hidden');
+          if (btn) {
+            btn.classList.add('bg-primary-container', 'text-white', 'shadow-md');
+            btn.classList.remove('text-text-muted');
+          }
+        } else {
+          if (content) content.classList.add('hidden');
+          if (btn) {
+            btn.classList.remove('bg-primary-container', 'text-white', 'shadow-md');
+            btn.classList.add('text-text-muted');
+          }
         }
-        toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-        toast.classList.add('translate-y-0', 'opacity-100');
-        setTimeout(() => {
-          toast.classList.remove('translate-y-0', 'opacity-100');
-          toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
-        }, 2800);
-      }
-    }
-
-    function switchGuide(platform) {
-      const tvPanel = document.getElementById('guide-tv');
-      const androidPanel = document.getElementById('guide-android');
-      const iosPanel = document.getElementById('guide-ios');
-
-      const tvTab = document.getElementById('tab-tv');
-      const androidTab = document.getElementById('tab-android');
-      const iosTab = document.getElementById('tab-ios');
-
-      // Hide all panels
-      tvPanel.classList.add('hidden');
-      tvPanel.classList.remove('grid');
-      androidPanel.classList.add('hidden');
-      androidPanel.classList.remove('grid');
-      iosPanel.classList.add('hidden');
-      iosPanel.classList.remove('grid');
-
-      // Reset tabs style
-      [tvTab, androidTab, iosTab].forEach(tab => {
-        tab.className = 'flex-1 py-2 px-space-md rounded-full font-headline-md text-sm text-text-secondary hover:text-white transition-all';
       });
-
-      // Show selected panel
-      if (platform === 'tv') {
-        tvPanel.classList.remove('hidden');
-        tvPanel.classList.add('grid');
-        tvTab.className = 'flex-1 py-2 px-space-md rounded-full font-headline-md text-sm text-white bg-primary-container font-bold transition-all';
-      } else if (platform === 'android') {
-        androidPanel.classList.remove('hidden');
-        androidPanel.classList.add('grid');
-        androidTab.className = 'flex-1 py-2 px-space-md rounded-full font-headline-md text-sm text-white bg-primary-container font-bold transition-all';
-      } else if (platform === 'ios') {
-        iosPanel.classList.remove('hidden');
-        iosPanel.classList.add('grid');
-        iosTab.className = 'flex-1 py-2 px-space-md rounded-full font-headline-md text-sm text-white bg-primary-container font-bold transition-all';
-      }
     }
 
-    // Dynamic Hydration Engine (Server injection + Client Fetch API sync)
+    // Switch Installation Guide Tabs
+    function switchGuide(type) {
+      const guides = ['tv', 'android', 'ios'];
+      guides.forEach(g => {
+        const btn = document.getElementById('tab-guide-' + g);
+        const content = document.getElementById('guide-content-' + g);
+        if (g === type) {
+          if (btn) {
+            btn.className = 'flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-white bg-primary-container font-bold transition-all';
+          }
+          if (content) content.classList.remove('hidden');
+        } else {
+          if (btn) {
+            btn.className = 'flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all';
+          }
+          if (content) content.classList.add('hidden');
+        }
+      });
+    }
+
+    // Real-Time Dynamic Hydration: Automatically syncs with Admin App Update Settings
     (function initAppUpdateHydration() {
       function applyData(data) {
         if (!data) return;
 
-        // 1. Version & Build Tag
+        // 1. Version & Build Formats
         const verStr = data.latest_version ? 'v' + data.latest_version : 'v1.0.0';
         const buildStr = data.latest_build ? 'Build ' + data.latest_build : 'Build 1';
-        
-        const vElem = document.getElementById('lbl-version-tag');
-        if (vElem) vElem.textContent = verStr + ' • ' + buildStr;
+        const fullVer = `${verStr} (${buildStr})`;
+
+        // Update all version label instances across both mobile and desktop
+        document.querySelectorAll('.app-version-chip').forEach(el => el.textContent = fullVer);
+        document.querySelectorAll('.app-version-short').forEach(el => el.textContent = verStr);
 
         const heroVerElem = document.getElementById('lbl-version-hero');
         if (heroVerElem) heroVerElem.textContent = verStr + ' chính thức • Cài đè tự động';
 
-        // 2. Release Notes & Title
-        const tElem = document.getElementById('title-release-notes');
-        if (tElem) {
-          tElem.textContent = data.title || ('Nhật Ký Bản Phát Hành ' + verStr);
-        }
+        // 2. Release Notes & Marquee
         if (data.release_notes && data.release_notes.trim()) {
-          const notesText = document.getElementById('text-release-notes');
-          if (notesText) notesText.textContent = data.release_notes.trim();
+          const marqueeEl = document.getElementById('marquee-release-text');
+          if (marqueeEl) {
+            const firstLine = data.release_notes.split('\n')[0].replace(/^[•\-\*]\s*/, '');
+            marqueeEl.textContent = firstLine || data.release_notes.trim();
+          }
         }
 
         // 3. Android Mobile Link & QR
-        const btnAndroid = document.getElementById('btn-download-android');
-        const qrAndroid = document.getElementById('qr-android-mobile');
-        if (data.apk_mobile_url && btnAndroid) {
-          btnAndroid.href = data.apk_mobile_url;
+        if (data.apk_mobile_url) {
+          document.querySelectorAll('.link-download-android').forEach(a => a.href = data.apk_mobile_url);
+          const qrAndroid = document.getElementById('qr-android-mobile');
           if (qrAndroid) {
             qrAndroid.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(data.apk_mobile_url);
           }
         }
 
         // 4. Android TV Link & QR
-        const btnTv = document.getElementById('btn-download-tv');
-        const qrTv = document.getElementById('qr-android-tv');
-        if (data.apk_tv_url && btnTv) {
-          btnTv.href = data.apk_tv_url;
+        if (data.apk_tv_url) {
+          document.querySelectorAll('.link-download-tv').forEach(a => a.href = data.apk_tv_url);
+          const qrTv = document.getElementById('qr-android-tv');
           if (qrTv) {
             qrTv.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(data.apk_tv_url);
           }
         }
 
         // 5. iOS Link & QR
-        const btnIos = document.getElementById('btn-download-ios');
-        const qrIos = document.getElementById('qr-ios');
-        if (data.ios_url && btnIos) {
-          btnIos.href = data.ios_url;
+        if (data.ios_url) {
+          document.querySelectorAll('.link-download-ios').forEach(a => a.href = data.ios_url);
+          const qrIos = document.getElementById('qr-ios');
           if (qrIos) {
             qrIos.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(data.ios_url);
           }
         }
       }
 
-      // First hydrate from server-injected script
+      // Step A: Immediate SSR Hydration from injected JSON script
       try {
         const raw = document.getElementById('server-app-data')?.textContent?.trim();
         if (raw && raw.startsWith('{')) {
@@ -844,7 +1105,7 @@
         }
       } catch (e) {}
 
-      // Second: Fetch live /api/app-update to ensure real-time accuracy
+      // Step B: Live API Fetch to guarantee 100% real-time freshness when admin saves
       fetch('/api/app-update')
         .then(res => res.json())
         .then(json => {
@@ -855,5 +1116,9 @@
         .catch(err => console.warn('Could not fetch latest app update config:', err));
     })();
   </script>
+
+  <!-- Site-wide Footer and Header Scripts (Respects closed footer ad state) -->
+  <script defer src="/js/site-footer.js?v=1.0.0"></script>
+  <script src="/js/header.js?v=3.1.0"></script>
 </body>
 </html>
