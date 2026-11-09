@@ -281,83 +281,84 @@
 
   <!-- 0. Multi-Platform App Promotion Banner (Android, iOS & Android TV) -->
   <section id="home-app-download-banner" class="w-full -mt-2 sm:-mt-4">
-    <a href="/tai-ung-dung" class="group block relative rounded-2xl sm:rounded-3xl overflow-hidden border border-white/10 hover:border-red-500/50 transition-all duration-500 shadow-2xl hover:shadow-[0_20px_50px_rgba(229,9,20,0.25)] bg-[#0A0C14]">
-      <!-- Background Artwork: 3D Multi-Device Rendering -->
-      <div class="absolute right-0 top-0 bottom-0 w-full sm:w-2/3 md:w-3/5 lg:w-1/2 pointer-events-none overflow-hidden select-none">
-        <picture>
-          <source srcset="/images/banners/app_showcase_banner_faded.webp" type="image/webp">
-          <img src="/images/banners/app_showcase_banner_faded.png" alt="CineViet Multi-Platform Devices" class="w-full h-full object-cover object-right-top transition-transform duration-700 ease-out group-hover:scale-105 opacity-80 sm:opacity-95" loading="lazy" />
-        </picture>
-        <!-- Gradient Fades for Flawless Text Legibility -->
-        <div class="absolute inset-0 bg-gradient-to-t from-[#0A0C14] via-[#0A0C14]/60 to-transparent sm:hidden"></div>
-        <div class="absolute inset-0 bg-gradient-to-r from-[#0A0C14] via-[#0A0C14]/80 to-transparent"></div>
-      </div>
+    <a href="/tai-ung-dung" class="group block relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-r from-[#121522] via-[#0D0F18] to-[#0A0C14] border border-white/10 hover:border-red-600/50 transition-all duration-300 shadow-2xl hover:shadow-[0_16px_40px_rgba(229,9,20,0.2)]">
+      <!-- Ambient Red / Cyan Background Glows -->
+      <div class="absolute -top-24 -left-24 w-80 h-80 rounded-full blur-3xl pointer-events-none bg-red-600/15 group-hover:bg-red-600/25 transition-all duration-500"></div>
+      <div class="absolute -bottom-24 -right-24 w-80 h-80 rounded-full blur-3xl pointer-events-none bg-cyan-500/15 group-hover:bg-cyan-500/25 transition-all duration-500"></div>
 
-      <!-- Ambient Cinematic Glows -->
-      <div class="absolute -top-24 -left-24 w-80 h-80 rounded-full blur-3xl pointer-events-none bg-red-600/20 group-hover:bg-red-600/30 transition-all duration-700"></div>
-      <div class="absolute -bottom-24 right-1/3 w-80 h-80 rounded-full blur-3xl pointer-events-none bg-cyan-500/15 group-hover:bg-cyan-500/25 transition-all duration-700"></div>
+      <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center p-6 sm:p-8 lg:p-10">
+        <!-- Left Column: Typography, Badges & CTA Button (Col 7) -->
+        <div class="lg:col-span-7 space-y-4 text-center lg:text-left">
+          <!-- Badges -->
+          <div class="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-red-600/15 border border-red-500/30 text-red-400">
+              <span class="material-symbols-outlined text-[15px] text-red-500">install_mobile</span>
+              BỘ CÀI ĐẶT CHÍNH THỨC 2026
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Miễn Phí 100% • Chuẩn 4K HDR
+            </span>
+          </div>
 
-      <!-- Foreground Content -->
-      <div class="relative z-10 p-6 sm:p-8 md:p-10 max-w-xl lg:max-w-2xl flex flex-col justify-center space-y-4 text-left">
-        <!-- Badges Row -->
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-red-500/15 border border-red-500/40 text-red-400">
-            <span class="material-symbols-outlined text-[15px] text-red-500">install_mobile</span>
-            BỘ CÀI ĐẶT CHÍNH THỨC 2026
-          </span>
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            Miễn Phí 100% • Chuẩn 4K HDR
-          </span>
+          <!-- Title -->
+          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
+            Xem Phim Đỉnh Cao Trên <br class="hidden sm:inline"/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400">Smart TV, Android &amp; iOS</span>
+          </h2>
+
+          <!-- Description -->
+          <p class="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
+            Kho phim điện ảnh chất lượng cao không quảng cáo, âm thanh Dolby Audio sống động, giao diện tối ưu remote và tự động cập nhật bản mới trực tiếp trong ứng dụng.
+          </p>
+
+          <!-- 3 Platforms Quick Badges Rail -->
+          <div class="pt-1 flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-2.5">
+            <!-- Android Mobile -->
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 group-hover:border-green-500/40 transition-colors bg-white/[0.04] backdrop-blur-md">
+              <svg class="w-4 h-4 text-green-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-1.0003 0-.5516.4482-1.0002.9993-1.0002.5517 0 .9994.4486.9994 1.0002 0 .5517-.4477 1.0003-.9994 1.0003m-11.046 0c-.5511 0-.9993-.4486-.9993-1.0003 0-.5516.4482-1.0002.9993-1.0002.5517 0 .9994.4486.9994 1.0002 0 .5517-.4477 1.0003-.9994 1.0003m11.4045-6.02l1.996-3.4572c.1184-.205.0483-.4673-.1567-.5858-.205-.1184-.4673-.0483-.5858.1568l-2.0257 3.5087c-1.5644-.7146-3.3276-1.1171-5.1103-1.1171-1.7826 0-3.5458.4025-5.1102 1.1171L4.8588 5.4357c-.1185-.2051-.3808-.2752-.5858-.1568-.205.1185-.2751.3808-.1567.5858l1.996 3.4572C2.6889 11.2866 1 14.5408 1 18.25h22c0-3.7092-1.6889-6.9634-5.1185-8.9286"/>
+              </svg>
+              <span class="text-xs font-semibold text-white">Android Mobile (APK)</span>
+            </div>
+
+            <!-- iOS -->
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 group-hover:border-blue-500/40 transition-colors bg-white/[0.04] backdrop-blur-md">
+              <svg class="w-4 h-4 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.92-2.85-.9.04-1.99.6-2.64 1.35-.57.65-1.07 1.71-.93 2.73 1.01.08 2.03-.48 2.65-1.23"/>
+              </svg>
+              <span class="text-xs font-semibold text-white">iPhone &amp; iPad (iOS)</span>
+            </div>
+
+            <!-- Android TV -->
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 group-hover:border-cyan-500/40 transition-colors bg-white/[0.04] backdrop-blur-md">
+              <span class="material-symbols-outlined text-[18px] text-cyan-400 shrink-0">tv</span>
+              <span class="text-xs font-semibold text-white">Android TV (Remote)</span>
+            </div>
+          </div>
+
+          <!-- Call to Action Buttons -->
+          <div class="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3">
+            <div class="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl font-bold text-sm sm:text-base text-white shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_8px_24px_rgba(229,9,20,0.4)]" style="background: linear-gradient(135deg, #e50914 0%, #ea580c 100%);">
+              <span class="material-symbols-outlined text-[20px]">download</span>
+              <span>Tải Ứng Dụng Ngay</span>
+              <span class="material-symbols-outlined text-[18px] transition-transform duration-300 group-hover:translate-x-1">arrow_forward</span>
+            </div>
+            <span class="text-xs text-slate-400 flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px] text-green-400">verified_user</span>
+              <span>v1.0.0 chính thức • Cài đè tự động</span>
+            </span>
+          </div>
         </div>
 
-        <!-- Main Title -->
-        <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-snug">
-          Xem Phim Đỉnh Cao Trên <br class="hidden sm:inline"/>
-          <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400">Smart TV, Android &amp; iOS</span>
-        </h2>
-
-        <!-- Description -->
-        <p class="text-xs sm:text-sm text-neutral-300/90 leading-relaxed max-w-lg">
-          Tận hưởng kho phim điện ảnh không quảng cáo, âm thanh Dolby Audio sống động, điều khiển remote mượt mà và tự động cập nhật bản mới trực tiếp trong ứng dụng.
-        </p>
-
-        <!-- 3 Platforms Quick Badges Rail -->
-        <div class="pt-1 flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <!-- Android Mobile -->
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 group-hover:border-green-500/40 transition-colors bg-white/[0.05] backdrop-blur-md">
-            <svg class="w-4 h-4 text-green-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-1.0003 0-.5516.4482-1.0002.9993-1.0002.5517 0 .9994.4486.9994 1.0002 0 .5517-.4477 1.0003-.9994 1.0003m-11.046 0c-.5511 0-.9993-.4486-.9993-1.0003 0-.5516.4482-1.0002.9993-1.0002.5517 0 .9994.4486.9994 1.0002 0 .5517-.4477 1.0003-.9994 1.0003m11.4045-6.02l1.996-3.4572c.1184-.205.0483-.4673-.1567-.5858-.205-.1184-.4673-.0483-.5858.1568l-2.0257 3.5087c-1.5644-.7146-3.3276-1.1171-5.1103-1.1171-1.7826 0-3.5458.4025-5.1102 1.1171L4.8588 5.4357c-.1185-.2051-.3808-.2752-.5858-.1568-.205.1185-.2751.3808-.1567.5858l1.996 3.4572C2.6889 11.2866 1 14.5408 1 18.25h22c0-3.7092-1.6889-6.9634-5.1185-8.9286"/>
-            </svg>
-            <span class="text-xs font-semibold text-white">Android Mobile (APK)</span>
+        <!-- Right Column: Full 3D Multi-Device Artwork Mockup (Col 5) -->
+        <div class="lg:col-span-5 flex items-center justify-center">
+          <div class="relative w-full max-w-[500px] lg:max-w-none rounded-2xl overflow-hidden shadow-2xl transition-transform duration-500 group-hover:scale-105">
+            <picture>
+              <source srcset="/images/banners/cineviet_devices_commercial.webp" type="image/webp">
+              <img src="/images/banners/cineviet_devices_commercial.png" alt="CineViet Multi-Device Showcase" class="w-full h-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]" loading="lazy" />
+            </picture>
           </div>
-
-          <!-- iOS -->
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 group-hover:border-blue-500/40 transition-colors bg-white/[0.05] backdrop-blur-md">
-            <svg class="w-4 h-4 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.92-2.85-.9.04-1.99.6-2.64 1.35-.57.65-1.07 1.71-.93 2.73 1.01.08 2.03-.48 2.65-1.23"/>
-            </svg>
-            <span class="text-xs font-semibold text-white">iPhone &amp; iPad (iOS)</span>
-          </div>
-
-          <!-- Android TV -->
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 group-hover:border-cyan-500/40 transition-colors bg-white/[0.05] backdrop-blur-md">
-            <span class="material-symbols-outlined text-[18px] text-cyan-400 shrink-0">tv</span>
-            <span class="text-xs font-semibold text-white">Android TV (Remote)</span>
-          </div>
-        </div>
-
-        <!-- Call to Action Buttons -->
-        <div class="pt-2 flex flex-wrap items-center gap-3">
-          <div class="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-bold text-sm sm:text-base text-white shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_8px_28px_rgba(229,9,20,0.45)]" style="background: linear-gradient(135deg, #e50914 0%, #ea580c 100%); box-shadow: 0 8px 24px rgba(229,9,20,0.35);">
-            <span class="material-symbols-outlined text-[20px]">download</span>
-            <span>Tải Ứng Dụng Ngay</span>
-            <span class="material-symbols-outlined text-[18px] transition-transform duration-300 group-hover:translate-x-1">arrow_forward</span>
-          </div>
-          <span class="text-xs text-neutral-400 flex items-center gap-1.5 pl-1">
-            <span class="material-symbols-outlined text-[16px] text-green-400">verified_user</span>
-            <span>v1.0.0 chính thức • Cài đè tự động</span>
-          </span>
         </div>
       </div>
     </a>
