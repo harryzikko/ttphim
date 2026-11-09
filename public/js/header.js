@@ -80,8 +80,10 @@
           <span class="app-icon-wrap" aria-hidden="true">
             <span class="material-symbols-outlined">install_mobile</span>
           </span>
-          <span class="app-btn-text">Tải App</span>
-          <span class="app-badge-new">v1.0</span>
+          <span class="app-btn-text">
+            <span class="app-btn-text-desktop">Tải App</span>
+            <span class="app-btn-text-mobile">App</span>
+          </span>
         `;
         if (riceBtn) {
           riceBtn.before(appBtn);

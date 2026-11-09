@@ -1054,18 +1054,15 @@ header .relative.hidden.md\:flex input:focus {
 }
 
 .btn-header-app .app-badge-new {
-  display: inline-block !important;
-  padding: 2px 6px !important;
-  border-radius: 9999px !important;
-  background: #e50914 !important;
-  color: #ffffff !important;
-  font-size: 9px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
-  line-height: 1 !important;
-  margin-left: 2px !important;
-  box-shadow: 0 2px 6px rgba(229, 9, 20, 0.5) !important;
+  display: none !important;
+}
+
+/* App Button Text: "Tải App" on Desktop, "App" on Mobile */
+.btn-header-app .app-btn-text-desktop {
+  display: inline !important;
+}
+.btn-header-app .app-btn-text-mobile {
+  display: none !important;
 }
 
 @media (max-width: 1099px) {
@@ -1085,6 +1082,12 @@ header .relative.hidden.md\:flex input:focus {
     font-size: 11px !important;
     gap: 4px !important;
     border-color: rgba(229, 9, 20, 0.6) !important;
+  }
+  .btn-header-app .app-btn-text-desktop {
+    display: none !important;
+  }
+  .btn-header-app .app-btn-text-mobile {
+    display: inline !important;
   }
   .btn-header-app .app-icon-wrap {
     width: 15px !important;
