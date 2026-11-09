@@ -837,10 +837,7 @@
           <span class="material-symbols-outlined text-[20px]">explore</span>
           <span>Khám Phá Toàn Diện</span>
         </a>
-        <a href="/#bang-xep-hang" class="mobile-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface">
-          <span class="material-symbols-outlined text-[20px] text-amber-400">leaderboard</span>
-          <span>Bảng Xếp Hạng</span>
-        </a>
+
       </div>
 
       <!-- Bottom User State -->
