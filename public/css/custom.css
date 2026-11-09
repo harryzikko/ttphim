@@ -743,6 +743,76 @@ body.cinema-lights-active #player-viewport::before {
 
 
 /* ========================================================
+   Header Right Cluster & Spacing Optimization
+   ======================================================== */
+.header-right-cluster,
+header .flex.items-center.shrink-0:has(.btn-rice-donate),
+header .flex.items-center.gap-1\.5.shrink-0 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+@media (min-width: 1280px) {
+  .header-right-cluster,
+  header .flex.items-center.shrink-0:has(.btn-rice-donate),
+  header .flex.items-center.gap-1\.5.shrink-0 {
+    gap: 14px !important;
+  }
+}
+
+@media (max-width: 1099px) {
+  .header-right-cluster,
+  header .flex.items-center.shrink-0:has(.btn-rice-donate),
+  header .flex.items-center.gap-1\.5.shrink-0 {
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-right-cluster,
+  header .flex.items-center.shrink-0:has(.btn-rice-donate),
+  header .flex.items-center.gap-1\.5.shrink-0 {
+    gap: 6px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .header-right-cluster,
+  header .flex.items-center.shrink-0:has(.btn-rice-donate),
+  header .flex.items-center.gap-1\.5.shrink-0 {
+    gap: 4px !important;
+  }
+}
+
+/* Responsive Desktop / Tablet Search Input */
+.header-right-cluster .relative.hidden.md\:flex input,
+header .relative.hidden.md\:flex input {
+  width: 160px !important;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease !important;
+}
+
+@media (min-width: 1280px) {
+  .header-right-cluster .relative.hidden.md\:flex input,
+  header .relative.hidden.md\:flex input {
+    width: 200px !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .header-right-cluster .relative.hidden.md\:flex input,
+  header .relative.hidden.md\:flex input {
+    width: 250px !important;
+  }
+}
+
+.header-right-cluster .relative.hidden.md\:flex input:focus,
+header .relative.hidden.md\:flex input:focus {
+  width: 260px !important;
+}
+
+/* ========================================================
    Nút "Cứu tui chén cơm" Siêu Đẹp & Sang Trọng trên Header
    ======================================================== */
 .btn-rice-donate {
@@ -750,7 +820,7 @@ body.cinema-lights-active #player-viewport::before {
   align-items: center !important;
   gap: 8px !important;
   height: 38px !important;
-  padding: 0 16px !important;
+  padding: 0 14px !important;
   border-radius: 9999px !important;
   background: linear-gradient(135deg, #e50914 0%, #ea580c 50%, #f59e0b 100%) !important;
   background-size: 200% auto !important;
@@ -845,20 +915,44 @@ body.cinema-lights-active #player-viewport::before {
   100% { transform: scale(0.9); opacity: 0.8; }
 }
 
-@media (max-width: 640px) {
+/* Rice text responsive: Full text on >= 1100px, short on < 1100px */
+@media (min-width: 1100px) {
+  .btn-rice-donate .rice-btn-text-short {
+    display: none !important;
+  }
+  .btn-rice-donate .rice-btn-text-full {
+    display: inline !important;
+  }
+}
+
+@media (max-width: 1099px) {
   .btn-rice-donate {
-    height: 30px !important;
+    padding: 0 11px !important;
+    gap: 6px !important;
+    font-size: 12px !important;
+  }
+  .btn-rice-donate .rice-btn-text-full {
+    display: none !important;
+  }
+  .btn-rice-donate .rice-btn-text-short {
+    display: inline !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .btn-rice-donate {
+    height: 28px !important;
     padding: 0 8px !important;
     font-size: 11px !important;
     gap: 4px !important;
   }
   .btn-rice-donate .rice-icon-wrap {
-    width: 16px !important;
-    height: 16px !important;
+    width: 15px !important;
+    height: 15px !important;
   }
   .btn-rice-donate .rice-svg {
-    width: 11px !important;
-    height: 11px !important;
+    width: 10px !important;
+    height: 10px !important;
   }
   .btn-rice-donate .rice-sparkle-dot {
     width: 5px !important;
@@ -872,12 +966,13 @@ body.cinema-lights-active #player-viewport::before {
   }
 }
 
-@media (min-width: 641px) {
-  .btn-rice-donate .rice-btn-text-short {
-    display: none !important;
+@media (max-width: 380px) {
+  .btn-rice-donate {
+    padding: 0 6px !important;
+    gap: 3px !important;
   }
-  .btn-rice-donate .rice-btn-text-full {
-    display: inline !important;
+  .btn-rice-donate .rice-btn-text {
+    display: none !important;
   }
 }
 
@@ -889,7 +984,7 @@ body.cinema-lights-active #player-viewport::before {
   align-items: center !important;
   gap: 6px !important;
   height: 38px !important;
-  padding: 0 14px !important;
+  padding: 0 13px !important;
   border-radius: 9999px !important;
   background: linear-gradient(135deg, rgba(229, 9, 20, 0.22) 0%, rgba(20, 24, 36, 0.9) 100%) !important;
   color: #ffffff !important;
@@ -973,8 +1068,74 @@ body.cinema-lights-active #player-viewport::before {
   box-shadow: 0 2px 6px rgba(229, 9, 20, 0.5) !important;
 }
 
+@media (max-width: 1099px) {
+  .btn-header-app {
+    padding: 0 10px !important;
+    gap: 5px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Mobile: Compact Pill - ALWAYS VISIBLE ON MOBILE WEB! */
 @media (max-width: 768px) {
   .btn-header-app {
+    display: inline-flex !important;
+    height: 28px !important;
+    padding: 0 8px !important;
+    font-size: 11px !important;
+    gap: 4px !important;
+    border-color: rgba(229, 9, 20, 0.6) !important;
+  }
+  .btn-header-app .app-icon-wrap {
+    width: 15px !important;
+    height: 15px !important;
+    background: transparent !important;
+  }
+  .btn-header-app .app-icon-wrap .material-symbols-outlined {
+    font-size: 13px !important;
+    color: #ff4d4d !important;
+  }
+  .btn-header-app .app-btn-text {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+  }
+  .btn-header-app .app-badge-new {
     display: none !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .btn-header-app {
+    padding: 0 6px !important;
+    font-size: 10.5px !important;
+    gap: 3px !important;
+  }
+  .btn-header-app .app-btn-text {
+    font-size: 10.5px !important;
+  }
+}
+
+/* Mobile Header Container & Icons Padding Tuning */
+@media (max-width: 768px) {
+  header > div.px-gutter {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+  header button[aria-label="Thông báo"] {
+    padding: 4px !important;
+  }
+  header button[aria-label="Thông báo"] .material-symbols-outlined {
+    font-size: 20px !important;
+  }
+  header button[aria-label="Hồ sơ cá nhân"] {
+    padding: 2px !important;
+  }
+  header button[aria-label="Hồ sơ cá nhân"] img {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  #btn-mobile-menu {
+    padding: 4px !important;
+    margin-left: 0 !important;
   }
 }

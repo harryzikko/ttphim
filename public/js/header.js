@@ -67,6 +67,9 @@
     // Dynamic Header App Button (if not already in static template)
     try {
       const rightCluster = document.querySelector('header .btn-rice-donate')?.parentElement;
+      if (rightCluster) {
+        rightCluster.classList.add('header-right-cluster');
+      }
       if (rightCluster && !rightCluster.querySelector('.btn-header-app')) {
         const riceBtn = rightCluster.querySelector('.btn-rice-donate');
         const appBtn = document.createElement('a');
