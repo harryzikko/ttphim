@@ -382,6 +382,44 @@ router.get(['/ung-ho', '/cuu-tui-chen-com', '/ung-ho.html', '/cuu-tui-chen-com.h
   } catch (err) { next(err); }
 });
 
+// App Download Page (Tải Ứng Dụng) - Synchronized with admin app_update settings
+router.get(['/tai-ung-dung', '/tai-ung-dung.html', '/downloads', '/tai-app', '/app'], async (req, res, next) => {
+  try {
+    const rawHtml = await fs.readFile(publicFile('tai-ung-dung.html'), 'utf8');
+    const settings = await dbService.getSettings();
+    const appUpdate = settings?.app_update || {};
+
+    const host = req.get('host') || 'cineviet.live';
+    const origin = `https://${host}`;
+    const resolveUrl = (url, fallback) => {
+      let trimmed = (typeof url === 'string' ? url.trim() : '') || fallback;
+      trimmed = trimmed.replace(/TTPhim-AndroidTV/gi, 'CineViet-AndroidTV');
+      trimmed = trimmed.replace(/TTPhim-Mobile/gi, 'CineViet-Mobile');
+      if (trimmed.startsWith('http://cineviet.live')) {
+        trimmed = trimmed.replace('http://cineviet.live', 'https://cineviet.live');
+      }
+      if (trimmed.startsWith('/')) return `${origin}${trimmed}`;
+      return trimmed;
+    };
+
+    const hydratedData = {
+      enabled: appUpdate.enabled !== false,
+      latest_version: appUpdate.latest_version || '1.0.0',
+      latest_build: appUpdate.latest_build || 1,
+      title: appUpdate.title || 'Bản Cập Nhật CineViet Mới',
+      release_notes: appUpdate.release_notes || '• Bản phát hành chính thức CineViet 1.0.0\n• Hỗ trợ tự động kiểm tra bản cập nhật và cài đè trong app\n• Phát trực tiếp nguồn KKPhim 4K HDR',
+      apk_mobile_url: resolveUrl(appUpdate.apk_mobile_url, '/downloads/CineViet-Mobile-release.apk'),
+      apk_tv_url: resolveUrl(appUpdate.apk_tv_url, '/downloads/CineViet-AndroidTV-release.apk'),
+      ios_url: appUpdate.ios_url || 'https://cineviet.live'
+    };
+
+    let shell = rawHtml.replace('__APP_UPDATE_DATA__', JSON.stringify(hydratedData));
+    shell = bannerService.decorate(shell, settings);
+    res.set('Cache-Control', 'no-cache');
+    res.send(shell);
+  } catch (err) { next(err); }
+});
+
 for (const slug of ['gioi-thieu', 'tro-giup', 'lien-he', 'dieu-khoan', 'quyen-rieng-tu', 'ban-quyen']) {
   router.get(`/${slug}`, async (req, res, next) => {
     try {

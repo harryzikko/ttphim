@@ -413,13 +413,13 @@
     },
     "app_update": {
       "enabled": true,
-      "latest_version": "1.0.2",
-      "latest_build": 3,
-      "force_update": true,
+      "latest_version": "1.0.0",
+      "latest_build": 1,
+      "force_update": false,
       "title": "Bản Cập Nhật CineViet Mới",
-      "release_notes": "• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng",
-      "apk_mobile_url": "/downloads/TTPhim-Mobile-release.apk",
-      "apk_tv_url": "/downloads/TTPhim-AndroidTV-release.apk",
+      "release_notes": "• Phiên bản chính thức CineViet v1.0.0 đa nền tảng (Android Mobile, iOS & Android TV)\n• Hỗ trợ tự động kiểm tra bản cập nhật và nâng cấp cài đè trực tiếp trong app\n• Tối ưu tốc độ phát phim 4K HDR, âm thanh vòm Dolby Audio và điều khiển remote mượt mà",
+      "apk_mobile_url": "/downloads/CineViet-Mobile-release.apk",
+      "apk_tv_url": "/downloads/CineViet-AndroidTV-release.apk",
       "ios_url": "https://cineviet.live"
     }
   },
