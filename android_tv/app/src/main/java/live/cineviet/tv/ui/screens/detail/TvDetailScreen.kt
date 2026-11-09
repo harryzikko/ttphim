@@ -50,7 +50,7 @@ import live.cineviet.tv.ui.theme.*
 fun TvDetailScreen(
     slug: String,
     onBack: () -> Unit,
-    onPlayEpisode: (String, String?, Int) -> Unit,
+    onPlayEpisode: (String, String?, Int, Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val repository = remember { MovieRepository() }
@@ -148,6 +148,7 @@ fun TvDetailScreen(
     }
 
     val movie = detailData!!.movie
+    val history = detailData?.watchedHistory
 
     // FILTER ONLY KKPHIM SOURCES (Direct HLS - No NguonC, No ViCDN Song Ngu)
     val rawEpisodes = detailData!!.episodes
@@ -423,6 +424,27 @@ fun TvDetailScreen(
                     val firstEpSlug = activeServer?.serverData?.firstOrNull()?.slug
                     val firstEpName = activeServer?.serverData?.firstOrNull()?.name ?: "Tập 1"
 
+                    val targetEpSlug = if (history != null && !history.episodeSlug.isNullOrBlank()) {
+                        history.episodeSlug
+                    } else {
+                        firstEpSlug
+                    }
+                    val targetEpName = if (history != null && !history.episodeName.isNullOrBlank()) {
+                        history.episodeName
+                    } else {
+                        firstEpName
+                    }
+                    val startMs = if (history != null && history.currentTimeSeconds > 10L && history.progressRatio < 0.95f) {
+                        history.currentTimeMs
+                    } else {
+                        0L
+                    }
+                    val playButtonLabel = if (history != null && startMs > 0L) {
+                        "Tiếp Tục ($targetEpName)"
+                    } else {
+                        "Xem Ngay ($targetEpName)"
+                    }
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -451,7 +473,7 @@ fun TvDetailScreen(
                                 )
                                 .focusable(interactionSource = playSource)
                                 .clickable(interactionSource = playSource, indication = null) {
-                                    onPlayEpisode(movie.slug, firstEpSlug, realServerIndex)
+                                    onPlayEpisode(movie.slug, targetEpSlug, realServerIndex, startMs)
                                 }
                                 .padding(horizontal = 28.dp, vertical = 14.dp),
                             contentAlignment = Alignment.Center
@@ -465,7 +487,7 @@ fun TvDetailScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Xem Ngay ($firstEpName)",
+                                    text = playButtonLabel,
                                     color = Color.White,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Black,
@@ -607,6 +629,13 @@ fun TvDetailScreen(
                                     label = "epScale"
                                 )
 
+                                val isHistoryEp = history != null && history.episodeSlug == ep.slug
+                                val epStartMs = if (isHistoryEp && history.currentTimeSeconds > 10L && history.progressRatio < 0.95f) {
+                                    history.currentTimeMs
+                                } else {
+                                    0L
+                                }
+
                                 Box(
                                     modifier = Modifier
                                         .scale(epScale)
@@ -616,17 +645,18 @@ fun TvDetailScreen(
                                         .background(
                                             when {
                                                 isEpFocused -> CineVietRed
+                                                isHistoryEp -> CineVietRed.copy(alpha = 0.25f)
                                                 else -> TvSurfaceContainer
                                             }
                                         )
                                         .border(
-                                            width = if (isEpFocused) 2.dp else 1.dp,
-                                            color = if (isEpFocused) Color.White else Color.White.copy(alpha = 0.08f),
+                                            width = if (isEpFocused) 2.dp else if (isHistoryEp) 1.5.dp else 1.dp,
+                                            color = if (isEpFocused) Color.White else if (isHistoryEp) CineVietRed else Color.White.copy(alpha = 0.08f),
                                             shape = RoundedCornerShape(10.dp)
                                         )
                                         .focusable(interactionSource = epSource)
                                         .clickable(interactionSource = epSource, indication = null) {
-                                            onPlayEpisode(movie.slug, ep.slug, realServerIndex)
+                                            onPlayEpisode(movie.slug, ep.slug, realServerIndex, epStartMs)
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {

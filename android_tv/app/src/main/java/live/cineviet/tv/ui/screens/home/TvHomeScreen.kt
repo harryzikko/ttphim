@@ -70,7 +70,7 @@ fun TvHomeScreen(
     categoryFilter: String?,
     sessionManager: TvSessionManager? = null,
     onMovieClick: (String) -> Unit,
-    onPlayClick: (String, String?) -> Unit,
+    onPlayClick: (String, String?, Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val repository = remember { MovieRepository() }
@@ -312,7 +312,7 @@ fun TvHomeScreen(
                 item {
                     TvSpotlightHero(
                         spotlights = data.spotlights,
-                        onPlayClick = { slug, ep -> onPlayClick(slug, ep) },
+                        onPlayClick = { slug, ep, pos -> onPlayClick(slug, ep, pos) },
                         onDetailClick = { slug -> onMovieClick(slug) },
                         onFocused = {
                             scope.launch {
@@ -440,8 +440,9 @@ fun TvHomeScreen(
             onResume = {
                 val slug = continueItem.movieSlug
                 val ep = continueItem.episodeSlug?.takeIf { it.isNotBlank() }
+                val startMs = continueItem.currentTimeMs
                 selectedContinueItem = null
-                onPlayClick(slug, ep)
+                onPlayClick(slug, ep, startMs)
             },
             onDelete = {
                 val slug = continueItem.movieSlug
@@ -564,8 +565,10 @@ fun TvContinueWatchingCard(
         )
 
         val epText = item.episodeName?.takeIf { it.isNotBlank() } ?: "Đang xem dở"
+        val remain = item.formattedRemainingOrTime
+        val subText = if (remain.isNotBlank()) "$epText • $remain" else epText
         Text(
-            text = epText,
+            text = subText,
             color = TvOnSurfaceVariant,
             fontSize = 11.sp,
             maxLines = 1,
@@ -584,7 +587,7 @@ private class HeroBringIntoViewResponder : BringIntoViewResponder {
 @Composable
 fun TvSpotlightHero(
     spotlights: List<SpotlightMovie>,
-    onPlayClick: (String, String?) -> Unit,
+    onPlayClick: (String, String?, Long) -> Unit,
     onDetailClick: (String) -> Unit,
     onFocused: () -> Unit = {}
 ) {
@@ -793,7 +796,7 @@ fun TvSpotlightHero(
                         )
                         .focusable(interactionSource = playSource)
                         .clickable(interactionSource = playSource, indication = null) {
-                            onPlayClick(currentMovie.slug, currentMovie.firstEpisodeSlug)
+                            onPlayClick(currentMovie.slug, currentMovie.firstEpisodeSlug, 0L)
                         }
                         .padding(horizontal = 24.dp, vertical = 12.dp),
                     contentAlignment = Alignment.Center
@@ -1061,10 +1064,11 @@ fun TvContinueActionDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val epInfo = item.episodeName?.let { "Đang xem: $it" } ?: "Đang xem dở dang"
-                val pctInfo = (item.progressPercent as? Number)?.toInt()?.let { " • Đã xem $it%" } ?: ""
+                val epInfo = item.episodeName?.takeIf { it.isNotBlank() }?.let { "Đang xem: $it" } ?: "Đang xem dở dang"
+                val remainOrTime = item.formattedRemainingOrTime
+                val subText = if (remainOrTime.isNotBlank()) "$epInfo • $remainOrTime" else epInfo
                 Text(
-                    text = "$epInfo$pctInfo",
+                    text = subText,
                     color = TvOnSurfaceVariant,
                     fontSize = 13.sp,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center

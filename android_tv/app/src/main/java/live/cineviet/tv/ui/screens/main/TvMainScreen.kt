@@ -66,7 +66,7 @@ enum class TvNavTab(val title: String, val selectedIcon: ImageVector, val unsele
 fun TvMainScreen(
     sessionManager: TvSessionManager,
     onNavigateToDetail: (String) -> Unit,
-    onNavigateToPlayer: (String, String?) -> Unit,
+    onNavigateToPlayer: (String, String?, Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(TvNavTab.HOME) }
@@ -284,7 +284,7 @@ fun TvMainScreen(
                         categoryFilter = null,
                         sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
-                        onPlayClick = { slug, ep -> onNavigateToPlayer(slug, ep) }
+                        onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) }
                     )
                 }
                 TvNavTab.SERIES -> {
@@ -292,7 +292,7 @@ fun TvMainScreen(
                         categoryFilter = "series",
                         sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
-                        onPlayClick = { slug, ep -> onNavigateToPlayer(slug, ep) }
+                        onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) }
                     )
                 }
                 TvNavTab.SINGLES -> {
@@ -300,7 +300,7 @@ fun TvMainScreen(
                         categoryFilter = "singles",
                         sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
-                        onPlayClick = { slug, ep -> onNavigateToPlayer(slug, ep) }
+                        onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) }
                     )
                 }
                 TvNavTab.SEARCH -> {

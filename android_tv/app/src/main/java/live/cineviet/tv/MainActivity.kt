@@ -52,8 +52,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToDetail = { slug ->
                                     backStack.add(TvScreen.Detail(slug))
                                 },
-                                onNavigateToPlayer = { slug, epSlug ->
-                                    backStack.add(TvScreen.Player(slug, epSlug, 0))
+                                onNavigateToPlayer = { slug, epSlug, startMs ->
+                                    backStack.add(TvScreen.Player(slug, epSlug, 0, startMs))
                                 }
                             )
                         }
@@ -66,8 +66,8 @@ class MainActivity : ComponentActivity() {
                                         backStack.removeAt(backStack.lastIndex)
                                     }
                                 },
-                                onPlayEpisode = { slug, epSlug, serverIdx ->
-                                    backStack.add(TvScreen.Player(slug, epSlug, serverIdx))
+                                onPlayEpisode = { slug, epSlug, serverIdx, startMs ->
+                                    backStack.add(TvScreen.Player(slug, epSlug, serverIdx, startMs))
                                 }
                             )
                         }
@@ -77,6 +77,7 @@ class MainActivity : ComponentActivity() {
                                 slug = currentScreen.slug,
                                 initialEpisodeSlug = currentScreen.epSlug,
                                 serverIndex = currentScreen.serverIdx,
+                                startPositionMs = currentScreen.startPositionMs,
                                 onBack = {
                                     if (backStack.size > 1) {
                                         backStack.removeAt(backStack.lastIndex)

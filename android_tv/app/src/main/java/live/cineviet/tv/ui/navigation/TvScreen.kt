@@ -8,5 +8,10 @@ sealed class TvScreen {
     object Login : TvScreen()
     object Account : TvScreen()
     data class Detail(val slug: String) : TvScreen()
-    data class Player(val slug: String, val epSlug: String? = null, val serverIdx: Int = 0) : TvScreen()
+    data class Player(
+        val slug: String,
+        val epSlug: String? = null,
+        val serverIdx: Int = 0,
+        val startPositionMs: Long = 0L
+    ) : TvScreen()
 }

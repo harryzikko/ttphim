@@ -6,7 +6,8 @@ import java.net.URLEncoder
 data class MovieDetailData(
     @SerializedName("movie") val movie: MovieDetail = MovieDetail(),
     @SerializedName("episodes") val episodes: List<EpisodeServer> = emptyList(),
-    @SerializedName("inWatchlist") val inWatchlist: Boolean = false
+    @SerializedName("inWatchlist") val inWatchlist: Boolean = false,
+    @SerializedName("watchedHistory") val watchedHistory: WatchHistoryItem? = null
 )
 
 data class MovieDetail(

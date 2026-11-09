@@ -205,7 +205,9 @@ data class WatchHistoryItem(
     @SerializedName("episode_name") val episodeName: String? = null,
     @SerializedName("episode_slug") val episodeSlug: String? = null,
     @SerializedName("current_time") val currentTime: Any? = null,
+    @SerializedName("position_seconds") val positionSeconds: Any? = null,
     @SerializedName("duration") val duration: Any? = null,
+    @SerializedName("duration_seconds") val durationSeconds: Any? = null,
     @SerializedName("progress_percent") val progressPercent: Any? = null,
     @SerializedName("has_song_ngu") val hasSongNgu: Boolean = false
 ) {
@@ -217,12 +219,53 @@ data class WatchHistoryItem(
             return ""
         }
 
-    val progressRatio: Float
+    val currentTimeSeconds: Long
         get() {
-            val p = progressPercent?.toString()?.toFloatOrNull()
-            if (p != null && p > 0f) return (p / 100f).coerceIn(0f, 1f)
-            val curr = currentTime?.toString()?.toFloatOrNull() ?: 0f
-            val dur = duration?.toString()?.toFloatOrNull() ?: 1f
-            return if (dur > 0f) (curr / dur).coerceIn(0f, 1f) else 0f
+            val sec = currentTime?.toString()?.toDoubleOrNull()
+                ?: positionSeconds?.toString()?.toDoubleOrNull()
+                ?: 0.0
+            return sec.toLong()
+        }
+
+    val durationSecondsVal: Long
+        get() {
+            val sec = duration?.toString()?.toDoubleOrNull()
+                ?: durationSeconds?.toString()?.toDoubleOrNull()
+                ?: 0.0
+            return sec.toLong()
+        }
+
+    val currentTimeMs: Long
+        get() = currentTimeSeconds * 1000L
+
+    val progressPercentInt: Int
+        get() {
+            val p = progressPercent?.toString()?.toDoubleOrNull()?.toInt()
+            if (p != null && p > 0) return p.coerceIn(0, 100)
+            val curr = currentTimeSeconds.toDouble()
+            val dur = durationSecondsVal.toDouble()
+            return if (dur > 0) ((curr / dur) * 100).toInt().coerceIn(0, 100) else 0
+        }
+
+    val progressRatio: Float
+        get() = (progressPercentInt / 100f).coerceIn(0f, 1f)
+
+    val formattedRemainingOrTime: String
+        get() {
+            val curr = currentTimeSeconds
+            val dur = durationSecondsVal
+            if (dur > curr && curr > 0) {
+                val remainMins = Math.ceil((dur - curr) / 60.0).toLong()
+                if (remainMins > 0) return "Còn $remainMins phút"
+            }
+            if (progressPercentInt > 0) {
+                return "Đã xem $progressPercentInt%"
+            }
+            if (curr > 0) {
+                val mins = curr / 60
+                val secs = curr % 60
+                return String.format("%02d:%02d", mins, secs)
+            }
+            return ""
         }
 }

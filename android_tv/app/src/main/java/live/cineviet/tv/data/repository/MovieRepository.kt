@@ -108,7 +108,9 @@ class MovieRepository {
                 "episode_name" to episodeName,
                 "episode_slug" to episodeSlug,
                 "current_time" to currentTime,
+                "position_seconds" to currentTime,
                 "duration" to duration,
+                "duration_seconds" to duration,
                 "progress_percent" to progressPercent
             )
             api.saveHistory(payload)

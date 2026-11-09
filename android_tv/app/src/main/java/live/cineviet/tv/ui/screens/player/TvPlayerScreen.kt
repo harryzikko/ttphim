@@ -3,13 +3,9 @@ package live.cineviet.tv.ui.screens.player
 import android.view.KeyEvent
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -65,6 +61,7 @@ fun TvPlayerScreen(
     slug: String,
     initialEpisodeSlug: String?,
     serverIndex: Int,
+    startPositionMs: Long = 0L,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -75,6 +72,10 @@ fun TvPlayerScreen(
     var detailData by remember { mutableStateOf<MovieDetailData?>(null) }
     var currentEpisode by remember { mutableStateOf<EpisodeItem?>(null) }
     var isLoadingMovie by remember { mutableStateOf(true) }
+
+    // Resume playback state
+    var pendingSeekMs by remember { mutableStateOf(startPositionMs) }
+    var resumeNoticeText by remember { mutableStateOf<String?>(null) }
 
     // ExoPlayer state
     var isPlaying by remember { mutableStateOf(true) }
@@ -111,6 +112,14 @@ fun TvPlayerScreen(
                     isBuffering = (state == Player.STATE_BUFFERING)
                     if (state == Player.STATE_READY) {
                         duration = this@apply.duration.coerceAtLeast(0L)
+                        if (pendingSeekMs > 0L) {
+                            val target = pendingSeekMs
+                            pendingSeekMs = 0L
+                            if (Math.abs(this@apply.currentPosition - target) > 1500L) {
+                                this@apply.seekTo(target)
+                            }
+                            resumeNoticeText = "Tiếp tục xem từ ${formatPlayerTime(target)}"
+                        }
                     }
                 }
 
@@ -124,14 +133,15 @@ fun TvPlayerScreen(
     DisposableEffect(exoPlayer) {
         onDispose {
             val curr = exoPlayer.currentPosition / 1000L
-            val dur = exoPlayer.duration.coerceAtLeast(0L) / 1000L
+            val rawDur = exoPlayer.duration.coerceAtLeast(0L) / 1000L
+            val dur = if (rawDur > 0) rawDur else (duration / 1000L)
             val ep = currentEpisode
             val detail = detailData
             if (dur > 0 && curr > 0 && detail != null && ep != null) {
                 kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                     repository.saveHistory(
                         movieSlug = slug,
-                        movieName = detail.movie.name,
+                        movieName = detail.movie.name.ifBlank { slug },
                         posterUrl = detail.movie.getPoster(),
                         thumbUrl = detail.movie.getBackdrop(),
                         episodeName = ep.name,
@@ -153,7 +163,7 @@ fun TvPlayerScreen(
                 if (duration > 0 && currentPosition > 0 && detailData != null && currentEpisode != null) {
                     repository.saveHistory(
                         movieSlug = slug,
-                        movieName = detailData!!.movie.name,
+                        movieName = detailData!!.movie.name.ifBlank { slug },
                         posterUrl = detailData!!.movie.getPoster(),
                         thumbUrl = detailData!!.movie.getBackdrop(),
                         episodeName = currentEpisode!!.name,
@@ -167,12 +177,19 @@ fun TvPlayerScreen(
     }
 
     // Function to play episode directly with KKPhim HLS
-    fun playEpisode(ep: EpisodeItem) {
+    fun playEpisode(ep: EpisodeItem, initialSeekMs: Long = 0L) {
         currentEpisode = ep
+        if (initialSeekMs > 0L) {
+            pendingSeekMs = initialSeekMs
+        }
         val m3u8 = ep.linkM3u8?.trim() ?: ""
         if (m3u8.isNotBlank()) {
             val mediaItem = MediaItem.fromUri(m3u8)
-            exoPlayer.setMediaItem(mediaItem)
+            if (initialSeekMs > 0L) {
+                exoPlayer.setMediaItem(mediaItem, initialSeekMs)
+            } else {
+                exoPlayer.setMediaItem(mediaItem)
+            }
             exoPlayer.prepare()
             exoPlayer.play()
         } else {
@@ -186,7 +203,11 @@ fun TvPlayerScreen(
 
             if (streamUrl.isNotBlank()) {
                 val mediaItem = MediaItem.fromUri(streamUrl)
-                exoPlayer.setMediaItem(mediaItem)
+                if (initialSeekMs > 0L) {
+                    exoPlayer.setMediaItem(mediaItem, initialSeekMs)
+                } else {
+                    exoPlayer.setMediaItem(mediaItem)
+                }
                 exoPlayer.prepare()
                 exoPlayer.play()
             }
@@ -213,14 +234,32 @@ fun TvPlayerScreen(
             }
 
             val targetServer = kkphimServers.getOrNull(serverIndex) ?: kkphimServers.firstOrNull()
-            val ep = if (!initialEpisodeSlug.isNullOrBlank()) {
-                targetServer?.serverData?.find { it.slug == initialEpisodeSlug } ?: targetServer?.serverData?.firstOrNull()
+
+            val watchedHist = data.watchedHistory
+            var resumeSeekMs = if (startPositionMs > 0L) startPositionMs else 0L
+
+            val targetEpSlug = if (!initialEpisodeSlug.isNullOrBlank()) {
+                initialEpisodeSlug
+            } else if (watchedHist != null && !watchedHist.episodeSlug.isNullOrBlank()) {
+                watchedHist.episodeSlug
+            } else null
+
+            val ep = if (!targetEpSlug.isNullOrBlank()) {
+                targetServer?.serverData?.find { it.slug == targetEpSlug } ?: targetServer?.serverData?.firstOrNull()
             } else {
                 targetServer?.serverData?.firstOrNull()
             }
 
+            if (resumeSeekMs <= 0L && watchedHist != null && ep != null) {
+                val isMatchingEp = watchedHist.episodeSlug.isNullOrBlank() || watchedHist.episodeSlug == ep.slug
+                val histSec = watchedHist.currentTimeSeconds
+                if (isMatchingEp && histSec > 10L && watchedHist.progressRatio < 0.95f) {
+                    resumeSeekMs = watchedHist.currentTimeMs
+                }
+            }
+
             if (ep != null) {
-                playEpisode(ep)
+                playEpisode(ep, initialSeekMs = resumeSeekMs)
             }
         }.onFailure {
             isLoadingMovie = false
@@ -237,6 +276,14 @@ fun TvPlayerScreen(
             }
             currentTimeString = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
             delay(500)
+        }
+    }
+
+    // Auto-dismiss resume notification after 4s
+    LaunchedEffect(resumeNoticeText) {
+        if (resumeNoticeText != null) {
+            delay(4000)
+            resumeNoticeText = null
         }
     }
 
@@ -401,6 +448,41 @@ fun TvPlayerScreen(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
+                }
+            }
+        }
+
+        // Auto-Resume Toast Notification Pill
+        AnimatedVisibility(
+            visible = resumeNoticeText != null,
+            enter = fadeIn() + slideInVertically { -40 },
+            exit = fadeOut() + slideOutVertically { -40 },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 28.dp)
+        ) {
+            if (resumeNoticeText != null) {
+                Box(
+                    modifier = Modifier
+                        .background(TvSurfaceContainerHighest.copy(alpha = 0.95f), RoundedCornerShape(20.dp))
+                        .border(1.5.dp, CineVietRed, RoundedCornerShape(20.dp))
+                        .padding(horizontal = 24.dp, vertical = 10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = CineVietRed,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = resumeNoticeText!!,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
