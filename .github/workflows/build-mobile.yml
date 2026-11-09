@@ -58,7 +58,8 @@ jobs:
           rm -f test/widget_test.dart
           cp config/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/res/drawable
-          cp config/tv_banner.xml android/app/src/main/res/drawable/tv_banner.xml
+          cp -r config/android/res/* android/app/src/main/res/ 2>/dev/null || true
+          cp config/tv_banner.png android/app/src/main/res/drawable/tv_banner.png 2>/dev/null || true
           mkdir -p android/app/src/main/res/xml
           cp config/file_paths.xml android/app/src/main/res/xml/file_paths.xml
           MAIN_KT=$(find android/app/src/main/kotlin -name "MainActivity.kt" | head -n 1)

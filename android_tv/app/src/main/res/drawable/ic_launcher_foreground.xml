@@ -1,9 +1,71 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Center Card Plate (Safe area 56x56 centered at 54, 54) -->
     <path
-        android:fillColor="#E50914"
-        android:pathData="M54,28 C40,28 28,40 28,54 C28,68 40,80 54,80 C64,80 72,74 77,66 L67,59 C64,64 59,67 54,67 C47,67 41,61 41,54 C41,47 47,41 54,41 C59,41 64,44 67,49 L77,42 C72,34 64,28 54,28 Z" />
+        android:fillColor="#0C0E17"
+        android:pathData="M32,26 h44 a14,14 0 0 1 14,14 v44 a14,14 0 0 1 -14,14 h-44 a14,14 0 0 1 -14,-14 v-44 a14,14 0 0 1 14,-14 z" />
+
+    <!-- Plate Border -->
+    <path
+        android:strokeWidth="1.2"
+        android:pathData="M32,26 h44 a14,14 0 0 1 14,14 v44 a14,14 0 0 1 -14,14 h-44 a14,14 0 0 1 -14,-14 v-44 a14,14 0 0 1 14,-14 z">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="18"
+                android:startY="26"
+                android:endX="90"
+                android:endY="98"
+                android:type="linear">
+                <item android:color="#FF473D" android:offset="0.0" />
+                <item android:color="#E50914" android:offset="0.5" />
+                <item android:color="#00EEFC" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Stylized Cine C Arc -->
+    <path
+        android:strokeWidth="4.2"
+        android:strokeLineCap="round"
+        android:pathData="M65,43 C60,38 46,38 41.5,45 C37,51.5 37,58.5 41.5,64 C46,70 60,70.5 65,66">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="37"
+                android:startY="38"
+                android:endX="65"
+                android:endY="70"
+                android:type="linear">
+                <item android:color="#FF473D" android:offset="0.0" />
+                <item android:color="#E50914" android:offset="0.4" />
+                <item android:color="#800005" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Play Triangle Glyph -->
+    <path
+        android:pathData="M50,47 L64,55 L50,63 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="50"
+                android:startY="47"
+                android:endX="64"
+                android:endY="63"
+                android:type="linear">
+                <item android:color="#FFFFFF" android:offset="0.0" />
+                <item android:color="#FFB4AA" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Cyan Accent Star / Sparkle Dot -->
+    <path
+        android:fillColor="#00EEFC"
+        android:pathData="M65,43 m -2,0 a 2,2 0 1,0 4,0 a 2,2 0 1,0 -4,0" />
+
 </vector>

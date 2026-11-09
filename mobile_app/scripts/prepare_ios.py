@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 
 def update_ios_target():
     # 1. Update project.pbxproj deployment target to 14.0
@@ -31,6 +32,18 @@ def update_ios_target():
         with open(podfile, "w", encoding="utf-8") as f:
             f.write(new_content)
         print("Updated Podfile deployment target to 14.0")
+
+    # 3. Copy CineViet AppIcon assets to iOS Assets.xcassets
+    icon_src = "config/ios/AppIcon.appiconset"
+    icon_dst = "ios/Runner/Assets.xcassets/AppIcon.appiconset"
+    if os.path.exists(icon_src):
+        os.makedirs(icon_dst, exist_ok=True)
+        for item in os.listdir(icon_src):
+            s = os.path.join(icon_src, item)
+            d = os.path.join(icon_dst, item)
+            if os.path.isfile(s):
+                shutil.copy2(s, d)
+        print("Copied CineViet AppIcon to ios/Runner/Assets.xcassets/AppIcon.appiconset")
 
 if __name__ == "__main__":
     update_ios_target()

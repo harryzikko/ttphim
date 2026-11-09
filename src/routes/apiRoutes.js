@@ -1081,8 +1081,8 @@ router.post('/admin/app-banner', async (req, res) => {
 
 const defaultAppUpdate = {
   enabled: true,
-  latest_version: '1.0.1',
-  latest_build: 2,
+  latest_version: '1.0.0',
+  latest_build: 1,
   force_update: false,
   title: 'Bản Cập Nhật CineViet Mới',
   release_notes: '• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng',
