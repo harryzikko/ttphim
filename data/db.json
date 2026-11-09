@@ -420,7 +420,7 @@
       "release_notes": "• Phiên bản chính thức CineViet v1.0.0 đa nền tảng (Android Mobile, iOS & Android TV)\n• Hỗ trợ tự động kiểm tra bản cập nhật và nâng cấp cài đè trực tiếp trong app\n• Tối ưu tốc độ phát phim 4K HDR, âm thanh vòm Dolby Audio và điều khiển remote mượt mà",
       "apk_mobile_url": "/downloads/CineViet-Mobile-release.apk",
       "apk_tv_url": "/downloads/CineViet-AndroidTV-release.apk",
-      "ios_url": "https://cineviet.live"
+      "ios_url": "/downloads/CineViet-iOS-IPA-Unsigned.ipa"
     }
   },
   "movie_views": {

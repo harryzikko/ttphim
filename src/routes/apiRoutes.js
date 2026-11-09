@@ -1088,7 +1088,7 @@ const defaultAppUpdate = {
   release_notes: '• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng',
   apk_mobile_url: '/downloads/CineViet-Mobile-release.apk',
   apk_tv_url: '/downloads/CineViet-AndroidTV-release.apk',
-  ios_url: 'https://cineviet.live'
+  ios_url: '/downloads/CineViet-iOS-IPA-Unsigned.ipa'
 };
 
 // Public endpoint for mobile app

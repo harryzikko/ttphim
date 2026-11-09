@@ -281,7 +281,7 @@
 
   <!-- 0. Multi-Platform App Promotion Banner (Android, iOS & Android TV) -->
   <section id="home-app-download-banner" class="w-full -mt-2 sm:-mt-4">
-    <a href="/tai-ung-dung" class="group block relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-r from-[#121522] via-[#0D0F18] to-[#0A0C14] border border-white/10 hover:border-red-600/50 transition-all duration-300 shadow-2xl hover:shadow-[0_16px_40px_rgba(229,9,20,0.2)]">
+    <a href="/tai-ung-dung" class="group block relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-r from-[#141824] via-[#1E2333] to-[#121522] border border-white/10 hover:border-red-600/50 transition-all duration-300 shadow-2xl hover:shadow-[0_16px_40px_rgba(229,9,20,0.2)]">
       <!-- Ambient Red / Cyan Background Glows -->
       <div class="absolute -top-24 -left-24 w-80 h-80 rounded-full blur-3xl pointer-events-none bg-red-600/15 group-hover:bg-red-600/25 transition-all duration-500"></div>
       <div class="absolute -bottom-24 -right-24 w-80 h-80 rounded-full blur-3xl pointer-events-none bg-cyan-500/15 group-hover:bg-cyan-500/25 transition-all duration-500"></div>
@@ -295,9 +295,9 @@
               <span class="material-symbols-outlined text-[15px] text-red-500">install_mobile</span>
               BỘ CÀI ĐẶT CHÍNH THỨC 2026
             </span>
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Miễn Phí 100% • Chuẩn 4K HDR
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 uppercase tracking-wider">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+              Miễn Phí 100%
             </span>
           </div>
 
@@ -307,9 +307,9 @@
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400">Smart TV, Android &amp; iOS</span>
           </h2>
 
-          <!-- Description -->
+          <!-- Description (Bỏ chất lượng & âm thanh) -->
           <p class="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
-            Kho phim điện ảnh chất lượng cao không quảng cáo, âm thanh Dolby Audio sống động, giao diện tối ưu remote và tự động cập nhật bản mới trực tiếp trong ứng dụng.
+            Tận hưởng kho phim điện ảnh không quảng cáo, điều khiển remote mượt mà và tự động cập nhật bản mới trực tiếp trong ứng dụng.
           </p>
 
           <!-- 3 Platforms Quick Badges Rail -->
@@ -349,15 +349,33 @@
               <span>v1.0.0 chính thức • Cài đè tự động</span>
             </span>
           </div>
+
+          <!-- Bottom Specs Row (Chỉ giữ lại Phiên bản & Cập nhật) -->
+          <div class="grid grid-cols-2 gap-3 pt-3 mt-1 max-w-md">
+            <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 backdrop-blur-sm flex flex-col">
+              <span class="text-slate-400 font-bold text-[10px] uppercase tracking-wider">PHIÊN BẢN</span>
+              <span class="text-white font-bold text-xs sm:text-sm">v1.0.0 • Build 1</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 backdrop-blur-sm flex flex-col">
+              <span class="text-slate-400 font-bold text-[10px] uppercase tracking-wider">CẬP NHẬT</span>
+              <span class="text-white font-bold text-xs sm:text-sm">Tự Động Cài Đè</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Right Column: Full 3D Multi-Device Artwork Mockup (Col 5) -->
+        <!-- Right Column: Exact Mockup Card Matching Stitch Design (Col 5) -->
         <div class="lg:col-span-5 flex items-center justify-center">
-          <div class="relative w-full max-w-[500px] lg:max-w-none rounded-2xl overflow-hidden shadow-2xl transition-transform duration-500 group-hover:scale-105">
-            <picture>
-              <source srcset="/images/banners/cineviet_devices_commercial.webp" type="image/webp">
-              <img src="/images/banners/cineviet_devices_commercial.png" alt="CineViet Multi-Device Showcase" class="w-full h-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]" loading="lazy" />
-            </picture>
+          <div class="relative w-full max-w-[480px] rounded-2xl overflow-hidden shadow-2xl bg-[#141824] border border-white/10 p-3 sm:p-4 transition-transform duration-500 group-hover:scale-105">
+            <div class="relative w-full rounded-xl overflow-hidden aspect-[16/9] bg-black">
+              <img src="/images/banners/cineviet_stitch_devices.webp" alt="CineViet Smart TV, Android & iOS" class="w-full h-full object-cover" loading="lazy" />
+            </div>
+            <div class="mt-3 px-3 py-1.5 rounded-xl bg-[#0B0E14]/85 backdrop-blur-md flex items-center justify-between border border-white/5">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span class="text-white text-xs font-semibold">Đồng bộ đám mây liên thiết bị</span>
+              </div>
+              <span class="text-amber-400 text-[10px] uppercase font-bold tracking-wider">CineViet OS</span>
+            </div>
           </div>
         </div>
       </div>
