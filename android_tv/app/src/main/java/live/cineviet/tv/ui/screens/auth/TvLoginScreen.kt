@@ -55,7 +55,7 @@ fun TvLoginScreen(
             val result = repository.createSession()
             result.onSuccess { s ->
                 session = s
-                remainingSeconds = s.expiresIn
+                remainingSeconds = s.effectiveExpiresIn
                 isLoading = false
             }.onFailure {
                 errorMessage = it.message ?: "Không thể tạo mã đăng nhập. Vui lòng thử lại."
@@ -205,8 +205,8 @@ fun TvLoginScreen(
                             modifier = Modifier
                                 .size(56.dp, 72.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF151824))
-                                .border(2.dp, CineVietRed, RoundedCornerShape(12.dp)),
+                                .background(TvSurfaceHigh)
+                                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(

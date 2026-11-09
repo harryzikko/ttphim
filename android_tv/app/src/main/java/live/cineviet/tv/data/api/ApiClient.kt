@@ -10,31 +10,40 @@ import java.net.InetAddress
 import java.util.concurrent.TimeUnit
 
 class SafeTvDns : Dns {
+    // Verified fast CloudFront & BunnyCDN Anycast IPs for image.tmdb.org unblocked globally
     private val tmdbIps = listOf(
+        "143.204.226.97",
+        "143.204.226.102",
+        "143.204.226.39",
+        "143.204.226.81",
+        "18.65.176.54",
+        "18.65.176.101",
         "84.17.38.228",
-        "84.17.38.231",
-        "84.17.38.225",
-        "84.17.38.226",
-        "84.17.38.227",
-        "84.17.38.229",
-        "84.17.38.230"
+        "169.150.207.217"
     )
 
     override fun lookup(hostname: String): List<InetAddress> {
         if (hostname.contains("tmdb.org", ignoreCase = true) || hostname.contains("b-cdn.net", ignoreCase = true)) {
-            try {
+            val validSystemIps = try {
                 val sys = Dns.SYSTEM.lookup(hostname)
-                val valid = sys.filter {
-                    val ip = it.hostAddress
-                    ip != "0.0.0.0" && ip != "127.0.0.1" && ip != "::1"
+                sys.filter {
+                    val ip = it.hostAddress ?: ""
+                    ip != "0.0.0.0" && ip != "127.0.0.1" && ip != "::1" && !ip.startsWith("10.") && !ip.startsWith("192.168.")
                 }
-                if (valid.isNotEmpty()) return valid
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+                emptyList()
+            }
 
+            if (validSystemIps.isNotEmpty()) {
+                return validSystemIps
+            }
+
+            // Fallback to verified CloudFront Anycast IPs preserving hostname for valid TLS SNI handshake
             val resolved = mutableListOf<InetAddress>()
-            for (ip in tmdbIps) {
+            for (ipStr in tmdbIps) {
                 try {
-                    resolved.addAll(InetAddress.getAllByName(ip))
+                    val raw = InetAddress.getByName(ipStr).address
+                    resolved.add(InetAddress.getByAddress(hostname, raw))
                 } catch (_: Exception) {}
             }
             if (resolved.isNotEmpty()) return resolved

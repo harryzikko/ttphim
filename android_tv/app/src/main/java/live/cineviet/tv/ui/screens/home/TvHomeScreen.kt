@@ -561,28 +561,22 @@ fun TvSpotlightHero(
             .fillMaxWidth()
             .height(510.dp)
     ) {
-        // Fullbleed Backdrop Image with SubcomposeAsyncImage & Fallback (NEVER RENDERS BLACK)
-        SubcomposeAsyncImage(
+        // Layer 1: Fast direct CDN fallback backdrop (Never black, loads instantly)
+        if (currentMovie.backdropFallback.isNotBlank()) {
+            AsyncImage(
+                model = currentMovie.backdropFallback,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // Layer 2: High-res Backdrop Image (Smooth crossfade on top)
+        AsyncImage(
             model = currentMovie.displayBackdrop.ifBlank { currentMovie.backdropFallback },
             contentDescription = currentMovie.name,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-            loading = {
-                AsyncImage(
-                    model = currentMovie.backdropFallback,
-                    contentDescription = currentMovie.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            },
-            error = {
-                AsyncImage(
-                    model = currentMovie.backdropFallback.ifBlank { currentMovie.displayPoster },
-                    contentDescription = currentMovie.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            modifier = Modifier.fillMaxSize()
         )
 
         // Directional Obsidian Scrims (Left to Right & Bottom to Top)

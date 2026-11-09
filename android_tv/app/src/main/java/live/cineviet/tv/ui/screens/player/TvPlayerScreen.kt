@@ -98,6 +98,7 @@ fun TvPlayerScreen(
 
     val playerFocusRequester = remember { FocusRequester() }
     val playFocusRequester = remember { FocusRequester() }
+    val epsFocusRequester = remember { FocusRequester() }
     val drawerFocusRequester = remember { FocusRequester() }
 
     // Native Media3 ExoPlayer instance
@@ -295,7 +296,7 @@ fun TvPlayerScreen(
                         KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
                             if (showEpisodeDrawer) {
                                 showEpisodeDrawer = false
-                                playFocusRequester.requestFocus()
+                                try { playFocusRequester.requestFocus() } catch (_: Exception) {}
                                 return@onKeyEvent true
                             }
                             if (showControls) {
@@ -309,7 +310,9 @@ fun TvPlayerScreen(
                         KeyEvent.KEYCODE_DPAD_DOWN -> {
                             if (!showEpisodeDrawer) {
                                 showControls = true
-                                showEpisodeDrawer = true
+                                if (currentEpisodes.size > 1) {
+                                    showEpisodeDrawer = true
+                                }
                                 return@onKeyEvent true
                             }
                         }
@@ -317,7 +320,6 @@ fun TvPlayerScreen(
                         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
                             if (!showControls && !showEpisodeDrawer) {
                                 showControls = true
-                                playFocusRequester.requestFocus()
                                 return@onKeyEvent true
                             }
                         }
@@ -344,10 +346,9 @@ fun TvPlayerScreen(
                             if (!showEpisodeDrawer) {
                                 if (!showControls) {
                                     showControls = true
-                                    playFocusRequester.requestFocus()
                                 } else {
                                     showControls = false
-                                    playerFocusRequester.requestFocus()
+                                    try { playerFocusRequester.requestFocus() } catch (_: Exception) {}
                                 }
                                 return@onKeyEvent true
                             }
@@ -500,165 +501,67 @@ fun TvPlayerScreen(
                         Spacer(modifier = Modifier.width(20.dp))
 
                         Column {
-                            // Engine badge & Episode tag
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(CineVietRed.copy(alpha = 0.25f))
-                                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(CineVietRedLight)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "MEDIA3 • EXOPLAYER LIVE",
-                                            color = CineVietRedLight,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            letterSpacing = 1.sp
-                                        )
-                                    }
-                                }
-
-                                val currentEpName = currentEpisode?.name ?: ""
-                                if (currentEpName.isNotBlank()) {
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = currentEpName,
-                                        color = TvOnSurfaceVariant,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
                             // Main Title
                             Text(
                                 text = detailData?.movie?.name ?: "Đang phát...",
                                 color = Color.White,
-                                fontSize = 26.sp,
+                                fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
 
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            // Tech Badges Strip
+                            val currentEpName = currentEpisode?.name ?: ""
+                            val quality = detailData?.movie?.quality ?: "HD"
+                            Spacer(modifier = Modifier.height(4.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .background(CineVietRed.copy(alpha = 0.9f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 7.dp, vertical = 2.dp)
-                                ) {
+                                if (currentEpName.isNotBlank()) {
                                     Text(
-                                        text = "KKPhim VIP",
-                                        color = Color.White,
-                                        fontSize = 10.sp,
+                                        text = currentEpName,
+                                        color = CineVietRedLight,
+                                        fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
-
                                 Box(
                                     modifier = Modifier
-                                        .background(TvSurfaceHighest.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                                        .background(TvSurfaceHighest.copy(alpha = 0.8f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = detailData?.movie?.quality ?: "4K UHD",
+                                        text = quality,
                                         color = Color.White,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .background(TvSurfaceHighest.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 7.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "HDR10+",
-                                        color = Color.White,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .background(TvSurfaceHighest.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 7.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "DOLBY AUDIO",
-                                        color = TvGold,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                 }
                             }
                         }
                     }
 
-                    // Right: Clock & Stream Status
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    // Right: Subtle Clock
+                    Box(
+                        modifier = Modifier
+                            .background(TvSurfaceHigh.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .background(TvSurfaceHigh.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-                                .padding(horizontal = 14.dp, vertical = 6.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = "Giờ",
-                                    tint = CineVietRedLight,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = currentTimeString,
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .background(TvSurfaceHigh.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-                                .padding(horizontal = 14.dp, vertical = 6.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(7.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF10B981))
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "TRỰC TIẾP",
-                                    color = Color.White,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = "Giờ",
+                                tint = CineVietRedLight,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = currentTimeString,
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
@@ -775,259 +678,176 @@ fun TvPlayerScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // 3. Command Action Bar
+                    // 3. Command Action Bar (Clean & Focused)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Left Control Pod
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            // Replay 10s
-                            val rewindSource = remember { MutableInteractionSource() }
-                            val isRewindFocused by rewindSource.collectIsFocusedAsState()
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isRewindFocused) CineVietRed else TvSurfaceHigh.copy(alpha = 0.7f))
-                                    .border(
-                                        width = if (isRewindFocused) 2.5.dp else 1.dp,
-                                        color = if (isRewindFocused) Color.White else Color.White.copy(alpha = 0.15f),
-                                        shape = CircleShape
-                                    )
-                                    .focusable(interactionSource = rewindSource)
-                                    .clickable(interactionSource = rewindSource, indication = null) {
-                                        exoPlayer.seekTo((exoPlayer.currentPosition - 10000L).coerceAtLeast(0L))
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Replay10,
-                                    contentDescription = "Lùi 10s",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-
-                            // PRIMARY FOCUSED PLAY/PAUSE PILL
-                            val playSource = remember { MutableInteractionSource() }
-                            val isPlayFocused by playSource.collectIsFocusedAsState()
-                            val playScale by animateFloatAsState(
-                                targetValue = if (isPlayFocused) 1.10f else 1.0f,
-                                animationSpec = tween(150),
-                                label = "playBtnScale"
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .focusRequester(playFocusRequester)
-                                    .scale(playScale)
-                                    .height(56.dp)
-                                    .clip(RoundedCornerShape(28.dp))
-                                    .background(
-                                        if (isPlayFocused) {
-                                            Brush.horizontalGradient(listOf(CineVietRed, CineVietRedLight))
-                                        } else {
-                                            Brush.horizontalGradient(listOf(CineVietRedDark, CineVietRed))
-                                        }
-                                    )
-                                    .border(
-                                        width = if (isPlayFocused) 2.5.dp else 0.dp,
-                                        color = if (isPlayFocused) Color.White else Color.Transparent,
-                                        shape = RoundedCornerShape(28.dp)
-                                    )
-                                    .padding(horizontal = 26.dp)
-                                    .focusable(interactionSource = playSource)
-                                    .onKeyEvent { keyEvent ->
-                                        if (keyEvent.type == KeyEventType.KeyDown) {
-                                            when (keyEvent.nativeKeyEvent.keyCode) {
-                                                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                                                    isSeekingContinuous = true
-                                                    continuousSeekDelta -= 10L
-                                                    return@onKeyEvent true
-                                                }
-                                                KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                                                    isSeekingContinuous = true
-                                                    continuousSeekDelta += 10L
-                                                    return@onKeyEvent true
-                                                }
-                                                KeyEvent.KEYCODE_DPAD_UP -> {
-                                                    showControls = false
-                                                    playerFocusRequester.requestFocus()
-                                                    return@onKeyEvent true
-                                                }
-                                            }
-                                        } else if (keyEvent.type == KeyEventType.KeyUp) {
-                                            when (keyEvent.nativeKeyEvent.keyCode) {
-                                                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND,
-                                                KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                                                    if (isSeekingContinuous && continuousSeekDelta != 0L) {
-                                                        val target = (currentPosition + continuousSeekDelta * 1000L).coerceIn(0L, duration)
-                                                        exoPlayer.seekTo(target)
-                                                        isSeekingContinuous = false
-                                                        continuousSeekDelta = 0L
-                                                        return@onKeyEvent true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        false
-                                    }
-                                    .clickable(interactionSource = playSource, indication = null) {
-                                        if (isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                        contentDescription = "Play/Pause",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(26.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = if (isPlaying) "TẠM DỪNG" else "TIẾP TỤC",
-                                        color = Color.White,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Black,
-                                        letterSpacing = 1.sp
-                                    )
-                                }
-                            }
-
-                            // Forward 10s
-                            val fwdSource = remember { MutableInteractionSource() }
-                            val isFwdFocused by fwdSource.collectIsFocusedAsState()
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isFwdFocused) CineVietRed else TvSurfaceHigh.copy(alpha = 0.7f))
-                                    .border(
-                                        width = if (isFwdFocused) 2.5.dp else 1.dp,
-                                        color = if (isFwdFocused) Color.White else Color.White.copy(alpha = 0.15f),
-                                        shape = CircleShape
-                                    )
-                                    .focusable(interactionSource = fwdSource)
-                                    .clickable(interactionSource = fwdSource, indication = null) {
-                                        exoPlayer.seekTo((exoPlayer.currentPosition + 10000L).coerceAtMost(duration))
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Forward10,
-                                    contentDescription = "Tua 10s",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-
-                            // Next Episode Button (if available)
-                            if (nextEpisode != null) {
-                                val nextSource = remember { MutableInteractionSource() }
-                                val isNextFocused by nextSource.collectIsFocusedAsState()
-
-                                Box(
-                                    modifier = Modifier
-                                        .height(48.dp)
-                                        .clip(RoundedCornerShape(24.dp))
-                                        .background(if (isNextFocused) CineVietRed else TvSurfaceHigh.copy(alpha = 0.7f))
-                                        .border(
-                                            width = if (isNextFocused) 2.dp else 1.dp,
-                                            color = if (isNextFocused) Color.White else Color.White.copy(alpha = 0.15f),
-                                            shape = RoundedCornerShape(24.dp)
-                                        )
-                                        .padding(horizontal = 18.dp)
-                                        .focusable(interactionSource = nextSource)
-                                        .onKeyEvent { event ->
-                                            if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                                                playFocusRequester.requestFocus()
-                                                true
-                                            } else false
-                                        }
-                                        .clickable(interactionSource = nextSource, indication = null) {
-                                            playEpisode(nextEpisode)
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.SkipNext,
-                                            contentDescription = "Tập kế tiếp",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "Tập tiếp: ${nextEpisode.name}",
-                                            color = Color.White,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Right Auxiliary Controls Pod: Episodes Drawer Toggle
-                        val epsSource = remember { MutableInteractionSource() }
-                        val isEpsFocused by epsSource.collectIsFocusedAsState()
+                        // PRIMARY FOCUSED PLAY/PAUSE PILL
+                        val playSource = remember { MutableInteractionSource() }
+                        val isPlayFocused by playSource.collectIsFocusedAsState()
+                        val playScale by animateFloatAsState(
+                            targetValue = if (isPlayFocused) 1.10f else 1.0f,
+                            animationSpec = tween(150),
+                            label = "playBtnScale"
+                        )
 
                         Box(
                             modifier = Modifier
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(24.dp))
+                                .focusRequester(playFocusRequester)
+                                .scale(playScale)
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(28.dp))
                                 .background(
-                                    when {
-                                        isEpsFocused -> CineVietRed
-                                        showEpisodeDrawer -> TvSurfaceHighest
-                                        else -> TvSurfaceHigh.copy(alpha = 0.7f)
+                                    if (isPlayFocused) {
+                                        Brush.horizontalGradient(listOf(CineVietRed, CineVietRedLight))
+                                    } else {
+                                        Brush.horizontalGradient(listOf(CineVietRedDark, CineVietRed))
                                     }
                                 )
                                 .border(
-                                    width = if (isEpsFocused || showEpisodeDrawer) 2.dp else 1.dp,
-                                    color = if (isEpsFocused || showEpisodeDrawer) CineVietRedLight else Color.White.copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(24.dp)
+                                    width = if (isPlayFocused) 2.5.dp else 0.dp,
+                                    color = if (isPlayFocused) Color.White else Color.Transparent,
+                                    shape = RoundedCornerShape(28.dp)
                                 )
-                                .padding(horizontal = 18.dp)
-                                .focusable(interactionSource = epsSource)
-                                .onKeyEvent { event ->
-                                    if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                                        playFocusRequester.requestFocus()
-                                        true
-                                    } else false
+                                .padding(horizontal = 30.dp)
+                                .focusable(interactionSource = playSource)
+                                .onKeyEvent { keyEvent ->
+                                    if (keyEvent.type == KeyEventType.KeyDown) {
+                                        when (keyEvent.nativeKeyEvent.keyCode) {
+                                            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                                                isSeekingContinuous = true
+                                                continuousSeekDelta -= 10L
+                                                return@onKeyEvent true
+                                            }
+                                            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                                                if (currentEpisodes.size > 1) {
+                                                    try { epsFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                } else {
+                                                    isSeekingContinuous = true
+                                                    continuousSeekDelta += 10L
+                                                }
+                                                return@onKeyEvent true
+                                            }
+                                            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                                if (currentEpisodes.size > 1) {
+                                                    showEpisodeDrawer = true
+                                                }
+                                                return@onKeyEvent true
+                                            }
+                                            KeyEvent.KEYCODE_DPAD_UP -> {
+                                                showControls = false
+                                                try { playerFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                return@onKeyEvent true
+                                            }
+                                        }
+                                    } else if (keyEvent.type == KeyEventType.KeyUp) {
+                                        when (keyEvent.nativeKeyEvent.keyCode) {
+                                            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND,
+                                            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                                                if (isSeekingContinuous && continuousSeekDelta != 0L) {
+                                                    val target = (currentPosition + continuousSeekDelta * 1000L).coerceIn(0L, duration)
+                                                    exoPlayer.seekTo(target)
+                                                    isSeekingContinuous = false
+                                                    continuousSeekDelta = 0L
+                                                    return@onKeyEvent true
+                                                }
+                                            }
+                                        }
+                                    }
+                                    false
                                 }
-                                .clickable(interactionSource = epsSource, indication = null) {
-                                    showEpisodeDrawer = !showEpisodeDrawer
+                                .clickable(interactionSource = playSource, indication = null) {
+                                    if (isPlaying) exoPlayer.pause() else exoPlayer.play()
                                 },
                             contentAlignment = Alignment.Center
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.ViewAgenda,
-                                    contentDescription = "Danh sách tập",
-                                    tint = if (showEpisodeDrawer) CineVietRedLight else Color.White,
-                                    modifier = Modifier.size(19.dp)
+                                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = "Play/Pause",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(26.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Danh Sách Tập (Nhấn ↓)",
-                                    color = if (showEpisodeDrawer) CineVietRedLight else Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    text = if (isPlaying) "TẠM DỪNG" else "TIẾP TỤC",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
                                 )
+                            }
+                        }
+
+                        // Right: Episode list toggle button (Only when series / multiple episodes)
+                        if (currentEpisodes.size > 1) {
+                            val epsSource = remember { MutableInteractionSource() }
+                            val isEpsFocused by epsSource.collectIsFocusedAsState()
+
+                            Box(
+                                modifier = Modifier
+                                    .focusRequester(epsFocusRequester)
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(
+                                        when {
+                                            isEpsFocused -> CineVietRed
+                                            showEpisodeDrawer -> TvSurfaceHighest
+                                            else -> TvSurfaceHigh.copy(alpha = 0.7f)
+                                        }
+                                    )
+                                    .border(
+                                        width = if (isEpsFocused || showEpisodeDrawer) 2.dp else 1.dp,
+                                        color = if (isEpsFocused || showEpisodeDrawer) CineVietRedLight else Color.White.copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(24.dp)
+                                    )
+                                    .padding(horizontal = 18.dp)
+                                    .focusable(interactionSource = epsSource)
+                                    .onKeyEvent { event ->
+                                        if (event.type == KeyEventType.KeyDown) {
+                                            when (event.nativeKeyEvent.keyCode) {
+                                                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                                                    try { playFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                    true
+                                                }
+                                                KeyEvent.KEYCODE_DPAD_UP -> {
+                                                    showControls = false
+                                                    try { playerFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                    true
+                                                }
+                                                else -> false
+                                            }
+                                        } else false
+                                    }
+                                    .clickable(interactionSource = epsSource, indication = null) {
+                                        showEpisodeDrawer = !showEpisodeDrawer
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.ViewAgenda,
+                                        contentDescription = "Danh sách tập",
+                                        tint = if (showEpisodeDrawer) CineVietRedLight else Color.White,
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Danh Sách Tập (Nhấn ↓)",
+                                        color = if (showEpisodeDrawer) CineVietRedLight else Color.White,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // 4. TV Living Room D-Pad Remote Legend
+                    // 4. TV Living Room Remote Legend (Clean & Minimal)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1049,38 +869,17 @@ fun TvPlayerScreen(
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace
                             )
-                            Text(
-                                text = "▼ Danh sách tập",
-                                color = TvOnSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
+                            if (currentEpisodes.size > 1) {
+                                Text(
+                                    text = "▼ Danh sách tập",
+                                    color = TvOnSurfaceVariant,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
                             Text(
                                 text = "BACK Thu gọn",
                                 color = TvOnSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = "Media3 ExoPlayer v1.5",
-                                color = TvOnSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                            Text(
-                                text = "•",
-                                color = TvOnSurfaceVariant,
-                                fontSize = 11.sp
-                            )
-                            Text(
-                                text = "KKPhim Direct HLS",
-                                color = CineVietRedLight,
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace
                             )
@@ -1201,7 +1000,7 @@ fun TvPlayerScreen(
                                             if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
                                                 event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
                                                 showEpisodeDrawer = false
-                                                playFocusRequester.requestFocus()
+                                                try { playFocusRequester.requestFocus() } catch (_: Exception) {}
                                                 true
                                             } else false
                                         } else false
@@ -1209,7 +1008,7 @@ fun TvPlayerScreen(
                                     .clickable(interactionSource = epSource, indication = null) {
                                         playEpisode(ep)
                                         showEpisodeDrawer = false
-                                        playFocusRequester.requestFocus()
+                                        try { playFocusRequester.requestFocus() } catch (_: Exception) {}
                                     }
                             ) {
                                 Row(
