@@ -25,10 +25,6 @@ jobs:
             organization: com.cineviet.cinema
             target: lib/main.dart
             artifact: CineViet-Mobile-release.apk
-          - variant: AndroidTV
-            organization: com.cineviet.tv
-            target: lib/main_tv.dart
-            artifact: CineViet-AndroidTV-release.apk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -158,6 +154,30 @@ jobs:
           path: output/*.apk
           retention-days: 14
 
+  build-android-tv:
+    name: Build Native Android TV Release APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build Android TV Release APK
+        working-directory: android_tv
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+      - name: Organize TV APK
+        run: |
+          mkdir -p output
+          cp android_tv/app/build/outputs/apk/release/app-release.apk output/CineViet-AndroidTV-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CineViet-AndroidTV-release-APK
+          path: output/CineViet-AndroidTV-release.apk
+          retention-days: 14
+
   build-ios:
     name: Build iOS IPA (Unsigned)
     runs-on: macos-15-intel
@@ -244,7 +264,7 @@ jobs:
 
   publish-release:
     name: Publish Global GitHub Release
-    needs: [build-android, build-ios]
+    needs: [build-android, build-android-tv, build-ios]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:

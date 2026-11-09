@@ -313,6 +313,13 @@ fun TvLoginScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = "CineViet Android TV v${live.cineviet.tv.BuildConfig.VERSION_NAME} (Build ${live.cineviet.tv.BuildConfig.VERSION_CODE})",
+                    color = TvOnSurfaceVariant.copy(alpha = 0.6f),
+                    fontSize = 11.sp
+                )
             }
         }
     }

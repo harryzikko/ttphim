@@ -43,11 +43,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.launch
+import live.cineviet.tv.BuildConfig
 import live.cineviet.tv.data.local.TvSessionManager
+import live.cineviet.tv.data.models.AppUpdateData
 import live.cineviet.tv.data.models.MovieItem
 import live.cineviet.tv.data.repository.MovieRepository
+import live.cineviet.tv.data.updater.TvUpdateManager
 import live.cineviet.tv.ui.components.TvLoadingSpinner
 import live.cineviet.tv.ui.components.TvMovieCard
+import live.cineviet.tv.ui.components.TvUpdateDialog
 import live.cineviet.tv.ui.navigation.TvScreen
 import live.cineviet.tv.ui.screens.auth.TvLoginScreen
 import live.cineviet.tv.ui.screens.home.TvHomeScreen
@@ -71,17 +75,28 @@ fun TvMainScreen(
 ) {
     var selectedTab by remember { mutableStateOf(TvNavTab.HOME) }
     var isDrawerFocused by remember { mutableStateOf(false) }
+    var pendingUpdate by remember { mutableStateOf<AppUpdateData?>(null) }
+
+    LaunchedEffect(Unit) {
+        val check = TvUpdateManager.checkUpdate()
+        check.onSuccess { update ->
+            if (update != null) {
+                pendingUpdate = update
+            }
+        }
+    }
 
     val drawerWidth by animateDpAsState(
         targetValue = if (isDrawerFocused) 220.dp else 76.dp,
         label = "drawerWidth"
     )
 
-    Row(
-        modifier = modifier
-            .fillMaxSize()
-            .background(TvBackground)
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(TvBackground)
+        ) {
         // Collapsible / Expandable TV Sidebar Drawer
         Box(
             modifier = Modifier
@@ -313,7 +328,8 @@ fun TvMainScreen(
                         TvAccountInfoScreen(
                             sessionManager = sessionManager,
                             onNavigateToDetail = onNavigateToDetail,
-                            onLoggedOut = { selectedTab = TvNavTab.HOME }
+                            onLoggedOut = { selectedTab = TvNavTab.HOME },
+                            onShowUpdate = { pendingUpdate = it }
                         )
                     } else {
                         TvLoginScreen(
@@ -326,13 +342,22 @@ fun TvMainScreen(
             }
         }
     }
+
+    if (pendingUpdate != null) {
+        TvUpdateDialog(
+            updateData = pendingUpdate!!,
+            onDismiss = { pendingUpdate = null }
+        )
+    }
+}
 }
 
 @Composable
 fun TvAccountInfoScreen(
     sessionManager: TvSessionManager,
     onNavigateToDetail: (String) -> Unit,
-    onLoggedOut: () -> Unit
+    onLoggedOut: () -> Unit,
+    onShowUpdate: (AppUpdateData) -> Unit
 ) {
     val user = sessionManager.getUser()
     val repository = remember { MovieRepository() }
@@ -447,7 +472,88 @@ fun TvAccountInfoScreen(
             }
         }
 
-        // 2. Favorites Section (Watchlist)
+        // 2. App Info & In-App Update Section
+        item {
+            var isCheckingUpdate by remember { mutableStateOf(false) }
+            var updateStatusMsg by remember { mutableStateOf<String?>(null) }
+            val updateBtnSource = remember { MutableInteractionSource() }
+            val isUpdateBtnFocused by updateBtnSource.collectIsFocusedAsState()
+            val scope = rememberCoroutineScope()
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(TvSurface)
+                    .border(1.dp, TvSurfaceHigh, RoundedCornerShape(16.dp))
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "CineViet Android TV",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Phiên bản hiện tại: v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                        color = TvOnSurfaceVariant,
+                        fontSize = 13.sp
+                    )
+                    if (updateStatusMsg != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = updateStatusMsg!!,
+                            color = CineVietRed,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isUpdateBtnFocused) CineVietRed else TvSurfaceHigh)
+                        .border(1.5.dp, if (isUpdateBtnFocused) Color.White else Color.Transparent, RoundedCornerShape(10.dp))
+                        .focusable(interactionSource = updateBtnSource)
+                        .clickable(interactionSource = updateBtnSource, indication = null) {
+                            if (!isCheckingUpdate) {
+                                isCheckingUpdate = true
+                                updateStatusMsg = "Đang kiểm tra bản cập nhật..."
+                                scope.launch {
+                                    val check = TvUpdateManager.checkUpdate()
+                                    isCheckingUpdate = false
+                                    check.onSuccess { update ->
+                                        if (update != null) {
+                                            updateStatusMsg = null
+                                            onShowUpdate(update)
+                                        } else {
+                                            updateStatusMsg = "Ứng dụng đang ở phiên bản mới nhất (v${BuildConfig.VERSION_NAME})"
+                                        }
+                                    }.onFailure { err ->
+                                        updateStatusMsg = "Lỗi kiểm tra cập nhật: ${err.message}"
+                                    }
+                                }
+                            }
+                        }
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isCheckingUpdate) "Đang kiểm tra..." else "Kiểm tra bản cập nhật",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // 3. Favorites Section (Watchlist)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(

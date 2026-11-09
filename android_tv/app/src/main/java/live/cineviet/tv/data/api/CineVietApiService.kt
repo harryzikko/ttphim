@@ -56,4 +56,7 @@ interface CineVietApiService {
     suspend fun toggleWatchlist(
         @Body data: Map<String, @JvmSuppressWildcards Any>
     ): Response<ApiResponse<Any>>
+
+    @GET("app-update")
+    suspend fun getAppUpdate(): Response<ApiResponse<AppUpdateData>>
 }
