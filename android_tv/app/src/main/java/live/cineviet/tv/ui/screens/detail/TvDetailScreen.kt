@@ -319,34 +319,6 @@ fun TvDetailScreen(
                             )
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .background(TvSurfaceHighest.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = "DOLBY AUDIO",
-                                color = TvGold,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        movie.year?.let { y ->
-                            Box(
-                                modifier = Modifier
-                                    .background(TvSurfaceHighest.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = y.toString(),
-                                    color = TvOnSurface,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-
                         val epCurr = movie.episodeCurrent
                         if (!epCurr.isNullOrBlank()) {
                             Box(

@@ -3,6 +3,7 @@ package live.cineviet.tv.data.local
 import android.content.Context
 import android.content.SharedPreferences
 import com.google.gson.Gson
+import live.cineviet.tv.data.models.HomeData
 import live.cineviet.tv.data.models.UserDto
 
 class TvSessionManager(context: Context) {
@@ -13,6 +14,20 @@ class TvSessionManager(context: Context) {
     companion object {
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_USER_DATA = "user_data"
+        private const val KEY_CACHED_HOME = "cached_home_data"
+    }
+
+    fun saveCachedHome(json: String) {
+        prefs.edit().putString(KEY_CACHED_HOME, json).apply()
+    }
+
+    fun getCachedHome(): HomeData? {
+        val json = prefs.getString(KEY_CACHED_HOME, null) ?: return null
+        return try {
+            gson.fromJson(json, HomeData::class.java)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun saveAuthToken(token: String) {

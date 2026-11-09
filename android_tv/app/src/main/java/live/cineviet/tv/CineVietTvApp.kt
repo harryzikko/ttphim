@@ -29,9 +29,10 @@ class CineVietTvApp : Application(), ImageLoaderFactory {
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.05)
+                    .maxSizeBytes(250L * 1024 * 1024)
                     .build()
             }
+            .respectCacheHeaders(false)
             .crossfade(true)
             .build()
     }

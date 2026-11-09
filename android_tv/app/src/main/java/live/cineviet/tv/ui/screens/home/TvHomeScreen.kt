@@ -37,12 +37,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
+import coil.imageLoader
+import coil.request.ImageRequest
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import live.cineviet.tv.data.local.TvSessionManager
 import live.cineviet.tv.data.models.*
 import live.cineviet.tv.data.repository.MovieRepository
@@ -62,8 +68,10 @@ fun TvHomeScreen(
     val repository = remember { MovieRepository() }
     val scope = rememberCoroutineScope()
 
-    var homeData by remember { mutableStateOf<HomeData?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val cachedHome = remember { sessionManager?.getCachedHome() }
+    var homeData by remember { mutableStateOf<HomeData?>(cachedHome) }
+    var isLoading by remember { mutableStateOf(cachedHome == null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // User Continue Watching list
@@ -76,15 +84,20 @@ fun TvHomeScreen(
     var isCatalogLoading by remember { mutableStateOf(false) }
 
     fun loadData() {
-        isLoading = true
+        if (homeData == null) {
+            isLoading = true
+        }
         errorMessage = null
         scope.launch {
             val result = repository.getHome()
             result.onSuccess {
                 homeData = it
                 isLoading = false
+                sessionManager?.saveCachedHome(Gson().toJson(it))
             }.onFailure {
-                errorMessage = it.message ?: "Không thể kết nối đến máy chủ CineViet"
+                if (homeData == null) {
+                    errorMessage = it.message ?: "Không thể kết nối đến máy chủ CineViet"
+                }
                 isLoading = false
             }
         }
@@ -92,6 +105,31 @@ fun TvHomeScreen(
 
     LaunchedEffect(Unit) {
         loadData()
+    }
+
+    // Warm Coil disk & memory cache immediately when homeData is loaded
+    LaunchedEffect(homeData) {
+        val data = homeData ?: return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            val loader = context.imageLoader
+            // Preload top 3 spotlight backdrops & posters
+            data.spotlights.take(3).forEach { spot ->
+                val bg = spot.displayBackdrop.ifBlank { spot.backdropFallback }
+                if (bg.isNotBlank()) {
+                    loader.enqueue(ImageRequest.Builder(context).data(bg).build())
+                }
+                if (spot.displayPoster.isNotBlank()) {
+                    loader.enqueue(ImageRequest.Builder(context).data(spot.displayPoster).build())
+                }
+            }
+            // Preload top 5 posters of cinema & latest movies
+            (data.cinema.take(5) + data.latest.take(5)).forEach { m ->
+                val poster = m.displayPoster
+                if (poster.isNotBlank()) {
+                    loader.enqueue(ImageRequest.Builder(context).data(poster).build())
+                }
+            }
+        }
     }
 
     // Load continue watching when user is logged in
@@ -658,34 +696,6 @@ fun TvSpotlightHero(
                             color = Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .background(TvSurfaceHighest.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 7.dp, vertical = 3.dp)
-                    ) {
-                    Text(
-                        text = "DOLBY AUDIO",
-                        color = TvGold,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                currentMovie.year?.let { y ->
-                    Box(
-                        modifier = Modifier
-                            .background(TvSurfaceHighest.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 7.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = y.toString(),
-                            color = TvOnSurfaceVariant,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
