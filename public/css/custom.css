@@ -973,21 +973,8 @@ body.cinema-lights-active #player-viewport::before {
   box-shadow: 0 2px 6px rgba(229, 9, 20, 0.5) !important;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .btn-header-app {
-    height: 32px !important;
-    padding: 0 10px !important;
-    font-size: 11px !important;
-    gap: 4px !important;
-  }
-  .btn-header-app .app-icon-wrap {
-    width: 18px !important;
-    height: 18px !important;
-  }
-  .btn-header-app .app-icon-wrap .material-symbols-outlined {
-    font-size: 12px !important;
-  }
-  .btn-header-app .app-badge-new {
     display: none !important;
   }
 }
