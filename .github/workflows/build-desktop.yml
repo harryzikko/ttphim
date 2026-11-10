@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: build-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-desktop:
     name: Build Desktop (${{ matrix.label }})
@@ -42,9 +46,14 @@ jobs:
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          if [ -f /etc/needrestart/needrestart.conf ]; then
+            sudo sed -i "s/^#\{0,1\}\$nrconf{restart} = .*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf || true
+          fi
+          sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get update < /dev/null
+          sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get install -y --no-install-recommends \
+            -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
             libwebkit2gtk-4.1-dev \
             build-essential \
             curl \
@@ -67,7 +76,7 @@ jobs:
             gstreamer1.0-alsa \
             gstreamer1.0-gl \
             gstreamer1.0-gtk3 \
-            gstreamer1.0-pulseaudio
+            gstreamer1.0-pulseaudio < /dev/null
 
       - name: Run Rust unit tests
         working-directory: desktop_app
