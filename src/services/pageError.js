@@ -203,6 +203,17 @@ function sendPageError(res, error = {}) {
       color: #ffffff;
       transform: translateY(-2px);
     }
+    .btn-telegram {
+      background: rgba(41, 182, 246, 0.14);
+      color: #7dd3fc;
+      border: 1px solid rgba(41, 182, 246, 0.35);
+    }
+    .btn-telegram:hover {
+      background: rgba(41, 182, 246, 0.24);
+      border-color: rgba(56, 189, 248, 0.6);
+      color: #e0f2fe;
+      transform: translateY(-2px);
+    }
     .material-symbols-outlined { font-size: 18px; vertical-align: middle; }
     footer {
       margin-top: 24px;
@@ -243,7 +254,12 @@ function sendPageError(res, error = {}) {
         <span class="material-symbols-outlined">home</span>
         <span>Về trang chủ</span>
       </a>
+      <a href="https://t.me/cinevietlivee" target="_blank" rel="noopener noreferrer" class="btn btn-telegram">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+        <span>Telegram @cinevietlivee</span>
+      </a>
     </div>
+    <p style="margin:18px 0 0;font-size:12.5px;">Theo dõi <a href="https://t.me/cinevietlivee" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;text-decoration:none;font-weight:600;">kênh Telegram @cinevietlivee</a> để cập nhật tập mới &amp; link dự phòng nhanh nhất.</p>
   </div>
   <footer>CineViet &copy; 2026 &bull; Nền tảng xem phim trực tuyến</footer>
 </body>

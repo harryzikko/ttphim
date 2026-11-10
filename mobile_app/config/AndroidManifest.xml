@@ -53,6 +53,14 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="cineviet.live" android:pathPrefix="/phim"/>
+                <data android:scheme="https" android:host="cineviet.live" android:pathPrefix="/xem-phim"/>
+                <data android:scheme="https" android:host="cineviet.live" android:pathPrefix="/kham-pha"/>
+            </intent-filter>
         </activity>
 
         <provider

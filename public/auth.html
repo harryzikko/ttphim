@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="alternate icon" href="/favicon.ico" />
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Montserrat:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}</style><link rel="stylesheet" href="/css/site-34a4ac95f35d.css?v=22d1e02199a4">  <link rel="stylesheet" href="/css/custom.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}</style><link rel="stylesheet" href="/css/site-34a4ac95f35d.css?v=746276a0b106">  <link rel="stylesheet" href="/css/custom.css"/>
 <link rel="stylesheet" href="/css/auth-gender.css?v=1.0.0">
 </head><body class="bg-surface font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><main class="w-full min-h-screen bg-surface flex items-center justify-center p-space-md relative overflow-hidden"><div class="absolute -top-40 -left-40 w-96 h-96 bg-primary-container/10 rounded-full blur-3xl pointer-events-none"></div><div class="absolute -bottom-40 -right-40 w-96 h-96 bg-secondary-container/10 rounded-full blur-3xl pointer-events-none"></div><div class="w-full max-w-md relative z-10"><div class="flex flex-col w-full relative">
 <!-- Backdrop Layer with Ambient Glow & Poster Texture -->
@@ -82,7 +82,7 @@
       <span class="block font-label-md text-label-md text-on-surface-variant mb-1.5">Địa chỉ Email tài khoản</span>
       <div class="relative flex items-center">
         <span class="material-symbols-outlined absolute left-3.5 text-on-surface-variant/70 text-headline-sm pointer-events-none">mail</span>
-        <input id="securityEmail" type="email" autocomplete="email" maxlength="254" placeholder="email@example.com" class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md pl-11 pr-4 py-3 rounded-lg focus:outline-none focus:bg-surface-container-highest transition-colors placeholder:text-outline-variant/60"/>
+        <input id="securityEmail" type="email" autocomplete="email" maxlength="254" placeholder="Nhập địa chỉ email tài khoản" class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md pl-11 pr-4 py-3 rounded-lg focus:outline-none focus:bg-surface-container-highest transition-colors placeholder:text-outline-variant/60"/>
       </div>
     </label>
     <label id="securityTokenField" class="hidden block">
@@ -141,7 +141,7 @@
 </label>
 <div class="relative flex items-center">
 <span class="material-symbols-outlined absolute left-3.5 text-on-surface-variant/70 text-headline-sm pointer-events-none">mail</span>
-<input class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md pl-11 pr-4 py-3 rounded-lg focus:outline-none focus:bg-surface-container-highest transition-colors placeholder:text-outline-variant/60" id="identityInput" placeholder="email@example.com" required="" type="email" autocomplete="email" maxlength="254"/>
+<input class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md pl-11 pr-4 py-3 rounded-lg focus:outline-none focus:bg-surface-container-highest transition-colors placeholder:text-outline-variant/60" id="identityInput" placeholder="Nhập địa chỉ email tài khoản" required="" type="email" autocomplete="email" maxlength="254"/>
 </div>
 </div>
 <!-- Additional Register Field (Name) -> Hidden by default -->
@@ -229,13 +229,13 @@
 <div class="mt-space-md text-center flex flex-col items-center gap-1">
 <p class="font-body-sm text-[11px] text-outline">
       Bằng việc đăng nhập, bạn đồng ý với 
-      <a class="text-on-surface underline hover:text-primary transition-colors" href="#">Điều khoản dịch vụ</a>
+      <a class="text-on-surface underline hover:text-primary transition-colors" href="/dieu-khoan">Điều khoản dịch vụ</a>
       và 
-      <a class="text-on-surface underline hover:text-primary transition-colors" href="#">Chính sách bảo mật</a>
+      <a class="text-on-surface underline hover:text-primary transition-colors" href="/quyen-rieng-tu">Chính sách bảo mật</a>
       của CineViet.
     </p>
 <div class="flex items-center gap-4 mt-2">
-<span class="font-label-badge text-[10px] text-outline-variant">Hỗ trợ 24/7: hotro@cineviet.vn</span>
+<a href="mailto:admin@cineviet.live" class="font-label-badge text-[10px] text-outline-variant hover:text-on-surface transition-colors">Hỗ trợ: admin@cineviet.live</a>
 <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
 <span class="font-label-badge text-[10px] text-outline-variant">Phiên bản Web 3.4.1</span>
 </div>

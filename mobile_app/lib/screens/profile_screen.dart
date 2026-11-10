@@ -1,8 +1,11 @@
 import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../models/movie.dart';
 import '../services/api_service.dart';
 import '../services/session_service.dart';
@@ -77,7 +80,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const Icon(Icons.check_circle_rounded, color: Colors.greenAccent),
               const SizedBox(width: 10),
-              Text('Bạn đang sử dụng phiên bản mới nhất (v${UpdateService.currentVersion})'),
+              Text(
+                'Bạn đang sử dụng phiên bản mới nhất (v${UpdateService.currentVersion})',
+              ),
             ],
           ),
           backgroundColor: const Color(0xFF1E2330),
@@ -154,7 +159,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final platformName = _getDetectedPlatform(context);
-    final username = _user?['name']?.toString() ?? _user?['username']?.toString() ?? _user?['email']?.toString() ?? 'Khách xem phim';
+    final username =
+        _user?['name']?.toString() ??
+        _user?['username']?.toString() ??
+        _user?['email']?.toString() ??
+        'Khách xem phim';
     final userSubtitle = _user != null
         ? (_user?['email']?.toString() ?? 'Đã đăng nhập tài khoản CineViet')
         : 'Đăng nhập để đồng bộ lịch sử & yêu thích';
@@ -212,7 +221,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                         child: const Center(
-                          child: Icon(Icons.person_outline_rounded, color: Colors.white, size: 24),
+                          child: Icon(
+                            Icons.person_outline_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -232,7 +245,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(4),
@@ -275,7 +291,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               final ok = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const LoginScreen(initialTab: 0),
+                                  builder: (_) =>
+                                      const LoginScreen(initialTab: 0),
                                 ),
                               );
                               if (ok == true || mounted) {
@@ -283,17 +300,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 _loadLibraryData();
                               }
                             },
-                            icon: const Icon(Icons.login_rounded, size: 16, color: Colors.white),
+                            icon: const Icon(
+                              Icons.login_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
                             label: const Text(
                               'Đăng nhập',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primary,
                               foregroundColor: Colors.white,
                               padding: EdgeInsets.zero,
                               elevation: 2,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
                         ),
@@ -307,7 +334,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               final ok = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const LoginScreen(initialTab: 1),
+                                  builder: (_) =>
+                                      const LoginScreen(initialTab: 1),
                                 ),
                               );
                               if (ok == true || mounted) {
@@ -315,17 +343,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 _loadLibraryData();
                               }
                             },
-                            icon: const Icon(Icons.person_add_alt_1_rounded, size: 16, color: Colors.white),
+                            icon: const Icon(
+                              Icons.person_add_alt_1_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
                             label: const Text(
                               'Đăng ký',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
-                              side: BorderSide(color: Colors.white.withOpacity(0.25)),
+                              side: BorderSide(
+                                color: Colors.white.withOpacity(0.25),
+                              ),
                               backgroundColor: Colors.white.withOpacity(0.06),
                               padding: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
                         ),
@@ -411,11 +451,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFB800).withOpacity(0.2),
+                                  color: const Color(0xFFFFB800)
+                                      .withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: const Color(0xFFFFB800).withOpacity(0.4), width: 0.8),
+                                  border: Border.all(
+                                    color: const Color(0xFFFFB800)
+                                        .withOpacity(0.4),
+                                    width: 0.8,
+                                  ),
                                 ),
                                 child: const Text(
                                   'VIP',
@@ -514,7 +562,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             decoration: BoxDecoration(
                               color: AppTheme.primary.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                              border: Border.all(
+                                color: AppTheme.primary.withOpacity(0.3),
+                              ),
                             ),
                             child: const Icon(
                               Icons.video_library_rounded,
@@ -564,21 +614,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               onTap: () async {
                                 await Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const WatchlistScreen(initialTabIndex: 0)),
+                                  MaterialPageRoute(
+                                    builder: (_) => const WatchlistScreen(
+                                      initialTabIndex: 0,
+                                    ),
+                                  ),
                                 );
                                 _loadLibraryData();
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 9,
+                                  horizontal: 10,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF1B202D),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.06),
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.favorite_rounded, color: Colors.redAccent, size: 15),
+                                    const Icon(
+                                      Icons.favorite_rounded,
+                                      color: Colors.redAccent,
+                                      size: 15,
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
                                       'Yêu thích (${_favorites.length})',
@@ -600,21 +663,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               onTap: () async {
                                 await Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const WatchlistScreen(initialTabIndex: 1)),
+                                  MaterialPageRoute(
+                                    builder: (_) => const WatchlistScreen(
+                                      initialTabIndex: 1,
+                                    ),
+                                  ),
                                 );
                                 _loadLibraryData();
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 9,
+                                  horizontal: 10,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF1B202D),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.06),
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.history_rounded, color: AppTheme.gold, size: 16),
+                                    const Icon(
+                                      Icons.history_rounded,
+                                      color: AppTheme.gold,
+                                      size: 16,
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
                                       'Đang xem (${_history.length})',
@@ -642,7 +718,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // 4. Player Settings
           const Text(
             'Cài Đặt Trình Phát',
-            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 10),
 
@@ -655,8 +735,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Tự động phát tập tiếp theo', style: TextStyle(color: Colors.white, fontSize: 14)),
-                  subtitle: const Text('Tự chuyển tập khi xem hết phim bộ', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                  title: const Text(
+                    'Tự động phát tập tiếp theo',
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    'Tự chuyển tập khi xem hết phim bộ',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                  ),
                   value: _autoNextEpisode,
                   activeColor: AppTheme.primary,
                   onChanged: (val) {
@@ -666,10 +752,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const Divider(color: AppTheme.border, height: 1),
                 const ListTile(
-                  title: Text('Chất lượng tự thích ứng', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  title: Text(
+                    'Chất lượng tự thích ứng',
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  ),
                   subtitle: Text(
                     'Player tự chọn chất lượng mượt mà theo nguồn phát và tốc độ mạng.',
-                    style: TextStyle(color: AppTheme.primaryLight, fontSize: 12),
+                    style: TextStyle(
+                      color: AppTheme.primaryLight,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -681,7 +773,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // 5. Kết Nối Thiết Bị (Chỉ giữ Đăng nhập Android TV qua QR/mã)
           const Text(
             'Kết Nối Thiết Bị',
-            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 10),
 
@@ -698,11 +794,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppTheme.primary.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primaryLight, size: 22),
+                child: const Icon(
+                  Icons.qr_code_scanner_rounded,
+                  color: AppTheme.primaryLight,
+                  size: 22,
+                ),
               ),
-              title: const Text('Đăng nhập Android TV', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-              subtitle: const Text('Quét QR hoặc nhập mã 6 số hiển thị trên TV', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.primary, size: 14),
+              title: const Text(
+                'Đăng nhập Android TV',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: const Text(
+                'Quét QR hoặc nhập mã 6 số hiển thị trên TV',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+              ),
+              trailing: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppTheme.primary,
+                size: 14,
+              ),
               onTap: _showTvLoginDialog,
             ),
           ),
@@ -721,7 +835,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0x66FF5722)),
                 boxShadow: const [
-                  BoxShadow(color: Color(0x33FF5722), blurRadius: 10, offset: Offset(0, 2)),
+                  BoxShadow(
+                    color: Color(0x33FF5722),
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
                 ],
               ),
               child: Row(
@@ -732,7 +850,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: const Color(0xFFFF5722).withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.system_update_rounded, color: Color(0xFFFF9800), size: 24),
+                    child: const Icon(
+                      Icons.system_update_rounded,
+                      color: Color(0xFFFF9800),
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -741,7 +863,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Text(
                           'Đã có phiên bản mới v${_availableUpdate!.latestVersion}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13.5,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         const Text(
@@ -752,16 +878,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: () => UpdateDialog.show(context, _availableUpdate!),
+                    onPressed: () =>
+                        UpdateDialog.show(context, _availableUpdate!),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF5722),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text('Cập nhật', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Cập nhật',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -771,7 +909,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // 6. Hệ Thống & Bộ Nhớ
           const Text(
             'Hệ Thống & Bộ Nhớ',
-            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 10),
 
@@ -782,9 +924,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               border: Border.all(color: AppTheme.border),
             ),
             child: ListTile(
-              leading: const Icon(Icons.cleaning_services_rounded, color: AppTheme.primaryLight),
-              title: const Text('Xóa bộ nhớ đệm cache', style: TextStyle(color: Colors.white, fontSize: 14)),
-              subtitle: const Text('Giải phóng dung lượng hình ảnh đã tải tạm', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+              leading: const Icon(
+                Icons.cleaning_services_rounded,
+                color: AppTheme.primaryLight,
+              ),
+              title: const Text(
+                'Xóa bộ nhớ đệm cache',
+                style: TextStyle(color: Colors.white, fontSize: 14),
+              ),
+              subtitle: const Text(
+                'Giải phóng dung lượng hình ảnh đã tải tạm',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+              ),
               onTap: _clearCache,
             ),
           ),
@@ -794,7 +945,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // 7. Thông Tin Ứng Dụng (CineViet, Đúng nền tảng, Phiên bản chỉ hiện số)
           const Text(
             'Thông Tin Ứng Dụng',
-            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 10),
 
@@ -810,8 +965,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Tên ứng dụng', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                    Text('CineViet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(
+                      'Tên ứng dụng',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                    Text(
+                      'CineViet',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -825,20 +990,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         const Row(
                           children: [
-                            Text('Phiên bản', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                            Text(
+                              'Phiên bản',
+                              style: TextStyle(
+                                color: AppTheme.textMuted,
+                                fontSize: 13,
+                              ),
+                            ),
                             SizedBox(width: 6),
-                            Icon(Icons.sync_rounded, color: AppTheme.textMuted, size: 14),
+                            Icon(
+                              Icons.sync_rounded,
+                              color: AppTheme.textMuted,
+                              size: 14,
+                            ),
                           ],
                         ),
                         if (_isCheckingUpdate)
                           const SizedBox(
                             width: 14,
                             height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppTheme.primary,
+                            ),
                           )
                         else if (_availableUpdate != null)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [Color(0xFFFF5722), Color(0xFFFF9800)],
@@ -857,7 +1038,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 13),
+                                const Icon(
+                                  Icons.arrow_upward_rounded,
+                                  color: Colors.white,
+                                  size: 13,
+                                ),
                               ],
                             ),
                           )
@@ -878,17 +1063,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Nền tảng', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                    Text(platformName, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Nền tảng',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                    Text(
+                      platformName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Bản quyền nội dung', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                    Text('Miễn phí 100%', style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(
+                      'Bản quyền nội dung',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                    Text(
+                      'Miễn phí 100%',
+                      style: TextStyle(
+                        color: AppTheme.gold,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Liên hệ & Hỗ trợ',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                    Text(
+                      'admin@cineviet.live',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => launchUrl(
+                    Uri.parse('https://t.me/cinevietlivee'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.send_rounded,
+                              color: Color(0xFF38BDF8),
+                              size: 15,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Kênh Telegram',
+                              style: TextStyle(
+                                color: AppTheme.textMuted,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '@cinevietlivee',
+                              style: TextStyle(
+                                color: Color(0xFF7DD3FC),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(width: 4),
+                            Icon(
+                              Icons.open_in_new_rounded,
+                              color: Color(0xFF7DD3FC),
+                              size: 14,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -945,7 +1221,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppTheme.primary.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.tv_rounded, color: AppTheme.primary, size: 36),
+                child: const Icon(
+                  Icons.tv_rounded,
+                  color: AppTheme.primary,
+                  size: 36,
+                ),
               ),
               const SizedBox(height: 12),
               const Text(
@@ -976,17 +1256,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 keyboardType: TextInputType.text,
                 decoration: InputDecoration(
                   hintText: 'VD: 849201',
-                  hintStyle: const TextStyle(color: Colors.white24, letterSpacing: 2, fontSize: 20),
+                  hintStyle: const TextStyle(
+                    color: Colors.white24,
+                    letterSpacing: 2,
+                    fontSize: 20,
+                  ),
                   filled: true,
                   fillColor: const Color(0xFF0B0D13),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 16,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: Colors.white12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppTheme.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -1001,7 +1291,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           if (input.isEmpty) return;
 
                           setModalState(() => isSubmitting = true);
-                          final result = await ApiService.authorizeTvSession(input);
+                          final result = await ApiService.authorizeTvSession(
+                            input,
+                          );
                           if (!ctx.mounted || !mounted) return;
                           setModalState(() => isSubmitting = false);
 
@@ -1012,14 +1304,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 content: Row(
                                   children: [
                                     Icon(
-                                      result['success'] == true ? Icons.check_circle_rounded : Icons.error_outline_rounded,
-                                      color: result['success'] == true ? Colors.greenAccent : Colors.redAccent,
+                                      result['success'] == true
+                                          ? Icons.check_circle_rounded
+                                          : Icons.error_outline_rounded,
+                                      color: result['success'] == true
+                                          ? Colors.greenAccent
+                                          : Colors.redAccent,
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
                                         result['message'] ?? '',
-                                        style: const TextStyle(color: Colors.white),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -1033,17 +1331,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: isSubmitting
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text(
                           'XÁC NHẬN ĐĂNG NHẬP TV',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
                         ),
                 ),
               ),

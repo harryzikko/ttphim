@@ -63,7 +63,8 @@ test('footer disclosure preserves links, accessible state and restores desktop g
     button.click(); assert.equal(group.classList.contains('is-collapsed'), true);
     phone.matches = false; change();
     assert.equal(button.getAttribute('aria-expanded'), 'true'); assert.equal(list.inert, false);
-    assert.equal(doc.querySelectorAll('footer a').length, 18);
+    assert.equal(doc.querySelectorAll('footer a').length, 19);
+    assert.ok(doc.querySelector('footer a[href="https://t.me/cinevietlivee"]'));
     assert.equal(doc.querySelector('[data-footer-top]').hidden, false);
   } finally { dom.window.close(); }
 });

@@ -12,6 +12,7 @@
     "public/mobile/tai-khoan.html": "a29a5b4dfb9c",
     "public/mobile/xem-phim.html": "a29a5b4dfb9c",
     "public/tai-khoan.html": "0b7e5c2c2091",
+    "public/tai-ung-dung.html": "c221d54b2d18",
     "public/tv-auth.html": "01630c48c9e9",
     "public/tv/chi-tiet.html": "287cfb1ecc59",
     "public/tv/dang-nhap.html": "f037f2308944",
@@ -429,6 +430,87 @@
             "surface-container-highest": "#32343e",
             "surface-container-low": "#191b24",
             "surface-container-lowest": "#0c0e17"
+          }
+        }
+      }
+    },
+    "c221d54b2d18": {
+      "darkMode": "class",
+      "theme": {
+        "extend": {
+          "colors": {
+            "badge-dolby": "#1E293B",
+            "badge-gold": "#F59E0B",
+            "border-active": "rgba(229, 9, 20, 0.5)",
+            "border-subtle": "rgba(255, 255, 255, 0.08)",
+            "on-primary-container": "#fff7f6",
+            "primary-container": "#e50914",
+            "secondary-container": "#d73b00",
+            "surface": "#10131a",
+            "surface-base": "#0B0E14",
+            "surface-bright": "#363940",
+            "surface-card": "#141824",
+            "surface-container": "#1d2026",
+            "surface-container-high": "#272a31",
+            "surface-container-highest": "#32353c",
+            "surface-container-low": "#191c22",
+            "surface-container-lowest": "#0b0e14",
+            "surface-elevated": "#1E2333",
+            "tertiary": "#ffb95f",
+            "text-muted": "#64748B",
+            "text-primary": "#FFFFFF",
+            "text-secondary": "#94A3B8"
+          },
+          "fontFamily": {
+            "body-lg": [
+              "Inter",
+              "sans-serif"
+            ],
+            "body-md": [
+              "Inter",
+              "sans-serif"
+            ],
+            "body-sm": [
+              "Inter",
+              "sans-serif"
+            ],
+            "display-hero": [
+              "Montserrat",
+              "sans-serif"
+            ],
+            "headline-lg": [
+              "Montserrat",
+              "sans-serif"
+            ],
+            "headline-md": [
+              "Montserrat",
+              "sans-serif"
+            ],
+            "headline-xl": [
+              "Montserrat",
+              "sans-serif"
+            ],
+            "label-badge": [
+              "Inter",
+              "sans-serif"
+            ],
+            "label-caps": [
+              "Montserrat",
+              "sans-serif"
+            ],
+            "label-md": [
+              "Inter",
+              "sans-serif"
+            ]
+          },
+          "spacing": {
+            "gutter-desktop": "1.5rem",
+            "margin-desktop": "3rem",
+            "space-lg": "1.5rem",
+            "space-md": "1rem",
+            "space-sm": "0.5rem",
+            "space-xl": "2.5rem",
+            "space-xs": "0.25rem"
           }
         }
       }

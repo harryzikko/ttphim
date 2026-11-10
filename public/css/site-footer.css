@@ -11,6 +11,9 @@
 .cv-footer-intro > p { margin: 8px 0 18px; max-width: 31ch; color: var(--cv-footer-muted); font-size: 13px; }
 .cv-footer .cv-footer-email { display: inline-flex; align-items: center; min-height: 36px; font-weight: 600; overflow-wrap: anywhere; }
 .cv-footer-note { display: block; color: var(--cv-footer-muted); font-size: 11px; }
+.cv-footer .cv-footer-telegram { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; margin-top: 12px; padding: 0 12px; border-radius: 999px; border: 1px solid #29b6f638; background: #29b6f614; color: #7dd3fc; font-size: 12px; font-weight: 600; }
+.cv-footer .cv-footer-telegram:hover { background: #29b6f629; border-color: #29b6f666; color: #bae6fd; }
+.cv-footer .cv-footer-telegram svg { width: 15px; height: 15px; flex-shrink: 0; }
 .cv-footer-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; min-width: 0; }
 .cv-footer-group h2 { margin: 0 0 12px; font-size: 13px; line-height: 20px; font-weight: 700; color: #f1f1f5; }
 .cv-footer-group ul { display: grid; list-style: none; margin: 0; padding: 0; gap: 2px; }
@@ -53,6 +56,7 @@
   body:has(.mobile-app-nav) > .cv-footer { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
   .cv-footer-intro > p { max-width: 36ch; margin-bottom: 8px; }
   .cv-footer .cv-footer-email { min-height: 44px; }
+  .cv-footer .cv-footer-telegram { min-height: 40px; }
   .cv-footer-nav { grid-template-columns: 1fr; gap: 0; }
   .cv-footer-group { border-top: 1px solid var(--cv-footer-line); }
   .cv-footer-group h2 { margin: 0; }

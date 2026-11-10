@@ -79,3 +79,41 @@ test('real view routes distinguish missing movie/episode from outage and expose 
     const sitemap=await fetch(base+'/sitemap.xml');assert.equal(sitemap.status,200);assert.match(await sitemap.text(),/https:\/\/cineviet.test\/phim\/valid-film/);
   } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
+
+
+test('SEO indexes /tai-ung-dung and /ung-ho with structured data and single email admin@cineviet.live', () => {
+  const homeMeta = seo.metadata({ path: '/', query: {} }, null, 'https://cineviet.live');
+  assert.equal(homeMeta.index, true);
+  assert.equal(homeMeta.image, 'https://cineviet.live/images/banners/cineviet_devices_commercial.png');
+  const homeHtml = seo.decorate('<html><head><title>Old</title></head><body></body></html>', homeMeta);
+  assert.match(homeHtml, /"email":"admin@cineviet\.live"/);
+  assert.match(homeHtml, /"sameAs":\["https:\/\/t\.me\/cinevietlivee"\]/);
+  assert.match(homeHtml, /<meta name="twitter:card" content="summary_large_image">/);
+
+  const appMeta = seo.metadata({ path: '/tai-ung-dung', query: {} }, null, 'https://cineviet.live');
+  assert.equal(appMeta.index, true);
+  assert.equal(appMeta.canonical, 'https://cineviet.live/tai-ung-dung');
+  const appHtml = seo.decorate('<html><head><title>App</title></head><body></body></html>', appMeta);
+  assert.match(appHtml, /"SoftwareApplication"/);
+
+  for (const dir of ['public', 'src/services']) {
+    const walk = d => fs.readdirSync(path.join(root, d), { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : `${d}/${e.name}`);
+    for (const file of walk(dir).filter(f => /\.(html|js)$/.test(f))) {
+      const content = read(file);
+      assert.doesNotMatch(content, /support@cineviet\.live|hotro@cineviet\.vn|no-reply@cineviet\.live|member@cineviet\.vn|user@cineviet\.vn/i, file);
+    }
+  }
+
+  for (const file of [
+    'public/xem-phim.html',
+    'public/mobile/xem-phim.html',
+    'public/chi-tiet.html',
+    'public/mobile/chi-tiet.html',
+    'public/tai-ung-dung.html',
+    'public/lien-he.html',
+    'src/services/pageError.js',
+    'mobile_app/lib/screens/profile_screen.dart'
+  ]) {
+    assert.ok(read(file).includes('https://t.me/cinevietlivee'), `${file} missing Telegram channel link`);
+  }
+});

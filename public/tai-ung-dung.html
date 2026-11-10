@@ -5,6 +5,7 @@
   <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
   <title>Tải Ứng Dụng CineViet — Xem Phim Trên Smart TV, Android & iOS</title>
   <meta name="description" content="Tải ứng dụng CineViet chính thức dành cho Smart TV (Android TV), điện thoại Android và iPhone/iPad (iOS). Xem phim không quảng cáo, tự động cập nhật trong app."/>
+  <meta name="theme-color" content="#0B0E14"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
   <link rel="alternate icon" href="/favicon.ico"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -32,60 +33,8 @@
     }
   </style>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "surface-base": "#0B0E14",
-            "surface": "#10131a",
-            "surface-card": "#141824",
-            "surface-elevated": "#1E2333",
-            "surface-container-lowest": "#0b0e14",
-            "surface-container-low": "#191c22",
-            "surface-container": "#1d2026",
-            "surface-container-high": "#272a31",
-            "surface-container-highest": "#32353c",
-            "surface-bright": "#363940",
-            "primary-container": "#e50914",
-            "on-primary-container": "#fff7f6",
-            "secondary-container": "#d73b00",
-            "tertiary": "#ffb95f",
-            "text-primary": "#FFFFFF",
-            "text-secondary": "#94A3B8",
-            "text-muted": "#64748B",
-            "border-subtle": "rgba(255, 255, 255, 0.08)",
-            "border-active": "rgba(229, 9, 20, 0.5)",
-            "badge-dolby": "#1E293B",
-            "badge-gold": "#F59E0B"
-          },
-          fontFamily: {
-            "display-hero": ["Montserrat", "sans-serif"],
-            "headline-xl": ["Montserrat", "sans-serif"],
-            "headline-lg": ["Montserrat", "sans-serif"],
-            "headline-md": ["Montserrat", "sans-serif"],
-            "body-lg": ["Inter", "sans-serif"],
-            "body-md": ["Inter", "sans-serif"],
-            "body-sm": ["Inter", "sans-serif"],
-            "label-caps": ["Montserrat", "sans-serif"],
-            "label-md": ["Inter", "sans-serif"],
-            "label-badge": ["Inter", "sans-serif"]
-          },
-          spacing: {
-            "space-xs": "0.25rem",
-            "space-sm": "0.5rem",
-            "space-md": "1rem",
-            "space-lg": "1.5rem",
-            "space-xl": "2.5rem",
-            "gutter-desktop": "1.5rem",
-            "margin-desktop": "3rem"
-          }
-        }
-      }
-    };
-  </script>
+  <link rel="stylesheet" href="/css/site-c221d54b2d18.css?v=b716f751677a">
+  
 
   <!-- Global Custom Styles & Footer Styles (Respects sessionStorage.getItem('hide_footer_ad')) -->
   <link rel="stylesheet" href="/css/custom.css?v=3.2.1"/>
@@ -876,7 +825,7 @@
                 <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform text-text-muted">expand_more</span>
               </summary>
               <div class="mt-space-sm text-text-secondary font-body-md text-xs sm:text-sm leading-relaxed">
-                Bạn có thể gửi email hỗ trợ trực tiếp đến bộ phận kỹ thuật qua địa chỉ <strong>support@cineviet.live</strong> hoặc fanpage chính thức để được đội ngũ kỹ thuật viên CineViet hỗ trợ nhanh nhất.
+                Bạn có thể gửi email hỗ trợ trực tiếp qua địa chỉ <strong>admin@cineviet.live</strong> hoặc theo dõi kênh Telegram <a class="text-sky-400 hover:text-sky-300 font-semibold underline" href="https://t.me/cinevietlivee" target="_blank" rel="noopener noreferrer">@cinevietlivee</a> để cập nhật bản vá, link dự phòng và thông báo mới nhất.
               </div>
             </details>
           </div>
@@ -891,12 +840,18 @@
           </div>
           <h3 class="font-headline-md text-lg font-bold text-text-primary mb-1">Cần Hỗ Trợ Kỹ Thuật Cài Đặt?</h3>
           <p class="font-body-sm text-xs sm:text-sm text-text-secondary mb-space-md max-w-sm">
-            Đội ngũ kỹ thuật viên CineViet luôn sẵn sàng hỗ trợ trực tuyến giải đáp mọi thắc mắc cài đặt.
+            Đội ngũ kỹ thuật viên CineViet luôn sẵn sàng hỗ trợ giải đáp mọi thắc mắc cài đặt.
           </p>
-          <a class="h-11 px-6 rounded-xl bg-surface-elevated hover:bg-surface-bright text-white font-label-md text-sm flex items-center gap-2 border border-white/10 transition-colors" href="mailto:support@cineviet.live">
-            <span class="material-symbols-outlined text-[18px] text-badge-gold">mail</span>
-            <span>support@cineviet.live</span>
-          </a>
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            <a class="h-11 px-6 rounded-xl bg-surface-elevated hover:bg-surface-bright text-white font-label-md text-sm flex items-center gap-2 border border-white/10 transition-colors" href="mailto:admin@cineviet.live">
+              <span class="material-symbols-outlined text-[18px] text-badge-gold">mail</span>
+              <span>admin@cineviet.live</span>
+            </a>
+            <a class="h-11 px-6 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 font-label-md text-sm flex items-center gap-2 border border-sky-400/30 transition-colors" href="https://t.me/cinevietlivee" target="_blank" rel="noopener noreferrer">
+              <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+              <span>Telegram @cinevietlivee</span>
+            </a>
+          </div>
         </div>
       </section>
 
@@ -914,6 +869,11 @@
           <p class="font-body-md text-sm text-text-secondary max-w-md leading-relaxed">
             Nền tảng xem phim trực tuyến hàng đầu với trải nghiệm rạp chiếu cinematic đỉnh cao trên mọi thiết bị.
           </p>
+          <a class="text-sm font-semibold text-white hover:text-primary-container transition-colors w-fit" href="mailto:admin@cineviet.live">admin@cineviet.live</a>
+          <a class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-300 text-xs font-semibold transition-colors w-fit" href="https://t.me/cinevietlivee" target="_blank" rel="noopener noreferrer">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+            <span>Kênh Telegram @cinevietlivee</span>
+          </a>
         </div>
         
         <div class="flex flex-col gap-space-sm">

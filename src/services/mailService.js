@@ -20,7 +20,7 @@ function createMailService({ adapter, production = config.IS_PRODUCTION, origin 
     // Fragments keep bearer tokens out of HTTP access logs and Referer headers.
     const url = `${publicOrigin()}/dang-nhap?mode=${mode}#token=${encodeURIComponent(token)}`;
     const message = {
-      from: env.SMTP_FROM || 'CineViet <no-reply@cineviet.live>', to: email,
+      from: env.SMTP_FROM || 'CineViet <admin@cineviet.live>', to: email,
       subject: purpose === 'reset' ? 'CineViet - Đặt lại mật khẩu tài khoản' : 'CineViet - Xác minh địa chỉ email',
       text: `${purpose === 'reset' ? 'Đặt lại mật khẩu CineViet' : 'Xác minh email CineViet'}: ${url}\nNếu bạn không yêu cầu, vui lòng bỏ qua thư này.\nMã xác nhận của bạn: ${token}`,
       html: `<div style="font-family:Inter,system-ui,sans-serif;max-width:540px;margin:0 auto;background:#11131c;color:#e5e6e9;padding:32px 24px;border-radius:12px;border:1px solid #232733;">
@@ -39,7 +39,7 @@ function createMailService({ adapter, production = config.IS_PRODUCTION, origin 
           </a>
         </div>
         <p style="font-size:12px;color:#717582;line-height:1.5;margin:24px 0 0;text-align:center;border-top:1px solid #1f2330;padding-top:18px;">
-          Liên kết có hiệu lực trong 30 phút. Nếu không thực hiện yêu cầu này, bạn có thể yên tâm bỏ qua email này.<br>Mã xác nhận bảo mật: <code style="color:#ff9800;background:#1a1e2b;padding:2px 6px;border-radius:4px;">${token}</code>
+          Liên kết có hiệu lực trong 30 phút. Nếu không thực hiện yêu cầu này, bạn có thể yên tâm bỏ qua email này.<br>Mã xác nhận bảo mật: <code style="color:#ff9800;background:#1a1e2b;padding:2px 6px;border-radius:4px;">${token}</code><br>Hỗ trợ: <a href="mailto:admin@cineviet.live" style="color:#a3a6ae;">admin@cineviet.live</a>
         </p>
       </div>`
     };

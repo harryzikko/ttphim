@@ -9,6 +9,7 @@ const dbService = require('../services/dbService');
 const { renderHomePage } = require('../services/homePageService');
 const bannerService = require('../services/bannerService');
 const vicdnService = require('../services/vicdnService');
+let vodphimService = null; try { vodphimService = require('../services/vodphimService'); } catch (_) {}
 const router = express.Router();
 
 const publicFile = (file) => path.join(config.PUBLIC_DIR, file);
@@ -21,16 +22,31 @@ router.use(seo.middleware(config.PUBLIC_ORIGIN));
 const sendView = file => async (req, res, next) => {
   try { res.send(await fs.readFile(file, 'utf8')); } catch (error) { next(error); }
 };
+router.get('/.well-known/assetlinks.json', (req, res) => {
+  const sha256 = '70:78:08:DF:F8:19:95:3F:55:F7:63:19:C2:12:7E:92:69:15:FD:43:87:4F:B8:85:BB:3B:9C:09:20:72:A1:97';
+  res.type('application/json').set('Cache-Control', 'public, max-age=3600').json([
+    {
+      relation: ['delegate_permission/common.handle_all_urls'],
+      target: { namespace: 'android_app', package_name: 'com.cineviet.cinema', sha256_cert_fingerprints: [sha256] }
+    },
+    {
+      relation: ['delegate_permission/common.handle_all_urls'],
+      target: { namespace: 'android_app', package_name: 'live.cineviet.tv', sha256_cert_fingerprints: [sha256] }
+    }
+  ]);
+});
 router.get('/robots.txt', (req, res) => {
   const origin = seo.originOf(config.PUBLIC_ORIGIN);
-  res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /auth\n${origin ? `Sitemap: ${origin}/sitemap.xml\n` : ''}`);
+  res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /tu-phim\nDisallow: /auth\nDisallow: /dang-nhap\nDisallow: /dang-ky\nDisallow: /tv-auth\nDisallow: /tv-login\nDisallow: /tv-dang-nhap\nDisallow: /tv/\n${origin ? `Sitemap: ${origin}/sitemap.xml\n` : ''}`);
 });
 router.get('/sitemap.xml', async (req, res) => {
   if (!seo.originOf(config.PUBLIC_ORIGIN)) return res.status(503).set('Retry-After', '300').type('text').send('Configure PUBLIC_ORIGIN to publish the sitemap.');
   try {
     const home = await kkphimService.getHomeData();
-    const slugs = Object.values(home || {}).flatMap(value => Array.isArray(value) ? value : []).filter(item => item && typeof item.slug === 'string').map(item => item.slug);
-    res.type('application/xml').set('Cache-Control', 'public, max-age=300').send(seo.sitemap(config.PUBLIC_ORIGIN, slugs));
+    const homeSlugs = Object.values(home || {}).flatMap(value => Array.isArray(value) ? value : []).filter(item => item && typeof item.slug === 'string').map(item => item.slug);
+    const vpSlugs = Array.isArray(vodphimService?.allMovies) ? vodphimService.allMovies.map(m => m?.slug).filter(Boolean) : [];
+    const vcSlugs = Array.isArray(vicdnService?.allMovies) ? vicdnService.allMovies.map(m => m?.slug).filter(Boolean) : [];
+    res.type('application/xml').set('Cache-Control', 'public, max-age=300').send(seo.sitemap(config.PUBLIC_ORIGIN, [...homeSlugs, ...vpSlugs, ...vcSlugs]));
   } catch (_) { res.type('application/xml').send(seo.sitemap(config.PUBLIC_ORIGIN)); }
 });
 // 1. View Preference & Auto-detection Middleware
