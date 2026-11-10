@@ -88,6 +88,32 @@ jobs:
           npm install
           npx tauri build
 
+      - name: Patch Linux AppImage to avoid libsoup2/libsoup3 WebKitGTK crash
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPIMAGE_PATH=$(find desktop_app/src-tauri/target/release/bundle/appimage -maxdepth 1 -name "*.AppImage" | head -n 1)
+          [ -n "$APPIMAGE_PATH" ]
+          APPIMAGE_ABS=$(realpath "$APPIMAGE_PATH")
+          WORK_DIR=$(mktemp -d)
+          cd "$WORK_DIR"
+          "$APPIMAGE_ABS" --appimage-extract >/dev/null
+          # Tauri v2 (WebKitGTK 4.1) links libsoup-3.0; GStreamer's libgstsoup pulls libsoup-2.4 and aborts WebKitWebProcess.
+          rm -f squashfs-root/usr/lib/gstreamer-1.0/libgstsoup.so squashfs-root/usr/lib/libsoup-2.4*
+          if [ -f squashfs-root/usr/lib/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner ]; then
+            chmod +x squashfs-root/usr/lib/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner
+          fi
+          APPIMAGETOOL=$(find "$HOME/.cache/tauri" -name "appimagetool*.AppImage" | head -n 1 || true)
+          if [ -z "$APPIMAGETOOL" ]; then
+            APPIMAGETOOL="$WORK_DIR/appimagetool-x86_64.AppImage"
+            curl -fL "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" -o "$APPIMAGETOOL"
+          fi
+          chmod +x "$APPIMAGETOOL"
+          ARCH=x86_64 "$APPIMAGETOOL" --appimage-extract-and-run --no-appstream squashfs-root "$APPIMAGE_ABS.patched"
+          mv "$APPIMAGE_ABS.patched" "$APPIMAGE_ABS"
+          chmod +x "$APPIMAGE_ABS"
+
       - name: Collect installers
         shell: bash
         run: |

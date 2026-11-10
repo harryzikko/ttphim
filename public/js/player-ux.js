@@ -181,7 +181,7 @@
       });
       hls.loadSource(options.url);
       hls.attachMedia(video);
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (video.canPlayType('application/vnd.apple.mpegurl') || video.canPlayType('application/x-mpegURL')) {
       listen('loadedmetadata', play);
       video.src = options.url;
       video.load();

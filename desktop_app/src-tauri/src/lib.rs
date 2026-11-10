@@ -484,7 +484,7 @@ fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry
         .item(&MenuItemBuilder::with_id("go_launcher", "Đổi máy chủ / Trạng thái").build(app)?)
         .build()?;
 
-    let view_menu = SubmenuBuilder::new(app, "Hiển thị & Hệ thống")
+    let view_menu = SubmenuBuilder::new(app, "Hiển thị · Hệ thống")
         .item(
             &MenuItemBuilder::with_id("toggle_fullscreen", "Toàn màn hình (F11)")
                 .accelerator("F11")
@@ -558,6 +558,7 @@ fn create_main_window(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         .inner_size(1360.0, 840.0)
         .min_inner_size(960.0, 600.0)
         .center()
+        .theme(Some(tauri::Theme::Dark))
         .background_color(tauri::window::Color(11, 13, 19, 255))
         .on_navigation(move |url| {
             if should_open_externally_on_nav(url) {
