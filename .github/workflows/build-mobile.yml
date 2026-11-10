@@ -67,14 +67,7 @@ jobs:
             sed -i '/android.intent.category.LEANBACK_LAUNCHER/d' android/app/src/main/AndroidManifest.xml
             sed -i '/android:banner="@drawable\/tv_banner"/d' android/app/src/main/AndroidManifest.xml
           fi
-          # Upgrade Kotlin version in settings.gradle to 1.9.24 for wakelock_plus compatibility
-          sed -i -E 's/id "org.jetbrains.kotlin.android" version "[^"]+"/id "org.jetbrains.kotlin.android" version "1.9.24"/g' android/settings.gradle
-          # Keep SDK levels compatible with the pinned plugin versions.
-          sed -i 's/flutter.compileSdkVersion/34/g; s/flutter.minSdkVersion/21/g; s/flutter.targetSdkVersion/34/g' android/app/build.gradle
-          sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' android/app/build.gradle
-          sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" android/app/build.gradle
-          sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' android/app/build.gradle
-          sed -i 's/targetSdk = 34/targetSdk = 34\n        multiDexEnabled = true/g' android/app/build.gradle || true
+          python3 scripts/prepare_android.py
           # Configure gradle properties for compatibility with AGP 8
           mkdir -p android
           echo "android.useAndroidX=true" >> android/gradle.properties
@@ -148,6 +141,21 @@ jobs:
         run: |
           mkdir -p output
           cp mobile_app/build/app/outputs/flutter-apk/app-release.apk "output/${{ matrix.artifact }}"
+      - name: Verify APK signing key and metadata
+        run: |
+          EXPECTED_SHA256="707808dff819953f55f76319c2127e926915fd43874fb885bb3b9c092072a197"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          APKSIGNER=$(find "$SDK_ROOT/build-tools" -name "apksigner" | sort -V | tail -n 1)
+          AAPT2=$(find "$SDK_ROOT/build-tools" -name "aapt2" | sort -V | tail -n 1)
+          if [ -n "$AAPT2" ]; then
+            "$AAPT2" dump badging "output/${{ matrix.artifact }}" | head -n 3
+          fi
+          ACTUAL_SHA256=$("$APKSIGNER" verify --print-certs "output/${{ matrix.artifact }}" | grep -i "SHA-256 digest:" | head -n 1 | awk '{print tolower($NF)}')
+          echo "APK Signer SHA-256: $ACTUAL_SHA256"
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "::error title=Invalid APK Signing Key::Expected $EXPECTED_SHA256 (O=TTPhim) but got $ACTUAL_SHA256"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: CineViet-${{ matrix.variant }}-APK
@@ -172,6 +180,21 @@ jobs:
         run: |
           mkdir -p output
           cp android_tv/app/build/outputs/apk/release/app-release.apk output/CineViet-AndroidTV-release.apk
+      - name: Verify TV APK signing key and metadata
+        run: |
+          EXPECTED_SHA256="707808dff819953f55f76319c2127e926915fd43874fb885bb3b9c092072a197"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          APKSIGNER=$(find "$SDK_ROOT/build-tools" -name "apksigner" | sort -V | tail -n 1)
+          AAPT2=$(find "$SDK_ROOT/build-tools" -name "aapt2" | sort -V | tail -n 1)
+          if [ -n "$AAPT2" ]; then
+            "$AAPT2" dump badging "output/CineViet-AndroidTV-release.apk" | head -n 3
+          fi
+          ACTUAL_SHA256=$("$APKSIGNER" verify --print-certs "output/CineViet-AndroidTV-release.apk" | grep -i "SHA-256 digest:" | head -n 1 | awk '{print tolower($NF)}')
+          echo "TV APK Signer SHA-256: $ACTUAL_SHA256"
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "::error title=Invalid TV APK Signing Key::Expected $EXPECTED_SHA256 (O=TTPhim) but got $ACTUAL_SHA256"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: CineViet-AndroidTV-release-APK
