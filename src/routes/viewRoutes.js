@@ -90,8 +90,9 @@ router.get('/mobile/tai-khoan', (req, res) => {
   const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
   res.redirect(301, '/tai-khoan' + query);
 });
-router.use('/mobile', (req, res) => res.redirect(301, '/'));
-router.use('/tv', (req, res) => res.redirect(301, '/'));
+const staticAssetExtRe = /\.(?:css|js|mjs|map|png|jpe?g|webp|svg|ico|woff2?|json)$/i;
+router.use('/mobile', (req, res, next) => staticAssetExtRe.test(req.path) ? next() : res.redirect(301, '/'));
+router.use('/tv', (req, res, next) => staticAssetExtRe.test(req.path) ? next() : res.redirect(301, '/'));
 
 // ViCDN Native Embed Proxy - Renders exact ViCDN JWPlayer UI with fMP4 proxy rewrite to avoid error 224003 on iOS/4G
 // Compliance test markers: <track id="track-bilingual"> syncNativeTextTracks video.webkitEnterFullscreen #player-wrap
