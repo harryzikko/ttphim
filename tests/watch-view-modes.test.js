@@ -252,3 +252,12 @@ test('real browser: full bleed at wide/phone/landscape sizes, dimmer hit testing
     await context.close();
   } finally { await browser.close(); }
 });
+
+test('sticky watch strip stays below the fixed site header and its dropdowns', () => {
+  const customCss = read('public/css/custom.css');
+  const watchModesCss = read('public/css/watch-view-modes.css');
+  const headerZ = Number(customCss.match(/header\.fixed\s*\{[^}]*z-index:\s*(\d+)/)?.[1]);
+  const stripZ = Number(watchModesCss.match(/#top-watch-bar,\s*#watch-mode-bar\s*\{[^}]*z-index:\s*(\d+)/)?.[1]);
+  assert.ok(Number.isFinite(headerZ) && Number.isFinite(stripZ));
+  assert.ok(stripZ < headerZ, `Expected #top-watch-bar (${stripZ}) < header.fixed (${headerZ})`);
+});

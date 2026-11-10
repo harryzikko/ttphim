@@ -4,7 +4,7 @@ body:has(#m-player-wrapper) { --watch-header-height: 0px; --watch-strip-height: 
 #top-watch-bar, #watch-mode-bar {
   position: sticky;
   top: var(--watch-header-height, 0px);
-  z-index: 60;
+  z-index: 46;
   min-height: var(--watch-strip-height);
   padding-block: 4px;
   background: #171922;
