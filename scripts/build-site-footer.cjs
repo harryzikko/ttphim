@@ -9,7 +9,8 @@ function updateTemplate(html, mobile) {
   if (matches.length > 1) throw Error('Unexpected multiple footers');
   const markup = footer(mobile);
   let next = matches.length ? html.replace(matches[0][0], markup) : html.replace(/<\/body>/i, `${markup}\n</body>`);
-  if (!next.includes('/css/site-footer.css?v=1.0.0')) next = next.replace(/<\/head>/i, '<link rel="stylesheet" href="/css/site-footer.css?v=1.0.0">\n</head>');
+  if (/\/css\/site-footer\.css(?:\?v=[\d.]+)?/i.test(next)) next = next.replace(/\/css\/site-footer\.css(?:\?v=[\d.]+)?/gi, '/css/site-footer.css?v=1.0.1');
+  else next = next.replace(/<\/head>/i, '<link rel="stylesheet" href="/css/site-footer.css?v=1.0.1">\n</head>');
   if (!next.includes('/js/site-footer.js?v=1.0.0')) next = next.replace(/<\/body>/i, '<script defer src="/js/site-footer.js?v=1.0.0"></script>\n</body>');
   return next;
 }
