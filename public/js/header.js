@@ -313,7 +313,12 @@
 
     if (!profileBtn) return;
 
-    let user = await API.getMe();
+    let user = null;
+    try {
+      user = await API.getMe();
+    } catch (_) {
+      user = null;
+    }
     const wrapper = profileBtn.parentElement || profileBtn;
     wrapper.classList.add('relative');
 

@@ -46,7 +46,21 @@ const API = {
         ...options.headers
       }
     });
-    const data = await res.json();
+    let data = null;
+    if (typeof res.text === 'function') {
+      const raw = await res.text();
+      if (raw && raw.trim()) {
+        try {
+          data = JSON.parse(raw);
+        } catch (_) {
+          data = { status: false, message: 'Dữ liệu phản hồi từ máy chủ không hợp lệ' };
+        }
+      } else {
+        data = { status: false, message: 'Máy chủ trả về phản hồi trống' };
+      }
+    } else {
+      data = await res.json();
+    }
     if (data && typeof data === 'object' && Number.isInteger(res.status) && res.status >= 400) data.httpStatus = res.status;
     if (data?.code === 'ACCOUNT_CHANGED') invalidateAccountPage();
     if (res.status === 401) localStorage.removeItem('kk_user');

@@ -27,7 +27,27 @@ app.use((req, res, next) => {
   next();
 });
 app.use(helmet({
-  contentSecurityPolicy: { reportOnly: true },
+  contentSecurityPolicy: {
+    reportOnly: true,
+    useDefaults: false,
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      fontSrc: ["'self'", 'https:', 'data:'],
+      formAction: ["'self'"],
+      frameAncestors: ["'self'"],
+      imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
+      mediaSrc: ["'self'", 'https:', 'data:', 'blob:'],
+      connectSrc: ["'self'", 'https:', 'wss:', 'ws:'],
+      frameSrc: ["'self'", 'https:'],
+      workerSrc: ["'self'", 'blob:'],
+      childSrc: ["'self'", 'https:', 'blob:'],
+      objectSrc: ["'none'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://static.cloudflareinsights.com'],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", 'https:', "'unsafe-inline'"]
+    }
+  },
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   referrerPolicy: { policy: 'no-referrer-when-downgrade' },
