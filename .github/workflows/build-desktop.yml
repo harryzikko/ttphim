@@ -26,7 +26,7 @@ jobs:
             os: macos-latest
             artifact_name: desktop-macos
           - label: Linux x64
-            os: ubuntu-latest
+            os: ubuntu-22.04
             artifact_name: desktop-linux
 
     steps:
@@ -41,7 +41,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -50,11 +50,24 @@ jobs:
             curl \
             wget \
             file \
+            patchelf \
+            xdg-utils \
             libxdo-dev \
             libssl-dev \
             pkg-config \
             libayatana-appindicator3-dev \
-            librsvg2-dev
+            librsvg2-dev \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-ugly \
+            gstreamer1.0-libav \
+            gstreamer1.0-tools \
+            gstreamer1.0-x \
+            gstreamer1.0-alsa \
+            gstreamer1.0-gl \
+            gstreamer1.0-gtk3 \
+            gstreamer1.0-pulseaudio
 
       - name: Run Rust unit tests
         working-directory: desktop_app

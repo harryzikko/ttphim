@@ -111,6 +111,14 @@ fn should_open_externally_on_nav(url: &tauri::Url) -> bool {
     false
 }
 
+/// Lấy URL HTTP(S) của trang hiện tại để mở bằng trình duyệt mặc định khi người dùng cần.
+fn resolve_external_browser_url(current_url: Option<&tauri::Url>, fallback_origin: &str) -> String {
+    current_url
+        .filter(|url| matches!(url.scheme(), "http" | "https"))
+        .map(|url| url.to_string())
+        .unwrap_or_else(|| fallback_origin.to_string())
+}
+
 fn parse_semver(value: &str) -> Vec<u32> {
     value
         .trim()
@@ -400,6 +408,14 @@ fn handle_menu_action(app: &AppHandle, action_id: &str) {
                 let _ = window.reload();
             }
         }
+        "open_in_browser" => {
+            if let Some(window) = app.get_webview_window("main") {
+                let current_url = window.url().ok();
+                let target =
+                    resolve_external_browser_url(current_url.as_ref(), &load_saved_origin(app));
+                let _ = app.opener().open_url(target, None::<&str>);
+            }
+        }
         "toggle_fullscreen" => {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = toggle_fullscreen(window);
@@ -459,6 +475,11 @@ fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry
                 .accelerator("CmdOrCtrl+R")
                 .build(app)?,
         )
+        .item(
+            &MenuItemBuilder::with_id("open_in_browser", "Mở trang hiện tại bằng trình duyệt")
+                .accelerator("CmdOrCtrl+Shift+O")
+                .build(app)?,
+        )
         .separator()
         .item(&MenuItemBuilder::with_id("go_launcher", "Đổi máy chủ / Trạng thái").build(app)?)
         .build()?;
@@ -496,6 +517,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         .item(&MenuItemBuilder::with_id("show_window", "Mở cửa sổ CineViet").build(app)?)
         .item(&MenuItemBuilder::with_id("go_home", "Về Trang chủ").build(app)?)
         .item(&MenuItemBuilder::with_id("reload_page", "Tải lại trang").build(app)?)
+        .item(&MenuItemBuilder::with_id("open_in_browser", "Mở bằng trình duyệt mặc định").build(app)?)
         .separator()
         .item(&MenuItemBuilder::with_id("clear_cache", "Xóa bộ nhớ đệm cache").build(app)?)
         .item(&MenuItemBuilder::with_id("check_update", "Kiểm tra cập nhật").build(app)?)
@@ -592,7 +614,7 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{
-        format_host_port, is_allowed_external_popup, is_newer_semver,
+        format_host_port, is_allowed_external_popup, is_newer_semver, resolve_external_browser_url,
         should_open_externally_on_nav,
     };
 
@@ -628,5 +650,22 @@ mod tests {
         assert!(is_allowed_external_popup(&tg));
         assert!(is_allowed_external_popup(&mail));
         assert!(!is_allowed_external_popup(&spam));
+    }
+
+    #[test]
+    fn resolves_external_browser_url_safely() {
+        let watch_url: tauri::Url = "https://cineviet.live/xem/test-phim".parse().unwrap();
+        let internal_url: tauri::Url = "tauri://localhost/index.html".parse().unwrap();
+        let fallback = "https://cineviet.live";
+
+        assert_eq!(
+            resolve_external_browser_url(Some(&watch_url), fallback),
+            "https://cineviet.live/xem/test-phim"
+        );
+        assert_eq!(
+            resolve_external_browser_url(Some(&internal_url), fallback),
+            fallback
+        );
+        assert_eq!(resolve_external_browser_url(None, fallback), fallback);
     }
 }
