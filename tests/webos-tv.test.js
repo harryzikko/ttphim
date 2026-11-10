@@ -116,14 +116,19 @@ test('webos_app manifest, icons and offline launcher assets are valid', () => {
   assert.match(downloadHtml, /CineViet-webOS-TV\.ipk/);
 });
 
-test('LG webOS TV app renders Nocturne Cinema UI, supports D-Pad & 461 Back key, virtual search and QR auth', async () => {
+test('LG webOS TV app renders Nocturne Cinema UI, supports D-Pad & 461 Back key, virtual search and QR auth', async t => {
+  if (!fs.existsSync(chromium.executablePath())) {
+    t.skip('Chromium unavailable');
+    return;
+  }
   const { app } = createTestServer();
   const server = http.createServer(app);
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const baseUrl = `http://127.0.0.1:${server.address().port}`;
-  const browser = await chromium.launch({ headless: true });
+  let browser = null;
 
   try {
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const baseUrl = `http://127.0.0.1:${server.address().port}`;
+    browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
     const page = await context.newPage();
     const pageErrors = [];
@@ -193,7 +198,7 @@ test('LG webOS TV app renders Nocturne Cinema UI, supports D-Pad & 461 Back key,
     assert.deepEqual(pageErrors, []);
     await context.close();
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
   }

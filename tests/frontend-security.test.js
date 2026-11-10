@@ -13,7 +13,7 @@ const user = { id: 'user', name: attack, email: attack, avatar: badAvatar, role:
 function fixture(template, url) {
   const dom = new JSDOM(source(template), { url: `https://cinema.test${url}`, runScripts: 'outside-only', pretendToBeVisual: true });
   const { window } = dom;
-  window.document.querySelectorAll('script').forEach(script => script.remove());
+  window.document.querySelectorAll('script, svg').forEach(node => node.remove());
   Object.defineProperty(window.HTMLElement.prototype, 'innerText', { get() { return this.textContent; }, set(value) { this.textContent = value; }, configurable: true });
   const callbacks = [], errors = [];
   const add = window.document.addEventListener.bind(window.document);

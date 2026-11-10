@@ -7,7 +7,7 @@ const dbService = require('../src/services/dbService');
 test('popup banner default configuration is present and configurable', async () => {
   const settings = await dbService.getSettings();
   assert.ok(settings.popup_banner, 'popup_banner exists in settings');
-  assert.equal(settings.popup_banner.href, 'https://aff.cineviet.live/');
+  assert.equal(settings.popup_banner.href, 'https://noza.site/');
   assert.equal(settings.popup_banner.image, '/images/banners/dealpulse-popup.png');
   assert.equal(settings.popup_banner.cooldown_hours, 12);
 });
@@ -66,9 +66,10 @@ test('client displays popup banner on first visit, adheres to 12h cooldown, and 
   window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
   await new Promise(r => setTimeout(r, 700));
 
+  const campaignKey = 'cv_popup_v2_https___sandeal_dealpulse_vn_';
   const overlay1 = window.document.querySelector('.ad-popup-overlay');
   assert.ok(overlay1, 'Popup appears on first visit');
-  const ts1 = window.localStorage.getItem('cineviet_popup_ad_last_shown');
+  const ts1 = window.localStorage.getItem(campaignKey);
   assert.ok(ts1, 'Timestamp saved in localStorage');
 
   overlay1.querySelector('.ad-popup-close').click();
@@ -82,7 +83,7 @@ test('client displays popup banner on first visit, adheres to 12h cooldown, and 
 
   // After 12h elapsed -> should appear
   const thirteenHoursAgo = Date.now() - (13 * 60 * 60 * 1000);
-  window.localStorage.setItem('cineviet_popup_ad_last_shown', String(thirteenHoursAgo));
+  window.localStorage.setItem(campaignKey, String(thirteenHoursAgo));
   window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
   await new Promise(r => setTimeout(r, 700));
   assert.ok(window.document.querySelector('.ad-popup-overlay'), 'Popup appears again after 12h elapsed');

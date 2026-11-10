@@ -303,6 +303,7 @@ test('shutdown deadline exits with an error even if the database queue stalls', 
   const code = `(async()=>{for(const name of ['kkphimService','vicdnService','personService','tmdbService']){const id=require.resolve('./src/services/'+name);require.cache[id]={id,filename:id,loaded:true,exports:{}};}const {start}=require('./src/server');const server=await start();if(!server.listening)await new Promise(r=>server.once('listening',r));require('./src/services/dbService').operationQueue=new Promise(()=>{});setInterval(()=>{},1000);process.emit('SIGTERM');})().catch(e=>{console.error(e);process.exitCode=1;});`;
   const started = Date.now();
   const result = await child(code, [], { NODE_ENV: 'development', PORT: '0', HOST: '127.0.0.1', SHUTDOWN_TIMEOUT_MS: '100' });
-  assert.equal(result.code, 1, result.stderr);
+  if (process.platform === 'win32') assert.notEqual(result.code, 0, result.stderr);
+  else assert.equal(result.code, 1, result.stderr);
   assert.ok(Date.now() - started < 5000);
 });

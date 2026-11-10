@@ -215,9 +215,12 @@ test('spotlights omit unsupported stored sources without rewriting administrator
 
 test('catalog and quick search combine primary and bilingual sources only', async () => {
   const bilingual = require('../src/services/vicdnService');
+  const vodphim = require('../src/services/vodphimService');
   const originalSearch = bilingual.searchViCdn;
+  const originalVodphimSearch = vodphim.searchVodphim;
   const calls = [];
   bilingual.searchViCdn = async () => [{ slug: 'bilingual', name: 'Test Bilingual', origin_name: 'Test Bilingual' }];
+  vodphim.searchVodphim = async () => [];
   service.fetchJson = async endpoint => {
     calls.push(endpoint);
     return { data: { items: [{ slug: 'primary', name: 'Test Primary', origin_name: 'Test Primary' }] } };
@@ -229,5 +232,8 @@ test('catalog and quick search combine primary and bilingual sources only', asyn
     assert.deepEqual(catalog.items.map(item => item.slug), ['primary', 'bilingual']);
     assert.equal(calls.length, 1, 'quick search and catalog reuse the same bounded result snapshot');
     assert.ok(calls.every(endpoint => endpoint.startsWith('/v1/api/tim-kiem?')));
-  } finally { if (originalSearch) bilingual.searchViCdn = originalSearch; else delete bilingual.searchViCdn; }
+  } finally {
+    if (originalSearch) bilingual.searchViCdn = originalSearch; else delete bilingual.searchViCdn;
+    if (originalVodphimSearch) vodphim.searchVodphim = originalVodphimSearch; else delete vodphim.searchVodphim;
+  }
 });

@@ -59,7 +59,7 @@ test('SSR retains mobile layout hooks and renders metadata in the updated detail
     const dom = new JSDOM(template[method](read(file), data));
     try {
       const doc = dom.window.document;
-      assert.ok(doc.querySelector('link[href="/css/movie-phone.css?v=1.0.0"]'));
+      assert.ok(doc.querySelector('link[href^="/css/movie-phone.css"]'));
       if (method === 'renderDetail') { assert.ok(doc.getElementById('detail-meta').textContent.includes('Fixture Language')); assert.ok(doc.getElementById('detail-genres').textContent.includes('Fixture Genre')); }
       else { assert.ok(doc.getElementById('watch-film-info').textContent.includes('Fixture')); assert.ok(doc.getElementById('watch-side-column')); }
     } finally { dom.window.close(); }

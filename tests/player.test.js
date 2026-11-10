@@ -374,7 +374,7 @@ test('returning from embed to HLS restores the last matching HLS position, not t
     f.window.document.querySelector('#player-viewport video').currentTime = 123;
     f.window.document.querySelector('#btn-toggle-engine').click();
     assert.ok(f.window.document.querySelector('#player-viewport iframe'));
-    f.window.document.querySelector('#btn-toggle-engine').click();
+    f.window.document.querySelectorAll('.server-pill-btn')[1].click();
     const video = f.window.document.querySelector('#player-viewport video');
     video.dispatchEvent(new f.window.Event('loadedmetadata'));
     assert.equal(video.currentTime, 123);
