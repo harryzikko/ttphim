@@ -12,6 +12,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:volume_controller/volume_controller.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/api_service.dart';
@@ -542,6 +543,34 @@ class _PlayerScreenState extends State<PlayerScreen>
     return null;
   }
 
+  bool get _isVodphimEmbed {
+    final u = _currentEpisode.linkEmbed.toLowerCase();
+    return u.contains('playembed.vip') || u.contains('vodphim.com');
+  }
+
+  bool get _hasDirectHlsStream {
+    return _currentEpisode.linkM3u8.trim().isNotEmpty ||
+        _extractM3u8FromEmbed(_currentEpisode.linkEmbed) != null;
+  }
+
+  Future<void> _openEmbedInExternalBrowser() async {
+    final raw = _currentEpisode.linkEmbed.trim();
+    if (raw.isEmpty) return;
+    final resolved = EmbedPolicy.resolveUrl(raw);
+    if (!EmbedPolicy.isValidSource(resolved)) return;
+    final uri = Uri.tryParse(resolved);
+    if (uri == null) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể mở trình duyệt ngoài cho liên kết này.')),
+        );
+      }
+    }
+  }
+
   /// Launch In-App Web Embed Player with sandboxed iframe & ad popup suppressors
   void _initWebPlayer(String embedUrl) {
     _videoPlayerController?.removeListener(_videoListener);
@@ -581,8 +610,13 @@ class _PlayerScreenState extends State<PlayerScreen>
       controller.setUserAgent(userAgent);
 
       if (controller.platform is AndroidWebViewController) {
+        final androidCtrl = controller.platform as AndroidWebViewController;
         AndroidWebViewController.enableDebugging(false);
-        (controller.platform as AndroidWebViewController).setMediaPlaybackRequiresUserGesture(false);
+        androidCtrl.setMediaPlaybackRequiresUserGesture(false);
+        final cookieMgr = WebViewCookieManager();
+        if (cookieMgr.platform is AndroidWebViewCookieManager) {
+          (cookieMgr.platform as AndroidWebViewCookieManager).setAcceptThirdPartyCookies(androidCtrl, true);
+        }
       }
 
       controller.addJavaScriptChannel(
@@ -627,6 +661,13 @@ class _PlayerScreenState extends State<PlayerScreen>
                     document.head.appendChild(meta);
                   }
                   meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+
+                  if (location.hostname.indexOf('playembed.vip') !== -1 && window.innerHeight < 320) {
+                    var statusBox = document.querySelector('.flex.flex-col.items-center');
+                    if (statusBox && document.getElementById('cf-turnstile-container')) {
+                      statusBox.style.paddingBottom = '64px';
+                    }
+                  }
 
                 function fixVideos() {
                   var videos = document.querySelectorAll('video');
@@ -1449,7 +1490,9 @@ class _PlayerScreenState extends State<PlayerScreen>
               WebViewWidget(
                 key: _webViewKey,
                 controller: _webViewController!,
-                gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+                gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                  Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+                },
               )
             else if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized)
               _buildFittedVideo()
@@ -1659,16 +1702,35 @@ class _PlayerScreenState extends State<PlayerScreen>
               onPressed: _handleExitPlayer,
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black54,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
-              tooltip: 'Tải lại',
-              onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isVodphimEmbed) ...[
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.open_in_new_rounded, color: Colors.white, size: 20),
+                    tooltip: 'Mở trình duyệt',
+                    onPressed: _openEmbedInExternalBrowser,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                  tooltip: 'Tải lại',
+                  onPressed: () => _initWebPlayer(_currentEpisode.linkEmbed),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -2551,19 +2613,26 @@ class _PlayerScreenState extends State<PlayerScreen>
                 label: 'Xoay Ngang',
                 onTap: _toggleFullScreen,
               ),
-              _buildToolChip(
-                icon: _isEmbedMode ? Icons.video_file_rounded : Icons.public_rounded,
-                label: _isEmbedMode ? 'Phát HLS' : 'Dùng Embed',
-                onTap: () {
-                  if (_isEmbedMode) {
-                    _initPlayer();
-                  } else {
-                    if (_currentEpisode.linkEmbed.isNotEmpty) {
-                      _initWebPlayer(_currentEpisode.linkEmbed);
+              if (_isEmbedMode && !_hasDirectHlsStream)
+                _buildToolChip(
+                  icon: Icons.open_in_browser_rounded,
+                  label: 'Mở Trình Duyệt',
+                  onTap: _openEmbedInExternalBrowser,
+                )
+              else
+                _buildToolChip(
+                  icon: _isEmbedMode ? Icons.video_file_rounded : Icons.public_rounded,
+                  label: _isEmbedMode ? 'Phát HLS' : 'Dùng Embed',
+                  onTap: () {
+                    if (_isEmbedMode) {
+                      _initPlayer();
+                    } else {
+                      if (_currentEpisode.linkEmbed.isNotEmpty) {
+                        _initWebPlayer(_currentEpisode.linkEmbed);
+                      }
                     }
-                  }
-                },
-              ),
+                  },
+                ),
               _buildToolChip(
                 icon: Icons.timer_outlined,
                 label: _sleepRemainingSeconds > 0 ? '${_sleepRemainingSeconds ~/ 60}p' : 'Hẹn Giờ',
@@ -2572,6 +2641,45 @@ class _PlayerScreenState extends State<PlayerScreen>
             ],
           ),
         ),
+
+        if (_isEmbedMode && _isVodphimEmbed) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppTheme.gold.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.gold.withOpacity(0.35)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.verified_user_outlined, color: AppTheme.gold, size: 18),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Nếu hiện ô Cloudflare, chạm vào "Xác minh bạn là con người" trong khung video (hoặc Xoay Ngang cho dễ bấm).',
+                    style: TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.35),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: _openEmbedInExternalBrowser,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: AppTheme.gold.withOpacity(0.2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text(
+                    'Trình duyệt',
+                    style: TextStyle(color: AppTheme.gold, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
 
         const SizedBox(height: 18),
         const Divider(color: AppTheme.border, height: 1),

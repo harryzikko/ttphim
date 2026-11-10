@@ -7,6 +7,8 @@ void main() {
     const source = 'https://player.example.com/embed';
     expect(EmbedPolicy.allowsNavigation(source, '$source?episode=2'), isTrue);
     expect(EmbedPolicy.allowsNavigation(source, 'about:blank'), isTrue);
+    expect(EmbedPolicy.allowsNavigation('https://playembed.vip/player/123/sub', 'https://challenges.cloudflare.com/cdn-cgi/challenge-platform'), isTrue);
+    expect(EmbedPolicy.allowsNavigation('https://playembed.vip/player/123/sub', 'https://vodphim.com/api-docs'), isTrue);
     for (final value in [
       'https://attacker.example/?m3u8',
       'https://attacker.example/?next=player.example.com',
