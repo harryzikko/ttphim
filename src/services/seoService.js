@@ -13,8 +13,8 @@ const pages = {
     'Tìm phim theo tên tiếng Việt, tên gốc, thể loại, quốc gia và năm phát hành trên CineViet.'
   ],
   '/tai-ung-dung': [
-    'Tải App CineViet — Android, iOS & Android TV | CineViet',
-    'Tải ứng dụng CineViet chính thức dành cho Android (APK), iPhone/iPad (IPA) và Android TV. Xem phim mượt mà, tự động cập nhật và đồng bộ lịch sử.'
+    'Tải App CineViet — Android, iOS, Smart TV & Desktop | CineViet',
+    'Tải ứng dụng CineViet chính thức cho Android (APK), iPhone/iPad (IPA), Android TV và Máy tính (Windows, macOS, Linux).'
   ],
   '/ung-ho': [
     'Ủng hộ CineViet — Tiếp sức duy trì máy chủ | CineViet',
@@ -169,7 +169,7 @@ function buildJsonLd(meta) {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       name: 'CineViet App',
-      operatingSystem: 'Android, iOS, Android TV',
+      operatingSystem: 'Android, iOS, Android TV, Windows, macOS, Linux',
       applicationCategory: 'EntertainmentApplication',
       url: meta.canonical || `${meta.origin}/tai-ung-dung`,
       description: meta.description,
