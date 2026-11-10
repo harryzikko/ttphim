@@ -3,11 +3,11 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/movie.dart';
 import '../services/api_service.dart';
+import '../services/cache_service.dart';
 import '../services/session_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
@@ -34,6 +34,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoadingLibrary = true;
   AppUpdateInfo? _availableUpdate;
   bool _isCheckingUpdate = false;
+  int _cacheBytes = 0;
+  bool _isLoadingCacheSize = true;
+  bool _isClearingCache = false;
 
   @override
   void initState() {
@@ -43,8 +46,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     _loadUser();
     _loadLibraryData();
+    _refreshCacheSize();
     SessionService.changes.addListener(_onSessionChanged);
     _checkAppUpdateSilently();
+  }
+
+  Future<void> _refreshCacheSize() async {
+    final bytes = await CacheService.estimateCacheBytes();
+    if (!mounted) return;
+    setState(() {
+      _cacheBytes = bytes;
+      _isLoadingCacheSize = false;
+    });
   }
 
   void _checkAppUpdateSilently() {
@@ -124,17 +137,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _clearCache() async {
-    await DefaultCacheManager().emptyCache();
-    PaintingBinding.instance.imageCache.clear();
-    PaintingBinding.instance.imageCache.clearLiveImages();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã dọn dẹp bộ nhớ đệm cache sạch sẽ!'),
-        backgroundColor: AppTheme.surface,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    if (_isClearingCache) return;
+    setState(() => _isClearingCache = true);
+    try {
+      final freedBytes = await CacheService.clearAllCaches();
+      final remainingBytes = await CacheService.estimateCacheBytes();
+      if (!mounted) return;
+      setState(() {
+        _cacheBytes = remainingBytes;
+        _isLoadingCacheSize = false;
+        _isClearingCache = false;
+      });
+      final message = freedBytes > 0
+          ? 'Đã giải phóng ${CacheService.formatBytes(freedBytes)} bộ nhớ đệm!'
+          : 'Bộ nhớ đệm đã sạch và làm mới dữ liệu!';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AppTheme.surface,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isClearingCache = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không thể dọn bộ nhớ đệm lúc này. Vui lòng thử lại.'),
+          backgroundColor: AppTheme.surface,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   String _getDetectedPlatform(BuildContext context) {
@@ -924,6 +958,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               border: Border.all(color: AppTheme.border),
             ),
             child: ListTile(
+              enabled: !_isClearingCache,
               leading: const Icon(
                 Icons.cleaning_services_rounded,
                 color: AppTheme.primaryLight,
@@ -933,9 +968,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: TextStyle(color: Colors.white, fontSize: 14),
               ),
               subtitle: const Text(
-                'Giải phóng dung lượng hình ảnh đã tải tạm',
+                'Giải phóng ảnh tạm, cache bảng tin & tệp cập nhật',
                 style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
               ),
+              trailing: _isClearingCache
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppTheme.primaryLight,
+                      ),
+                    )
+                  : _isLoadingCacheSize
+                  ? null
+                  : Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x0FFFFFFF),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: Text(
+                        CacheService.formatBytes(_cacheBytes),
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
               onTap: _clearCache,
             ),
           ),

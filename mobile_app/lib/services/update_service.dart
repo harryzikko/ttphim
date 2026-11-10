@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../models/app_update_info.dart';
 import 'api_service.dart';
 import 'app_config.dart';
@@ -17,7 +19,38 @@ class UpdateService {
   static String get currentVersion => _version;
   static int get currentBuildNumber => _buildNumber;
 
-  static const MethodChannel _channel = MethodChannel('com.cineviet.app/updater');
+  static const MethodChannel _channel = MethodChannel(
+    'com.cineviet.app/updater',
+  );
+
+  static File get _pendingUpdateApkFile =>
+      File('${Directory.systemTemp.path}/CineViet_update.apk');
+
+  /// Return size in bytes of any leftover downloaded APK update installer.
+  static Future<int> getCachedUpdateApkBytes() async {
+    if (kIsWeb) return 0;
+    try {
+      final file = _pendingUpdateApkFile;
+      if (await file.exists()) {
+        return await file.length();
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  /// Delete any leftover downloaded APK update installer and return freed bytes.
+  static Future<int> clearCachedUpdateApk() async {
+    if (kIsWeb) return 0;
+    try {
+      final file = _pendingUpdateApkFile;
+      if (await file.exists()) {
+        final size = await file.length();
+        await file.delete();
+        return size;
+      }
+    } catch (_) {}
+    return 0;
+  }
 
   /// Initialize real installed version from native package manager or PackageInfo
   static Future<void> initVersion() async {
@@ -52,9 +85,19 @@ class UpdateService {
   /// Compare two semantic version strings (e.g. "1.0.1" vs "1.0.0")
   static bool isNewerVersion(String latest, String current) {
     try {
-      final lParts = latest.trim().split('.').map((e) => int.tryParse(e) ?? 0).toList();
-      final cParts = current.trim().split('.').map((e) => int.tryParse(e) ?? 0).toList();
-      final maxLen = lParts.length > cParts.length ? lParts.length : cParts.length;
+      final lParts = latest
+          .trim()
+          .split('.')
+          .map((e) => int.tryParse(e) ?? 0)
+          .toList();
+      final cParts = current
+          .trim()
+          .split('.')
+          .map((e) => int.tryParse(e) ?? 0)
+          .toList();
+      final maxLen = lParts.length > cParts.length
+          ? lParts.length
+          : cParts.length;
 
       for (int i = 0; i < maxLen; i++) {
         final l = i < lParts.length ? lParts[i] : 0;
@@ -120,7 +163,9 @@ class UpdateService {
       if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
         currentUri = Uri.parse(cleanUrl);
       } else {
-        currentUri = AppConfig.backendUri(cleanUrl.startsWith('/') ? cleanUrl : '/$cleanUrl');
+        currentUri = AppConfig.backendUri(
+          cleanUrl.startsWith('/') ? cleanUrl : '/$cleanUrl',
+        );
       }
 
       client = http.Client();
@@ -131,7 +176,8 @@ class UpdateService {
         final request = http.Request('GET', currentUri);
         response = await client.send(request);
 
-        if ([301, 302, 303, 307, 308].contains(response.statusCode) && response.headers.containsKey('location')) {
+        if ([301, 302, 303, 307, 308].contains(response.statusCode) &&
+            response.headers.containsKey('location')) {
           redirects++;
           if (redirects > 5) {
             onError('Quá nhiều lượt chuyển hướng khi tải');
@@ -146,7 +192,9 @@ class UpdateService {
       }
 
       if (response.statusCode == 404) {
-        onError('Không tìm thấy tệp cập nhật (Mã lỗi 404). Vui lòng kiểm tra lại đường dẫn APK trên trang quản trị.');
+        onError(
+          'Không tìm thấy tệp cập nhật (Mã lỗi 404). Vui lòng kiểm tra lại đường dẫn APK trên trang quản trị.',
+        );
         client.close();
         return;
       }
@@ -158,10 +206,11 @@ class UpdateService {
       }
 
       final contentLength = response.contentLength ?? 0;
-      final tempDir = Directory.systemTemp;
-      final apkFile = File('${tempDir.path}/CineViet_update.apk');
+      final apkFile = _pendingUpdateApkFile;
       if (await apkFile.exists()) {
-        try { await apkFile.delete(); } catch (_) {}
+        try {
+          await apkFile.delete();
+        } catch (_) {}
       }
 
       final sink = apkFile.openWrite();
@@ -194,19 +243,28 @@ class UpdateService {
           return;
         }
       } on PlatformException catch (pe) {
-        debugPrint('[UpdateService] PlatformException: ${pe.code} - ${pe.message}');
+        debugPrint(
+          '[UpdateService] PlatformException: ${pe.code} - ${pe.message}',
+        );
         if (pe.code == 'PERMISSION_REQUIRED') {
-          onError('Vui lòng bật quyền "Cài đặt ứng dụng không rõ nguồn" trong cài đặt máy, sau đó ấn Tải lại.');
+          onError(
+            'Vui lòng bật quyền "Cài đặt ứng dụng không rõ nguồn" trong cài đặt máy, sau đó ấn Tải lại.',
+          );
           return;
         }
         // Fall through to external launcher
       } catch (channelErr) {
-        debugPrint('[UpdateService] MethodChannel failed, falling back to external launcher: $channelErr');
+        debugPrint(
+          '[UpdateService] MethodChannel failed, falling back to external launcher: $channelErr',
+        );
       }
 
       // Fallback: Open URL externally in browser if native channel fails
       try {
-        final launched = await launchUrl(currentUri, mode: LaunchMode.externalApplication);
+        final launched = await launchUrl(
+          currentUri,
+          mode: LaunchMode.externalApplication,
+        );
         if (launched) {
           onSuccess();
           return;
@@ -214,18 +272,25 @@ class UpdateService {
       } catch (_) {}
 
       try {
-        final launched = await launchUrl(currentUri, mode: LaunchMode.platformDefault);
+        final launched = await launchUrl(
+          currentUri,
+          mode: LaunchMode.platformDefault,
+        );
         if (launched) {
           onSuccess();
           return;
         }
       } catch (_) {}
 
-      onError('Không thể mở trình cài đặt tệp APK tự động. Vui lòng mở trình duyệt và truy cập: $cleanUrl');
+      onError(
+        'Không thể mở trình cài đặt tệp APK tự động. Vui lòng mở trình duyệt và truy cập: $cleanUrl',
+      );
     } catch (e) {
       client?.close();
       debugPrint('[UpdateService] Download error: $e');
-      onError('Lỗi khi tải bản cập nhật: ${e.toString().replaceAll('Exception:', '').trim()}');
+      onError(
+        'Lỗi khi tải bản cập nhật: ${e.toString().replaceAll('Exception:', '').trim()}',
+      );
     }
   }
 

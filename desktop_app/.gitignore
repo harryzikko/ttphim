@@ -1,0 +1,5 @@
+# CineViet Tauri v2 (Rust) artifacts
+src-tauri/target/
+src-tauri/gen/
+node_modules/
+dist/

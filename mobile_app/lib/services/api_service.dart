@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../models/app_banner_config.dart';
@@ -25,24 +27,41 @@ class ApiService {
     _homeFetchedAt = null;
     _homePending = null;
   }
+
   static Map<String, dynamic>? _home;
   static DateTime? _homeFetchedAt;
   static Future<Map<String, dynamic>?>? _homePending;
 
-  static Future<Map<String, dynamic>?> _backend(String path, {Map<String, String>? query, Map<String, dynamic>? body}) =>
-      BackendService.request(path, query: query, body: body);
+  static Future<Map<String, dynamic>?> _backend(
+    String path, {
+    Map<String, String>? query,
+    Map<String, dynamic>? body,
+  }) => BackendService.request(path, query: query, body: body);
 
   static Future<Map<String, dynamic>?> restoreSession() async {
     try {
       final token = await StorageService.getToken();
       if (token == null) return null;
       final result = await BackendService.request('/api/auth/me', token: token);
-      if (await StorageService.getToken() != token) return await StorageService.getUser();
-      if (result?['status'] == true && result?['data'] is Map<String, dynamic>) {
-        await StorageService.saveSession(token, result!['data'] as Map<String, dynamic>);
-      } else if (result != null) { await StorageService.clearSession(); }
-    } catch (_) { /* Preserve a saved session while temporarily offline. */ }
-    try { return await StorageService.getUser(); } catch (_) { return null; }
+      if (await StorageService.getToken() != token)
+        return await StorageService.getUser();
+      if (result?['status'] == true &&
+          result?['data'] is Map<String, dynamic>) {
+        await StorageService.saveSession(
+          token,
+          result!['data'] as Map<String, dynamic>,
+        );
+      } else if (result != null) {
+        await StorageService.clearSession();
+      }
+    } catch (_) {
+      /* Preserve a saved session while temporarily offline. */
+    }
+    try {
+      return await StorageService.getUser();
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<void> logout() async {
@@ -50,8 +69,21 @@ class ApiService {
     await StorageService.clearSession();
   }
 
+  static Future<void> clearHomeCache() async {
+    _home = null;
+    _homeFetchedAt = null;
+    _homePending = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cineviet_cached_home');
+    } catch (_) {}
+  }
+
   static Future<Map<String, dynamic>?> _getHome() async {
-    if (_home != null && _homeFetchedAt != null && DateTime.now().difference(_homeFetchedAt!) < const Duration(minutes: 5)) {
+    if (_home != null &&
+        _homeFetchedAt != null &&
+        DateTime.now().difference(_homeFetchedAt!) <
+            const Duration(minutes: 5)) {
       return _home;
     }
 
@@ -62,7 +94,9 @@ class ApiService {
         final cached = prefs.getString('cineviet_cached_home');
         if (cached != null && cached.isNotEmpty) {
           _home = json.decode(cached) as Map<String, dynamic>;
-          _homeFetchedAt = DateTime.now().subtract(const Duration(minutes: 4)); // mark warm, trigger refresh
+          _homeFetchedAt = DateTime.now().subtract(
+            const Duration(minutes: 4),
+          ); // mark warm, trigger refresh
         }
       } catch (_) {}
     }
@@ -72,7 +106,8 @@ class ApiService {
     final pending = () async {
       try {
         final response = await _backend('/api/home');
-        if (response?['status'] == true && response?['data'] is Map<String, dynamic>) {
+        if (response?['status'] == true &&
+            response?['data'] is Map<String, dynamic>) {
           _home = response!['data'] as Map<String, dynamic>;
           _homeFetchedAt = DateTime.now();
           try {
@@ -98,8 +133,10 @@ class ApiService {
     }
   }
 
-  static List<Movie> get defaultFeaturedMovies => List.unmodifiable(_defaultFeaturedMovies);
-  static List<Movie> get defaultTopRankings => List.unmodifiable(_defaultTopRankings);
+  static List<Movie> get defaultFeaturedMovies =>
+      List.unmodifiable(_defaultFeaturedMovies);
+  static List<Movie> get defaultTopRankings =>
+      List.unmodifiable(_defaultTopRankings);
 
   /// Default fallback list of pinned featured movies from website settings
   static final List<Movie> _defaultFeaturedMovies = [
@@ -109,7 +146,8 @@ class ApiService {
       slug: 'truy-sat-salazar',
       originName: 'Killing Salazar',
       posterUrl: 'https://phimimg.com/upload/vod/20240102-1/db187d4de77346ccf1e48e7d3672d4e1.jpg',
-      thumbUrl: 'https://image.tmdb.org/t/p/original/J3plZPrHc2OlUMZLNnuQ1rroo9.jpg',
+      thumbUrl:
+          'https://image.tmdb.org/t/p/original/J3plZPrHc2OlUMZLNnuQ1rroo9.jpg',
       year: 2017,
       quality: 'HD',
       voteAverage: 8.8,
@@ -245,7 +283,8 @@ class ApiService {
       slug: 'ly-hung-mieu-gau-truc-ly',
       originName: 'Raised by Demons: Panda Li',
       posterUrl: 'https://phimimg.com/uploads/movies/20260801/ly-hung-mieu-poster.webp',
-      thumbUrl: 'https://phimimg.com/uploads/movies/20260801/ly-hung-mieu-thumb.webp',
+      thumbUrl:
+          'https://phimimg.com/uploads/movies/20260801/ly-hung-mieu-thumb.webp',
       year: 2026,
       quality: 'FHD',
       voteAverage: 8.8,
@@ -255,8 +294,10 @@ class ApiService {
       name: 'Mỹ Nhân Dư',
       slug: 'my-nhan-du',
       originName: 'The Vanishing Beauty',
-      posterUrl: 'https://phimimg.com/uploads/movies/20261010/my-nhan-du-poster.webp',
-      thumbUrl: 'https://phimimg.com/uploads/movies/20261010/my-nhan-du-thumb.webp',
+      posterUrl:
+          'https://phimimg.com/uploads/movies/20261010/my-nhan-du-poster.webp',
+      thumbUrl:
+          'https://phimimg.com/uploads/movies/20261010/my-nhan-du-thumb.webp',
       year: 2026,
       quality: 'FHD',
       voteAverage: 8.7,
@@ -288,8 +329,10 @@ class ApiService {
       name: 'Tuý Mộng',
       slug: 'tuy-mong',
       originName: 'Dream',
-      posterUrl: 'https://phimimg.com/uploads/movies/20261017/tuy-mong-poster.webp',
-      thumbUrl: 'https://phimimg.com/uploads/movies/20261017/tuy-mong-thumb.webp',
+      posterUrl:
+          'https://phimimg.com/uploads/movies/20261017/tuy-mong-poster.webp',
+      thumbUrl:
+          'https://phimimg.com/uploads/movies/20261017/tuy-mong-thumb.webp',
       year: 2026,
       quality: 'FHD',
       voteAverage: 8.8,
@@ -300,7 +343,10 @@ class ApiService {
   static Future<List<Movie>> getFeaturedMovies() async {
     final home = await _getHome();
     if (home?['spotlights'] is List) {
-      return (home!['spotlights'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+      return (home!['spotlights'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map(Movie.fromJson)
+          .toList();
     }
     return _defaultFeaturedMovies;
   }
@@ -310,7 +356,10 @@ class ApiService {
     final home = await _getHome();
     final rankings = home?['rankings'];
     if (rankings is List && rankings.isNotEmpty) {
-      return rankings.whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+      return rankings
+          .whereType<Map<String, dynamic>>()
+          .map(Movie.fromJson)
+          .toList();
     }
     return _defaultTopRankings;
   }
@@ -339,7 +388,10 @@ class ApiService {
     if (page == 1) {
       final home = await _getHome();
       if (home?['latest'] is List && (home!['latest'] as List).isNotEmpty) {
-        return (home['latest'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+        return (home['latest'] as List)
+            .whereType<Map<String, dynamic>>()
+            .map(Movie.fromJson)
+            .toList();
       }
     }
     try {
@@ -358,7 +410,10 @@ class ApiService {
     if (page == 1) {
       final home = await _getHome();
       if (home?['singles'] is List && (home!['singles'] as List).isNotEmpty) {
-        return (home['singles'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+        return (home['singles'] as List)
+            .whereType<Map<String, dynamic>>()
+            .map(Movie.fromJson)
+            .toList();
       }
     }
     try {
@@ -377,7 +432,10 @@ class ApiService {
     if (page == 1) {
       final home = await _getHome();
       if (home?['series'] is List && (home!['series'] as List).isNotEmpty) {
-        return (home['series'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+        return (home['series'] as List)
+            .whereType<Map<String, dynamic>>()
+            .map(Movie.fromJson)
+            .toList();
       }
     }
     try {
@@ -396,7 +454,10 @@ class ApiService {
     if (page == 1) {
       final home = await _getHome();
       if (home?['anime'] is List && (home!['anime'] as List).isNotEmpty) {
-        return (home['anime'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+        return (home['anime'] as List)
+            .whereType<Map<String, dynamic>>()
+            .map(Movie.fromJson)
+            .toList();
       }
     }
     try {
@@ -413,11 +474,12 @@ class ApiService {
   /// Get Bilingual Movies (Song Ngữ)
   static Future<List<Movie>> getSongNguMovies({int page = 1}) async {
     try {
-      final response = await _backend('/api/catalog', query: {
-        'type': 'song-ngu',
-        'page': page.toString(),
-      });
-      if (response?['status'] == true && response?['data'] is Map<String, dynamic>) {
+      final response = await _backend(
+        '/api/catalog',
+        query: {'type': 'song-ngu', 'page': page.toString()},
+      );
+      if (response?['status'] == true &&
+          response?['data'] is Map<String, dynamic>) {
         final data = response!['data'] as Map<String, dynamic>;
         if (data['items'] is List) {
           return (data['items'] as List)
@@ -435,11 +497,16 @@ class ApiService {
     if (page == 1) {
       final home = await _getHome();
       if (home?['cinema'] is List && (home!['cinema'] as List).isNotEmpty) {
-        return (home['cinema'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+        return (home['cinema'] as List)
+            .whereType<Map<String, dynamic>>()
+            .map(Movie.fromJson)
+            .toList();
       }
     }
     try {
-      final uri = Uri.parse('$baseUrl/v1/api/danh-sach/phim-chieu-rap?page=$page');
+      final uri = Uri.parse(
+        '$baseUrl/v1/api/danh-sach/phim-chieu-rap?page=$page',
+      );
       final res = await _client.get(uri).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
@@ -454,7 +521,10 @@ class ApiService {
     if (page == 1) {
       final home = await _getHome();
       if (home?['tvshows'] is List && (home!['tvshows'] as List).isNotEmpty) {
-        return (home['tvshows'] as List).whereType<Map<String, dynamic>>().map(Movie.fromJson).toList();
+        return (home['tvshows'] as List)
+            .whereType<Map<String, dynamic>>()
+            .map(Movie.fromJson)
+            .toList();
       }
     }
     try {
@@ -469,11 +539,16 @@ class ApiService {
   }
 
   /// Search movies by keyword
-  static Future<List<Movie>> searchMovies(String keyword, {int page = 1}) async {
+  static Future<List<Movie>> searchMovies(
+    String keyword, {
+    int page = 1,
+  }) async {
     if (keyword.trim().isEmpty) return [];
     try {
       final encoded = Uri.encodeComponent(keyword.trim());
-      final uri = Uri.parse('$baseUrl/v1/api/tim-kiem?keyword=$encoded&page=$page');
+      final uri = Uri.parse(
+        '$baseUrl/v1/api/tim-kiem?keyword=$encoded&page=$page',
+      );
       final res = await _client.get(uri).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
@@ -484,9 +559,14 @@ class ApiService {
   }
 
   /// Get movies by category slug
-  static Future<List<Movie>> getMoviesByCategory(String categorySlug, {int page = 1}) async {
+  static Future<List<Movie>> getMoviesByCategory(
+    String categorySlug, {
+    int page = 1,
+  }) async {
     try {
-      final uri = Uri.parse('$baseUrl/v1/api/the-loai/$categorySlug?page=$page');
+      final uri = Uri.parse(
+        '$baseUrl/v1/api/the-loai/$categorySlug?page=$page',
+      );
       final res = await _client.get(uri).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) {
         final data = json.decode(utf8.decode(res.bodyBytes));
@@ -497,7 +577,10 @@ class ApiService {
   }
 
   /// Get movies by country slug
-  static Future<List<Movie>> getMoviesByCountry(String countrySlug, {int page = 1}) async {
+  static Future<List<Movie>> getMoviesByCountry(
+    String countrySlug, {
+    int page = 1,
+  }) async {
     try {
       final uri = Uri.parse('$baseUrl/v1/api/quoc-gia/$countrySlug?page=$page');
       final res = await _client.get(uri).timeout(const Duration(seconds: 15));
@@ -512,9 +595,14 @@ class ApiService {
   /// Get complete movie details & streaming episodes
   static Future<MovieDetailResponse?> getMovieDetail(String slug) async {
     try {
-      final response = await _backend('/api/movies/${Uri.encodeComponent(slug)}');
-      if (response?['status'] == true && response?['data'] is Map<String, dynamic>) {
-        return MovieDetailResponse.fromJson(response!['data'] as Map<String, dynamic>);
+      final response = await _backend(
+        '/api/movies/${Uri.encodeComponent(slug)}',
+      );
+      if (response?['status'] == true &&
+          response?['data'] is Map<String, dynamic>) {
+        return MovieDetailResponse.fromJson(
+          response!['data'] as Map<String, dynamic>,
+        );
       }
     } catch (_) {}
     try {
@@ -532,11 +620,18 @@ class ApiService {
 
   /// Get multi-season / franchise parts for a movie (Netflix-style)
   /// Resilient fallback: Queries PhimAPI client-side if backend is offline
-  static Future<List<Map<String, dynamic>>> getMovieSeasons(String slug, {Movie? knownMovie}) async {
+  static Future<List<Map<String, dynamic>>> getMovieSeasons(
+    String slug, {
+    Movie? knownMovie,
+  }) async {
     try {
-      final response = await _backend('/api/movies/${Uri.encodeComponent(slug)}/seasons');
+      final response = await _backend(
+        '/api/movies/${Uri.encodeComponent(slug)}/seasons',
+      );
       if (response?['status'] == true && response?['data'] is List) {
-        final list = (response!['data'] as List).whereType<Map<String, dynamic>>().toList();
+        final list = (response!['data'] as List)
+            .whereType<Map<String, dynamic>>()
+            .toList();
         if (list.isNotEmpty) return list;
       }
     } catch (_) {}
@@ -545,23 +640,48 @@ class ApiService {
   }
 
   /// Authorize Android TV session via QR Token or 6-digit PIN
-  static Future<Map<String, dynamic>> authorizeTvSession(String codeOrToken) async {
-    if (!AppConfig.hasBackend) return {'success': false, 'message': 'Chưa cấu hình BACKEND_URL khi build ứng dụng'};
-    if (await StorageService.getToken() == null) return {'success': false, 'message': 'Vui lòng đăng nhập tài khoản trước khi xác nhận TV'};
+  static Future<Map<String, dynamic>> authorizeTvSession(
+    String codeOrToken,
+  ) async {
+    if (!AppConfig.hasBackend)
+      return {
+        'success': false,
+        'message': 'Chưa cấu hình BACKEND_URL khi build ứng dụng',
+      };
+    if (await StorageService.getToken() == null)
+      return {
+        'success': false,
+        'message': 'Vui lòng đăng nhập tài khoản trước khi xác nhận TV',
+      };
     try {
       var identifier = codeOrToken.trim();
       final parsed = Uri.tryParse(identifier);
       identifier = parsed?.queryParameters['token'] ?? identifier;
-      final response = await _backend('/api/auth/tv/authorize', body: {'token': identifier});
-      return {'success': response?['status'] == true, 'message': response?['message'] ?? 'Không thể xác nhận TV'};
-    } catch (_) { return {'success': false, 'message': 'Không thể kết nối đến máy chủ xác thực TV'}; }
+      final response = await _backend(
+        '/api/auth/tv/authorize',
+        body: {'token': identifier},
+      );
+      return {
+        'success': response?['status'] == true,
+        'message': response?['message'] ?? 'Không thể xác nhận TV',
+      };
+    } catch (_) {
+      return {
+        'success': false,
+        'message': 'Không thể kết nối đến máy chủ xác thực TV',
+      };
+    }
   }
 
   /// Get person details with TMDb biography and filmography
   static Future<Map<String, dynamic>?> getPersonDetail(String name) async {
     try {
-      final response = await _backend('/api/person/${Uri.encodeComponent(name)}');
-      if (response?['status'] == true && response?['data'] is Map<String, dynamic>) return response!['data'] as Map<String, dynamic>;
+      final response = await _backend(
+        '/api/person/${Uri.encodeComponent(name)}',
+      );
+      if (response?['status'] == true &&
+          response?['data'] is Map<String, dynamic>)
+        return response!['data'] as Map<String, dynamic>;
     } catch (_) {}
     return null;
   }
@@ -570,36 +690,70 @@ class ApiService {
   static Future<Map<String, dynamic>?> createTvSession() async {
     try {
       final response = await _backend('/api/auth/tv/session', body: {});
-      if (response?['status'] == true && response?['data'] is Map<String, dynamic>) return response!['data'] as Map<String, dynamic>;
+      if (response?['status'] == true &&
+          response?['data'] is Map<String, dynamic>)
+        return response!['data'] as Map<String, dynamic>;
     } catch (_) {}
     return null;
   }
 
   /// Poll status of a TV QR login session
-  static Future<Map<String, dynamic>?> checkTvSessionStatus(String token) async {
+  static Future<Map<String, dynamic>?> checkTvSessionStatus(
+    String token,
+  ) async {
     try {
       return await _backend('/api/auth/tv/status', query: {'token': token});
-    } catch (_) { return null; }
+    } catch (_) {
+      return null;
+    }
   }
 
-  static Future<Map<String, dynamic>> login(String email, String password, {String? challengeId, String? code}) async {
-    if (!AppConfig.hasBackend) return {'status': false, 'message': 'Chưa cấu hình BACKEND_URL cho ứng dụng'};
+  static Future<Map<String, dynamic>> login(
+    String email,
+    String password, {
+    String? challengeId,
+    String? code,
+  }) async {
+    if (!AppConfig.hasBackend)
+      return {
+        'status': false,
+        'message': 'Chưa cấu hình BACKEND_URL cho ứng dụng',
+      };
     try {
-      final response = await _backend('/api/auth/login', body: challengeId == null
-          ? {'email': email, 'password': password}
-          : {'challengeId': challengeId, 'code': code});
+      final response = await _backend(
+        '/api/auth/login',
+        body: challengeId == null
+            ? {'email': email, 'password': password}
+            : {'challengeId': challengeId, 'code': code},
+      );
       if (response == null) {
-        final host = Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
-        return {'status': false, 'message': 'Không thể kết nối đến máy chủ ($host)'};
+        final host =
+            Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
+        return {
+          'status': false,
+          'message': 'Không thể kết nối đến máy chủ ($host)',
+        };
       }
       final data = response['data'];
-      if (response['status'] == true && data is Map<String, dynamic> && data['token'] is String && data['user'] is Map<String, dynamic>) {
-        await StorageService.saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
+      if (response['status'] == true &&
+          data is Map<String, dynamic> &&
+          data['token'] is String &&
+          data['user'] is Map<String, dynamic>) {
+        await StorageService.saveSession(
+          data['token'] as String,
+          data['user'] as Map<String, dynamic>,
+        );
       }
       return response;
     } catch (e) {
-      final host = Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
-      return {'status': false, 'message': 'Không thể kết nối máy chủ ($host): ' + e.toString().replaceAll('Exception:', '').trim()};
+      final host =
+          Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
+      return {
+        'status': false,
+        'message':
+            'Không thể kết nối máy chủ ($host): ' +
+            e.toString().replaceAll('Exception:', '').trim(),
+      };
     }
   }
 
@@ -609,7 +763,11 @@ class ApiService {
     String? name,
     String gender = 'male',
   }) async {
-    if (!AppConfig.hasBackend) return {'status': false, 'message': 'Chưa cấu hình BACKEND_URL cho ứng dụng'};
+    if (!AppConfig.hasBackend)
+      return {
+        'status': false,
+        'message': 'Chưa cấu hình BACKEND_URL cho ứng dụng',
+      };
     try {
       final body = <String, dynamic>{
         'email': email.trim(),
@@ -619,40 +777,63 @@ class ApiService {
       };
       final response = await _backend('/api/auth/register', body: body);
       if (response == null) {
-        final host = Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
-        return {'status': false, 'message': 'Không thể kết nối đến máy chủ ($host)'};
+        final host =
+            Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
+        return {
+          'status': false,
+          'message': 'Không thể kết nối đến máy chủ ($host)',
+        };
       }
       final data = response['data'];
-      if (response['status'] == true && data is Map<String, dynamic> && data['token'] is String) {
+      if (response['status'] == true &&
+          data is Map<String, dynamic> &&
+          data['token'] is String) {
         final token = data['token'] as String;
         final user = data['user'] is Map<String, dynamic>
             ? data['user'] as Map<String, dynamic>
-            : <String, dynamic>{'email': email.trim(), 'name': name?.trim() ?? email.trim().split('@')[0]};
+            : <String, dynamic>{
+                'email': email.trim(),
+                'name': name?.trim() ?? email.trim().split('@')[0],
+              };
         await StorageService.saveSession(token, user);
       }
       return response;
     } catch (e) {
-      final host = Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
-      return {'status': false, 'message': 'Không thể kết nối máy chủ ($host): ' + e.toString().replaceAll('Exception:', '').trim()};
+      final host =
+          Uri.tryParse(AppConfig.backendUrl)?.host ?? AppConfig.backendUrl;
+      return {
+        'status': false,
+        'message':
+            'Không thể kết nối máy chủ ($host): ' +
+            e.toString().replaceAll('Exception:', '').trim(),
+      };
     }
   }
+
   /// Fetch App Open Interstitial Banner config from backend
   static Future<AppBannerConfig> getAppBanner() async {
     try {
       final response = await _backend('/api/app-banner');
-      if (response != null && response['status'] == true && response['data'] is Map<String, dynamic>) {
-        return AppBannerConfig.fromJson(response['data'] as Map<String, dynamic>);
+      if (response != null &&
+          response['status'] == true &&
+          response['data'] is Map<String, dynamic>) {
+        return AppBannerConfig.fromJson(
+          response['data'] as Map<String, dynamic>,
+        );
       }
     } catch (e) {
       debugPrint('[ApiService] Failed to fetch app banner: $e');
     }
     return AppBannerConfig.defaults();
   }
+
   /// Fetch in-app update information from backend
   static Future<AppUpdateInfo> getAppUpdate() async {
     try {
       final response = await _backend('/api/app-update');
-      if (response != null && response['status'] == true && response['data'] is Map<String, dynamic>) {
+      if (response != null &&
+          response['status'] == true &&
+          response['data'] is Map<String, dynamic>) {
         return AppUpdateInfo.fromJson(response['data'] as Map<String, dynamic>);
       }
     } catch (e) {

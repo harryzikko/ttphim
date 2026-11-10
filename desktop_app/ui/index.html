@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CineViet Desktop</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="shell">
+    <div class="card">
+      <div class="brand">CINE<span>VIET</span></div>
+      <p class="subtitle">Phiên bản Desktop thử nghiệm (Tauri v2 · Rust)</p>
+
+      <div id="status-pill" class="status-pill">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="status-text">Đang kiểm tra kết nối máy chủ...</span>
+      </div>
+
+      <div class="env-row" role="group" aria-label="Chọn máy chủ">
+        <label class="env-label" for="server-select">Máy chủ:</label>
+        <select id="server-select" class="env-select">
+          <option value="https://cineviet.live" selected>Production (cineviet.live)</option>
+          <option value="http://localhost:3001">Local Dev (localhost:3001)</option>
+        </select>
+      </div>
+
+      <div class="actions">
+        <button id="btn-launch" type="button" class="btn btn-primary">Mở CineViet Ngay</button>
+        <button id="btn-retry" type="button" class="btn btn-secondary">Kiểm tra lại</button>
+        <button id="btn-clear-cache" type="button" class="btn btn-secondary">Xóa Cache WebView</button>
+      </div>
+
+      <p id="meta-line" class="meta">Đang khởi tạo Rust IPC...</p>
+      <p class="support">
+        Hỗ trợ: <a href="mailto:admin@cineviet.live">admin@cineviet.live</a> ·
+        Telegram: <a href="https://t.me/cinevietlivee" target="_blank" rel="noopener noreferrer">@cinevietlivee</a>
+      </p>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
