@@ -4,7 +4,7 @@
   "private": true,
   "description": "CineViet LG webOS Smart TV App (Nocturne Cinema UI)",
   "scripts": {
-    "package": "ares-package --no-minify -o ./output . -e www/node_modules -e output -e node_modules -e package.json -e package-lock.json -e README.md"
+    "package": "node package.cjs"
   },
   "devDependencies": {
     "@webos-tools/cli": "^3.2.6"
