@@ -1,0 +1,21 @@
+{
+  "id": "live.cineviet.webos",
+  "version": "1.0.0",
+  "vendor": "CineViet",
+  "type": "web",
+  "main": "index.html",
+  "title": "CineViet",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "splashBackground": "splashBackground.png",
+  "bgColor": "#0B0D13",
+  "iconColor": "#E50914",
+  "resolution": "1920x1080",
+  "handlesRelaunch": true,
+  "disableBackHistoryAPI": true,
+  "requiredACG": [],
+  "supportsAudioGuidance": false,
+  "accessibility": {
+    "supportsAudioGuidance": false
+  }
+}

@@ -1,0 +1,51 @@
+name: Build CineViet LG webOS TV (.ipk)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'webos_app/**'
+      - '.github/workflows/build-webos.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-webos:
+    name: Build webOS IPK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Package LG webOS IPK
+        working-directory: webos_app
+        run: |
+          npm install
+          npm run package
+          ls -lh output/
+
+      - name: Prepare normalized release asset
+        run: |
+          mkdir -p release-files
+          IPK=$(find webos_app/output -name "*.ipk" | head -n 1)
+          [ -n "$IPK" ]
+          cp "$IPK" release-files/CineViet-webOS-TV.ipk
+          ls -lh release-files/
+
+      - name: Publish to GitHub Release
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "CineViet Bản Cập Nhật Mới Nhất"
+          draft: false
+          prerelease: false
+          files: release-files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

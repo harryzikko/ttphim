@@ -78,6 +78,21 @@ app.use(require('./services/pageAccess'));
 // View Routes
 app.use('/', viewRoutes);
 
+// LG webOS TV Web App (Nocturne Cinema 10ft interface)
+app.use('/webos', (req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  next();
+}, express.static(path.resolve(__dirname, '../webos_app/www'), {
+  index: 'index.html',
+  setHeaders(res, filePath) {
+    if (path.extname(filePath).toLowerCase() === '.html') {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  }
+}));
+
 // Static Files (disabled automatic index.html interception)
 app.use(express.static(config.PUBLIC_DIR, {
   index: false,

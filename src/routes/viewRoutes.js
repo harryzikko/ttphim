@@ -37,7 +37,7 @@ router.get('/.well-known/assetlinks.json', (req, res) => {
 });
 router.get('/robots.txt', (req, res) => {
   const origin = seo.originOf(config.PUBLIC_ORIGIN);
-  res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /tu-phim\nDisallow: /auth\nDisallow: /dang-nhap\nDisallow: /dang-ky\nDisallow: /tv-auth\nDisallow: /tv-login\nDisallow: /tv-dang-nhap\nDisallow: /tv/\n${origin ? `Sitemap: ${origin}/sitemap.xml\n` : ''}`);
+  res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /tu-phim\nDisallow: /auth\nDisallow: /dang-nhap\nDisallow: /dang-ky\nDisallow: /tv-auth\nDisallow: /tv-login\nDisallow: /tv-dang-nhap\nDisallow: /tv/\nDisallow: /webos/\n${origin ? `Sitemap: ${origin}/sitemap.xml\n` : ''}`);
 });
 router.get('/sitemap.xml', async (req, res) => {
   if (!seo.originOf(config.PUBLIC_ORIGIN)) return res.status(503).set('Retry-After', '300').type('text').send('Configure PUBLIC_ORIGIN to publish the sitemap.');

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920, initial-scale=1.0" />
+  <title>CineViet TV — LG webOS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      background: #0B0D13;
+      color: #F8FAFC;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+    .splash {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 42%, rgba(229, 9, 20, 0.16), #0B0D13 62%);
+    }
+    .logo {
+      font-size: 72px;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      margin-bottom: 18px;
+    }
+    .logo span { color: #E50914; }
+    .subtitle {
+      color: #94A3B8;
+      font-size: 24px;
+      margin-bottom: 42px;
+    }
+    .spinner {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.12);
+      border-top-color: #E50914;
+      animation: spin 0.9s linear infinite;
+    }
+    .error-box {
+      display: none;
+      margin-top: 28px;
+      text-align: center;
+      max-width: 720px;
+    }
+    .error-msg {
+      color: #FCA5A5;
+      font-size: 22px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 16px 38px;
+      border-radius: 999px;
+      background: #E50914;
+      color: #FFFFFF;
+      font-size: 22px;
+      font-weight: 700;
+      border: 3px solid #FFFFFF;
+      cursor: pointer;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="splash">
+    <div class="logo">Cine<span>Viet</span></div>
+    <div class="subtitle" id="status-text">Đang kết nối rạp phim Smart TV…</div>
+    <div class="spinner" id="spinner"></div>
+    <div class="error-box" id="error-box">
+      <div class="error-msg" id="error-msg">Không kết nối được tới máy chủ CineViet. Vui lòng kiểm tra kết nối mạng trên TV.</div>
+      <button class="btn" id="retry-btn" tabindex="0">Thử kết nối lại</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var TARGET_URL = 'https://cineviet.live/webos/?platform=webos';
+      var HEALTH_URL = 'https://cineviet.live/api/health';
+      var retryBtn = document.getElementById('retry-btn');
+      var spinner = document.getElementById('spinner');
+      var errorBox = document.getElementById('error-box');
+      var statusText = document.getElementById('status-text');
+
+      function showError(msg) {
+        spinner.style.display = 'none';
+        errorBox.style.display = 'block';
+        statusText.textContent = 'Mất kết nối máy chủ';
+        if (msg) document.getElementById('error-msg').textContent = msg;
+        retryBtn.focus();
+      }
+
+      function launch() {
+        spinner.style.display = 'block';
+        errorBox.style.display = 'none';
+        statusText.textContent = 'Đang kết nối rạp phim Smart TV…';
+        var done = false;
+        var timer = setTimeout(function () {
+          if (!done) {
+            done = true;
+            showError('Máy chủ phản hồi chậm. Nhấn OK để thử lại.');
+          }
+        }, 9000);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', HEALTH_URL, true);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState !== 4 || done) return;
+          done = true;
+          clearTimeout(timer);
+          if (xhr.status >= 200 && xhr.status < 400) {
+            window.location.replace(TARGET_URL);
+          } else {
+            showError('Máy chủ tạm thời gián đoạn (HTTP ' + xhr.status + '). Vui lòng thử lại.');
+          }
+        };
+        xhr.onerror = function () {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          showError('Không thể kết nối mạng hoặc DNS tới cineviet.live.');
+        };
+        xhr.send();
+      }
+
+      retryBtn.addEventListener('click', launch);
+      window.addEventListener('keydown', function (e) {
+        var code = e.keyCode || e.which;
+        if (code === 13) launch();
+        if (code === 461 || code === 27) {
+          if (window.webOS && window.webOS.platformBack) window.webOS.platformBack();
+          else window.close();
+        }
+      });
+
+      launch();
+    })();
+  </script>
+</body>
+</html>

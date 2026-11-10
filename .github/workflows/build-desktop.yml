@@ -98,17 +98,17 @@ jobs:
           APPIMAGE_ABS=$(realpath "$APPIMAGE_PATH")
           WORK_DIR=$(mktemp -d)
           cd "$WORK_DIR"
+          chmod +x "$APPIMAGE_ABS"
           "$APPIMAGE_ABS" --appimage-extract >/dev/null
           # Tauri v2 (WebKitGTK 4.1) links libsoup-3.0; GStreamer's libgstsoup pulls libsoup-2.4 and aborts WebKitWebProcess.
           rm -f squashfs-root/usr/lib/gstreamer-1.0/libgstsoup.so squashfs-root/usr/lib/libsoup-2.4*
+          chmod -R a+rX squashfs-root
+          chmod a+rx squashfs-root/AppRun squashfs-root/usr/bin/*
           if [ -f squashfs-root/usr/lib/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner ]; then
-            chmod +x squashfs-root/usr/lib/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner
+            chmod a+rx squashfs-root/usr/lib/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner
           fi
-          APPIMAGETOOL=$(find "$HOME/.cache/tauri" -name "appimagetool*.AppImage" | head -n 1 || true)
-          if [ -z "$APPIMAGETOOL" ]; then
-            APPIMAGETOOL="$WORK_DIR/appimagetool-x86_64.AppImage"
-            curl -fL "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" -o "$APPIMAGETOOL"
-          fi
+          APPIMAGETOOL="$WORK_DIR/appimagetool-x86_64.AppImage"
+          curl -fL -sS "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" -o "$APPIMAGETOOL"
           chmod +x "$APPIMAGETOOL"
           ARCH=x86_64 "$APPIMAGETOOL" --appimage-extract-and-run --no-appstream squashfs-root "$APPIMAGE_ABS.patched"
           mv "$APPIMAGE_ABS.patched" "$APPIMAGE_ABS"
