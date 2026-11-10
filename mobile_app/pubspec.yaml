@@ -28,6 +28,7 @@ dependencies:
   path_provider: ^2.1.4
   screen_brightness: 2.1.1
   volume_controller: 3.4.1
+  wakelock_plus: ^1.2.8
 
 dependency_overrides:
   package_info_plus: 8.1.0

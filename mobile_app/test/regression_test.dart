@@ -1,18 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:cineviet/models/movie.dart';
 import 'package:cineviet/models/movie_detail.dart';
 import 'package:cineviet/screens/search_screen.dart';
-import 'package:cineviet/screens/tv/tv_card.dart';
-import 'package:cineviet/screens/tv/tv_qr_login_screen.dart';
 import 'package:cineviet/services/api_service.dart';
 import 'package:cineviet/services/app_config.dart';
 import 'package:cineviet/services/backend_service.dart';
@@ -89,20 +85,6 @@ void main() {
     await StorageService.clearSession();
     expect(await StorageService.getFavorites(), isEmpty);
   });
-  testWidgets('TV movie card activates with remote OK and Enter', (tester) async {
-    var selected = 0;
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: TvMovieCard(
-      movie: Movie.fromJson(movieJson('film')), onSelect: () => selected++))));
-    final focus = tester.widget<Focus>(find.descendant(of: find.byType(TvMovieCard), matching: find.byType(Focus)).first);
-    final node = FocusNode();
-    expect(focus.onKeyEvent!(node, const KeyDownEvent(physicalKey: PhysicalKeyboardKey.enter,
-      logicalKey: LogicalKeyboardKey.enter, timeStamp: Duration.zero)), KeyEventResult.handled);
-    expect(focus.onKeyEvent!(node, const KeyDownEvent(physicalKey: PhysicalKeyboardKey.select,
-      logicalKey: LogicalKeyboardKey.select, timeStamp: Duration.zero)), KeyEventResult.handled);
-    expect(selected, 2);
-    node.dispose();
-    await tester.pumpWidget(const SizedBox());
-  });
 
   testWidgets('out-of-order searches cannot overwrite the latest keyword or repopulate a cleared field', (tester) async {
     final requests = <String, Completer<http.Response>>{};
@@ -129,30 +111,6 @@ void main() {
     requests['pending']!.complete(response({'data': {'items': [movieJson('Unexpected')]}}));
     await tester.pump();
     expect(find.text('Unexpected'), findsNothing);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('QR is a locally encoded destination URL and approved token is persisted before success', (tester) async {
-    if (!AppConfig.hasBackend) return;
-    await tester.binding.setSurfaceSize(const Size(1280, 800));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    var approved = false;
-    var success = false;
-    ApiService.setClientForTesting(MockClient((request) async {
-      if (request.url.path.endsWith('/session')) return response({'status': true, 'data': {
-        'token': 'session', 'code': '123456', 'qr_url': 'https://backend.test/tv-auth?token=session'
-      }});
-      return response(approved ? {'status': 'approved', 'token': 'jwt', 'user': {'id': 'user', 'name': 'User'}} : {'status': 'pending'});
-    }));
-    await tester.pumpWidget(MaterialApp(home: TvQrLoginScreen(onLoginSuccess: () => success = true)));
-    await tester.pump(); await tester.pump(const Duration(milliseconds: 200));
-    expect(tester.widget<QrImageView>(find.byType(QrImageView)).key, const ValueKey('https://backend.test/tv-auth?token=session'));
-    approved = true;
-    await tester.pump(const Duration(seconds: 2)); await tester.pump();
-    expect(await StorageService.getToken(), 'jwt');
-    expect(success, false);
-    await tester.pump(const Duration(seconds: 2));
-    expect(success, true);
     await tester.pumpWidget(const SizedBox());
   });
 

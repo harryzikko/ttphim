@@ -11,6 +11,7 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:volume_controller/volume_controller.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/api_service.dart';
@@ -43,7 +44,8 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMixin {
+class _PlayerScreenState extends State<PlayerScreen>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late Movie _activeMovie;
   late List<ServerItem> _activeServers;
   List<Map<String, dynamic>> _seasons = [];
@@ -130,10 +132,12 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   int _selectedEpisodeTab = 0;
   static const int _episodesPerPage = 25;
   int _playerGeneration = 0;
+  bool _isWakelockEnabled = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _activeMovie = widget.movie;
     _activeServers = widget.servers;
     _currentServer = widget.initialServer;
@@ -142,15 +146,53 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     _loadInitialState();
     _initSystemAudioAndBrightness();
     _initPlayer();
+    _syncWakelock(force: true);
 
     // Periodic watch history saving every 10 seconds
     _historyTimer = Timer.periodic(const Duration(seconds: 10), (_) => _saveProgress());
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncWakelock(force: true);
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      unawaited(_applyWakelock(false, force: true));
+    }
+  }
+
+  bool _shouldKeepScreenAwake() {
+    if (!mounted) return false;
+    if (_isPlayerInitializing || _isEmbedMode || _isShowingNextPrompt) {
+      return true;
+    }
+    final controller = _videoPlayerController;
+    if (controller == null) return false;
+    final val = controller.value;
+    return val.isPlaying || val.isBuffering;
+  }
+
+  void _syncWakelock({bool force = false}) {
+    unawaited(_applyWakelock(_shouldKeepScreenAwake(), force: force));
+  }
+
+  Future<void> _applyWakelock(bool enable, {bool force = false}) async {
+    if (!force && _isWakelockEnabled == enable) return;
+    _isWakelockEnabled = enable;
+    try {
+      if (enable) {
+        await WakelockPlus.enable();
+      } else {
+        await WakelockPlus.disable();
+      }
+    } catch (_) {}
+  }
+
+  @override
   void deactivate() {
     _saveProgress();
     _videoPlayerController?.pause();
+    unawaited(_applyWakelock(false, force: true));
     try {
       _webViewController?.runJavaScript(
         "var v=document.querySelectorAll('video'); for(var i=0;i<v.length;i++) v[i].pause();"
@@ -162,8 +204,10 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _saveProgress();
     _videoPlayerController?.pause();
+    unawaited(_applyWakelock(false, force: true));
     try {
       _webViewController?.runJavaScript(
         "var v=document.querySelectorAll('video'); for(var i=0;i<v.length;i++) v[i].pause();"
@@ -189,17 +233,20 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     _videoPlayerController?.removeListener(_videoListener);
     _videoPlayerController?.dispose();
 
-    try {
-      ScreenBrightness.instance.resetApplicationScreenBrightness();
-    } catch (_) {}
+    unawaited(
+      ScreenBrightness.instance.resetApplicationScreenBrightness().catchError((_) {}),
+    );
 
     super.dispose();
   }
 
   Future<void> _initSystemAudioAndBrightness() async {
     try {
-      final currentBrightness = await ScreenBrightness.instance.application;
-      if (mounted && currentBrightness > 0) {
+      double currentBrightness = await ScreenBrightness.instance.application;
+      if (currentBrightness < 0) {
+        currentBrightness = await ScreenBrightness.instance.system;
+      }
+      if (mounted && currentBrightness >= 0) {
         setState(() => _brightness = currentBrightness.clamp(0.05, 1.0));
       }
     } catch (_) {}
@@ -391,6 +438,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   void _handleExitPlayer() {
     _saveProgress();
     _videoPlayerController?.pause();
+    unawaited(_applyWakelock(false, force: true));
     try {
       _webViewController?.runJavaScript(
         "var v=document.querySelectorAll('video'); for(var i=0;i<v.length;i++) v[i].pause();"
@@ -436,6 +484,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         }
       });
     }
+    _syncWakelock(force: true);
     HapticFeedback.lightImpact();
   }
 
@@ -507,6 +556,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       _webDuration = Duration.zero;
       _webIsPlaying = false;
     });
+    _syncWakelock(force: true);
 
     try {
       final resolvedUrl = EmbedPolicy.resolveUrl(embedUrl);
@@ -672,11 +722,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         },
       );
       _webViewController = controller;
+      _syncWakelock(force: true);
     } catch (e) {
       if (mounted) {
         setState(() {
+          _isEmbedMode = false;
           _errorMessage = 'Không thể khởi tạo Web Embed Player: $e';
         });
+        _syncWakelock();
       }
     }
   }
@@ -695,6 +748,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       _webDuration = Duration.zero;
       _webIsPlaying = false;
     });
+    _syncWakelock();
 
     _nextCountdownTimer?.cancel();
     final previous = _videoPlayerController;
@@ -735,6 +789,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           _isPlayerInitializing = false;
           _errorMessage = 'Tập phim này hiện chưa có luồng phát trực tiếp.';
         });
+        _syncWakelock();
         return;
       }
     }
@@ -790,6 +845,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           _videoPlayerController = ctrl;
           _isPlayerInitializing = false;
         });
+        _syncWakelock(force: true);
         _resetControlsTimer();
       }
     } catch (e) {
@@ -803,6 +859,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
             _isPlayerInitializing = false;
             _errorMessage = 'Không thể tải luồng video HLS: $e';
           });
+          _syncWakelock();
         }
       }
     }
@@ -816,6 +873,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   void _videoListener() {
     if (!mounted || _videoPlayerController == null) return;
     final val = _videoPlayerController!.value;
+    _syncWakelock();
 
     if (val.isInitialized && val.duration > Duration.zero) {
       if (val.position >= val.duration - const Duration(seconds: 1) && !_isShowingNextPrompt) {
@@ -999,6 +1057,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           newCtrl.addListener(_videoListener);
           await newCtrl.seekTo(currentPos);
           if (wasPlaying) await newCtrl.play();
+          _syncWakelock(force: true);
         }
       } catch (e) {
         debugPrint('Audio track switch error: $e');
@@ -1100,9 +1159,11 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         _brightness = newBrightness;
         _showBrightnessHud = true;
       });
-      try {
-        ScreenBrightness.instance.setApplicationScreenBrightness(newBrightness);
-      } catch (_) {}
+      unawaited(
+        ScreenBrightness.instance
+            .setApplicationScreenBrightness(newBrightness)
+            .catchError((_) {}),
+      );
     } else {
       // Synchronize with System Media Audio Volume Hardware
       final newVolume = (_volume + delta).clamp(0.0, 1.0);
@@ -1406,15 +1467,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
             else
               Container(color: Colors.black),
 
-            // 2. BRIGHTNESS SIMULATOR FILTER
-            if (_brightness < 1.0 && !_isEmbedMode)
-              IgnorePointer(
-                child: Container(
-                  color: Colors.black.withOpacity((1.0 - _brightness).clamp(0.0, 0.85)),
-                ),
-              ),
-
-            // 3. GESTURE DETECTOR FOR TAP, DOUBLE-TAP & VERTICAL/HORIZONTAL SWIPES
+            // 2. GESTURE DETECTOR FOR TAP, DOUBLE-TAP & VERTICAL/HORIZONTAL SWIPES
             if (!_isEmbedMode)
               Positioned.fill(
                 child: GestureDetector(
@@ -3001,6 +3054,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       if (_sleepRemainingSeconds <= 1) {
         t.cancel();
         _videoPlayerController?.pause();
+        unawaited(_applyWakelock(false, force: true));
         SystemNavigator.pop(); // Close app safely
       } else {
         setState(() => _sleepRemainingSeconds--);

@@ -1,6 +1,10 @@
 package live.cineviet.tv.ui.screens.player
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.view.KeyEvent
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.compose.animation.*
@@ -37,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -107,6 +112,7 @@ fun TvPlayerScreen(
         ExoPlayer.Builder(context).build().apply {
             playWhenReady = true
             repeatMode = Player.REPEAT_MODE_OFF
+            setWakeMode(C.WAKE_MODE_NETWORK)
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
                     isBuffering = (state == Player.STATE_BUFFERING)
@@ -152,6 +158,21 @@ fun TvPlayerScreen(
                 }
             }
             exoPlayer.release()
+        }
+    }
+
+    // Keep TV screen awake during playback, buffering, or initial load to prevent OS dim / screensaver
+    val keepScreenAwake = isPlaying || isBuffering || isLoadingMovie
+    val activity = remember(context) { context.findActivity() }
+    DisposableEffect(activity, keepScreenAwake) {
+        val window = activity?.window
+        if (keepScreenAwake) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 
@@ -260,9 +281,12 @@ fun TvPlayerScreen(
 
             if (ep != null) {
                 playEpisode(ep, initialSeekMs = resumeSeekMs)
+            } else {
+                isBuffering = false
             }
         }.onFailure {
             isLoadingMovie = false
+            isBuffering = false
         }
     }
 
@@ -419,10 +443,16 @@ fun TvPlayerScreen(
                 PlayerView(ctx).apply {
                     player = exoPlayer
                     useController = false
+                    keepScreenOn = keepScreenAwake
                     layoutParams = FrameLayout.LayoutParams(
                         android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                         android.view.ViewGroup.LayoutParams.MATCH_PARENT
                     )
+                }
+            },
+            update = { playerView ->
+                if (playerView.keepScreenOn != keepScreenAwake) {
+                    playerView.keepScreenOn = keepScreenAwake
                 }
             },
             modifier = Modifier.fillMaxSize()
@@ -1170,4 +1200,10 @@ private fun formatPlayerTime(timeMs: Long): String {
     } else {
         String.format("%02d:%02d", minutes, seconds)
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
