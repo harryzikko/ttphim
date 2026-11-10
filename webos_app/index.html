@@ -64,8 +64,13 @@
       color: #FFFFFF;
       font-size: 22px;
       font-weight: 700;
-      border: 3px solid #FFFFFF;
+      border: 3px solid rgba(255, 255, 255, 0.85);
       cursor: pointer;
+    }
+    .btn:focus {
+      outline: none;
+      border-color: #FFFFFF;
+      box-shadow: 0 0 26px rgba(229, 9, 20, 0.65);
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
@@ -93,11 +98,30 @@
       var statusText = document.getElementById('status-text');
       var busy = false;
 
+      function exitApp() {
+        if (window.webOS && typeof window.webOS.platformBack === 'function') {
+          window.webOS.platformBack();
+        } else if (window.webOSSystem && typeof window.webOSSystem.platformBack === 'function') {
+          window.webOSSystem.platformBack();
+        } else if (window.PalmSystem && typeof window.PalmSystem.platformBack === 'function') {
+          window.PalmSystem.platformBack();
+        } else {
+          window.close();
+        }
+      }
+
+      function isDesktopSimulator() {
+        if (window.location.search && window.location.search.indexOf('dev=1') !== -1) return true;
+        if (window.location.protocol !== 'file:') return false;
+        var p = window.location.pathname || '';
+        return /^\/[A-Za-z]:\//.test(p) || p.indexOf('/Users/') === 0;
+      }
+
       function showError(msg) {
         busy = false;
         spinner.style.display = 'none';
         errorBox.style.display = 'block';
-        statusText.textContent = 'Mất kết nối máy chủ';
+        statusText.textContent = 'Không thể kết nối máy chủ';
         if (msg) document.getElementById('error-msg').textContent = msg;
         retryBtn.focus();
       }
@@ -138,30 +162,37 @@
         errorBox.style.display = 'none';
         statusText.textContent = 'Đang kết nối rạp phim Smart TV…';
 
-        probeScript(PROD_BASE + '/probe.js', 5500, function (prodOk) {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false && !isDesktopSimulator()) {
+          showError('TV chưa có kết nối Internet. Vui lòng kiểm tra Wi-Fi hoặc dây mạng LAN rồi nhấn OK để thử lại.');
+          return;
+        }
+
+        probeScript(PROD_BASE + '/probe.js', 7000, function (prodOk) {
           if (prodOk) {
             window.location.replace(PROD_BASE + QUERY);
             return;
           }
-          statusText.textContent = 'Đang tìm máy chủ thử nghiệm local…';
-          probeScript(LOCAL_BASE + '/probe.js', 2500, function (localOk) {
-            if (localOk) {
-              window.location.replace(LOCAL_BASE + QUERY);
-              return;
-            }
-            showError('Chưa kết nối được cineviet.live/webos/ hoặc máy chủ thử nghiệm local (127.0.0.1:3001). Vui lòng kiểm tra lại và nhấn OK.');
-          });
+          if (isDesktopSimulator()) {
+            statusText.textContent = 'Đang kết nối máy chủ thử nghiệm local…';
+            probeScript(LOCAL_BASE + '/probe.js', 2500, function (localOk) {
+              if (localOk) {
+                window.location.replace(LOCAL_BASE + QUERY);
+                return;
+              }
+              showError('Không thể kết nối tới CineViet TV. Vui lòng kiểm tra kết nối mạng và nhấn OK để thử lại.');
+            });
+            return;
+          }
+          showError('Không thể kết nối tới máy chủ CineViet. Vui lòng kiểm tra Internet trên TV và nhấn OK để thử lại.');
         });
       }
 
       retryBtn.addEventListener('click', launch);
+      document.addEventListener('webOSRelaunch', launch);
       window.addEventListener('keydown', function (e) {
         var code = e.keyCode || e.which;
         if (code === 13) launch();
-        if (code === 461 || code === 27) {
-          if (window.webOS && window.webOS.platformBack) window.webOS.platformBack();
-          else window.close();
-        }
+        if (code === 461 || code === 27 || code === 8) exitApp();
       });
 
       launch();

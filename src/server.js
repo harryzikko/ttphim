@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const helmet = require('helmet');
@@ -92,6 +93,20 @@ app.use('/webos', (req, res, next) => {
     }
   }
 }));
+
+// Always resolve CineViet LG webOS TV package (.ipk) cleanly even before manual download sync
+app.get('/downloads/CineViet-webOS-TV.ipk', (req, res) => {
+  const staticIpk = path.join(config.PUBLIC_DIR, 'downloads', 'CineViet-webOS-TV.ipk');
+  if (fs.existsSync(staticIpk)) {
+    return res.download(staticIpk, 'CineViet-webOS-TV.ipk');
+  }
+  const outputDir = path.resolve(__dirname, '../webos_app/output');
+  if (fs.existsSync(outputDir)) {
+    const built = fs.readdirSync(outputDir).find(name => name.endsWith('.ipk'));
+    if (built) return res.download(path.join(outputDir, built), 'CineViet-webOS-TV.ipk');
+  }
+  return res.redirect(302, 'https://github.com/harryzikko/ttphim/releases/download/latest/CineViet-webOS-TV.ipk');
+});
 
 // Static Files (disabled automatic index.html interception)
 app.use(express.static(config.PUBLIC_DIR, {

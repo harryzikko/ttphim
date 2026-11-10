@@ -118,7 +118,9 @@ html, body {
 .tv-nav {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+}
+.tv-nav > * + * {
+  margin-top: 12px;
 }
 
 .tv-nav-item {
@@ -131,10 +133,12 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
   padding: 0 14px;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, transform 140ms ease, border-color 140ms ease;
+}
+.tv-nav-item > * + * {
+  margin-left: 14px;
 }
 
 .tv-sidebar.expanded .tv-nav-item {
@@ -367,8 +371,10 @@ html, body {
 .tv-hero-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
   margin-top: 8px;
+}
+.tv-hero-actions > * + * {
+  margin-left: 16px;
 }
 
 .tv-btn {
@@ -404,7 +410,9 @@ html, body {
   bottom: 42px;
   z-index: 3;
   display: flex;
-  gap: 8px;
+}
+.tv-hero-dots > * + * {
+  margin-left: 8px;
 }
 
 .tv-hero-dot {
@@ -429,7 +437,9 @@ html, body {
   padding: 0 44px 14px 44px;
   display: flex;
   align-items: baseline;
-  gap: 14px;
+}
+.tv-section-head > * + * {
+  margin-left: 14px;
 }
 
 .tv-section-sub {
@@ -448,11 +458,13 @@ html, body {
 
 .tv-rail {
   display: flex;
-  gap: 18px;
   overflow-x: auto;
   overflow-y: visible;
   padding: 12px 44px 18px 44px;
   scroll-behavior: smooth;
+}
+.tv-rail > * + * {
+  margin-left: 18px;
 }
 
 /* MOVIE CARD (matches TvMovieCard.kt) */
@@ -696,7 +708,10 @@ html, body {
 .tv-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  margin-bottom: -10px;
+}
+.tv-chips > * {
+  margin: 0 10px 10px 0;
 }
 
 .tv-chip {
@@ -823,8 +838,10 @@ html, body {
 
 .tv-code-digits {
   display: flex;
-  gap: 12px;
   margin: 20px 0;
+}
+.tv-code-digits > * + * {
+  margin-left: 12px;
 }
 
 .tv-digit {
@@ -925,13 +942,17 @@ html, body {
   padding: 36px 56px 64px 56px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+}
+.tv-detail-body > * + * {
+  margin-top: 30px;
 }
 
 .tv-detail-top {
   display: flex;
-  gap: 36px;
   align-items: flex-end;
+}
+.tv-detail-top > * + * {
+  margin-left: 36px;
 }
 
 .tv-detail-poster {
@@ -954,7 +975,9 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+}
+.tv-detail-info > * + * {
+  margin-top: 14px;
 }
 
 .tv-ep-grid {
@@ -1058,7 +1081,9 @@ html, body {
 .tv-hud-group {
   display: flex;
   align-items: center;
-  gap: 14px;
+}
+.tv-hud-group > * + * {
+  margin-left: 14px;
 }
 
 .tv-player-drawer {
@@ -1093,5 +1118,7 @@ html, body {
   padding: 34px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+}
+.tv-modal-box > * + * {
+  margin-top: 18px;
 }

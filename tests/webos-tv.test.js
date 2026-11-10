@@ -53,7 +53,13 @@ function createTestServer() {
     status: true,
     data: {
       movie: { slug: req.params.slug, name: 'Siêu Phẩm Đêm', origin_name: 'Nightfall', quality: '4K', year: 2026, content: '<p>Nội dung test TV.</p>', category: [{ name: 'Hành Động' }] },
-      episodes: [{ server_name: 'Vietsub HLS', server_data: [{ slug: 'tap-1', name: 'Tập 01', link_m3u8: '', link_embed: 'about:blank' }] }],
+      episodes: [{
+        server_name: 'Vietsub HLS',
+        server_data: [
+          { slug: 'tap-1', name: 'Tập 01', link_m3u8: '', link_embed: 'about:blank' },
+          { slug: 'tap-2', name: 'Tập 02', link_m3u8: '', link_embed: 'about:blank' }
+        ]
+      }],
       inWatchlist: false,
       watchedHistory: null
     }
@@ -98,9 +104,16 @@ test('webos_app manifest, icons and offline launcher assets are valid', () => {
   assert.equal(manifest.main, 'index.html');
   assert.equal(manifest.resolution, '1920x1080');
   assert.equal(manifest.disableBackHistoryAPI, true);
-  for (const rel of ['icon.png', 'largeIcon.png', 'splashBackground.png', 'index.html', 'www/index.html', 'www/vendor/hls.min.js', 'www/js/app.js', 'www/js/spatial.js', 'www/js/player.js', 'www/js/api.js', 'www/css/webos-tv.css']) {
+  for (const rel of ['icon.png', 'largeIcon.png', 'splashBackground.png', 'index.html', 'www/index.html', 'www/probe.js', 'www/vendor/hls.min.js', 'www/js/app.js', 'www/js/spatial.js', 'www/js/player.js', 'www/js/api.js', 'www/css/webos-tv.css']) {
     assert.ok(fs.existsSync(path.join(root, 'webos_app', rel)), `Missing webOS file: ${rel}`);
   }
+  const launcherHtml = fs.readFileSync(path.join(root, 'webos_app', 'index.html'), 'utf8');
+  assert.match(launcherHtml, /webOSSystem/);
+  assert.match(launcherHtml, /isDesktopSimulator/);
+  const downloadHtml = fs.readFileSync(path.join(root, 'public', 'tai-ung-dung.html'), 'utf8');
+  assert.match(downloadHtml, /guide-content-webos/);
+  assert.match(downloadHtml, /link-download-webos/);
+  assert.match(downloadHtml, /CineViet-webOS-TV\.ipk/);
 });
 
 test('LG webOS TV app renders Nocturne Cinema UI, supports D-Pad & 461 Back key, virtual search and QR auth', async () => {
@@ -144,15 +157,31 @@ test('LG webOS TV app renders Nocturne Cinema UI, supports D-Pad & 461 Back key,
     await page.waitForSelector('#tv-detail-play');
     assert.equal(await page.textContent('#tv-detail-layer h1'), 'Siêu Phẩm Đêm');
 
-    // Launch Player & press LG webOS Back key (keyCode 461)
+    // Launch Player -> Next Episode button visible on multi-ep -> press LG Back (keyCode 461)
     await page.click('#tv-detail-play');
     await page.waitForSelector('#tv-player-hud');
+    await page.waitForSelector('#tv-btn-next:not(.hidden)');
+    await page.evaluate(() => {
+      document.getElementById('tv-video').dispatchEvent(new Event('ended'));
+    });
+    await page.waitForSelector('#tv-next-prompt:not(.hidden)');
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 461, which: 461, bubbles: true })));
+    await page.waitForSelector('#tv-next-prompt.hidden', { state: 'attached' });
     await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 461, which: 461, bubbles: true })));
     await page.waitForFunction(() => document.getElementById('tv-player-layer').classList.contains('hidden'));
 
     // Another Back (461) closes Detail overlay cleanly
     await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 461, which: 461, bubbles: true })));
     await page.waitForFunction(() => document.getElementById('tv-detail-layer').classList.contains('hidden'));
+
+    // Verify TvSpatial.platformBack() delegates to native webOSSystem.platformBack on real LG TVs
+    const calledPlatformBack = await page.evaluate(() => {
+      let called = false;
+      window.webOSSystem = { platformBack: () => { called = true; } };
+      window.TvSpatial.platformBack();
+      return called;
+    });
+    assert.equal(calledPlatformBack, true);
 
     // Account QR login renders 6 digits & auto-approves on poll
     await page.click('.tv-nav-item[data-nav="account"]');

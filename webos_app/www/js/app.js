@@ -161,12 +161,12 @@
   }
 
   function wireStageCardClicks(stage) {
-    stage.querySelectorAll('.tv-card[data-slug]').forEach(function (card) {
+    Spatial.eachNode(stage, '.tv-card[data-slug]', function (card) {
       card.addEventListener('click', function () {
         openDetail(card.getAttribute('data-slug'));
       });
     });
-    stage.querySelectorAll('.tv-cw-card[data-cw-idx]').forEach(function (card) {
+    Spatial.eachNode(stage, '.tv-cw-card[data-cw-idx]', function (card) {
       card.addEventListener('click', function () {
         var idx = Number(card.getAttribute('data-cw-idx'));
         var item = appState.history[idx];
@@ -356,7 +356,7 @@
       }, 280);
     }
 
-    stage.querySelectorAll('.tv-key').forEach(function (btn) {
+    Spatial.eachNode(stage, '.tv-key', function (btn) {
       btn.addEventListener('click', function () {
         var ch = btn.getAttribute('data-key');
         var act = btn.getAttribute('data-act');
@@ -368,7 +368,7 @@
       });
     });
 
-    stage.querySelectorAll('.tv-chip').forEach(function (chip) {
+    Spatial.eachNode(stage, '.tv-chip', function (chip) {
       chip.addEventListener('click', function () {
         appState.searchQuery = chip.getAttribute('data-chip') || '';
         triggerSearch();
@@ -546,6 +546,29 @@
     Spatial.focusSelector('#tv-cw-resume', modal);
   }
 
+  function showNotice(title, message) {
+    var modal = document.getElementById('tv-modal-layer');
+    if (!modal) return;
+    modal.innerHTML =
+      '<div class="tv-modal-box">' +
+      '  <h2 style="font-size:22px;font-weight:900;">' + esc(title || 'Thông báo') + '</h2>' +
+      '  <div style="color:#CBD5E1;font-size:16px;line-height:1.5;">' + esc(message) + '</div>' +
+      '  <div style="display:flex;justify-content:flex-end;margin-top:8px;">' +
+      '    <button class="tv-btn tv-btn-primary" id="tv-notice-ok" data-focusable="true">Đóng</button>' +
+      '  </div>' +
+      '</div>';
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.getElementById('tv-notice-ok').addEventListener('click', function () {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+      modal.innerHTML = '';
+      var detail = document.getElementById('tv-detail-layer');
+      Spatial.focusFirst((detail && !detail.classList.contains('hidden')) ? detail : document.getElementById('tv-stage'));
+    });
+    Spatial.focusSelector('#tv-notice-ok', modal);
+  }
+
   function openDirectPlay(slug, epSlug, startSec) {
     Api.getMovieDetail(slug).then(function (data) {
       Api.trackView(slug);
@@ -566,7 +589,9 @@
           }
         }
       });
-    }).catch(function () {});
+    }).catch(function (err) {
+      showNotice('Không phát được phim', (err && err.message) ? err.message : 'Vui lòng thử lại hoặc mở chi tiết để chọn server khác.');
+    });
   }
 
   function openDetail(slug) {
@@ -646,13 +671,13 @@
           });
         });
 
-        layer.querySelectorAll('[data-det-srv]').forEach(function (btn) {
+        Spatial.eachNode(layer, '[data-det-srv]', function (btn) {
           btn.addEventListener('click', function () {
             selectedServer = Number(btn.getAttribute('data-det-srv'));
             renderDetailView();
           });
         });
-        layer.querySelectorAll('[data-det-ep]').forEach(function (btn) {
+        Spatial.eachNode(layer, '[data-det-ep]', function (btn) {
           btn.addEventListener('click', function () {
             var epSlug = btn.getAttribute('data-det-ep');
             var startSec = (history && history.episode_slug === epSlug) ? (Number(history.current_time) || 0) : 0;
@@ -705,8 +730,7 @@
     }
     document.getElementById('tv-exit-cancel').addEventListener('click', closeM);
     document.getElementById('tv-exit-confirm').addEventListener('click', function () {
-      if (global.webOS && global.webOS.platformBack) global.webOS.platformBack();
-      else global.close();
+      Spatial.platformBack();
     });
     Spatial.focusSelector('#tv-exit-cancel', modal);
   }
@@ -745,10 +769,15 @@
     appState.history = Api.getLocalHistory();
     syncUserLibrary();
 
-    document.querySelectorAll('.tv-nav-item').forEach(function (btn) {
+    Spatial.eachNode(document, '.tv-nav-item', function (btn) {
       btn.addEventListener('click', function () {
         switchTab(btn.getAttribute('data-nav'));
       });
+    });
+
+    document.addEventListener('webOSRelaunch', function () {
+      syncUserLibrary();
+      if (appState.tab !== 'home') switchTab('home');
     });
 
     Spatial.pushHandler(function (code) {

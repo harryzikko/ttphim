@@ -33,7 +33,7 @@
     }
   </style>
 
-  <link rel="stylesheet" href="/css/site-c221d54b2d18.css?v=5ca996233ca6">
+  <link rel="stylesheet" href="/css/site-c221d54b2d18.css?v=d9d17a3a091a">
   
 
   <!-- Global Custom Styles & Footer Styles (Respects sessionStorage.getItem('hide_footer_ad')) -->
@@ -396,10 +396,20 @@
                   <span class="material-symbols-outlined text-[20px]">download</span>
                   <span>Tải APK Android TV (Remote)</span>
                 </a>
-                <button class="w-full h-10 rounded-xl bg-surface-elevated text-text-secondary hover:text-white font-label-md text-xs flex items-center justify-center gap-1.5 active:bg-surface-variant transition-colors border border-white/5" onclick="copyDownloadUrl('btn-download-tv', 'APK Android TV')" type="button">
-                  <span class="material-symbols-outlined text-[16px]">content_copy</span>
-                  <span>Sao chép link APK TV</span>
-                </button>
+                <a class="link-download-webos w-full h-11 rounded-xl bg-surface-elevated hover:bg-surface-variant text-text-primary font-label-md text-xs font-semibold flex items-center justify-center gap-1.5 border border-white/10 transition-colors" href="/downloads/CineViet-webOS-TV.ipk" download>
+                  <span class="material-symbols-outlined text-[18px] text-amber-400">tv</span>
+                  <span>Tải bản LG webOS TV (.ipk)</span>
+                </a>
+                <div class="grid grid-cols-2 gap-2">
+                  <button class="h-10 rounded-xl bg-surface-elevated text-text-secondary hover:text-white font-label-md text-xs flex items-center justify-center gap-1.5 active:bg-surface-variant transition-colors border border-white/5" onclick="copyDownloadUrl('btn-download-tv', 'APK Android TV')" type="button">
+                    <span class="material-symbols-outlined text-[15px]">content_copy</span>
+                    <span>Copy link APK</span>
+                  </button>
+                  <button class="h-10 rounded-xl bg-surface-elevated text-text-secondary hover:text-white font-label-md text-xs flex items-center justify-center gap-1.5 active:bg-surface-variant transition-colors border border-white/5" onclick="copyDownloadUrl('btn-download-webos', 'LG webOS (.ipk)')" type="button">
+                    <span class="material-symbols-outlined text-[15px]">content_copy</span>
+                    <span>Copy link .ipk</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -578,14 +588,20 @@
                 <span class="material-symbols-outlined text-[22px]">download</span>
                 <span>Tải APK Android TV (Remote)</span>
               </a>
-              <a id="btn-download-webos" class="w-full py-2.5 px-space-md rounded-lg bg-surface-bright hover:bg-surface-elevated text-text-primary font-label-md text-xs font-semibold flex items-center justify-center gap-1.5 border border-white/10 transition-colors" href="/downloads/CineViet-webOS-TV.ipk" download>
+              <a id="btn-download-webos" class="link-download-webos w-full py-2.5 px-space-md rounded-lg bg-surface-bright hover:bg-surface-elevated text-text-primary font-label-md text-xs font-semibold flex items-center justify-center gap-1.5 border border-white/10 transition-colors" href="/downloads/CineViet-webOS-TV.ipk" download>
                 <span class="material-symbols-outlined text-[16px] text-amber-400">tv</span>
                 <span>Tải bản LG webOS TV (.ipk)</span>
               </a>
-              <button type="button" class="w-full py-2 px-space-md rounded-lg text-text-muted hover:text-text-primary font-body-sm text-xs flex items-center justify-center gap-1 transition-colors" onclick="copyDownloadUrl('btn-download-tv', 'APK Android TV')">
-                <span class="material-symbols-outlined text-[16px]">content_copy</span>
-                <span>Sao chép đường dẫn APK cho TV</span>
-              </button>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" class="w-full py-2 px-2 rounded-lg text-text-muted hover:text-text-primary font-body-sm text-xs flex items-center justify-center gap-1 transition-colors" onclick="copyDownloadUrl('btn-download-tv', 'APK Android TV')">
+                  <span class="material-symbols-outlined text-[15px]">content_copy</span>
+                  <span>Copy link APK</span>
+                </button>
+                <button type="button" class="w-full py-2 px-2 rounded-lg text-text-muted hover:text-text-primary font-body-sm text-xs flex items-center justify-center gap-1 transition-colors" onclick="openWebosGuide()">
+                  <span class="material-symbols-outlined text-[15px]">help</span>
+                  <span>Cài lên TV LG</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -700,14 +716,55 @@
         </div>
 
         <!-- Guide Tabs Header -->
-        <div class="flex items-center justify-center gap-space-xs max-w-xl mx-auto mb-space-lg p-1 bg-surface-card border border-white/5 rounded-full">
-          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-white bg-primary-container font-bold transition-all" id="tab-guide-tv" onclick="switchGuide('tv')" type="button">Android TV</button>
-          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all" id="tab-guide-android" onclick="switchGuide('android')" type="button">Android Mobile</button>
-          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all" id="tab-guide-ios" onclick="switchGuide('ios')" type="button">iPhone / iPad</button>
-          <button class="flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all" id="tab-guide-desktop" onclick="switchGuide('desktop')" type="button">Máy tính (PC)</button>
+        <div class="flex flex-wrap items-center justify-center gap-space-xs max-w-2xl mx-auto mb-space-lg p-1 bg-surface-card border border-white/5 rounded-2xl sm:rounded-full">
+          <button class="flex-1 min-w-[110px] py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-white bg-primary-container font-bold transition-all" id="tab-guide-tv" onclick="switchGuide('tv')" type="button">Android TV</button>
+          <button class="flex-1 min-w-[110px] py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all" id="tab-guide-webos" onclick="switchGuide('webos')" type="button">LG webOS TV</button>
+          <button class="flex-1 min-w-[110px] py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all" id="tab-guide-android" onclick="switchGuide('android')" type="button">Android Mobile</button>
+          <button class="flex-1 min-w-[110px] py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all" id="tab-guide-ios" onclick="switchGuide('ios')" type="button">iPhone / iPad</button>
+          <button class="flex-1 min-w-[110px] py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all" id="tab-guide-desktop" onclick="switchGuide('desktop')" type="button">Máy tính (PC)</button>
         </div>
 
         <!-- Guides Content Panels -->
+
+        <!-- LG webOS TV Guide Panel -->
+        <div class="hidden grid grid-cols-1 md:grid-cols-3 gap-gutter-desktop" id="guide-content-webos">
+          <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
+            <div>
+              <div class="w-10 h-10 rounded-full bg-primary-container text-white font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">1</div>
+              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Bật Developer Mode Trên TV LG</h4>
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Trên TV LG (webOS), mở <strong>LG Content Store / Apps</strong> → tìm và cài <strong>Developer Mode</strong>, đăng nhập tài khoản LG Developer, bật <strong>Dev Mode Status</strong> và <strong>Key Server</strong> rồi khởi động lại TV.
+              </p>
+            </div>
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              💡 Đảm bảo TV LG và máy tính dùng chung một mạng Wi-Fi / LAN.
+            </div>
+          </div>
+          <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
+            <div>
+              <div class="w-10 h-10 rounded-full bg-surface-elevated text-text-primary font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">2</div>
+              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Cài File .ipk Từ Máy Tính</h4>
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Tải tệp <strong class="text-amber-400">CineViet-webOS-TV.ipk</strong> từ nút phía trên. Mở <strong>webOS Dev Manager</strong> (Windows/macOS) kết nối TV bằng IP + Passphrase, bấm <strong>Install</strong> chọn file `.ipk` (hoặc chạy <code class="text-white">ares-install</code>).
+              </p>
+            </div>
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              💡 TV LG không cài trực tiếp `.ipk` qua trình duyệt TV như Android APK.
+            </div>
+          </div>
+          <div class="p-space-lg rounded-2xl bg-surface-card border border-white/5 flex flex-col justify-between">
+            <div>
+              <div class="w-10 h-10 rounded-full bg-surface-elevated text-text-primary font-headline-lg text-lg flex items-center justify-center font-bold mb-space-md">3</div>
+              <h4 class="font-headline-md text-base text-text-primary font-bold mb-space-xs">Mở CineViet &amp; Quét Mã QR</h4>
+              <p class="font-body-md text-xs sm:text-sm text-text-secondary leading-relaxed">
+                Mở ứng dụng <strong>CineViet</strong> trên thanh Home của TV LG. Hỗ trợ đầy đủ điều hướng D-Pad, Magic Remote, phím Back TV, chuyển tập tự động và đăng nhập QR 6 số!
+              </p>
+            </div>
+            <div class="mt-space-md pt-space-sm text-text-muted font-body-sm text-xs border-t border-white/5">
+              🍿 Nhớ gia hạn session Developer Mode trên TV định kỳ khi TV nhắc.
+            </div>
+          </div>
+        </div>
 
         <!-- TV Guide Panel -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter-desktop" id="guide-content-tv">
@@ -886,7 +943,7 @@
                 <span class="material-symbols-outlined transform group-open:rotate-180 transition-transform text-text-muted">expand_more</span>
               </summary>
               <div class="mt-space-sm text-text-secondary font-body-md text-xs sm:text-sm leading-relaxed">
-                Hoàn toàn không. Toàn bộ các phiên bản ứng dụng CineViet trên Android, iOS và Android TV đều miễn phí 100%, không thu phí duy trì hay bắt buộc nâng cấp tài khoản VIP.
+                Hoàn toàn không. Toàn bộ các phiên bản ứng dụng CineViet trên Android, iOS, Smart TV (Android TV &amp; LG webOS) và Máy tính đều miễn phí 100%, không thu phí duy trì hay bắt buộc nâng cấp tài khoản VIP.
               </div>
             </details>
 
@@ -1081,22 +1138,28 @@
 
     // Switch Installation Guide Tabs
     function switchGuide(type) {
-      const guides = ['tv', 'android', 'ios', 'desktop'];
+      const guides = ['tv', 'webos', 'android', 'ios', 'desktop'];
       guides.forEach(g => {
         const btn = document.getElementById('tab-guide-' + g);
         const content = document.getElementById('guide-content-' + g);
         if (g === type) {
           if (btn) {
-            btn.className = 'flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-white bg-primary-container font-bold transition-all';
+            btn.className = 'flex-1 min-w-[110px] py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-white bg-primary-container font-bold transition-all';
           }
           if (content) content.classList.remove('hidden');
         } else {
           if (btn) {
-            btn.className = 'flex-1 py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all';
+            btn.className = 'flex-1 min-w-[110px] py-2 px-space-md rounded-full font-headline-md text-xs sm:text-sm text-text-secondary hover:text-white transition-all';
           }
           if (content) content.classList.add('hidden');
         }
       });
+    }
+
+    function openWebosGuide() {
+      switchGuide('webos');
+      const target = document.getElementById('tab-guide-webos');
+      if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     // Real-Time Dynamic Hydration: Automatically syncs with Admin App Update Settings
@@ -1134,13 +1197,16 @@
           }
         }
 
-        // 4. Android TV Link & QR
+        // 4. Android TV & LG webOS Link + QR
         if (data.apk_tv_url) {
           document.querySelectorAll('.link-download-tv').forEach(a => a.href = data.apk_tv_url);
           const qrTv = document.getElementById('qr-android-tv');
           if (qrTv) {
             qrTv.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(data.apk_tv_url);
           }
+        }
+        if (data.ipk_webos_url) {
+          document.querySelectorAll('.link-download-webos').forEach(a => a.href = data.ipk_webos_url);
         }
 
         // 5. iOS Link & QR

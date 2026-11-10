@@ -1111,6 +1111,7 @@ const defaultAppUpdate = {
   release_notes: '• Tự động xoay banner mở ứng dụng trên iPad và máy tính bảng\n• Bổ sung tính năng tự động tải và cập nhật phiên bản mới trực tiếp trong app (Android APK & TV)\n• Tối ưu tốc độ phát phim và trải nghiệm người dùng',
   apk_mobile_url: '/downloads/CineViet-Mobile-release.apk',
   apk_tv_url: '/downloads/CineViet-AndroidTV-release.apk',
+  ipk_webos_url: '/downloads/CineViet-webOS-TV.ipk',
   ios_url: '/downloads/CineViet-iOS-IPA-Unsigned.ipa'
 };
 
@@ -1137,6 +1138,7 @@ router.get('/app-update', async (req, res) => {
       ...update,
       apk_mobile_url: resolveUrl(update.apk_mobile_url, '/downloads/CineViet-Mobile-release.apk'),
       apk_tv_url: resolveUrl(update.apk_tv_url, '/downloads/CineViet-AndroidTV-release.apk'),
+      ipk_webos_url: resolveUrl(update.ipk_webos_url, '/downloads/CineViet-webOS-TV.ipk'),
     };
     res.json({ status: true, data: resolved });
   } catch (err) {
@@ -1160,7 +1162,7 @@ router.post('/admin/app-update', async (req, res) => {
   try {
     const {
       enabled, latest_version, latest_build, force_update,
-      title, release_notes, apk_mobile_url, apk_tv_url, ios_url
+      title, release_notes, apk_mobile_url, apk_tv_url, ipk_webos_url, ios_url
     } = req.body || {};
 
     const app_update = {
@@ -1172,6 +1174,7 @@ router.post('/admin/app-update', async (req, res) => {
       release_notes: typeof release_notes === 'string' ? release_notes.trim() : defaultAppUpdate.release_notes,
       apk_mobile_url: typeof apk_mobile_url === 'string' && apk_mobile_url.trim() ? apk_mobile_url.trim() : defaultAppUpdate.apk_mobile_url,
       apk_tv_url: typeof apk_tv_url === 'string' && apk_tv_url.trim() ? apk_tv_url.trim() : defaultAppUpdate.apk_tv_url,
+      ipk_webos_url: typeof ipk_webos_url === 'string' && ipk_webos_url.trim() ? ipk_webos_url.trim() : defaultAppUpdate.ipk_webos_url,
       ios_url: typeof ios_url === 'string' && ios_url.trim() ? ios_url.trim() : defaultAppUpdate.ios_url
     };
 

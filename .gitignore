@@ -57,6 +57,7 @@ mobile_app/ios/.symlinks/
 
 public/downloads/*.apk
 public/downloads/*.ipa
+public/downloads/*.ipk
 
 # Local server dumps and configs
 *.sql

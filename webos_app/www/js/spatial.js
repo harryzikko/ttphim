@@ -154,11 +154,39 @@
     }
   });
 
+  function eachNode(root, selector, fn) {
+    if (!root || !selector || typeof fn !== 'function') return;
+    var list = root.querySelectorAll(selector);
+    for (var i = 0; i < list.length; i++) {
+      fn(list[i], i);
+    }
+  }
+
+  function platformBack() {
+    if (global.webOS && typeof global.webOS.platformBack === 'function') {
+      global.webOS.platformBack();
+    } else if (global.webOSSystem && typeof global.webOSSystem.platformBack === 'function') {
+      global.webOSSystem.platformBack();
+    } else if (global.PalmSystem && typeof global.PalmSystem.platformBack === 'function') {
+      global.PalmSystem.platformBack();
+    } else {
+      global.close();
+    }
+  }
+
   global.addEventListener('keydown', handleKeyDown);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && (!currentFocus || !isVisible(currentFocus))) {
+      var nodes = getFocusableNodes(getActiveScope());
+      if (nodes.length) setFocus(nodes[0], true);
+    }
+  });
 
   global.TvSpatial = {
     getCurrent: function () { return currentFocus; },
     setFocus: setFocus,
+    eachNode: eachNode,
+    platformBack: platformBack,
     focusFirst: function (container) {
       var nodes = getFocusableNodes(container || getActiveScope());
       if (nodes.length) return setFocus(nodes[0], true);

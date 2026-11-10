@@ -58,12 +58,19 @@
     if (data) writeJsonStorage(STORAGE_HOME, data);
   };
 
+  ApiClient.getBaseOrigin = function () {
+    if (global.location && global.location.origin && /^https?:/i.test(global.location.protocol || '')) {
+      return global.location.origin;
+    }
+    return 'https://cineviet.live';
+  };
+
   ApiClient.fullImg = function (url) {
     if (!url || typeof url !== 'string') return '';
     var s = url.trim();
     if (!s) return '';
     if (s.indexOf('http://') === 0 || s.indexOf('https://') === 0) return s;
-    if (s.indexOf('/') === 0) return 'https://cineviet.live' + s;
+    if (s.indexOf('/') === 0) return ApiClient.getBaseOrigin() + s;
     return 'https://phimimg.com/' + s;
   };
 

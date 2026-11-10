@@ -10,9 +10,12 @@
     hls: null,
     hudTimer: null,
     progressTimer: null,
+    nextTimer: null,
     drawerOpen: false,
     pendingSeekSec: 0,
+    recoveryCount: 0,
     keyHandler: null,
+    lifecycleHandler: null,
     onClose: null
   };
 
@@ -165,7 +168,7 @@
       });
       html += '</div>';
       drawer.innerHTML = html;
-      drawer.querySelectorAll('[data-ep-idx]').forEach(function (btn) {
+      global.TvSpatial.eachNode(drawer, '[data-ep-idx]', function (btn) {
         btn.addEventListener('click', function () {
           var idx = Number(btn.getAttribute('data-ep-idx'));
           closeDrawer();
@@ -176,19 +179,23 @@
       var sHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
         '<h3 style="font-size:22px;font-weight:800;">Chọn Server Phát</h3>' +
         '<button class="tv-btn" style="height:40px;padding:0 18px;font-size:14px;" data-focusable="true" id="tv-drawer-close">Đóng</button></div>' +
-        '<div style="display:flex;flex-direction:column;gap:12px;">';
+        '<div style="display:flex;flex-direction:column;">';
       playerState.servers.forEach(function (srv, idx) {
         var active = idx === playerState.serverIndex;
-        sHtml += '<button class="tv-ep-btn' + (active ? ' active' : '') + '" style="text-align:left;padding:0 16px;" data-focusable="true" data-srv-idx="' + idx + '">' + escapeHtml(srv.server_name || ('Server ' + (idx + 1))) + '</button>';
+        sHtml += '<button class="tv-ep-btn' + (active ? ' active' : '') + '" style="text-align:left;padding:0 16px;margin-bottom:12px;" data-focusable="true" data-srv-idx="' + idx + '">' + escapeHtml(srv.server_name || ('Server ' + (idx + 1))) + '</button>';
       });
       sHtml += '</div>';
       drawer.innerHTML = sHtml;
-      drawer.querySelectorAll('[data-srv-idx]').forEach(function (btn) {
+      global.TvSpatial.eachNode(drawer, '[data-srv-idx]', function (btn) {
         btn.addEventListener('click', function () {
           var idx = Number(btn.getAttribute('data-srv-idx'));
           var srv = playerState.servers[idx];
           var eps = (srv && srv.server_data) || [];
-          var match = eps.find(function (e) { return playerState.episode && e.slug === playerState.episode.slug; }) || eps[0];
+          var match = null;
+          for (var j = 0; j < eps.length; j++) {
+            if (playerState.episode && eps[j].slug === playerState.episode.slug) { match = eps[j]; break; }
+          }
+          if (!match) match = eps[0];
           playerState.serverIndex = idx;
           closeDrawer();
           if (match) playEpisode(match, 0);
@@ -212,17 +219,86 @@
     global.TvSpatial.focusSelector('#tv-btn-playpause', document.getElementById('tv-player-layer'));
   }
 
+  function getNextEpisode() {
+    var srv = playerState.servers[playerState.serverIndex] || {};
+    var eps = Array.isArray(srv.server_data) ? srv.server_data : [];
+    if (!playerState.episode || eps.length < 2) return null;
+    for (var i = 0; i < eps.length; i++) {
+      if (eps[i] && eps[i].slug === playerState.episode.slug) {
+        return i + 1 < eps.length ? eps[i + 1] : null;
+      }
+    }
+    return null;
+  }
+
+  function cancelAutoNext() {
+    clearInterval(playerState.nextTimer);
+    playerState.nextTimer = null;
+    var prompt = document.getElementById('tv-next-prompt');
+    if (prompt) {
+      prompt.classList.add('hidden');
+      prompt.innerHTML = '';
+    }
+  }
+
+  function startAutoNext(nextEp) {
+    if (!nextEp || !playerState.open) return;
+    cancelAutoNext();
+    var prompt = document.getElementById('tv-next-prompt');
+    if (!prompt) return;
+    var left = 5;
+    prompt.innerHTML =
+      '<div style="font-size:13px;font-weight:800;letter-spacing:1px;color:#FF334B;text-transform:uppercase;">Sắp phát tập tiếp theo</div>' +
+      '<div style="font-size:20px;font-weight:800;margin-top:6px;">' + escapeHtml(nextEp.name || nextEp.slug || 'Tập tiếp theo') + '</div>' +
+      '<div id="tv-next-countdown" style="color:#CBD5E1;font-size:14px;margin:8px 0 16px;">Tự động chuyển sau ' + left + ' giây…</div>' +
+      '<div style="display:flex;align-items:center;">' +
+      '  <button class="tv-btn tv-btn-primary" id="tv-next-go" data-focusable="true" style="height:44px;padding:0 22px;font-size:15px;margin-right:12px;">▶ Phát ngay</button>' +
+      '  <button class="tv-btn" id="tv-next-cancel" data-focusable="true" style="height:44px;padding:0 20px;font-size:15px;">Ở lại</button>' +
+      '</div>';
+    prompt.classList.remove('hidden');
+
+    document.getElementById('tv-next-go').addEventListener('click', function () {
+      cancelAutoNext();
+      playEpisode(nextEp, 0);
+    });
+    document.getElementById('tv-next-cancel').addEventListener('click', function () {
+      cancelAutoNext();
+      showHud();
+      global.TvSpatial.focusSelector('#tv-btn-playpause', document.getElementById('tv-player-layer'));
+    });
+    global.TvSpatial.focusSelector('#tv-next-go', prompt);
+
+    playerState.nextTimer = setInterval(function () {
+      left -= 1;
+      var el = document.getElementById('tv-next-countdown');
+      if (el) el.textContent = 'Tự động chuyển sau ' + Math.max(0, left) + ' giây…';
+      if (left <= 0) {
+        cancelAutoNext();
+        playEpisode(nextEp, 0);
+      }
+    }, 1000);
+  }
+
+  function updateNextButtonUi() {
+    var btn = document.getElementById('tv-btn-next');
+    if (!btn) return;
+    btn.classList.toggle('hidden', !getNextEpisode());
+  }
+
   function playEpisode(ep, seekSec) {
     if (!ep) return;
+    cancelAutoNext();
     destroyHls();
     playerState.episode = ep;
     playerState.pendingSeekSec = seekSec > 0 ? seekSec : 0;
+    playerState.recoveryCount = 0;
 
     var srv = playerState.servers[playerState.serverIndex] || {};
     var titleEl = document.getElementById('tv-player-title');
     if (titleEl) {
       titleEl.textContent = (playerState.movie.name || '') + ' — ' + (ep.name || ep.slug || '') + ' • ' + (srv.server_name || '');
     }
+    updateNextButtonUi();
 
     var video = document.getElementById('tv-video');
     var iframe = document.getElementById('tv-iframe');
@@ -248,6 +324,17 @@
         });
         hls.on(global.Hls.Events.ERROR, function (_, data) {
           if (data && data.fatal) {
+            if (playerState.recoveryCount < 2 && data.type === global.Hls.ErrorTypes.NETWORK_ERROR) {
+              playerState.recoveryCount += 1;
+              setStatus('Đang kết nối lại luồng phát…');
+              hls.startLoad();
+              return;
+            }
+            if (playerState.recoveryCount < 2 && data.type === global.Hls.ErrorTypes.MEDIA_ERROR) {
+              playerState.recoveryCount += 1;
+              hls.recoverMediaError();
+              return;
+            }
             if (ep.link_embed) {
               fallbackToEmbed(ep.link_embed);
             } else {
@@ -297,6 +384,11 @@
 
   function handlePlayerKey(code) {
     if (code === 461 || code === 27 || code === 8) {
+      var prompt = document.getElementById('tv-next-prompt');
+      if (prompt && !prompt.classList.contains('hidden')) {
+        cancelAutoNext();
+        return true;
+      }
       if (playerState.drawerOpen) {
         closeDrawer();
         return true;
@@ -313,6 +405,8 @@
     if (code === 412) { seekDelta(-10); return true; }
     if (code === 417) { seekDelta(10); return true; }
     if (code === 413) { close(); return true; }
+    if (code === 403) { renderDrawer('episodes'); return true; }
+    if (code === 404) { renderDrawer('servers'); return true; }
 
     var hud = document.getElementById('tv-player-hud');
     if (hud && hud.classList.contains('faded')) {
@@ -341,11 +435,12 @@
     layer.innerHTML =
       '<video id="tv-video" class="tv-video" playsinline></video>' +
       '<iframe id="tv-iframe" class="tv-iframe hidden" allowfullscreen></iframe>' +
-      '<div id="tv-player-status" class="hidden" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(11,13,19,0.9);border:1px solid rgba(255,255,255,0.16);padding:18px 28px;border-radius:14px;font-size:18px;font-weight:700;"></div>' +
+      '<div id="tv-player-status" class="hidden" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(11,13,19,0.92);border:1px solid rgba(255,255,255,0.16);padding:18px 28px;border-radius:14px;font-size:18px;font-weight:700;z-index:92;"></div>' +
+      '<div id="tv-next-prompt" class="hidden" style="position:absolute;right:48px;bottom:130px;background:rgba(19,23,34,0.96);border:1px solid rgba(255,255,255,0.18);padding:22px 26px;border-radius:18px;min-width:340px;z-index:94;"></div>' +
       '<div id="tv-player-hud" class="tv-player-hud">' +
       '  <div class="tv-hud-top">' +
-      '    <div style="display:flex;align-items:center;gap:16px;">' +
-      '      <button class="tv-btn" id="tv-player-back" data-focusable="true">← Quay lại</button>' +
+      '    <div style="display:flex;align-items:center;">' +
+      '      <button class="tv-btn" id="tv-player-back" data-focusable="true" style="margin-right:16px;">← Quay lại</button>' +
       '      <div><div id="tv-player-title" style="font-size:22px;font-weight:800;"></div><div style="font-size:13px;color:#94A3B8;">CineViet LG webOS Player • OK / Play / Back</div></div>' +
       '    </div>' +
       '  </div>' +
@@ -356,6 +451,7 @@
       '        <button class="tv-btn tv-btn-primary" id="tv-btn-playpause" data-focusable="true">❚❚ Tạm dừng</button>' +
       '        <button class="tv-btn" id="tv-btn-rw" data-focusable="true">↺ -10s</button>' +
       '        <button class="tv-btn" id="tv-btn-ff" data-focusable="true">+10s ↻</button>' +
+      '        <button class="tv-btn hidden" id="tv-btn-next" data-focusable="true">⏭ Tập sau</button>' +
       '        <span id="tv-player-time" style="font-size:16px;font-weight:700;color:#E2E8F0;margin-left:8px;">00:00 / 00:00</span>' +
       '      </div>' +
       '      <div class="tv-hud-group">' +
@@ -373,33 +469,65 @@
     var video = document.getElementById('tv-video');
     video.addEventListener('timeupdate', updateTimeUi);
     video.addEventListener('play', updatePlayIcon);
-    video.addEventListener('pause', updatePlayIcon);
+    video.addEventListener('pause', function () {
+      updatePlayIcon();
+      saveProgress();
+    });
+    video.addEventListener('waiting', function () {
+      if (playerState.hls || video.src) setStatus('Đang đệm dữ liệu…');
+    });
+    video.addEventListener('playing', function () { setStatus(''); });
+    video.addEventListener('canplay', function () { setStatus(''); });
+    video.addEventListener('ended', function () {
+      saveProgress();
+      var nextEp = getNextEpisode();
+      if (nextEp) startAutoNext(nextEp);
+      else showHud();
+    });
 
     document.getElementById('tv-player-back').addEventListener('click', close);
     document.getElementById('tv-btn-playpause').addEventListener('click', togglePlayPause);
     document.getElementById('tv-btn-rw').addEventListener('click', function () { seekDelta(-10); });
     document.getElementById('tv-btn-ff').addEventListener('click', function () { seekDelta(10); });
+    document.getElementById('tv-btn-next').addEventListener('click', function () {
+      var n = getNextEpisode();
+      if (n) playEpisode(n, 0);
+    });
     document.getElementById('tv-btn-episodes').addEventListener('click', function () { renderDrawer('episodes'); });
     document.getElementById('tv-btn-servers').addEventListener('click', function () { renderDrawer('servers'); });
 
     playerState.keyHandler = handlePlayerKey;
     global.TvSpatial.pushHandler(playerState.keyHandler);
+    playerState.lifecycleHandler = function () { saveProgress(); };
+    document.addEventListener('visibilitychange', playerState.lifecycleHandler);
+    global.addEventListener('pagehide', playerState.lifecycleHandler);
+
     clearInterval(playerState.progressTimer);
     playerState.progressTimer = setInterval(saveProgress, 12000);
 
     var srv = playerState.servers[playerState.serverIndex] || {};
     var eps = Array.isArray(srv.server_data) ? srv.server_data : [];
-    var targetEp = eps.find(function (e) { return opts.episodeSlug && e.slug === opts.episodeSlug; }) || eps[0];
+    var targetEp = null;
+    for (var i = 0; i < eps.length; i++) {
+      if (opts.episodeSlug && eps[i].slug === opts.episodeSlug) { targetEp = eps[i]; break; }
+    }
+    if (!targetEp) targetEp = eps[0];
     playEpisode(targetEp, opts.startSec || 0);
     global.TvSpatial.focusSelector('#tv-btn-playpause', layer);
   }
 
   function close() {
     if (!playerState.open) return;
+    cancelAutoNext();
     saveProgress();
     destroyHls();
     clearTimeout(playerState.hudTimer);
     clearInterval(playerState.progressTimer);
+    if (playerState.lifecycleHandler) {
+      document.removeEventListener('visibilitychange', playerState.lifecycleHandler);
+      global.removeEventListener('pagehide', playerState.lifecycleHandler);
+      playerState.lifecycleHandler = null;
+    }
     if (playerState.keyHandler) {
       global.TvSpatial.popHandler(playerState.keyHandler);
       playerState.keyHandler = null;

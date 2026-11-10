@@ -426,6 +426,7 @@ router.get(['/tai-ung-dung', '/tai-ung-dung.html', '/downloads', '/tai-app', '/a
       release_notes: appUpdate.release_notes || '• Bản phát hành chính thức CineViet 1.0.0\n• Hỗ trợ tự động kiểm tra bản cập nhật và cài đè trong app\n• Phát trực tiếp nguồn KKPhim 4K HDR',
       apk_mobile_url: resolveUrl(appUpdate.apk_mobile_url, '/downloads/CineViet-Mobile-release.apk'),
       apk_tv_url: resolveUrl(appUpdate.apk_tv_url, '/downloads/CineViet-AndroidTV-release.apk'),
+      ipk_webos_url: resolveUrl(appUpdate.ipk_webos_url, '/downloads/CineViet-webOS-TV.ipk'),
       ios_url: resolveUrl(
         (appUpdate.ios_url && appUpdate.ios_url !== 'https://cineviet.live') ? appUpdate.ios_url : '/downloads/CineViet-iOS-IPA-Unsigned.ipa',
         '/downloads/CineViet-iOS-IPA-Unsigned.ipa'
