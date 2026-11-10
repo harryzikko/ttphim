@@ -84,14 +84,17 @@
   </div>
   <script>
     (function () {
-      var TARGET_URL = 'https://cineviet.live/webos/?platform=webos';
-      var HEALTH_URL = 'https://cineviet.live/api/health';
+      var PROD_BASE = 'https://cineviet.live/webos';
+      var LOCAL_BASE = 'http://127.0.0.1:3001/webos';
+      var QUERY = '/?platform=webos';
       var retryBtn = document.getElementById('retry-btn');
       var spinner = document.getElementById('spinner');
       var errorBox = document.getElementById('error-box');
       var statusText = document.getElementById('status-text');
+      var busy = false;
 
       function showError(msg) {
+        busy = false;
         spinner.style.display = 'none';
         errorBox.style.display = 'block';
         statusText.textContent = 'Mất kết nối máy chủ';
@@ -99,37 +102,56 @@
         retryBtn.focus();
       }
 
+      function probeScript(probeUrl, timeoutMs, done) {
+        var settled = false;
+        var script = document.createElement('script');
+        var timer = setTimeout(function () {
+          finish(false);
+        }, timeoutMs);
+
+        function finish(ok) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          script.onload = null;
+          script.onerror = null;
+          if (script.parentNode) script.parentNode.removeChild(script);
+          done(Boolean(ok));
+        }
+
+        window.__CINEVIET_WEBOS_READY__ = false;
+        script.async = true;
+        script.onload = function () {
+          finish(window.__CINEVIET_WEBOS_READY__ === true);
+        };
+        script.onerror = function () {
+          finish(false);
+        };
+        script.src = probeUrl + '?t=' + Date.now();
+        document.body.appendChild(script);
+      }
+
       function launch() {
+        if (busy) return;
+        busy = true;
         spinner.style.display = 'block';
         errorBox.style.display = 'none';
         statusText.textContent = 'Đang kết nối rạp phim Smart TV…';
-        var done = false;
-        var timer = setTimeout(function () {
-          if (!done) {
-            done = true;
-            showError('Máy chủ phản hồi chậm. Nhấn OK để thử lại.');
-          }
-        }, 9000);
 
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', HEALTH_URL, true);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState !== 4 || done) return;
-          done = true;
-          clearTimeout(timer);
-          if (xhr.status >= 200 && xhr.status < 400) {
-            window.location.replace(TARGET_URL);
-          } else {
-            showError('Máy chủ tạm thời gián đoạn (HTTP ' + xhr.status + '). Vui lòng thử lại.');
+        probeScript(PROD_BASE + '/probe.js', 5500, function (prodOk) {
+          if (prodOk) {
+            window.location.replace(PROD_BASE + QUERY);
+            return;
           }
-        };
-        xhr.onerror = function () {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          showError('Không thể kết nối mạng hoặc DNS tới cineviet.live.');
-        };
-        xhr.send();
+          statusText.textContent = 'Đang tìm máy chủ thử nghiệm local…';
+          probeScript(LOCAL_BASE + '/probe.js', 2500, function (localOk) {
+            if (localOk) {
+              window.location.replace(LOCAL_BASE + QUERY);
+              return;
+            }
+            showError('Chưa kết nối được cineviet.live/webos/ hoặc máy chủ thử nghiệm local (127.0.0.1:3001). Vui lòng kiểm tra lại và nhấn OK.');
+          });
+        });
       }
 
       retryBtn.addEventListener('click', launch);
