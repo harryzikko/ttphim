@@ -1,0 +1,131 @@
+name: Build CineViet Desktop App (Windows, macOS & Linux)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'desktop_app/**'
+      - '.github/workflows/build-desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-desktop:
+    name: Build Desktop (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows x64
+            os: windows-latest
+            artifact_name: desktop-windows
+          - label: macOS
+            os: macos-latest
+            artifact_name: desktop-macos
+          - label: Linux x64
+            os: ubuntu-latest
+            artifact_name: desktop-linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            pkg-config \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Run Rust unit tests
+        working-directory: desktop_app
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Install Tauri CLI and build installer
+        working-directory: desktop_app
+        run: |
+          npm install
+          npx tauri build
+
+      - name: Collect installers
+        shell: bash
+        run: |
+          mkdir -p desktop-dist
+          find desktop_app/src-tauri/target/release/bundle -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" \) -exec cp {} desktop-dist/ \;
+          ls -lh desktop-dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: desktop-dist/*
+          retention-days: 14
+
+  publish-desktop-release:
+    name: Publish Desktop Installers to GitHub Release
+    needs: [build-desktop]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare normalized release assets and desktop-version.json
+        shell: bash
+        run: |
+          mkdir -p release-files
+          VERSION=$(node -e "console.log(require('./desktop_app/package.json').version)")
+          WIN_EXE=$(find artifacts/desktop-windows -name "*.exe" | head -n 1 || true)
+          WIN_MSI=$(find artifacts/desktop-windows -name "*.msi" | head -n 1 || true)
+          MAC_DMG=$(find artifacts/desktop-macos -name "*.dmg" | head -n 1 || true)
+          LIN_APP=$(find artifacts/desktop-linux -name "*.AppImage" | head -n 1 || true)
+          LIN_DEB=$(find artifacts/desktop-linux -name "*.deb" | head -n 1 || true)
+
+          [ -n "$WIN_EXE" ] && cp "$WIN_EXE" "release-files/CineViet-Desktop-Setup-Windows-x64.exe"
+          [ -n "$WIN_MSI" ] && cp "$WIN_MSI" "release-files/CineViet-Desktop-Windows-x64.msi"
+          [ -n "$MAC_DMG" ] && cp "$MAC_DMG" "release-files/CineViet-Desktop-macOS.dmg"
+          [ -n "$LIN_APP" ] && cp "$LIN_APP" "release-files/CineViet-Desktop-Linux-x64.AppImage"
+          [ -n "$LIN_DEB" ] && cp "$LIN_DEB" "release-files/CineViet-Desktop-Linux-amd64.deb"
+
+          cat > release-files/desktop-version.json <<EOF
+          {
+            "version": "${VERSION}",
+            "notes": "• Phiên bản CineViet Desktop v${VERSION} (Tauri v2 + Rust)\n• Menu & khay hệ thống (F11 toàn màn hình, xóa cache WebView, kiểm tra cập nhật)\n• Tự động chặn tab popup quảng cáo từ player nhúng",
+            "windows_url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/latest/CineViet-Desktop-Setup-Windows-x64.exe",
+            "macos_url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/latest/CineViet-Desktop-macOS.dmg",
+            "linux_url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/latest/CineViet-Desktop-Linux-x64.AppImage"
+          }
+          EOF
+          ls -lh release-files/
+
+      - name: Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "CineViet Bản Cập Nhật Mới Nhất"
+          draft: false
+          prerelease: false
+          files: release-files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
