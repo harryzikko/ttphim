@@ -1329,6 +1329,210 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // --- 7. Tab: Thống Kê & Phân Tích Hệ Thống ---
+  function formatCount(value) {
+    return (Number(value) || 0).toLocaleString('vi-VN');
+  }
+
+  function setElementText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = value;
+  }
+
+  function formatRelativeDate(isoValue, emptyText = '--') {
+    if (!isoValue) return emptyText;
+    const ms = Date.parse(isoValue);
+    if (!Number.isFinite(ms)) return emptyText;
+    return new Date(ms).toLocaleDateString('vi-VN');
+  }
+
+  function renderUserRegistrationTrend(trend) {
+    const container = document.getElementById('analytics-user-registration-chart');
+    if (!container) return;
+
+    const list = Array.isArray(trend) ? trend : [];
+    const total14d = list.reduce((sum, item) => sum + (Number(item?.count) || 0), 0);
+    setElementText('analytics-user-14d-total', `${formatCount(total14d)} tài khoản`);
+
+    if (list.length === 0) {
+      container.innerHTML = `<p class="w-full text-center text-xs text-on-surface-variant self-center">Chưa có dữ liệu đăng ký theo ngày</p>`;
+      return;
+    }
+
+    const maxCount = Math.max(1, ...list.map(item => Number(item?.count) || 0));
+    container.innerHTML = list.map(item => {
+      const count = Math.max(0, Math.round(Number(item?.count) || 0));
+      const heightPx = count > 0 ? Math.max(12, Math.round((count / maxCount) * 104)) : 4;
+      const barClass = count > 0 ? 'bg-emerald-400 hover:bg-emerald-300' : 'bg-surface-container-highest/70';
+      const safeLabel = escapeHtml(item?.label || '');
+      const safeDate = escapeHtml(item?.date || safeLabel);
+      return `
+        <div class="flex-1 min-w-0 flex flex-col items-center justify-end gap-1.5 h-full pb-2" title="${safeDate}: ${count} tài khoản mới">
+          <span class="text-[10px] font-mono font-bold ${count > 0 ? 'text-emerald-400' : 'text-on-surface-variant/60'}">${count}</span>
+          <div class="w-full max-w-[18px] rounded-t-md transition-all duration-300 ${barClass}" style="height: ${heightPx}px"></div>
+          <span class="text-[10px] font-mono text-on-surface-variant truncate w-full text-center">${safeLabel}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderUserBreakdown(userStats) {
+    const container = document.getElementById('analytics-user-breakdown');
+    if (!container) return;
+
+    const total = Math.max(0, Number(userStats?.total) || 0);
+    const rows = [
+      { label: 'Khán giả tiêu chuẩn', count: Number(userStats?.regularUsers) || 0, barClass: 'bg-primary' },
+      { label: 'Quản trị viên (Admin)', count: Number(userStats?.admins) || 0, barClass: 'bg-purple-400' },
+      { label: 'Thành viên VIP', count: Number(userStats?.vip) || 0, barClass: 'bg-amber-400' },
+      { label: 'Đã xác thực Email', count: Number(userStats?.emailVerified) || 0, barClass: 'bg-emerald-400' },
+      { label: 'Đã bật bảo mật 2FA (MFA)', count: Number(userStats?.mfaEnabled) || 0, barClass: 'bg-sky-400' },
+      { label: 'Có lịch sử xem phim', count: Number(userStats?.withHistory) || 0, barClass: 'bg-secondary' },
+      { label: 'Có danh sách yêu thích', count: Number(userStats?.withWatchlist) || 0, barClass: 'bg-emerald-500' },
+      { label: 'Tham gia bình luận', count: Number(userStats?.withComments) || 0, barClass: 'bg-amber-500' }
+    ];
+    if ((Number(userStats?.blocked) || 0) > 0) {
+      rows.push({ label: 'Tài khoản đang bị khóa', count: Number(userStats.blocked) || 0, barClass: 'bg-error' });
+    }
+
+    container.innerHTML = rows.map(row => {
+      const count = Math.max(0, Math.round(row.count));
+      const pct = total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0;
+      return `
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-on-surface font-medium">${escapeHtml(row.label)}</span>
+            <span class="font-mono text-on-surface-variant">${formatCount(count)} / ${formatCount(total)} (${pct}%)</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden">
+            <div class="h-2 rounded-full transition-all duration-500 ${row.barClass}" style="width: ${pct}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderTopUsersTable(topUsers) {
+    const tbody = document.getElementById('top-users-table-body');
+    if (!tbody) return;
+
+    const list = Array.isArray(topUsers) ? topUsers : [];
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-on-surface-variant">Chưa có dữ liệu người dùng để thống kê</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map((user, idx) => {
+      const rank = idx + 1;
+      const rankColor = rank === 1 ? 'bg-amber-400 text-black font-black' : rank === 2 ? 'bg-slate-300 text-black font-black' : rank === 3 ? 'bg-amber-600 text-white font-black' : 'bg-surface-container-highest text-on-surface-variant font-bold';
+      const roleBadge = user.role === 'admin'
+        ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/30">Admin</span>'
+        : '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-on-surface-variant">User</span>';
+      const vipBadge = user.is_vip
+        ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">VIP</span>'
+        : '';
+      const verifiedBadge = user.email_verified
+        ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400">Đã Xác Thực</span>'
+        : '';
+      const mfaBadge = user.mfa_enabled
+        ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/15 text-sky-400">2FA</span>'
+        : '';
+      const blockedBadge = user.blocked
+        ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-error/20 text-error">Đã Khóa</span>'
+        : '';
+      const feedbackCount = (Number(user.commentCount) || 0) + (Number(user.ratingCount) || 0);
+      const lastActivityText = user.lastActivityAt ? new Date(user.lastActivityAt).toLocaleString('vi-VN') : 'Chưa có hoạt động';
+      const activeSessions = Math.max(0, Math.round(Number(user.activeSessions) || 0));
+
+      return `
+        <tr class="hover:bg-surface-container-high/40 transition-colors">
+          <td class="p-3 text-center">
+            <span class="w-7 h-7 rounded-full inline-flex items-center justify-center text-xs ${rankColor}">${rank}</span>
+          </td>
+          <td class="p-3">
+            <div class="flex items-center gap-3">
+              <img src="${escapeHtml(safeUrl(user.avatar || '/favicon.svg'))}" class="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/10" />
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="font-bold text-on-surface truncate">${escapeHtml(user.name || user.email || user.id)}</span>
+                  ${roleBadge}${vipBadge}${verifiedBadge}${mfaBadge}${blockedBadge}
+                </div>
+                <div class="text-xs text-on-surface-variant font-mono truncate">${escapeHtml(user.email || user.id)}</div>
+              </div>
+            </div>
+          </td>
+          <td class="p-3 text-xs text-on-surface-variant whitespace-nowrap">${escapeHtml(formatRelativeDate(user.created_at))}</td>
+          <td class="p-3 text-right font-display font-bold text-secondary">${formatCount(user.watchedCount)}</td>
+          <td class="p-3 text-right font-display font-bold text-emerald-400">${formatCount(user.watchlistCount)}</td>
+          <td class="p-3 text-right font-mono text-on-surface">${formatCount(feedbackCount)}</td>
+          <td class="p-3 text-right whitespace-nowrap">
+            <div class="text-xs font-semibold ${activeSessions > 0 ? 'text-sky-400' : 'text-on-surface-variant'}">${formatCount(activeSessions)} phiên</div>
+            <div class="text-[11px] text-on-surface-variant font-mono">${escapeHtml(lastActivityText)}</div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function renderUserAnalytics(rawUserStats, stats = {}) {
+    const fallbackTotal = Number(stats?.totalUsers) || 0;
+    const uStats = rawUserStats && typeof rawUserStats === 'object' ? rawUserStats : {
+      total: fallbackTotal,
+      admins: 0,
+      regularUsers: fallbackTotal,
+      vip: Number(stats?.vipUsers) || 0,
+      blocked: 0,
+      emailVerified: 0,
+      mfaEnabled: 0,
+      newToday: 0,
+      newLast7Days: 0,
+      newLast30Days: 0,
+      activeSessionUsers: 0,
+      activeSessions: 0,
+      withHistory: 0,
+      withWatchlist: 0,
+      withComments: 0,
+      engagedUsers: 0,
+      registrationTrend: [],
+      topUsers: []
+    };
+
+    const total = Number(uStats.total) || 0;
+    const verifiedPct = total > 0 ? Math.round(((Number(uStats.emailVerified) || 0) / total) * 100) : 0;
+
+    setElementText('analytics-user-total', formatCount(total));
+    setElementText(
+      'analytics-user-roles-sub',
+      `${formatCount(uStats.admins)} Admin • ${formatCount(uStats.regularUsers)} Khán giả${(uStats.vip || 0) > 0 ? ` • ${formatCount(uStats.vip)} VIP` : ''}`
+    );
+
+    setElementText('analytics-user-new-7d', `+${formatCount(uStats.newLast7Days)}`);
+    setElementText(
+      'analytics-user-new-sub',
+      `Hôm nay: ${formatCount(uStats.newToday)} • 30 ngày: ${formatCount(uStats.newLast30Days)}`
+    );
+
+    setElementText('analytics-user-active-sessions', formatCount(uStats.activeSessionUsers));
+    setElementText('analytics-user-sessions-sub', `${formatCount(uStats.activeSessions)} phiên hiệu lực`);
+
+    setElementText('analytics-user-verified', `${verifiedPct}%`);
+    setElementText(
+      'analytics-user-security-sub',
+      `Email: ${formatCount(uStats.emailVerified)} • MFA 2FA: ${formatCount(uStats.mfaEnabled)}`
+    );
+
+    setElementText('analytics-user-engaged', formatCount(uStats.engagedUsers));
+    setElementText(
+      'analytics-user-engaged-sub',
+      `Xem: ${formatCount(uStats.withHistory)} • Lưu: ${formatCount(uStats.withWatchlist)} • Bình luận: ${formatCount(uStats.withComments)}`
+    );
+
+    renderUserRegistrationTrend(uStats.registrationTrend);
+    renderUserBreakdown(uStats);
+    renderTopUsersTable(uStats.topUsers);
+  }
+
+  window.renderAdminUserAnalytics = renderUserAnalytics;
+
   async function loadAnalyticsTab() {
     try {
       const stats = await API.getAdminStats();
@@ -1367,6 +1571,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mins = Math.floor((stats.systemUptime || 0) / 60);
         uptimeText.innerText = `Uptime: ${mins} phút (${Math.floor(mins / 60)} giờ)`;
       }
+
+      renderUserAnalytics(stats.userStats, stats);
 
       // Render Top 10 Movies
       const topTbody = document.getElementById('top-movies-table-body');

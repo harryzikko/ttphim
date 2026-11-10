@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/css/editorial.css?v=2.0.0">
   <script defer src="/js/admin-banners.js?v=1.2.0"></script>
   <script defer src="/js/admin-sources.js?v=1.1.0"></script>
-  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=0638ce0a6493">
+  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=c02e316d8423">
   
   <link rel="stylesheet" href="/css/custom.css">
 </head>
@@ -23,7 +23,7 @@
   <header class="fixed top-0 left-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest/60 h-16 flex items-center justify-between px-6">
     <div class="flex items-center gap-6">
       <a href="/" class="flex items-center gap-2 group">
-        <span class="font-display font-black text-[22px] tracking-wider text-primary">KK<span class="text-on-surface">PHIM</span></span>
+        <span class="font-display font-black text-[22px] tracking-wider uppercase text-on-surface">Cine<span class="text-primary">Viet</span></span>
         <span class="px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 font-bold text-[11px] tracking-widest uppercase">ADMIN</span>
       </a>
       <span class="h-4 w-px bg-surface-container-highest hidden sm:block"></span>
@@ -290,6 +290,140 @@
             <div class="mt-3">
               <div id="analytics-ram-usage" class="text-3xl font-black font-display text-purple-400">--</div>
               <p id="analytics-uptime-text" class="text-xs text-on-surface-variant mt-1">Uptime: --</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thống Kê Người Dùng Chi Tiết -->
+        <div id="analytics-users-section" class="space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 class="font-display font-bold text-xl text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">group</span> Thống Kê Người Dùng
+              </h2>
+              <p class="text-xs text-on-surface-variant mt-0.5">Số liệu tăng trưởng tài khoản, phiên đăng nhập hiệu lực, bảo mật và mức độ tương tác</p>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20 w-fit">Tài khoản thực tế</span>
+          </div>
+
+          <!-- 5 User Analytics Metric Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+              <div class="flex items-center justify-between">
+                <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Tổng Người Dùng</span>
+                <span class="p-2 rounded-xl bg-primary/10 text-primary material-symbols-outlined text-[22px]">people</span>
+              </div>
+              <div class="mt-3">
+                <div id="analytics-user-total" class="text-3xl font-black font-display text-on-surface">--</div>
+                <p id="analytics-user-roles-sub" class="text-xs text-on-surface-variant mt-1">-- Admin • -- Khán giả</p>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+              <div class="flex items-center justify-between">
+                <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Đăng Ký Mới (7 Ngày)</span>
+                <span class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 material-symbols-outlined text-[22px]">person_add</span>
+              </div>
+              <div class="mt-3">
+                <div id="analytics-user-new-7d" class="text-3xl font-black font-display text-emerald-400">--</div>
+                <p id="analytics-user-new-sub" class="text-xs text-on-surface-variant mt-1">Hôm nay: -- • 30 ngày: --</p>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+              <div class="flex items-center justify-between">
+                <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Đang Đăng Nhập</span>
+                <span class="p-2 rounded-xl bg-sky-500/10 text-sky-400 material-symbols-outlined text-[22px]">devices</span>
+              </div>
+              <div class="mt-3">
+                <div id="analytics-user-active-sessions" class="text-3xl font-black font-display text-sky-400">--</div>
+                <p id="analytics-user-sessions-sub" class="text-xs text-on-surface-variant mt-1">-- phiên hiệu lực</p>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+              <div class="flex items-center justify-between">
+                <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Xác Thực &amp; Bảo Mật</span>
+                <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 material-symbols-outlined text-[22px]">verified_user</span>
+              </div>
+              <div class="mt-3">
+                <div id="analytics-user-verified" class="text-3xl font-black font-display text-amber-400">--</div>
+                <p id="analytics-user-security-sub" class="text-xs text-on-surface-variant mt-1">Email: -- • MFA 2FA: --</p>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-surface-container border border-surface-container-highest/60 flex flex-col justify-between shadow">
+              <div class="flex items-center justify-between">
+                <span class="text-on-surface-variant text-xs uppercase font-bold tracking-wider">Khán Giả Tương Tác</span>
+                <span class="p-2 rounded-xl bg-secondary/10 text-secondary material-symbols-outlined text-[22px]">trending_up</span>
+              </div>
+              <div class="mt-3">
+                <div id="analytics-user-engaged" class="text-3xl font-black font-display text-secondary">--</div>
+                <p id="analytics-user-engaged-sub" class="text-xs text-on-surface-variant mt-1">Xem: -- • Lưu: -- • Bình luận: --</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Registration Trend & User Breakdown -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-emerald-400">bar_chart</span> Đăng Ký Tài Khoản (14 Ngày)
+                  </h3>
+                  <p class="text-xs text-on-surface-variant">Số tài khoản mới theo từng ngày (giờ Việt Nam UTC+7)</p>
+                </div>
+                <span id="analytics-user-14d-total" class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20">0 tài khoản</span>
+              </div>
+              <div id="analytics-user-registration-chart" class="h-44 pt-4 px-2 flex items-end justify-between gap-1.5 rounded-xl bg-surface-container-high/40 border border-surface-container-highest/40">
+                <p class="w-full text-center text-xs text-on-surface-variant self-center">Đang tải biểu đồ đăng ký...</p>
+              </div>
+            </div>
+
+            <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sky-400">pie_chart</span> Phân Bổ &amp; Mức Độ Tương Tác
+                  </h3>
+                  <p class="text-xs text-on-surface-variant">Tỷ lệ nhóm tài khoản, bảo mật và hành vi sử dụng</p>
+                </div>
+              </div>
+              <div id="analytics-user-breakdown" class="space-y-3">
+                <p class="text-xs text-on-surface-variant">Đang tải phân bổ người dùng...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top 10 Người Dùng Hoạt Động Tích Cực -->
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">workspace_premium</span> Top 10 Người Dùng Hoạt Động Tích Cực
+                </h3>
+                <p class="text-xs text-on-surface-variant">Xếp hạng dựa trên lịch sử xem, phim yêu thích, bình luận và đánh giá thực tế</p>
+              </div>
+              <span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-semibold border border-surface-container-highest/60">Tối đa 10 tài khoản</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-surface-container-high/60 text-xs uppercase text-on-surface-variant font-bold border-b border-surface-container-highest/60">
+                  <tr>
+                    <th class="p-3 w-14 text-center">Hạng</th>
+                    <th class="p-3">Người Dùng</th>
+                    <th class="p-3">Ngày Tham Gia</th>
+                    <th class="p-3 text-right">Đã Xem</th>
+                    <th class="p-3 text-right">Yêu Thích</th>
+                    <th class="p-3 text-right">Bình Luận / ĐG</th>
+                    <th class="p-3 text-right">Phiên / Hoạt Động</th>
+                  </tr>
+                </thead>
+                <tbody id="top-users-table-body" class="divide-y divide-surface-container-highest/40">
+                  <tr><td colspan="7" class="p-6 text-center text-on-surface-variant">Đang nạp thống kê người dùng...</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -1438,7 +1572,7 @@
 
   <script src="/js/api.js?v=3.3.0"></script>
   <script src="/js/header.js?v=2.8.0"></script>
-  <script src="/js/admin.js?v=2.9.3"></script>
+  <script src="/js/admin.js?v=2.9.4"></script>
 </body>
 </html>
 

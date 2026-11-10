@@ -5,6 +5,7 @@ const { hashPassword, verifyPassword, passwordValid, publicUser } = require('./p
 const lockfile = require('proper-lockfile');
 const { validateDatabase } = require('./dbSchema');
 const sessionEvents = require('./sessionEvents');
+const { buildUserStats } = require('./adminUserStats');
 
 async function atomicReplace(source, destination) {
   for (let attempt = 0; ; attempt++) {
@@ -681,6 +682,7 @@ class DbService {
 
     // Recent activity (latest history records)
     const recentActivity = (db.history || []).slice(0, 10);
+    const userStats = buildUserStats(db);
 
     return {
       totalUsers: users.length,
@@ -695,6 +697,7 @@ class DbService {
       totalViews,
       topMovies,
       recentActivity,
+      userStats,
       systemUptime: process.uptime(),
       nodeVersion: process.version,
       memoryUsage: process.memoryUsage(),
