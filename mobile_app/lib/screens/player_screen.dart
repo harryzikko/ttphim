@@ -715,10 +715,15 @@ class _PlayerScreenState extends State<PlayerScreen>
       );
 
       final isNguonC = resolvedUrl.contains('streamc.xyz') || resolvedUrl.contains('nguonc.com');
+      final isVodphim = resolvedUrl.contains('playembed.vip') || resolvedUrl.contains('vodphim.com');
       controller.loadRequest(
         Uri.parse(resolvedUrl),
         headers: {
-          'Referer': isNguonC ? 'https://phim.nguonc.com/' : 'https://cineviet.live/',
+          'Referer': isNguonC
+              ? 'https://phim.nguonc.com/'
+              : isVodphim
+                  ? 'https://vodphim.com/'
+                  : 'https://cineviet.live/',
         },
       );
       _webViewController = controller;
@@ -2023,10 +2028,13 @@ class _PlayerScreenState extends State<PlayerScreen>
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final isSongNgu = _currentServer.serverName.toLowerCase().contains('song ngữ') ||
-                _currentEpisode.linkEmbed.contains('vicdn') ||
+            final sNameLower = _currentServer.serverName.toLowerCase();
+            final isVicdn = _currentEpisode.linkEmbed.contains('vicdn') ||
                 _currentEpisode.linkM3u8.contains('/vicdn/') ||
-                (_activeMovie.hasSongNgu && (_currentEpisode.linkEmbed.contains('vicdn') || _currentEpisode.linkM3u8.contains('vicdn')));
+                (_activeMovie.hasSongNgu && (_currentEpisode.linkEmbed.contains('vicdn') || _currentEpisode.linkM3u8.contains('vicdn'))) ||
+                sNameLower.contains('đa giọng') ||
+                sNameLower.contains('vicdn');
+            final isVodphimSongNgu = !isVicdn && sNameLower.contains('song ngữ');
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               constraints: BoxConstraints(
@@ -2059,8 +2067,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ),
                     const Divider(color: Colors.white12, height: 20),
 
-                    // Section 1: Audio / Giọng đọc (if Song Ngu)
-                    if (isSongNgu) ...[
+                    // Section 1: Audio / Giọng đọc (if ViCDN Song Ngu)
+                    if (isVicdn) ...[
                       const Text(
                         'GIỌNG ĐỌC / AUDIO (SONG NGỮ)',
                         style: TextStyle(color: AppTheme.gold, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
@@ -2117,6 +2125,29 @@ class _PlayerScreenState extends State<PlayerScreen>
                         setModalState: setModalState,
                       ),
                       const SizedBox(height: 16),
+                    ] else if (isVodphimSongNgu) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.gold.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.gold.withOpacity(0.3)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.subtitles_rounded, color: AppTheme.gold, size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Server Song Ngữ (Multi-Sub): Bạn có thể đổi ngôn ngữ phụ đề trực tiếp trên thanh điều khiển trong trình phát video.',
+                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                     ],
 
                     // Section 3: Server selection
@@ -2128,6 +2159,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ..._activeServers.map((s) {
                       final isCurrent = s.serverName == _currentServer.serverName;
                       final isSN = s.serverName.toLowerCase().contains('song ngữ');
+                      final isVP = s.serverName.toLowerCase().contains('multi-sub') || s.serverName.toLowerCase().contains('đa phụ đề');
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         decoration: BoxDecoration(
@@ -2148,9 +2180,11 @@ class _PlayerScreenState extends State<PlayerScreen>
                             ),
                           ),
                           subtitle: isSN
-                              ? const Text(
-                                  'Đa Giọng (Audio Gốc + Thuyết Minh Nam/Nữ) & Song Ngữ',
-                                  style: TextStyle(color: AppTheme.gold, fontSize: 11),
+                              ? Text(
+                                  isVP
+                                      ? 'Song Ngữ Multi-Sub — chỉnh phụ đề trong trình phát'
+                                      : 'Đa Giọng (Audio Gốc + Thuyết Minh Nam/Nữ) & Song Ngữ',
+                                  style: const TextStyle(color: AppTheme.gold, fontSize: 11),
                                 )
                               : null,
                           leading: Icon(

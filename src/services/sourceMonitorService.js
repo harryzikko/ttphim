@@ -10,7 +10,8 @@ async function check(fetcher = fetch) {
 async function perform(fetcher) {
   const targets = [
     ['kkphim', `${config.KKPHIM_API_BASE}/danh-sach/phim-moi-cap-nhat?page=1`],
-    ['vicdn', 'https://vicdn.cc/api/update/1']
+    ['vicdn', 'https://vicdn.cc/api/update/1'],
+    ['vodphim', 'https://api.xink.pro/api/content/phim-moi-cap-nhat/page/1?limit=1']
   ];
   const results = await Promise.all(targets.map(async ([name, url]) => {
     const start = Date.now();

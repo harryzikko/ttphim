@@ -247,7 +247,7 @@ fun TvPlayerScreen(
             val rawEpisodes = data.episodes
             val kkphimServers = rawEpisodes.filter { srv ->
                 val name = srv.serverName.lowercase()
-                !name.contains("nc") && !name.contains("nguonc") && !name.contains("song ngữ") && !name.contains("vicdn")
+                !name.contains("nc") && !name.contains("nguonc") && !name.contains("song ngữ") && !name.contains("vicdn") && !name.contains("vp") && !name.contains("vodphim")
             }.ifEmpty {
                 rawEpisodes.filter { srv -> srv.serverData.any { !it.linkM3u8.isNullOrBlank() } }
             }.ifEmpty {
@@ -344,7 +344,7 @@ fun TvPlayerScreen(
     val rawEpisodes = detailData?.episodes ?: emptyList()
     val kkphimServer = rawEpisodes.filter { srv ->
         val name = srv.serverName.lowercase()
-        !name.contains("nc") && !name.contains("nguonc") && !name.contains("song ngữ") && !name.contains("vicdn")
+        !name.contains("nc") && !name.contains("nguonc") && !name.contains("song ngữ") && !name.contains("vicdn") && !name.contains("vp") && !name.contains("vodphim")
     }.ifEmpty {
         rawEpisodes.filter { srv -> srv.serverData.any { !it.linkM3u8.isNullOrBlank() } }
     }.firstOrNull() ?: rawEpisodes.firstOrNull()

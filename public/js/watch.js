@@ -78,9 +78,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Web Fullscreen (Pseudo-fullscreen) Controller for Responsive/Mobile Player
   function isSongNguActive() {
-    const sName = (servers[activeServerIndex]?.server_name || '').toLowerCase();
+    const s = servers[activeServerIndex];
+    const sName = (s?.server_name || '').toLowerCase();
     const linkEmbed = currentEpisode?.link_embed || '';
-    return linkEmbed.includes('/embed/vicdn/') || linkEmbed.includes('vicdn.cc') || sName.includes('song ngữ') || sName.includes('vicdn');
+    return linkEmbed.includes('/embed/vicdn/') || linkEmbed.includes('vicdn.cc') || sName.includes('song ngữ') || sName.includes('vicdn') || Boolean(s?.is_song_ngu) || String(s?.sub || '').toLowerCase() === 'multisub';
   }
 
   function isNguonCActive() {

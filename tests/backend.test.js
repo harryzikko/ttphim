@@ -12,9 +12,9 @@ const { generateToken, verifyToken } = require('../src/services/authService');
 const { verifyPassword } = require('../src/services/passwordService');
 
 // These regression tests intentionally do not contact movie providers.
-for (const service of ['kkphimService', 'vicdnService', 'nguoncService', 'partyService', 'personService', 'tmdbService']) {
+for (const service of ['kkphimService', 'vicdnService', 'nguoncService', 'vodphimService', 'partyService', 'personService', 'tmdbService']) {
   const id = require.resolve(`../src/services/${service}`);
-  require.cache[id] = { id, filename: id, loaded: true, exports: service === 'kkphimService' ? { clearHomeCache() {} } : service === 'vicdnService' ? { hasBilingualMatch: () => false } : service === 'nguoncService' ? { hasMatch: () => false } : {} };
+  require.cache[id] = { id, filename: id, loaded: true, exports: service === 'kkphimService' ? { clearHomeCache() {} } : (service === 'vicdnService' || service === 'vodphimService') ? { hasBilingualMatch: () => false } : service === 'nguoncService' ? { hasMatch: () => false } : {} };
 }
 const router = require('../src/routes/apiRoutes');
 const admin = { id: 'audit-admin', email: 'admin@example.test', name: 'Admin', role: 'admin', password: 'old-password' };
@@ -272,7 +272,8 @@ test('admin source stats, search and synchronization support all configured prov
   const primary = require('../src/services/kkphimService');
   const bilingual = require('../src/services/vicdnService');
   const nguonc = require('../src/services/nguoncService');
-  const originals = [Object.assign({}, primary), Object.assign({}, bilingual), Object.assign({}, nguonc)];
+  const vodphim = require('../src/services/vodphimService');
+  const originals = [Object.assign({}, primary), Object.assign({}, bilingual), Object.assign({}, nguonc), Object.assign({}, vodphim)];
   let syncs = 0;
   Object.assign(primary, {
     getTotalMovies: async () => 100,
@@ -289,25 +290,32 @@ test('admin source stats, search and synchronization support all configured prov
     searchNguonC: async () => [{ slug: 'nguonc-film', name: 'NguonC film', source: 'nguonc' }],
     syncCatalog: async () => { syncs++; }
   });
+  Object.assign(vodphim, {
+    getTotalMovies: async () => 40, allMovies: [{ slug: 'vp-film' }], multisubMovies: [{ slug: 'vp-film' }], totalPages: 2,
+    getStatus: () => ({ status: 'online' }),
+    searchVodphim: async () => [{ slug: 'vp-film', name: 'VodPhim film', source: 'vodphim', sub: 'multisub', has_song_ngu: true }],
+    syncCatalog: async () => { syncs++; }
+  });
   try {
     const stats = await request('/admin/stats', { user: admin });
     assert.equal(stats.status, 200);
-    assert.equal(stats.body.data.totalAllSources, 150);
-    assert.deepEqual(stats.body.data.sourceCounts, { kkphim: 100, vicdn: 20, nguonc: 30 });
+    assert.equal(stats.body.data.totalAllSources, 190);
+    assert.deepEqual(stats.body.data.sourceCounts, { kkphim: 100, vicdn: 20, nguonc: 30, vodphim: 40 });
     const sources = await request('/admin/sources', { user: admin });
     assert.equal(sources.status, 200);
-    assert.deepEqual(Object.keys(sources.body.data).sort(), ['kkphim', 'nguonc', 'total_all_sources', 'total_web_movies', 'vicdn']);
+    assert.deepEqual(Object.keys(sources.body.data).sort(), ['kkphim', 'nguonc', 'total_all_sources', 'total_web_movies', 'vicdn', 'vodphim']);
     const search = await request('/admin/search-movie?keyword=test', { user: admin });
     assert.equal(search.status, 200);
-    assert.deepEqual(search.body.data.map(item => item.source), ['kkphim', 'vicdn', 'nguonc']);
+    assert.deepEqual(search.body.data.map(item => item.source), ['kkphim', 'vicdn', 'nguonc', 'vodphim']);
+    assert.equal(search.body.data[3].has_song_ngu, true);
     assert.equal((await request('/admin/search-movie?keyword=test&source=removed-provider', { user: admin })).status, 400);
     const sync = await request('/admin/sources/sync', { method: 'POST', body: {}, user: admin });
     assert.equal(sync.status, 200);
-    assert.deepEqual(sync.body.data, { vicdn_movies: 1, nguonc_movies: 1 });
-    assert.equal(syncs, 2);
+    assert.deepEqual(sync.body.data, { vicdn_movies: 1, nguonc_movies: 1, vodphim_movies: 1 });
+    assert.equal(syncs, 3);
   } finally {
-    for (const provider of [primary, bilingual, nguonc]) for (const key of Object.keys(provider)) delete provider[key];
-    Object.assign(primary, originals[0]); Object.assign(bilingual, originals[1]); Object.assign(nguonc, originals[2]);
+    for (const provider of [primary, bilingual, nguonc, vodphim]) for (const key of Object.keys(provider)) delete provider[key];
+    Object.assign(primary, originals[0]); Object.assign(bilingual, originals[1]); Object.assign(nguonc, originals[2]); Object.assign(vodphim, originals[3]);
   }
 });
 

@@ -6,6 +6,7 @@ const router = express.Router();
 const kkphimService = require('../services/kkphimService');
 const vicdnService = require('../services/vicdnService');
 const nguoncService = require('../services/nguoncService');
+const vodphimService = require('../services/vodphimService');
 const dbService = require('../services/dbService');
 const partyService = require('../services/partyService');
 const personService = require('../services/personService');
@@ -486,7 +487,12 @@ router.get('/user/library', async (req, res) => {
     const enrichSongNgu = (items) => (items || []).map(item => ({
       ...item,
       thumb_url: item.thumb_url || (item.poster_url && item.poster_url.includes('-poster.') ? item.poster_url.replace('-poster.', '-thumb.') : (item.thumb_url || item.poster_url || '')),
-      has_song_ngu: Boolean(item.has_song_ngu || vicdnService.hasBilingualMatch({ slug: item.movie_slug || item.slug, name: item.movie_name || item.name, origin_name: item.origin_name }))
+      has_song_ngu: Boolean(
+        item.has_song_ngu ||
+        String(item.sub || '').trim().toLowerCase() === 'multisub' ||
+        vicdnService.hasBilingualMatch({ slug: item.movie_slug || item.slug, name: item.movie_name || item.name, origin_name: item.origin_name }) ||
+        (vodphimService && vodphimService.hasBilingualMatch && vodphimService.hasBilingualMatch({ slug: item.movie_slug || item.slug, name: item.movie_name || item.name, origin_name: item.origin_name }))
+      )
     }));
 
     res.json({
@@ -638,17 +644,19 @@ router.post('/user/profile', async (req, res) => {
 router.get('/admin/stats', async (req, res) => {
   try {
     const stats = await dbService.getAdminStats();
-    const [kkphimTotal, vicdnTotal, nguoncTotal] = await Promise.all([
+    const [kkphimTotal, vicdnTotal, nguoncTotal, vodphimTotal] = await Promise.all([
       kkphimService.getTotalMovies(),
       vicdnService.getTotalMovies ? vicdnService.getTotalMovies() : 628,
-      nguoncService.getTotalMovies ? nguoncService.getTotalMovies() : 33580
+      nguoncService.getTotalMovies ? nguoncService.getTotalMovies() : 33580,
+      vodphimService.getTotalMovies ? vodphimService.getTotalMovies() : 0
     ]);
     stats.totalWebMovies = kkphimTotal;
-    stats.totalAllSources = kkphimTotal == null ? null : kkphimTotal + (vicdnTotal || 0) + (nguoncTotal || 0);
+    stats.totalAllSources = kkphimTotal == null ? null : kkphimTotal + (vicdnTotal || 0) + (nguoncTotal || 0) + (vodphimTotal || 0);
     stats.sourceCounts = {
       kkphim: kkphimTotal,
       vicdn: vicdnTotal || 628,
-      nguonc: nguoncTotal || 33580
+      nguonc: nguoncTotal || 33580,
+      vodphim: vodphimTotal || 0
     };
     res.json({ status: true, data: stats });
   } catch (err) {
@@ -777,16 +785,18 @@ router.post('/admin/cache/clear', async (req, res) => {
 // Admin: Get Sources Status
 router.get('/admin/sources', async (req, res) => {
   try {
-    const [kkphimTotal, vicdnTotal, nguoncTotal] = await Promise.all([
+    const [kkphimTotal, vicdnTotal, nguoncTotal, vodphimTotal] = await Promise.all([
       kkphimService.getTotalMovies(),
       vicdnService.getTotalMovies ? vicdnService.getTotalMovies() : 628,
-      nguoncService.getTotalMovies ? nguoncService.getTotalMovies() : 33580
+      nguoncService.getTotalMovies ? nguoncService.getTotalMovies() : 33580,
+      vodphimService.getTotalMovies ? vodphimService.getTotalMovies() : 0
     ]);
     const vicdnIndexed = (vicdnService && vicdnService.allMovies) ? vicdnService.allMovies.length : 0;
     const nguoncIndexed = (nguoncService && nguoncService.allMovies) ? nguoncService.allMovies.length : 0;
+    const vodphimIndexed = (vodphimService && vodphimService.allMovies) ? vodphimService.allMovies.length : 0;
 
     const totalWebMovies = kkphimTotal;
-    const totalAllSources = totalWebMovies == null ? null : totalWebMovies + (vicdnTotal || 0) + (nguoncTotal || 0);
+    const totalAllSources = totalWebMovies == null ? null : totalWebMovies + (vicdnTotal || 0) + (nguoncTotal || 0) + (vodphimTotal || 0);
 
     res.json({
       status: true,
@@ -818,6 +828,16 @@ router.get('/admin/sources', async (req, res) => {
           total_pages: nguoncService.totalPages || 3359,
           indexed_movies: nguoncIndexed,
           type: 'Phim Lẻ, Phim Bộ, TV Shows, Hoạt Hình (Vietsub & Thuyết minh)'
+        },
+        vodphim: {
+          name: 'VodPhim API (api.xink.pro)',
+          endpoint: 'https://api.xink.pro',
+          status: vodphimService.getStatus ? vodphimService.getStatus().status : (vodphimIndexed > 0 ? 'online' : 'pending'),
+          total_movies: vodphimTotal || vodphimIndexed || 0,
+          total_pages: vodphimService.totalPages || 0,
+          indexed_movies: vodphimIndexed,
+          multisub_movies: (vodphimService && vodphimService.multisubMovies) ? vodphimService.multisubMovies.length : 0,
+          type: 'Phim Lẻ, Phim Bộ, Chiếu Rạp, Hoạt Hình (Multi-Sub Song Ngữ & Thuyết minh)'
         }
       }
     });
@@ -829,19 +849,22 @@ router.get('/admin/sources', async (req, res) => {
 // Admin: Trigger Manual Sync for Sources
 router.post('/admin/sources/sync', async (req, res) => {
   try {
-    console.log('[Admin] Triggering manual sync for ViCDN and NguonC...');
+    console.log('[Admin] Triggering manual sync for ViCDN, NguonC and VodPhim...');
     await Promise.allSettled([
       vicdnService.syncCatalog(),
-      nguoncService.syncCatalog()
+      nguoncService.syncCatalog(),
+      vodphimService.syncCatalog ? vodphimService.syncCatalog(true) : Promise.resolve()
     ]);
     const vicdnCount = (vicdnService && vicdnService.allMovies) ? vicdnService.allMovies.length : 0;
     const nguoncCount = (nguoncService && nguoncService.allMovies) ? nguoncService.allMovies.length : 0;
+    const vodphimCount = (vodphimService && vodphimService.allMovies) ? vodphimService.allMovies.length : 0;
     res.json({
       status: true,
-      message: 'Đã hoàn tất đồng bộ danh mục từ ViCDN & NguonC!',
+      message: 'Đã hoàn tất đồng bộ danh mục từ ViCDN, NguonC & VodPhim!',
       data: {
         vicdn_movies: vicdnCount,
-        nguonc_movies: nguoncCount
+        nguonc_movies: nguoncCount,
+        vodphim_movies: vodphimCount
       }
     });
   } catch(err) {
@@ -1287,7 +1310,7 @@ router.get('/admin/search-movie', async (req, res) => {
   try {
     const query = req.query.keyword || '';
     const requestedSource = req.query.source || 'all';
-    if (!['all', 'kkphim', 'vicdn', 'nguonc'].includes(requestedSource)) {
+    if (!['all', 'kkphim', 'vicdn', 'nguonc', 'vodphim'].includes(requestedSource)) {
       return res.status(400).json({ status: false, message: 'Nguồn phim không được hỗ trợ' });
     }
     if (!query || !query.trim()) {
@@ -1341,6 +1364,21 @@ router.get('/admin/search-movie', async (req, res) => {
             source: 'nguonc',
             source_name: 'NguonC API',
             source_badge: 'NguonC'
+          })))
+          .catch(() => [])
+      );
+    }
+
+    // 4. VodPhim API Search
+    if (requestedSource === 'all' || requestedSource === 'vodphim') {
+      tasks.push(
+        vodphimService.searchVodphim(trimmed)
+          .then(items => (items || []).map(i => ({
+            ...i,
+            source: 'vodphim',
+            source_name: 'VodPhim API',
+            source_badge: 'VodPhim',
+            has_song_ngu: Boolean(i.has_song_ngu || String(i.sub || '').trim().toLowerCase() === 'multisub')
           })))
           .catch(() => [])
       );

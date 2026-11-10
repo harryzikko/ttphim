@@ -9,7 +9,7 @@ const { issueSession } = require('../src/services/authService');
 const metrics = require('../src/services/metricsService');
 const moderation = require('../src/services/moderationService');
 const backups = require('../src/services/backupService');
-for (const name of ['kkphimService', 'vicdnService', 'personService', 'tmdbService']) {
+for (const name of ['kkphimService', 'vicdnService', 'nguoncService', 'vodphimService', 'personService', 'tmdbService']) {
   const id = require.resolve(`../src/services/${name}`); require.cache[id] = { id, filename: id, loaded: true, exports: {} };
 }
 const { app } = require('../src/server');
@@ -158,10 +158,10 @@ test('source monitoring rejects empty feeds and deduplicates operational alerts'
     const calls = [];
     const fetcher = async url => { calls.push(url); return new Response(JSON.stringify(url.includes('vicdn.cc') ? {} : { items: [] }), { headers: { 'Content-Type': 'application/json' } }); };
     const first = await monitor.check(fetcher);
-    assert.deepEqual(first.map(item => item.name), ['kkphim', 'vicdn']);
-    assert.equal(first.filter(item => item.healthy).length, 1);
+    assert.deepEqual(first.map(item => item.name), ['kkphim', 'vicdn', 'vodphim']);
+    assert.equal(first.filter(item => item.healthy).length, 2);
     await monitor.check(fetcher);
-    assert.equal(calls.length, 4);
+    assert.equal(calls.length, 6);
     assert.equal((await db.getRawDatabase()).operational_alerts.filter(item => item.kind === 'source_vicdn_down').length, 1);
   } finally { if (original === undefined) delete process.env.ALERTS_ENABLED; else process.env.ALERTS_ENABLED = original; }
 });

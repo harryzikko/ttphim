@@ -2,6 +2,7 @@ let movieMatching; try { movieMatching = typeof require === 'function' ? require
 const config = require('../config');
 const vicdnService = require('./vicdnService');
 const nguoncService = require('./nguoncService');
+let vodphimService; try { vodphimService = require('./vodphimService'); } catch (_) { vodphimService = null; }
 
 function searchText(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
@@ -157,9 +158,12 @@ class KKPhimService {
       return `${cdn}/${u}`;
     };
 
+    const isMultisub = String(item.sub || '').trim().toLowerCase() === 'multisub';
     const hasSongNgu = Boolean(
-      item.has_song_ngu || 
-      (vicdnService && vicdnService.hasBilingualMatch(item))
+      item.has_song_ngu ||
+      isMultisub ||
+      (vicdnService && vicdnService.hasBilingualMatch(item)) ||
+      (vodphimService && typeof vodphimService.hasBilingualMatch === 'function' && vodphimService.hasBilingualMatch(item))
     );
 
     return {
@@ -172,7 +176,10 @@ class KKPhimService {
       year: item.year || null,
       time: item.time || '',
       quality: item.quality || '',
-      lang: item.lang || '',
+      lang: isMultisub && !String(item.lang || '').toLowerCase().includes('song ngữ')
+        ? (item.lang ? `${item.lang} + Song Ngữ` : 'Song Ngữ')
+        : (item.lang || ''),
+      sub: item.sub || '',
       episode_current: item.episode_current || '',
       episode_total: item.episode_total || '',
       chieurap: item.chieurap === true || item.chieurap === 'true' || item.chieurap === 1,
@@ -275,7 +282,7 @@ class KKPhimService {
           pinnedCandidates = settings.featured_slugs.slice(0, 10).map(s => {
             if (typeof s === 'object' && s && s.slug) return s;
             return { slug: String(s) };
-          }).filter(item => !item.source || ['kkphim', 'vicdn'].includes(item.source));
+          }).filter(item => !item.source || ['kkphim', 'vicdn', 'nguonc', 'vodphim'].includes(item.source));
         }
       } catch(e) {}
       // Ranking metadata does not depend on spotlight details; start both groups together.
@@ -393,7 +400,13 @@ class KKPhimService {
         const totalView = apiView + localView;
         return {
           ...item,
-          has_song_ngu: Boolean(item.has_song_ngu || detail?.has_song_ngu || (vicdnService && vicdnService.hasBilingualMatch(item))),
+          has_song_ngu: Boolean(
+            item.has_song_ngu ||
+            detail?.has_song_ngu ||
+            String(item.sub || '').trim().toLowerCase() === 'multisub' ||
+            (vicdnService && vicdnService.hasBilingualMatch(item)) ||
+            (vodphimService && typeof vodphimService.hasBilingualMatch === 'function' && vodphimService.hasBilingualMatch(item))
+          ),
           quality: detail?.quality || item.quality || 'FHD',
           year: detail?.year || item.year || 2026,
           real_views: totalView,
@@ -466,6 +479,21 @@ class KKPhimService {
         }
       }
 
+      // If slug is explicitly VodPhim (starts with vp-)
+      if (slug.startsWith('vp-') && vodphimService && typeof vodphimService.getMovieDetail === 'function') {
+        const vpDirect = await vodphimService.getMovieDetail(slug);
+        if (vpDirect) {
+          try {
+            const nguoncServers = await nguoncService.getNguoncServers(vpDirect.movie);
+            if (Array.isArray(nguoncServers) && nguoncServers.length > 0) {
+              vpDirect.episodes.push(...nguoncServers);
+            }
+          } catch (_) {}
+          this.cache.set(cacheKey, vpDirect, config.CACHE_TTL.DETAIL);
+          return vpDirect;
+        }
+      }
+
       // 2. Fetch KKPhim detail
       try {
         data = await this.fetchJson(`/phim/${slug}`);
@@ -482,6 +510,15 @@ class KKPhimService {
         if (nguoncDirect) {
           this.cache.set(cacheKey, nguoncDirect, config.CACHE_TTL.DETAIL);
           return nguoncDirect;
+        }
+
+        // Fallback 3: check if slug exists directly in VodPhim
+        if (vodphimService && typeof vodphimService.getMovieDetail === 'function') {
+          const vpDirect = await vodphimService.getMovieDetail(slug);
+          if (vpDirect) {
+            this.cache.set(cacheKey, vpDirect, config.CACHE_TTL.DETAIL);
+            return vpDirect;
+          }
         }
 
         throw err;
@@ -513,6 +550,7 @@ class KKPhimService {
         episode_total: m.episode_total || '',
         quality: m.quality || 'FHD',
         lang: m.lang || 'Vietsub',
+        sub: m.sub || '',
         notify: m.notify || '',
         showtimes: m.showtimes || '',
         year: m.year || 2026,
@@ -528,17 +566,32 @@ class KKPhimService {
         alternative_names: m.alternative_names || []
       };
 
+      const isPrimaryMultisub = String(m.sub || '').trim().toLowerCase() === 'multisub';
+      if (isPrimaryMultisub) {
+        movie.has_song_ngu = true;
+        if (!String(movie.lang || '').toLowerCase().includes('song ngữ')) {
+          movie.lang = movie.lang ? `${movie.lang} + Song Ngữ` : 'Song Ngữ';
+        }
+      }
+
       // Format episodes
-      const episodes = (data.episodes || []).map(server => ({
-        server_name: server.server_name || 'Server VIP #1',
-        server_data: (server.server_data || []).map(ep => ({
-          name: ep.name,
-          slug: ep.slug,
-          filename: ep.filename,
-          link_embed: ep.link_embed,
-          link_m3u8: ep.link_m3u8
-        }))
-      }));
+      const episodes = (data.episodes || []).map((server, idx) => {
+        const sName = server.server_name || `Server VIP #${idx + 1}`;
+        const isDub = /thuyết\s*minh|thuyet[\s-]*minh|lồng\s*tiếng|long[\s-]*tieng/i.test(sName);
+        const promoteToSongNgu = isPrimaryMultisub && !sName.toLowerCase().includes('song ngữ') && (!isDub || idx === 0);
+        return {
+          server_name: promoteToSongNgu ? `Song Ngữ (${sName})` : sName,
+          ...(promoteToSongNgu ? { server_type: 'song_ngu', is_song_ngu: true, sub: 'multisub', language: 'Song Ngữ' } : {}),
+          server_data: (server.server_data || []).map(ep => ({
+            name: ep.name,
+            slug: ep.slug,
+            filename: ep.filename,
+            link_embed: ep.link_embed,
+            link_m3u8: ep.link_m3u8
+          }))
+        };
+      });
+      const maxPrimaryEpCount = Math.max(0, ...episodes.map(s => s.server_data?.length || 0));
 
       // Merge ViCDN Bilingual Server if available!
       try {
@@ -560,10 +613,35 @@ class KKPhimService {
         const nguoncServers = await nguoncService.getNguoncServers(movie);
         if (Array.isArray(nguoncServers) && nguoncServers.length > 0) {
           episodes.push(...nguoncServers);
+          if (nguoncServers.some(s => s.is_song_ngu || String(s.sub || '').trim().toLowerCase() === 'multisub')) {
+            movie.has_song_ngu = true;
+            if (!movie.lang.toLowerCase().includes('song ngữ')) {
+              movie.lang = movie.lang ? `${movie.lang} + Song Ngữ` : 'Song Ngữ';
+            }
+          }
           console.log(`[KKPhim+NguonC] Attached ${nguoncServers.length} NguonC server(s) to "${movie.name}"`);
         }
       } catch (nguoncErr) {
         console.warn(`[NguonC] Error merging servers for ${slug}:`, nguoncErr.message);
+      }
+
+      // Merge VodPhim Server(s) if available (with sub: "multisub" -> Song Ngữ routing)!
+      if (vodphimService && typeof vodphimService.getVodphimServers === 'function') {
+        try {
+          const vpServers = await vodphimService.getVodphimServers(movie, maxPrimaryEpCount);
+          if (Array.isArray(vpServers) && vpServers.length > 0) {
+            episodes.push(...vpServers);
+            if (vpServers.some(s => s.is_song_ngu || String(s.sub || '').trim().toLowerCase() === 'multisub')) {
+              movie.has_song_ngu = true;
+              if (!movie.lang.toLowerCase().includes('song ngữ')) {
+                movie.lang = movie.lang ? `${movie.lang} + Song Ngữ` : 'Song Ngữ';
+              }
+            }
+            console.log(`[KKPhim+VodPhim] Attached ${vpServers.length} VodPhim server(s) to "${movie.name}"`);
+          }
+        } catch (vpErr) {
+          console.warn(`[VodPhim] Error merging servers for ${slug}:`, vpErr.message);
+        }
       }
 
       // Fetch related movies (from same primary category)
@@ -597,7 +675,39 @@ class KKPhimService {
     const limitNum = Math.max(1, Math.min(60, parseInt(limit, 10) || 30));
     const filters = { type, category, country, year, format, sort };
     const trimmed = String(keyword).trim().slice(0, 200);
-    if (type === 'song-ngu') return vicdnService.getCatalog({ ...filters, page: pageNum, limit: limitNum, keyword: trimmed });
+    if (type === 'song-ngu') {
+      const [vicdnRes, vpRes] = await Promise.all([
+        vicdnService.getCatalog({ ...filters, page: 1, limit: 2000, keyword: trimmed }),
+        vodphimService && typeof vodphimService.getCatalog === 'function'
+          ? vodphimService.getCatalog({ ...filters, type: 'song-ngu', format: 'song-ngu', page: 1, limit: 2000 }).catch(() => null)
+          : Promise.resolve(null)
+      ]);
+      const query = searchText(trimmed);
+      const vpFiltered = Array.isArray(vpRes?.items)
+        ? vpRes.items.filter(item => item && (!query || [item.name, item.origin_name, item.original_name, item.slug].some(v => searchText(v).includes(query))))
+        : [];
+      if (vpFiltered.length === 0) {
+        return vicdnService.getCatalog({ ...filters, page: pageNum, limit: limitNum, keyword: trimmed });
+      }
+      const combined = Array.isArray(vicdnRes?.items) ? [...vicdnRes.items] : [];
+      for (const vpItem of vpFiltered) {
+        const existing = combined.find(value => isSameMovie(value, vpItem));
+        if (existing) existing.has_song_ngu = true;
+        else combined.push(vpItem);
+      }
+      if (['year', 'released'].includes(sort)) combined.sort((a, b) => (Number(b.year) || 0) - (Number(a.year) || 0));
+      else if (['view', 'views'].includes(sort)) combined.sort((a, b) => (b.view || 0) - (a.view || 0));
+      const totalItems = combined.length;
+      return {
+        items: combined.slice((pageNum - 1) * limitNum, pageNum * limitNum),
+        pagination: {
+          totalItems,
+          totalItemsPerPage: limitNum,
+          currentPage: pageNum,
+          totalPages: Math.max(1, Math.ceil(totalItems / limitNum))
+        }
+      };
+    }
     const active = value => value && value !== 'all';
     const matches = item => {
       const query = searchText(trimmed);
@@ -665,9 +775,15 @@ class KKPhimService {
           if (trimmed && folded.toLowerCase() !== trimmed.toLowerCase()) await load(folded);
           if (trimmed && !combined.length) { await load('', true); limited = true; }
           if (trimmed) {
-            const bilingual = await vicdnService.searchViCdn(trimmed, { unlimited: true }).catch(() => { failures++; return []; });
+            const [bilingual, vodphimItems] = await Promise.all([
+              vicdnService.searchViCdn(trimmed, { unlimited: true }).catch(() => { failures++; return []; }),
+              vodphimService && typeof vodphimService.searchVodphim === 'function'
+                ? vodphimService.searchVodphim(trimmed, { unlimited: true }).catch(() => [])
+                : Promise.resolve([])
+            ]);
             if (vicdnService.searchSyncUnavailable) failures++;
             bilingual.forEach(merge);
+            if (Array.isArray(vodphimItems)) vodphimItems.forEach(merge);
           }
           if ((!successes || failures) && !combined.length) throw new Error('Catalog provider unavailable');
           if (['year', 'released'].includes(sort)) combined.sort((a, b) => (Number(b.year) || 0) - (Number(a.year) || 0));

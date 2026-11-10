@@ -694,6 +694,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">ViCDN Song Ngữ</span>';
         } else if ((typeof item === 'object' && item.source === 'nguonc') || slug.startsWith('nc-')) {
           sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">NguonC</span>';
+        } else if ((typeof item === 'object' && item.source === 'vodphim') || slug.startsWith('vp-')) {
+          sourceBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">VodPhim</span>';
         }
 
         const isBilingual = (typeof item === 'object' && item.has_song_ngu) || (typeof item === 'object' && item.source === 'vicdn') || slug.startsWith('tv-');
@@ -764,7 +766,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!kw) return;
     const sourceFilter = searchSourceFilter?.value || 'all';
     const tbody = document.getElementById('movie-search-table-body');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Đang tìm kiếm từ các nguồn phim (${sourceFilter === 'all' ? 'KKPhim, ViCDN Song Ngữ, NguonC' : escapeHtml(sourceFilter.toUpperCase())})...</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-on-surface-variant">Đang tìm kiếm từ các nguồn phim (${sourceFilter === 'all' ? 'KKPhim, ViCDN Song Ngữ, NguonC, VodPhim' : escapeHtml(sourceFilter.toUpperCase())})...</td></tr>`;
 
     try {
       const items = await API.searchAdminMovies(kw, sourceFilter);
@@ -785,6 +787,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>ViCDN Song Ngữ</span>';
         } else if (m.source === 'nguonc' || (m.slug && m.slug.startsWith('nc-'))) {
           sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>NguonC API</span>';
+        } else if (m.source === 'vodphim' || (m.slug && m.slug.startsWith('vp-'))) {
+          sourceBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>VodPhim API</span>';
         }
 
         const songNguTag = (m.has_song_ngu || m.source === 'vicdn' || (m.slug && m.slug.startsWith('tv-')))
@@ -847,9 +851,9 @@ document.addEventListener('DOMContentLoaded', async () => {
               thumb_url: targetMovie.thumb_url || targetMovie.poster_url || '',
               year: targetMovie.year || new Date().getFullYear(),
               quality: targetMovie.quality || 'FHD',
-              has_song_ngu: Boolean(targetMovie.has_song_ngu || targetMovie.source === 'vicdn'),
+              has_song_ngu: Boolean(targetMovie.has_song_ngu || targetMovie.source === 'vicdn' || String(targetMovie.sub || '').trim().toLowerCase() === 'multisub'),
               source: targetMovie.source || 'kkphim',
-              source_name: targetMovie.source_name || (targetMovie.source === 'vicdn' ? 'ViCDN Song Ngữ' : targetMovie.source === 'nguonc' ? 'NguonC API' : 'KKPhim API')
+              source_name: targetMovie.source_name || (targetMovie.source === 'vicdn' ? 'ViCDN Song Ngữ' : targetMovie.source === 'nguonc' ? 'NguonC API' : targetMovie.source === 'vodphim' ? 'VodPhim API' : 'KKPhim API')
             } : { slug };
 
             featuredList = [pinItem, ...featuredList].slice(0, 8);
@@ -1494,6 +1498,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (ncPages) ncPages.innerText = sources.nguonc?.total_pages ? `${Number(sources.nguonc.total_pages).toLocaleString('vi-VN')} trang` : '-- trang';
     const ncStatus = document.getElementById('source-nguonc-status');
     if (ncStatus) ncStatus.innerText = sources.nguonc?.status === 'online' ? 'Đã Kết Nối' : 'Chưa kết nối';
+
+    // VodPhim
+    const vpStat = document.getElementById('sources-stat-vodphim');
+    if (vpStat) vpStat.innerText = sources.vodphim?.total_movies ? Number(sources.vodphim.total_movies).toLocaleString('vi-VN') : '--';
+    const vpTotal = document.getElementById('source-vodphim-total');
+    if (vpTotal) vpTotal.innerText = sources.vodphim?.total_movies ? `${Number(sources.vodphim.total_movies).toLocaleString('vi-VN')} phim` : '-- phim';
+    const vpCount = document.getElementById('source-vodphim-count');
+    if (vpCount) vpCount.innerText = sources.vodphim?.indexed_movies ? `${Number(sources.vodphim.indexed_movies).toLocaleString('vi-VN')} phim` : '-- phim';
+    const vpPages = document.getElementById('source-vodphim-pages');
+    if (vpPages) vpPages.innerText = sources.vodphim?.total_pages ? `${Number(sources.vodphim.total_pages).toLocaleString('vi-VN')} trang` : '-- trang';
+    const vpStatus = document.getElementById('source-vodphim-status');
+    if (vpStatus) vpStatus.innerText = sources.vodphim?.status === 'online' ? 'Đã Kết Nối' : 'Đang chờ đồng bộ';
   };
 
   async function loadSourcesTab() {
@@ -1514,7 +1530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       syncBtn.disabled = true;
       if (syncIcon) syncIcon.classList.add('animate-spin');
-      window.showToast('Đang kết nối và đồng bộ danh mục từ ViCDN & NguonC...');
+      window.showToast('Đang kết nối và đồng bộ danh mục từ ViCDN, NguonC & VodPhim...');
       const res = await API.syncAdminSources();
       window.showToast(res?.message || 'Đã đồng bộ xong danh mục đa nguồn!');
       await loadSourcesTab();

@@ -23,7 +23,7 @@
   }
   function language(server) {
     const text = fold([server?.language, server?.lang, server?.server_name].filter(Boolean).join(' '));
-    if (/song ngu|da giong|da ngon ngu|multi[ -]?(audio|language)/.test(text)) return { id: 'multi', label: 'Song Ngữ' };
+    if (server?.is_song_ngu || String(server?.sub || '').trim().toLowerCase() === 'multisub' || /song ngu|da giong|da ngon ngu|multi[ -]?(audio|language)/.test(text)) return { id: 'multi', label: 'Song Ngữ' };
     if (/long tieng|dubbed|\bdub\b/.test(text)) return { id: 'dub', label: 'Lồng tiếng' };
     if (/thuyet minh|\bvoice[ -]?over\b/.test(text)) return { id: 'voice', label: 'Thuyết minh' };
     if (/vietsub|phu de|subtitles?|\bsub\b/.test(text)) return { id: 'sub', label: 'Phụ đề' };

@@ -6,6 +6,8 @@ class EmbedPolicy {
     'streamc.xyz',
     'nguonc.com',
     'vicdn.cc',
+    'playembed.vip',
+    'vodphim.com',
     'cineviet.live',
     'phimapi.com',
     'opstream16.com',

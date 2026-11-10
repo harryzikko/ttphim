@@ -734,10 +734,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (fullscreenBtn) {
     fullscreenBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const sName = (allServers[currentServerIndex]?.server_name || '').toLowerCase();
+      const s = allServers[currentServerIndex];
+      const sName = (s?.server_name || '').toLowerCase();
       const currentEp = currentEpisodes[currentEpIndex];
       const linkEmbed = currentEp?.link_embed || '';
-      const isSongNgu = linkEmbed.includes('/embed/vicdn/') || linkEmbed.includes('vicdn.cc') || sName.includes('song ngữ') || sName.includes('vicdn');
+      const isSongNgu = linkEmbed.includes('/embed/vicdn/') || linkEmbed.includes('vicdn.cc') || sName.includes('song ngữ') || sName.includes('vicdn') || Boolean(s?.is_song_ngu) || String(s?.sub || '').toLowerCase() === 'multisub';
 
       if (playerWrapper?.classList.contains('m-web-fullscreen')) {
         toggleWebFullscreen(false);

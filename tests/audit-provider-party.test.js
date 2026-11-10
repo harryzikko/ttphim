@@ -38,6 +38,7 @@ function metadata() {
     if (name === '../config') return { KKPHIM_API_BASE: 'https://provider.invalid', IMAGE_CDN: '', CACHE_TTL: { CATEGORIES: TTL } };
     if (name === './vicdnService') return { getMovieDetail: async () => null };
     if (name === './nguoncService') return { getMovieDetail: async () => null, getNguoncServers: async () => [] };
+    if (name === './vodphimService') return { getMovieDetail: async () => null, getVodphimServers: async () => [], hasBilingualMatch: () => false };
     throw new Error(`Unexpected dependency: ${name}`);
   } };
   vm.runInNewContext(read('src/services/kkphimService.js'), context);

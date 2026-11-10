@@ -3,8 +3,8 @@
     const number = value => value != null && Number.isFinite(Number(value)) ? Number(value).toLocaleString('vi-VN') : 'Chưa xác minh';
     const put = (id, text) => { const el = doc.getElementById(id); if (el) el.textContent = text; };
     put('sources-total-web', number(sources.total_web_movies));
-    put('sources-total-all-sub', `Tổng 3 nguồn: ${number(sources.total_all_sources)} bản ghi`);
-    for (const key of ['kkphim', 'vicdn', 'nguonc']) {
+    put('sources-total-all-sub', `Tổng 4 nguồn: ${number(sources.total_all_sources)} bản ghi`);
+    for (const key of ['kkphim', 'vicdn', 'nguonc', 'vodphim']) {
       const source = sources[key] || {};
       put(`sources-stat-${key}`, number(source.total_movies));
       put(`sources-stat-${key}-sub`, `${number(source.total_pages)} trang (${source.endpoint || key})`);

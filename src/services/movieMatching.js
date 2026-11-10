@@ -75,6 +75,11 @@ function extractSeasonIdentifier(item) {
     if (num >= 1 && num <= 30) return `season_${num}`;
   }
 
+  const explicitSeason = Number(item.season || item.tmdb?.season);
+  if (Number.isInteger(explicitSeason) && explicitSeason >= 2) {
+    return `season_${explicitSeason}`;
+  }
+
   return 'season_none';
 }
 
@@ -225,6 +230,7 @@ function isCompatibleMovie(target, candidate) {
 module.exports = {
   removeAccents,
   cleanTitle,
+  extractBaseTitle,
   extractTmdbId,
   extractSeasonIdentifier,
   isAnime,
