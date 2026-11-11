@@ -251,7 +251,7 @@
     setVal('social-int-openai-model', info.openai_model || 'gpt-4o-mini');
 
     resetSecret('social-int-gemini-key', 'social-int-gemini-clear', info.gemini_configured, info.gemini_api_key_masked, 'Gemini API Key (tùy chọn)');
-    setVal('social-int-gemini-model', info.gemini_model || 'gemini-2.0-flash');
+    setVal('social-int-gemini-model', info.gemini_model || 'gemini-3.1-flash-lite');
   }
 
   function renderVerifyResults(data) {
@@ -563,7 +563,7 @@
             telegram_url: val('social-int-tg-url'),
             telegram_handle: val('social-int-tg-handle'),
             openai_model: val('social-int-openai-model') || 'gpt-4o-mini',
-            gemini_model: val('social-int-gemini-model') || 'gemini-2.0-flash',
+            gemini_model: val('social-int-gemini-model') || 'gemini-3.1-flash-lite',
             clear_tmdb_api_key: chk('social-int-tmdb-clear'),
             clear_fb_token: chk('social-int-fb-clear'),
             clear_threads_token: chk('social-int-th-clear'),
