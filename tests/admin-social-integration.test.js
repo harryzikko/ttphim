@@ -452,3 +452,96 @@ test('public/admin.html embeds tab-social UI safely and admin-social.js escapes 
     window.close();
   }
 });
+
+test('real public/js/api.js unwraps /api/admin/social/* envelopes cleanly for admin-social.js', async () => {
+  const html = fs.readFileSync(path.join(__dirname, '../public/admin.html'), 'utf8');
+  const dom = new JSDOM(html, { url: 'https://cineviet.live/admin', runScripts: 'outside-only', pretendToBeVisual: true });
+  const { window } = dom;
+  window.document.querySelectorAll('script, svg').forEach(node => node.remove());
+
+  const callbacks = [];
+  const origAdd = window.document.addEventListener.bind(window.document);
+  window.document.addEventListener = (event, cb, opts) => (event === 'DOMContentLoaded' ? callbacks.push(cb) : origAdd(event, cb, opts));
+  window.showToast = () => {};
+  window.console.error = () => {};
+
+  let failOffline = false;
+  window.fetch = async (url, options = {}) => {
+    if (failOffline) {
+      return {
+        status: 503,
+        text: async () => JSON.stringify({ status: false, code: 'SOCIAL_BOT_OFFLINE', message: 'Offline 503' })
+      };
+    }
+    if (String(url).endsWith('/api/admin/social/dashboard')) {
+      return {
+        status: 200,
+        text: async () => JSON.stringify({
+          status: true,
+          data: {
+            integrations: {
+              tmdb_configured: true,
+              tmdb_api_key_masked: '••••93ed',
+              facebook_configured: true,
+              fb_page_id: '258215340705780',
+              fb_page_access_token_masked: '••••6EZD',
+              threads_configured: true,
+              threads_user_id: '30446538011612918',
+              threads_access_token_masked: '••••HcZD'
+            },
+            settings: { auto_schedule_enabled: true, dry_run: false, slots_vn: ['11:30', '21:00'] },
+            open_slots: [],
+            stats: { total_published: 4, scheduled_count: 8, published_queue_count: 4, failed_or_partial_count: 0 },
+            queue: [],
+            published_movies: [],
+            run_logs: []
+          }
+        })
+      };
+    }
+    if (String(url).endsWith('/api/admin/social/integrations/verify')) {
+      return {
+        status: 200,
+        text: async () => JSON.stringify({
+          status: true,
+          data: {
+            tmdb: { configured: true, ok: true, detail: 'Ket noi TMDb thanh cong' },
+            facebook: { configured: true, ok: true, detail: 'Ket noi Page: CineViet.Live' },
+            threads: { configured: true, ok: true, detail: 'Ket noi Threads: @cine.vietlive' }
+          }
+        })
+      };
+    }
+    return { status: 200, text: async () => JSON.stringify({ status: true, data: {} }) };
+  };
+
+  try {
+    window.eval(fs.readFileSync(path.join(__dirname, '../public/js/api.js'), 'utf8'));
+    window.eval(fs.readFileSync(path.join(__dirname, '../public/js/admin-social.js'), 'utf8'));
+    for (const cb of callbacks) await cb();
+
+    await window.loadAdminSocialTab();
+    await tick();
+
+    assert.equal(window.document.getElementById('social-stat-published').textContent, '4');
+    assert.ok(window.document.getElementById('social-int-badge-tmdb').textContent.includes('••••93ed'));
+    assert.ok(window.document.getElementById('social-int-badge-fb').textContent.includes('••••6EZD'));
+    assert.ok(window.document.getElementById('social-int-badge-threads').textContent.includes('••••HcZD'));
+
+    window.document.getElementById('btn-social-verify-integrations').click();
+    await tick();
+    const verifyText = window.document.getElementById('social-verify-result').textContent;
+    assert.ok(verifyText.includes('Hợp lệ'));
+    assert.ok(verifyText.includes('Ket noi Page: CineViet.Live'));
+    assert.ok(verifyText.includes('@cine.vietlive'));
+    assert.ok(!verifyText.includes('Chưa đạt'));
+
+    failOffline = true;
+    await window.loadAdminSocialTab();
+    await tick();
+    assert.equal(window.document.getElementById('social-offline-banner').classList.contains('hidden'), false);
+    assert.equal(window.document.getElementById('social-offline-message').textContent, 'Offline 503');
+  } finally {
+    window.close();
+  }
+});

@@ -469,53 +469,63 @@ const API = {
       body: JSON.stringify(data)
     });
   },
+  async _socialRequest(endpoint, options = {}) {
+    const res = await this.request(endpoint, options);
+    if (!res?.status) {
+      const err = new Error(res?.message || 'Không kết nối được CineViet Social');
+      err.code = res?.code;
+      err.httpStatus = res?.httpStatus;
+      throw err;
+    }
+    return res.data ?? res;
+  },
   async getAdminSocialDashboard() {
-    return this.request('/api/admin/social/dashboard');
+    return this._socialRequest('/api/admin/social/dashboard');
   },
   async saveAdminSocialSettings(data) {
-    return this.request('/api/admin/social/settings', {
+    return this._socialRequest('/api/admin/social/settings', {
       method: 'POST',
       body: JSON.stringify(data)
     });
   },
   async saveAdminSocialIntegrations(data) {
-    return this.request('/api/admin/social/integrations', {
+    return this._socialRequest('/api/admin/social/integrations', {
       method: 'POST',
       body: JSON.stringify(data)
     });
   },
   async verifyAdminSocialIntegrations() {
-    return this.request('/api/admin/social/integrations/verify', {
+    return this._socialRequest('/api/admin/social/integrations/verify', {
       method: 'POST',
       body: JSON.stringify({})
     });
   },
   async fillAdminSocialQueue(data = {}) {
-    return this.request('/api/admin/social/jobs/fill-queue', {
+    return this._socialRequest('/api/admin/social/jobs/fill-queue', {
       method: 'POST',
       body: JSON.stringify(data)
     });
   },
   async tickAdminSocial() {
-    return this.request('/api/admin/social/jobs/tick', {
+    return this._socialRequest('/api/admin/social/jobs/tick', {
       method: 'POST',
       body: JSON.stringify({})
     });
   },
   async updateAdminSocialPost(id, data) {
-    return this.request(`/api/admin/social/queue/${encodeURIComponent(id)}`, {
+    return this._socialRequest(`/api/admin/social/queue/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(data)
     });
   },
   async publishAdminSocialPost(id) {
-    return this.request(`/api/admin/social/queue/${encodeURIComponent(id)}/publish`, {
+    return this._socialRequest(`/api/admin/social/queue/${encodeURIComponent(id)}/publish`, {
       method: 'POST',
       body: JSON.stringify({})
     });
   },
   async deleteAdminSocialPost(id) {
-    return this.request(`/api/admin/social/queue/${encodeURIComponent(id)}`, {
+    return this._socialRequest(`/api/admin/social/queue/${encodeURIComponent(id)}`, {
       method: 'DELETE'
     });
   },
