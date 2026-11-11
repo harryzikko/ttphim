@@ -46,7 +46,9 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Icon
@@ -88,26 +90,32 @@ fun TvShortPlayerScreen(
 
     val playFocus = remember { FocusRequester() }
     val drawerFocus = remember { FocusRequester() }
+    var activeServer by remember { mutableStateOf<ShortStreamServer?>(null) }
+    var candidateUrls by remember { mutableStateOf<List<String>>(emptyList()) }
+    var candidateIdx by remember { mutableStateOf(0) }
 
     val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            playWhenReady = true
-            repeatMode = Player.REPEAT_MODE_OFF
-            setWakeMode(C.WAKE_MODE_NETWORK)
-        }
+        val httpFactory = DefaultHttpDataSource.Factory()
+            .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            .setDefaultRequestProperties(mapOf("Referer" to "https://cineviet.live/"))
+            .setAllowCrossProtocolRedirects(true)
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(httpFactory))
+            .build()
+            .apply {
+                playWhenReady = true
+                repeatMode = Player.REPEAT_MODE_OFF
+                setWakeMode(C.WAKE_MODE_NETWORK)
+            }
     }
 
-    fun applyMediaServer(srv: ShortStreamServer) {
-        val url = srv.resolvedStreamUrl
-        if (url.isBlank()) {
-            errorMsg = "Không tìm thấy đường dẫn phát"
-            isBuffering = false
-            return
-        }
+    fun playCandidateUrl(url: String, srv: ShortStreamServer?) {
         errorMsg = null
         isBuffering = true
-        val builder = MediaItem.Builder().setUri(Uri.parse(url))
-        val subUrl = srv.subtitles.firstOrNull()?.resolvedUrl.orEmpty()
+        val builder = MediaItem.Builder()
+            .setUri(Uri.parse(url))
+            .setMimeType(MimeTypes.APPLICATION_M3U8)
+        val subUrl = srv?.subtitles?.firstOrNull()?.resolvedUrl.orEmpty()
         if (subUrl.isNotBlank()) {
             val subConfig = MediaItem.SubtitleConfiguration.Builder(Uri.parse(subUrl))
                 .setMimeType(MimeTypes.TEXT_VTT)
@@ -124,6 +132,19 @@ fun TvShortPlayerScreen(
         exoPlayer.setMediaItem(builder.build())
         exoPlayer.prepare()
         exoPlayer.play()
+    }
+
+    fun applyMediaServer(srv: ShortStreamServer) {
+        val urls = srv.resolvedCandidateUrls
+        if (urls.isEmpty()) {
+            errorMsg = "Không tìm thấy đường dẫn phát"
+            isBuffering = false
+            return
+        }
+        activeServer = srv
+        candidateUrls = urls
+        candidateIdx = 0
+        playCandidateUrl(urls.first(), srv)
     }
 
     LaunchedEffect(slug) {
@@ -172,6 +193,12 @@ fun TvShortPlayerScreen(
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                val nextIdx = candidateIdx + 1
+                if (nextIdx < candidateUrls.size) {
+                    candidateIdx = nextIdx
+                    playCandidateUrl(candidateUrls[nextIdx], activeServer)
+                    return
+                }
                 isBuffering = false
                 errorMsg = "Lỗi phát HLS: ${error.localizedMessage ?: "Không xác định"}"
             }

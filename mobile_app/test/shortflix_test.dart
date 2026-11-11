@@ -33,6 +33,19 @@ void main() {
     expect(server.isFull, true);
     expect(server.url, 'https://backend.test/api/shortflix/playlist?url=https%3A%2F%2Fshortflix.example%2Fm3u8');
     expect(server.subtitleUrls.single, 'https://backend.test/api/shortflix/subtitle?url=https%3A%2F%2Fshortlink.example%2Fsub');
+
+    final fullCandidates = buildShortStreamCandidates(server.url);
+    expect(
+      fullCandidates,
+      [
+        'https://backend.test/api/shortflix/playlist.m3u8?url=https%3A%2F%2Fshortflix.example%2Fm3u8',
+        'https://backend.test/api/shortflix/playlist?url=https%3A%2F%2Fshortflix.example%2Fm3u8',
+      ],
+    );
+
+    final edgeCandidates = buildShortStreamCandidates('https://shortflix.notthingp.workers.dev/proxy?url=abc.m3u8');
+    expect(edgeCandidates.first, 'https://shortflix.notthingp.workers.dev/proxy?url=abc.m3u8');
+    expect(edgeCandidates.last, startsWith('https://backend.test/api/shortflix/playlist.m3u8?url='));
   });
 
   test('ShortflixService fetches catalog, detail, streams and parses WebVTT subtitles', () async {

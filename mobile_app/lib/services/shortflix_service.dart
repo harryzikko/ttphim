@@ -62,7 +62,11 @@ class ShortflixService {
       if (res.statusCode == 200) {
         final content = utf8.decode(res.bodyBytes, allowMalformed: true).trim();
         if (content.isNotEmpty) {
-          return WebVTTCaptionFile(content.startsWith('WEBVTT') ? content : 'WEBVTT\n\n$content');
+          final normalized = content.startsWith('WEBVTT') ? content : 'WEBVTT\n\n$content';
+          final parsed = WebVTTCaptionFile(normalized);
+          // Validate cues eagerly so malformed timestamps never surface during video initialization
+          parsed.captions;
+          return parsed;
         }
       }
     } catch (_) {

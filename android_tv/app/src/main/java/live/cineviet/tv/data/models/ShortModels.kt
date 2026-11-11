@@ -75,4 +75,22 @@ data class ShortStreamServer(
 ) {
     val resolvedStreamUrl: String
         get() = resolveShortTvUrl(url)
+
+    val resolvedCandidateUrls: List<String>
+        get() {
+            val primary = resolvedStreamUrl
+            if (primary.isEmpty()) return emptyList()
+            val lower = primary.lowercase()
+            val out = mutableListOf<String>()
+            if (lower.contains("/api/shortflix/playlist?")) {
+                out.add(primary.replaceFirst("/api/shortflix/playlist?", "/api/shortflix/playlist.m3u8?", ignoreCase = true))
+                out.add(primary)
+                return out.distinct()
+            }
+            out.add(primary)
+            if (!lower.contains("/api/shortflix/playlist.m3u8?")) {
+                out.add("https://cineviet.live/api/shortflix/playlist.m3u8?url=${java.net.URLEncoder.encode(primary, "UTF-8")}")
+            }
+            return out.distinct()
+        }
 }

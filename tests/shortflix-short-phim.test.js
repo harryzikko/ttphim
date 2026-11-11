@@ -223,6 +223,10 @@ test('ShortFlix Express API routes return catalog, detail, streams and WebVTT su
     const m3u8 = await fetch(`${base}/api/shortflix/playlist?url=${encodeURIComponent('https://shortflix.notthingp.workers.dev/proxy?url=x')}`);
     assert.equal(m3u8.status, 200);
     assert.match(m3u8.headers.get('content-type'), /^application\/vnd\.apple\.mpegurl/);
+
+    const m3u8Ext = await fetch(`${base}/api/shortflix/playlist.m3u8?url=${encodeURIComponent('https://shortflix.notthingp.workers.dev/proxy?url=x')}`);
+    assert.equal(m3u8Ext.status, 200);
+    assert.match(m3u8Ext.headers.get('content-type'), /^application\/vnd\.apple\.mpegurl/);
     assert.ok((await m3u8.text()).startsWith('#EXTM3U'));
 
     const badM3u8 = await fetch(`${base}/api/shortflix/playlist?url=${encodeURIComponent('https://evil.test/x.m3u8')}`);

@@ -21,6 +21,12 @@ class ShortPlayerScreen extends StatefulWidget {
 }
 
 class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
+  static const Map<String, String> _hlsHeaders = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Referer': 'https://cineviet.live/',
+  };
+
   VideoPlayerController? _controller;
   late ShortDramaItem _item;
   List<ShortEpisode> _episodes = const [];
@@ -121,37 +127,50 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
     old?.removeListener(_onVideoTick);
     await old?.dispose();
 
-    final subFuture = server.subtitleUrls.isNotEmpty
-        ? ShortflixService.fetchWebVttCaption(server.subtitleUrls.first)
+    final captionFile = server.subtitleUrls.isNotEmpty
+        ? await ShortflixService.fetchWebVttCaption(server.subtitleUrls.first)
         : null;
+    if (!mounted || token != _loadToken) return;
 
-    final nextController = VideoPlayerController.networkUrl(
-      Uri.parse(server.url),
-      closedCaptionFile: subFuture,
-    );
+    final candidates = buildShortStreamCandidates(server.url);
+    Object? lastError;
 
-    try {
-      await nextController.initialize();
-      if (!mounted || token != _loadToken) {
-        await nextController.dispose();
+    for (final candidateUrl in candidates) {
+      final nextController = VideoPlayerController.networkUrl(
+        Uri.parse(candidateUrl),
+        formatHint: VideoFormat.hls,
+        httpHeaders: _hlsHeaders,
+        closedCaptionFile: captionFile != null
+            ? Future<ClosedCaptionFile>.value(captionFile)
+            : null,
+      );
+
+      try {
+        await nextController.initialize().timeout(const Duration(seconds: 20));
+        if (!mounted || token != _loadToken) {
+          await nextController.dispose();
+          return;
+        }
+        nextController.addListener(_onVideoTick);
+        await nextController.play();
+        setState(() {
+          _controller = nextController;
+          _isLoadingStream = false;
+          _error = null;
+        });
+        _scheduleOverlayHide();
         return;
+      } catch (e) {
+        lastError = e;
+        await nextController.dispose();
+        if (!mounted || token != _loadToken) return;
       }
-      nextController.addListener(_onVideoTick);
-      await nextController.play();
-      setState(() {
-        _controller = nextController;
-        _isLoadingStream = false;
-        _error = null;
-      });
-      _scheduleOverlayHide();
-    } catch (e) {
-      await nextController.dispose();
-      if (!mounted || token != _loadToken) return;
-      setState(() {
-        _isLoadingStream = false;
-        _error = 'Không phát được video: $e';
-      });
     }
+
+    setState(() {
+      _isLoadingStream = false;
+      _error = 'Không phát được video: ${lastError ?? 'Lỗi nguồn phát HLS'}';
+    });
   }
 
   void _onVideoTick() {

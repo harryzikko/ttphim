@@ -11,6 +11,37 @@ String resolveShortflixUrl(String raw) {
   return trimmed.startsWith('/') ? '$base$trimmed' : '$base/$trimmed';
 }
 
+/// Ordered candidate HLS URLs for [ShortStreamServer.url]. Ensures both Android ExoPlayer
+/// and iOS AVPlayer receive an explicit `.m3u8` path or backend-normalized playlist fallback
+/// when upstream worker URLs omit `.m3u8` in the path (e.g. `/proxy?url=...`).
+List<String> buildShortStreamCandidates(String rawUrl) {
+  final resolved = resolveShortflixUrl(rawUrl);
+  if (resolved.isEmpty) return const [];
+
+  final base = AppConfig.backendUrl.trim().replaceAll(RegExp(r'/+$'), '');
+  final parsed = Uri.tryParse(resolved);
+  final pathLower = parsed?.path.toLowerCase() ?? '';
+  final candidates = <String>[];
+
+  void addUnique(String url) {
+    if (url.isNotEmpty && !candidates.contains(url)) {
+      candidates.add(url);
+    }
+  }
+
+  if (pathLower.endsWith('/api/shortflix/playlist') && parsed != null) {
+    addUnique(parsed.replace(path: '${parsed.path}.m3u8').toString());
+    addUnique(resolved);
+    return candidates;
+  }
+
+  addUnique(resolved);
+  if (!pathLower.endsWith('/api/shortflix/playlist.m3u8') && base.isNotEmpty) {
+    addUnique('$base/api/shortflix/playlist.m3u8?url=${Uri.encodeComponent(resolved)}');
+  }
+  return candidates;
+}
+
 class ShortDramaItem {
   final String slug;
   final String name;

@@ -60,7 +60,7 @@ function createShortflixRouter({ service = shortflixService } = {}) {
     }
   });
 
-  router.get('/shortflix/playlist', async (req, res) => {
+  router.get(['/shortflix/playlist', '/shortflix/playlist.m3u8'], async (req, res) => {
     try {
       const m3u8 = await service.fetchPlaylist(req.query.url);
       res
