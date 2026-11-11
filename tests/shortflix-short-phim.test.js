@@ -11,7 +11,8 @@ const {
   normalizeSlug,
   isAllowedUpstreamUrl,
   normalizeSubtitleToVtt,
-  buildFallbackPosterUrl
+  buildFallbackPosterUrl,
+  normalizeHlsPlaylist
 } = require('../src/services/shortflixService');
 const { createShortflixRouter } = require('../src/routes/shortflixRoutes');
 
@@ -42,6 +43,34 @@ test('ShortflixService validates slugs/hosts, converts SRT to WebVTT and caches 
     buildFallbackPosterUrl('https://evil.example/demo-slug/vi_VN/abc/cover.webp', 'demo-slug'),
     ''
   );
+
+  const rawMergedM3u8 = [
+    '#EXTM3U',
+    '#EXT-X-VERSION:3',
+    '#EXT-X-VERSION:6',
+    '#EXT-X-TARGETDURATION:5',
+    '#EXT-X-MEDIA-SEQUENCE:0',
+    '#EXT-X-PLAYLIST-TYPE:VOD',
+    '#EXT-X-INDEPENDENT-SEGMENTS',
+    '#EXTINF:5.000000,',
+    'https://cdn2.nsstorage.space/1/seg0.ts',
+    '#EXT-X-DISCONTINUITY',
+    '#EXT-X-VERSION:6',
+    '#EXT-X-TARGETDURATION:5',
+    '#EXT-X-MEDIA-SEQUENCE:0',
+    '#EXT-X-PLAYLIST-TYPE:VOD',
+    '#EXT-X-INDEPENDENT-SEGMENTS',
+    '#EXTINF:4.500000,',
+    'https://cdn2.nsstorage.space/2/seg0.ts',
+    '#EXT-X-ENDLIST'
+  ].join('\n');
+  const cleanedM3u8 = normalizeHlsPlaylist(rawMergedM3u8);
+  assert.equal((cleanedM3u8.match(/#EXT-X-PLAYLIST-TYPE:VOD/g) || []).length, 1);
+  assert.equal((cleanedM3u8.match(/#EXT-X-MEDIA-SEQUENCE:0/g) || []).length, 1);
+  assert.equal((cleanedM3u8.match(/#EXT-X-VERSION:/g) || []).length, 1);
+  assert.ok(cleanedM3u8.includes('#EXT-X-VERSION:6'));
+  assert.equal((cleanedM3u8.match(/#EXT-X-DISCONTINUITY/g) || []).length, 1);
+  assert.ok(cleanedM3u8.includes('#EXT-X-ENDLIST'));
 
   const fetchedUrls = [];
   const metas100 = Array.from({ length: 100 }, (_, i) => ({
@@ -104,6 +133,12 @@ test('ShortflixService validates slugs/hosts, converts SRT to WebVTT and caches 
           })
         };
       }
+      if (s.includes('m3u8=true')) {
+        return {
+          ok: true,
+          text: async () => '#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXTINF:5,\nhttps://cdn2.nsstorage.space/a.ts\n#EXT-X-DISCONTINUITY\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXTINF:5,\nhttps://cdn2.nsstorage.space/b.ts\n#EXT-X-ENDLIST'
+        };
+      }
       if (s.startsWith('https://shortlink.alokillgtv.workers.dev')) {
         return { ok: true, text: async () => '1\n00:00:00,500 --> 00:00:02,000\nCâu thoại 1' };
       }
@@ -132,7 +167,11 @@ test('ShortflixService validates slugs/hosts, converts SRT to WebVTT and caches 
   assert.equal(streams.servers[0].is_full, false, 'single-episode server sorted first');
   assert.equal(streams.servers[0].subtitles.length, 0, 'disallowed subtitle URL filtered out');
   assert.equal(streams.servers[1].is_full, true);
+  assert.ok(streams.servers[1].url.startsWith('/api/shortflix/playlist?url='));
   assert.ok(streams.servers[1].subtitles[0].proxy_url.startsWith('/api/shortflix/subtitle?url='));
+
+  const playlist = await service.fetchPlaylist('https://shortflix.notthingp.workers.dev/proxy?url=m3u8=true');
+  assert.equal((playlist.match(/#EXT-X-PLAYLIST-TYPE:VOD/g) || []).length, 1);
 
   const vtt = await service.fetchSubtitle('https://shortlink.alokillgtv.workers.dev?subtitle=true');
   assert.ok(vtt.startsWith('WEBVTT'));
@@ -149,6 +188,10 @@ test('ShortFlix Express API routes return catalog, detail, streams and WebVTT su
     fetchSubtitle: async url => {
       if (!String(url).includes('shortlink')) throw Object.assign(new Error('Disallowed'), { status: 400 });
       return 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nTest';
+    },
+    fetchPlaylist: async url => {
+      if (!String(url).includes('shortflix')) throw Object.assign(new Error('Disallowed'), { status: 400 });
+      return '#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXTINF:5,\nhttps://cdn2.nsstorage.space/1.ts\n#EXT-X-ENDLIST\n';
     }
   };
 
@@ -176,6 +219,14 @@ test('ShortFlix Express API routes return catalog, detail, streams and WebVTT su
 
     const badSub = await fetch(`${base}/api/shortflix/subtitle?url=${encodeURIComponent('https://evil.test/x.vtt')}`);
     assert.equal(badSub.status, 400);
+
+    const m3u8 = await fetch(`${base}/api/shortflix/playlist?url=${encodeURIComponent('https://shortflix.notthingp.workers.dev/proxy?url=x')}`);
+    assert.equal(m3u8.status, 200);
+    assert.match(m3u8.headers.get('content-type'), /^application\/vnd\.apple\.mpegurl/);
+    assert.ok((await m3u8.text()).startsWith('#EXTM3U'));
+
+    const badM3u8 = await fetch(`${base}/api/shortflix/playlist?url=${encodeURIComponent('https://evil.test/x.m3u8')}`);
+    assert.equal(badM3u8.status, 400);
   } finally {
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));

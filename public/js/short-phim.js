@@ -276,12 +276,26 @@
       state.hls = hls;
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
+      let mediaRecovered = false;
+      let netRetries = 0;
       hls.on(root.Hls.Events.MANIFEST_PARSED, () => {
         finishLoad();
         video.play?.().catch(() => {});
       });
       hls.on(root.Hls.Events.ERROR, (_ev, data) => {
-        if (data?.fatal) finishLoad();
+        if (!data?.fatal) return;
+        if (data.type === root.Hls.ErrorTypes?.NETWORK_ERROR && netRetries < 1) {
+          netRetries += 1;
+          hls.startLoad();
+          return;
+        }
+        if (data.type === root.Hls.ErrorTypes?.MEDIA_ERROR && !mediaRecovered) {
+          mediaRecovered = true;
+          hls.recoverMediaError();
+          return;
+        }
+        finishLoad();
+        toast('Không thể phát luồng video này, hãy thử chuyển server khác', 'error');
       });
     } else if (video.canPlayType?.('application/vnd.apple.mpegurl')) {
       video.src = streamUrl;

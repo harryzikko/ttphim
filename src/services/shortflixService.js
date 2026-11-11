@@ -63,6 +63,91 @@ function buildFallbackPosterUrl(posterUrl, slug = '') {
   }
 }
 
+function resolveHlsUri(rawUri, baseUrl) {
+  const trimmed = String(rawUri || '').trim();
+  if (!trimmed) return '';
+  if (!baseUrl) return trimmed;
+  try {
+    return new URL(trimmed, baseUrl).href;
+  } catch {
+    return trimmed;
+  }
+}
+
+function normalizeHlsPlaylist(text, baseUrl = '') {
+  const lines = String(text || '').replace(/^\uFEFF/, '').split(/\r?\n/);
+  let maxVersion = null;
+  let maxTargetDuration = null;
+  let mediaSequence = null;
+  let playlistType = null;
+  let hasIndependentSegments = false;
+  let hasEndList = false;
+  const bodyLines = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line === '#EXTM3U') continue;
+
+    let match;
+    if ((match = line.match(/^#EXT-X-VERSION:(\d+)/i))) {
+      const v = Number.parseInt(match[1], 10);
+      if (Number.isFinite(v)) maxVersion = maxVersion === null ? v : Math.max(maxVersion, v);
+      continue;
+    }
+    if ((match = line.match(/^#EXT-X-TARGETDURATION:(\d+)/i))) {
+      const td = Number.parseInt(match[1], 10);
+      if (Number.isFinite(td)) maxTargetDuration = maxTargetDuration === null ? td : Math.max(maxTargetDuration, td);
+      continue;
+    }
+    if ((match = line.match(/^#EXT-X-MEDIA-SEQUENCE:(\d+)/i))) {
+      if (mediaSequence === null) mediaSequence = Number.parseInt(match[1], 10);
+      continue;
+    }
+    if ((match = line.match(/^#EXT-X-PLAYLIST-TYPE:(.+)$/i))) {
+      if (playlistType === null) playlistType = match[1].trim();
+      continue;
+    }
+    if (/^#EXT-X-INDEPENDENT-SEGMENTS\b/i.test(line)) {
+      hasIndependentSegments = true;
+      continue;
+    }
+    if (/^#EXT-X-ENDLIST\b/i.test(line)) {
+      hasEndList = true;
+      continue;
+    }
+    if (/^#EXT-X-DISCONTINUITY\b/i.test(line)) {
+      if (bodyLines.length > 0 && bodyLines[bodyLines.length - 1] !== '#EXT-X-DISCONTINUITY') {
+        bodyLines.push('#EXT-X-DISCONTINUITY');
+      }
+      continue;
+    }
+    if (line.startsWith('#')) {
+      if (/^#EXT-X-(?:KEY|MAP):/i.test(line) && baseUrl) {
+        bodyLines.push(line.replace(/URI="([^"]+)"/i, (_, u) => `URI="${resolveHlsUri(u, baseUrl)}"`));
+      } else {
+        bodyLines.push(line);
+      }
+      continue;
+    }
+
+    bodyLines.push(resolveHlsUri(line, baseUrl));
+  }
+
+  while (bodyLines.length > 0 && bodyLines[bodyLines.length - 1] === '#EXT-X-DISCONTINUITY') {
+    bodyLines.pop();
+  }
+
+  const out = ['#EXTM3U'];
+  if (maxVersion !== null) out.push(`#EXT-X-VERSION:${maxVersion}`);
+  if (maxTargetDuration !== null) out.push(`#EXT-X-TARGETDURATION:${maxTargetDuration}`);
+  if (mediaSequence !== null) out.push(`#EXT-X-MEDIA-SEQUENCE:${mediaSequence}`);
+  if (playlistType !== null) out.push(`#EXT-X-PLAYLIST-TYPE:${playlistType}`);
+  if (hasIndependentSegments) out.push('#EXT-X-INDEPENDENT-SEGMENTS');
+  out.push(...bodyLines);
+  if (hasEndList) out.push('#EXT-X-ENDLIST');
+  return `${out.join('\n')}\n`;
+}
+
 class ShortflixService {
   constructor({
     baseUrl = () => config.SHORTFLIX_BASE_URL,
@@ -266,7 +351,7 @@ class ShortflixService {
           name: displayName,
           raw_title: rawTitle,
           is_full: isFull,
-          url: s.url,
+          url: isFull ? `/api/shortflix/playlist?url=${encodeURIComponent(s.url)}` : s.url,
           subtitles: subs
         };
       })
@@ -280,34 +365,61 @@ class ShortflixService {
     };
   }
 
-  async fetchSubtitle(rawUrl) {
+  async fetchSafeUpstreamText(rawUrl, { accept, maxBytes, ttlMs, cachePrefix, invalidMsg, errLabel }) {
     if (!isAllowedUpstreamUrl(rawUrl)) {
-      throw Object.assign(new Error('URL phụ đề không thuộc nguồn được phép'), { status: 400 });
+      throw Object.assign(new Error(invalidMsg), { status: 400 });
     }
 
-    const cacheKey = `sub:${rawUrl}`;
+    const cacheKey = `${cachePrefix}:${rawUrl}`;
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
 
     const res = await this.fetcher(rawUrl, {
       redirect: 'error',
       headers: {
-        Accept: 'text/vtt, text/plain, */*',
+        Accept: accept,
         'User-Agent': 'CineViet/1.0 (+https://cineviet.live)'
       },
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(12000)
     });
     if (!res.ok) {
-      throw Object.assign(new Error(`Không tải được phụ đề (HTTP ${res.status})`), { status: 502 });
+      throw Object.assign(new Error(`${errLabel} (HTTP ${res.status})`), { status: 502 });
     }
 
     const text = await res.text();
-    if (Buffer.byteLength(text, 'utf8') > 1048576) {
-      throw Object.assign(new Error('File phụ đề vượt quá dung lượng cho phép'), { status: 413 });
+    if (Buffer.byteLength(text, 'utf8') > maxBytes) {
+      throw Object.assign(new Error('Nội dung upstream vượt quá dung lượng cho phép'), { status: 413 });
     }
 
-    const normalized = normalizeSubtitleToVtt(text);
-    return this.setCached(cacheKey, normalized, 3600000);
+    return { cacheKey, text, ttlMs };
+  }
+
+  async fetchSubtitle(rawUrl) {
+    const res = await this.fetchSafeUpstreamText(rawUrl, {
+      accept: 'text/vtt, text/plain, */*',
+      maxBytes: 1048576,
+      ttlMs: 3600000,
+      cachePrefix: 'sub',
+      invalidMsg: 'URL phụ đề không thuộc nguồn được phép',
+      errLabel: 'Không tải được phụ đề'
+    });
+    if (typeof res === 'string') return res;
+    const normalized = normalizeSubtitleToVtt(res.text);
+    return this.setCached(res.cacheKey, normalized, res.ttlMs);
+  }
+
+  async fetchPlaylist(rawUrl) {
+    const res = await this.fetchSafeUpstreamText(rawUrl, {
+      accept: 'application/vnd.apple.mpegurl, application/x-mpegurl, text/plain, */*',
+      maxBytes: 5242880,
+      ttlMs: 300000,
+      cachePrefix: 'm3u8',
+      invalidMsg: 'URL playlist không thuộc nguồn được phép',
+      errLabel: 'Không tải được playlist phát'
+    });
+    if (typeof res === 'string') return res;
+    const normalized = normalizeHlsPlaylist(res.text, rawUrl);
+    return this.setCached(res.cacheKey, normalized, res.ttlMs);
   }
 }
 
@@ -319,3 +431,4 @@ module.exports.normalizeSlug = normalizeSlug;
 module.exports.isAllowedUpstreamUrl = isAllowedUpstreamUrl;
 module.exports.normalizeSubtitleToVtt = normalizeSubtitleToVtt;
 module.exports.buildFallbackPosterUrl = buildFallbackPosterUrl;
+module.exports.normalizeHlsPlaylist = normalizeHlsPlaylist;

@@ -60,6 +60,18 @@ function createShortflixRouter({ service = shortflixService } = {}) {
     }
   });
 
+  router.get('/shortflix/playlist', async (req, res) => {
+    try {
+      const m3u8 = await service.fetchPlaylist(req.query.url);
+      res
+        .set('Content-Type', 'application/vnd.apple.mpegurl; charset=utf-8')
+        .set('Cache-Control', 'public, max-age=300')
+        .send(m3u8);
+    } catch (err) {
+      res.status(err.status || 502).type('text/plain').send(err.message || 'Playlist unavailable');
+    }
+  });
+
   return router;
 }
 
