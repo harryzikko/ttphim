@@ -240,9 +240,147 @@ function buildUserStats(db, nowMs = Date.now()) {
   };
 }
 
+function timestampOf(item, fields) {
+  for (const field of fields) {
+    const ts = parseTimestampMs(item?.[field]);
+    if (ts !== null) return ts;
+  }
+  return 0;
+}
+
+/**
+ * Sort watch history descending by latest activity and normalize playback fields.
+ * @param {Array<object>} history
+ * @param {Array<object>} users
+ * @returns {Array<object>}
+ */
+function sortRecentHistory(history = [], users = []) {
+  const userNameById = new Map();
+  for (const user of Array.isArray(users) ? users : []) {
+    if (user?.id) userNameById.set(user.id, user.name || user.email || user.id);
+  }
+  return (Array.isArray(history) ? history : [])
+    .filter(Boolean)
+    .map(item => {
+      const currentSec = Math.max(0, Math.round(Number(item.current_time ?? item.progress) || 0));
+      const durSec = Math.max(0, Math.round(Number(item.duration) || 0));
+      const pct = durSec > 0
+        ? Math.min(100, Math.max(0, Math.round((currentSec / durSec) * 100)))
+        : Math.min(100, Math.max(0, Math.round(Number(item.progress_percent) || 0)));
+      return {
+        ...item,
+        current_time: currentSec,
+        duration: durSec,
+        progress_percent: pct,
+        ...(item.user_id && userNameById.has(item.user_id) ? { user_name: userNameById.get(item.user_id) } : {})
+      };
+    })
+    .sort((a, b) => timestampOf(b, ['updated_at', 'created_at']) - timestampOf(a, ['updated_at', 'created_at']));
+}
+
+/**
+ * Build full per-user watch history, watchlist, comments and ratings detail for admin inspection.
+ * @param {object} db
+ * @param {string} userId
+ * @returns {object | null}
+ */
+function getUserActivityDetail(db, userId) {
+  if (typeof userId !== 'string' || !userId.trim()) return null;
+  const users = Array.isArray(db?.users) ? db.users : [];
+  const targetUser = users.find(u => u && u.id === userId);
+  if (!targetUser) return null;
+
+  const movieNameBySlug = new Map();
+  const rememberMovie = item => {
+    if (item?.movie_slug && item?.movie_name && !movieNameBySlug.has(item.movie_slug)) {
+      movieNameBySlug.set(item.movie_slug, item.movie_name);
+    }
+  };
+
+  for (const item of db?.history || []) rememberMovie(item);
+  for (const item of db?.watchlist || []) rememberMovie(item);
+
+  const history = sortRecentHistory((db?.history || []).filter(item => item?.user_id === userId), users);
+
+  const watchlist = (Array.isArray(db?.watchlist) ? db.watchlist : [])
+    .filter(item => item?.user_id === userId)
+    .map(item => ({
+      movie_slug: item.movie_slug,
+      movie_name: item.movie_name || movieNameBySlug.get(item.movie_slug) || item.movie_slug,
+      origin_name: item.origin_name || '',
+      poster_url: item.poster_url || '',
+      thumb_url: item.thumb_url || '',
+      quality: item.quality || '',
+      lang: item.lang || '',
+      added_at: item.added_at || item.created_at || null
+    }))
+    .sort((a, b) => (parseTimestampMs(b.added_at) || 0) - (parseTimestampMs(a.added_at) || 0));
+
+  const comments = [];
+  for (const comment of Array.isArray(db?.comments) ? db.comments : []) {
+    if (comment?.user_id === userId) {
+      comments.push({
+        id: comment.id,
+        movie_slug: comment.movie_slug,
+        movie_name: movieNameBySlug.get(comment.movie_slug) || comment.movie_slug,
+        episode_slug: comment.episode_slug || null,
+        content: comment.content || '',
+        rating: comment.rating ?? null,
+        is_spoil: Boolean(comment.is_spoil),
+        likes: Number(comment.likes) || 0,
+        is_reply: false,
+        created_at: comment.created_at || null
+      });
+    }
+    for (const reply of Array.isArray(comment?.replies) ? comment.replies : []) {
+      if (reply?.user_id === userId) {
+        comments.push({
+          id: reply.id,
+          movie_slug: comment.movie_slug,
+          movie_name: movieNameBySlug.get(comment.movie_slug) || comment.movie_slug,
+          episode_slug: comment.episode_slug || null,
+          content: reply.content || '',
+          rating: null,
+          is_spoil: false,
+          likes: Number(reply.likes) || 0,
+          is_reply: true,
+          parent_comment_id: comment.id,
+          created_at: reply.created_at || null
+        });
+      }
+    }
+  }
+  comments.sort((a, b) => (parseTimestampMs(b.created_at) || 0) - (parseTimestampMs(a.created_at) || 0));
+
+  const ratings = (Array.isArray(db?.ratings) ? db.ratings : [])
+    .filter(item => item?.user_id === userId)
+    .map(item => ({
+      id: item.id,
+      movie_slug: item.movie_slug,
+      movie_name: item.movie_name || movieNameBySlug.get(item.movie_slug) || item.movie_slug,
+      score: Number(item.score) || 0,
+      scale: Number(item.scale) || 5,
+      created_at: item.updated_at || item.created_at || null
+    }))
+    .sort((a, b) => (parseTimestampMs(b.created_at) || 0) - (parseTimestampMs(a.created_at) || 0));
+
+  return {
+    user: {
+      ...publicUser(targetUser),
+      blocked: Boolean(targetUser.blocked)
+    },
+    history,
+    watchlist,
+    comments,
+    ratings
+  };
+}
+
 module.exports = {
   buildUserStats,
   buildRegistrationTrend,
+  sortRecentHistory,
+  getUserActivityDetail,
   parseTimestampMs,
   toVnDayKey
 };

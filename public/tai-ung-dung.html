@@ -33,7 +33,7 @@
     }
   </style>
 
-  <link rel="stylesheet" href="/css/site-c221d54b2d18.css?v=17855e17f881">
+  <link rel="stylesheet" href="/css/site-c221d54b2d18.css?v=c822166dcb62">
   
 
   <!-- Global Custom Styles & Footer Styles (Respects sessionStorage.getItem('hide_footer_ad')) -->
@@ -1217,6 +1217,21 @@
             qrIos.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(data.ios_url);
           }
         }
+
+        // 6. Desktop (Windows, macOS, Linux) Links
+        const desktopMap = [
+          ['btn-download-win-exe', data.windows_url],
+          ['btn-download-win-msi', data.windows_msi_url],
+          ['btn-download-macos', data.macos_url],
+          ['btn-download-linux-appimage', data.linux_url],
+          ['btn-download-linux-deb', data.linux_deb_url]
+        ];
+        desktopMap.forEach(([id, url]) => {
+          if (url) {
+            const btn = document.getElementById(id);
+            if (btn) btn.href = url;
+          }
+        });
       }
 
       // Step A: Immediate SSR Hydration from injected JSON script

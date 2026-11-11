@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { JSDOM } = require('jsdom');
 
-const { buildUserStats } = require('../src/services/adminUserStats');
+const { buildUserStats, getUserActivityDetail, sortRecentHistory } = require('../src/services/adminUserStats');
 const dbService = require('../src/services/dbService');
 
 const read = rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
@@ -20,11 +20,19 @@ test('admin.html replaces KKPHIM header branding with CineViet and includes user
     'analytics-user-total',
     'analytics-user-new-7d',
     'analytics-user-active-sessions',
-    'analytics-user-verified',
+    'analytics-user-vip',
     'analytics-user-engaged',
     'analytics-user-registration-chart',
     'analytics-user-breakdown',
-    'top-users-table-body'
+    'top-users-table-body',
+    'modal-user-activity',
+    'user-activity-modal-body',
+    'upload-ipk-webos',
+    'upload-win-exe',
+    'upload-win-msi',
+    'upload-macos-dmg',
+    'upload-linux-appimage',
+    'upload-linux-deb'
   ]) {
     assert.ok(html.includes(`id="${id}"`), `admin.html missing #${id}`);
   }
@@ -141,7 +149,40 @@ test('dbService.getAdminStats returns structured userStats', async () => {
   assert.ok(Array.isArray(stats.userStats.topUsers));
 });
 
-test('admin.js renders user analytics KPIs, chart, breakdown and top users safely', async () => {
+test('getUserActivityDetail and sortRecentHistory return per-user movies, comments, ratings and real playback progress', () => {
+  const db = {
+    users: [{ id: 'u1', name: 'Viewer One', email: 'v1@test.com', password: 'secret', role: 'user', is_vip: true }],
+    history: [
+      { user_id: 'u1', movie_slug: 'older-movie', movie_name: 'Older Movie', current_time: 120, duration: 600, progress_percent: 20, updated_at: '2026-11-10T01:00:00.000Z' },
+      { user_id: 'u1', movie_slug: 'newer-movie', movie_name: 'Newer Movie', current_time: 900, duration: 3600, progress_percent: 25, updated_at: '2026-11-11T05:00:00.000Z' }
+    ],
+    watchlist: [{ user_id: 'u1', movie_slug: 'saved-movie', movie_name: 'Saved Movie', added_at: '2026-11-11T04:00:00.000Z' }],
+    comments: [
+      { id: 'c1', user_id: 'u1', movie_slug: 'newer-movie', content: 'Hay lam', rating: 5, likes: 2, created_at: '2026-11-11T05:10:00.000Z', replies: [] },
+      { id: 'c2', user_id: 'other', movie_slug: 'saved-movie', content: 'Nice', created_at: '2026-11-11T04:00:00.000Z', replies: [{ id: 'r1', user_id: 'u1', content: 'Dong y', created_at: '2026-11-11T05:20:00.000Z' }] }
+    ],
+    ratings: [{ id: 'rate1', user_id: 'u1', movie_slug: 'saved-movie', score: 4, scale: 5, created_at: '2026-11-11T04:30:00.000Z' }]
+  };
+
+  const recent = sortRecentHistory(db.history, db.users);
+  assert.equal(recent[0].movie_slug, 'newer-movie');
+  assert.equal(recent[0].current_time, 900);
+  assert.equal(recent[0].progress_percent, 25);
+  assert.equal(recent[0].user_name, 'Viewer One');
+
+  const detail = getUserActivityDetail(db, 'u1');
+  assert.equal('password' in detail.user, false);
+  assert.equal(detail.history.length, 2);
+  assert.equal(detail.history[0].movie_slug, 'newer-movie');
+  assert.equal(detail.watchlist.length, 1);
+  assert.equal(detail.comments.length, 2);
+  assert.equal(detail.comments[0].is_reply, true);
+  assert.equal(detail.ratings.length, 1);
+  assert.equal(detail.ratings[0].movie_name, 'Saved Movie');
+  assert.equal(getUserActivityDetail(db, 'missing'), null);
+});
+
+test('admin.js renders user analytics KPIs, chart, breakdown, activity progress and interactive user modal safely', async () => {
   const attack = '"><img src=x onerror="window.pwned=1"><svg onload="window.pwned=1">';
   const adminUser = { id: 'admin_1', name: 'Admin', email: 'admin@cineviet.live', role: 'admin', avatar: '/favicon.svg' };
   const dom = new JSDOM(read('public/admin.html'), { url: 'https://cinema.test/admin', runScripts: 'outside-only', pretendToBeVisual: true });
@@ -163,15 +204,25 @@ test('admin.js renders user analytics KPIs, chart, breakdown and top users safel
     totalUsers: 4,
     totalViews: 100,
     topMovies: [],
-    recentActivity: [],
+    recentActivity: [
+      {
+        movie_slug: 'nap-day-trai-tim',
+        movie_name: 'Nạp Đầy Trái Tim',
+        episode_name: 'Tập 01',
+        episode_slug: 'tap-1',
+        current_time: 900,
+        duration: 3600,
+        progress_percent: 25,
+        user_name: 'Khán Giả A',
+        updated_at: '2026-11-11T05:00:00.000Z'
+      }
+    ],
     userStats: {
       total: 4,
       admins: 1,
       regularUsers: 3,
       vip: 2,
       blocked: 0,
-      emailVerified: 3,
-      mfaEnabled: 1,
       newToday: 1,
       newLast7Days: 2,
       newLast30Days: 4,
@@ -180,6 +231,7 @@ test('admin.js renders user analytics KPIs, chart, breakdown and top users safel
       withHistory: 3,
       withWatchlist: 2,
       withComments: 1,
+      withRatings: 2,
       engagedUsers: 3,
       registrationTrend: [
         { date: '2026-11-10', label: '10/11', count: 1 },
@@ -193,8 +245,6 @@ test('admin.js renders user analytics KPIs, chart, breakdown and top users safel
           avatar: 'javascript:alert(1)',
           role: 'user',
           is_vip: true,
-          email_verified: true,
-          mfa_enabled: true,
           created_at: '2026-11-10T00:00:00.000Z',
           watchedCount: 5,
           watchlistCount: 3,
@@ -211,6 +261,13 @@ test('admin.js renders user analytics KPIs, chart, breakdown and top users safel
     getMe: async () => adminUser,
     getAdminStats: async () => sampleStats,
     getAdminUsers: async () => [adminUser],
+    getAdminUserActivity: async () => ({
+      user: { id: 'u_xss', name: attack, email: `xss${attack}@test.com`, avatar: 'javascript:alert(1)', role: 'user', is_vip: true },
+      history: [{ movie_slug: 'phim-a', movie_name: `Phim ${attack}`, episode_name: 'Tập 02', episode_slug: 'tap-2', current_time: 600, duration: 2400, progress_percent: 25, updated_at: '2026-11-11T05:00:00.000Z' }],
+      watchlist: [{ movie_slug: 'phim-b', movie_name: 'Phim Yêu Thích B', added_at: '2026-11-10T05:00:00.000Z' }],
+      comments: [{ id: 'c1', movie_slug: 'phim-a', movie_name: 'Phim A', content: `Bình luận ${attack}`, rating: 5, is_reply: false, created_at: '2026-11-11T04:00:00.000Z' }],
+      ratings: [{ id: 'r1', movie_slug: 'phim-b', movie_name: 'Phim Yêu Thích B', score: 5, scale: 5, created_at: '2026-11-11T04:30:00.000Z' }]
+    }),
     getAdminReports: async () => [],
     getAdminComments: async () => [],
     getAdminSettings: async () => ({ featured_slugs: [] }),
@@ -225,9 +282,17 @@ test('admin.js renders user analytics KPIs, chart, breakdown and top users safel
     assert.equal(window.document.getElementById('analytics-user-total').textContent, '4');
     assert.equal(window.document.getElementById('analytics-user-new-7d').textContent, '+2');
     assert.equal(window.document.getElementById('analytics-user-active-sessions').textContent, '2');
-    assert.equal(window.document.getElementById('analytics-user-verified').textContent, '75%');
+    assert.equal(window.document.getElementById('analytics-user-vip').textContent, '2');
     assert.equal(window.document.getElementById('analytics-user-engaged').textContent, '3');
     assert.equal(window.document.getElementById('analytics-user-14d-total').textContent, '3 tài khoản');
+
+    const breakdownText = window.document.getElementById('analytics-user-breakdown').textContent;
+    assert.ok(!breakdownText.includes('Đã xác thực Email'));
+    assert.ok(!breakdownText.includes('Đã bật bảo mật 2FA'));
+
+    const activityText = window.document.getElementById('activity-stream-table-body').textContent;
+    assert.ok(activityText.includes('25%'));
+    assert.ok(activityText.includes('15:00 / 1:00:00'));
 
     const chart = window.document.getElementById('analytics-user-registration-chart');
     assert.equal(chart.children.length, 2);
@@ -238,6 +303,28 @@ test('admin.js renders user analytics KPIs, chart, breakdown and top users safel
     for (const img of topUsersBody.querySelectorAll('img')) {
       assert.ok(!/^\s*(javascript|data):/i.test(img.getAttribute('src') || ''));
     }
+
+    const row = topUsersBody.querySelector('tr[data-user-activity-id]');
+    assert.ok(row);
+    row.click();
+    await tick();
+    await tick();
+
+    const modal = window.document.getElementById('modal-user-activity');
+    assert.ok(!modal.classList.contains('hidden'));
+    const modalBody = window.document.getElementById('user-activity-modal-body');
+    assert.ok(modalBody.textContent.includes('25%'));
+    assert.ok(modalBody.textContent.includes('10:00 / 40:00'));
+    assert.equal(modalBody.querySelector('svg, script, img[src="x"]'), null);
+
+    window.document.querySelector('[data-activity-tab="watchlist"]').click();
+    assert.ok(modalBody.textContent.includes('Phim Yêu Thích B'));
+    window.document.querySelector('[data-activity-tab="comments"]').click();
+    assert.ok(modalBody.textContent.includes(attack));
+    assert.equal(modalBody.querySelector('svg, script, img[src="x"]'), null);
+    window.document.querySelector('[data-activity-tab="ratings"]').click();
+    assert.ok(modalBody.textContent.includes('★ 5 / 5'));
+
     assert.deepEqual(errors, []);
   } finally {
     dom.window.close();

@@ -376,6 +376,12 @@ const API = {
     return res.data || [];
   },
 
+  async getAdminUserActivity(userId) {
+    const res = await this.request(`/api/admin/users/${encodeURIComponent(userId)}/activity`);
+    if (!res?.status) throw new Error(res?.message || 'Lỗi tải chi tiết hoạt động người dùng');
+    return res.data;
+  },
+
   async updateAdminUser(id, updates) {
     return this.request(`/api/admin/users/${id}/update`, {
       method: 'POST',

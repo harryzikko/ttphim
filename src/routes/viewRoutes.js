@@ -431,7 +431,12 @@ router.get(['/tai-ung-dung', '/tai-ung-dung.html', '/downloads', '/tai-app', '/a
       ios_url: resolveUrl(
         (appUpdate.ios_url && appUpdate.ios_url !== 'https://cineviet.live') ? appUpdate.ios_url : '/downloads/CineViet-iOS-IPA-Unsigned.ipa',
         '/downloads/CineViet-iOS-IPA-Unsigned.ipa'
-      )
+      ),
+      windows_url: resolveUrl(appUpdate.windows_url, '/downloads/CineViet-Desktop-Setup-Windows-x64.exe'),
+      windows_msi_url: resolveUrl(appUpdate.windows_msi_url, '/downloads/CineViet-Desktop-Windows-x64.msi'),
+      macos_url: resolveUrl(appUpdate.macos_url, '/downloads/CineViet-Desktop-macOS.dmg'),
+      linux_url: resolveUrl(appUpdate.linux_url, '/downloads/CineViet-Desktop-Linux-x64.AppImage'),
+      linux_deb_url: resolveUrl(appUpdate.linux_deb_url, '/downloads/CineViet-Desktop-Linux-amd64.deb')
     };
 
     let shell = rawHtml.replace('__APP_UPDATE_DATA__', JSON.stringify(hydratedData));

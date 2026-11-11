@@ -5,7 +5,7 @@ const { hashPassword, verifyPassword, passwordValid, publicUser } = require('./p
 const lockfile = require('proper-lockfile');
 const { validateDatabase } = require('./dbSchema');
 const sessionEvents = require('./sessionEvents');
-const { buildUserStats } = require('./adminUserStats');
+const { buildUserStats, getUserActivityDetail, sortRecentHistory } = require('./adminUserStats');
 
 async function atomicReplace(source, destination) {
   for (let attempt = 0; ; attempt++) {
@@ -539,6 +539,11 @@ class DbService {
     return (db.users || []).map(publicUser);
   }
 
+  async getUserActivity(userId) {
+    const db = await this.read();
+    return getUserActivityDetail(db, userId);
+  }
+
   async getAllComments() {
     const db = await this.read();
     return db.comments || [];
@@ -680,8 +685,8 @@ class DbService {
       ? (ratings.reduce((sum, r) => sum + (r.score || 0), 0) / ratings.length).toFixed(1)
       : '--';
 
-    // Recent activity (latest history records)
-    const recentActivity = (db.history || []).slice(0, 10);
+    // Recent activity (latest history records sorted newest first)
+    const recentActivity = sortRecentHistory(db.history, db.users).slice(0, 10);
     const userStats = buildUserStats(db);
 
     return {

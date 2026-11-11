@@ -884,6 +884,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // --- 6. Tab: Cấu Hình Website & Banner Thông Báo ---
   let advertisingConfig = null;
+  const APP_UPDATE_PACKAGE_FIELDS = [
+    { field: 'apk_mobile_url', inputId: 'setting-app-update-apk-mobile', uploadId: 'upload-apk-mobile', progressId: 'upload-progress-apk-mobile', barId: 'upload-bar-apk-mobile', statusId: 'upload-status-apk-mobile', type: 'apk_mobile' },
+    { field: 'apk_tv_url', inputId: 'setting-app-update-apk-tv', uploadId: 'upload-apk-tv', progressId: 'upload-progress-apk-tv', barId: 'upload-bar-apk-tv', statusId: 'upload-status-apk-tv', type: 'apk_tv' },
+    { field: 'ios_url', inputId: 'setting-app-update-ios', uploadId: 'upload-ipa-ios', progressId: 'upload-progress-ipa-ios', barId: 'upload-bar-ipa-ios', statusId: 'upload-status-ipa-ios', type: 'ios' },
+    { field: 'ipk_webos_url', inputId: 'setting-app-update-webos', uploadId: 'upload-ipk-webos', progressId: 'upload-progress-ipk-webos', barId: 'upload-bar-ipk-webos', statusId: 'upload-status-ipk-webos', type: 'webos' },
+    { field: 'windows_url', inputId: 'setting-app-update-windows', uploadId: 'upload-win-exe', progressId: 'upload-progress-win-exe', barId: 'upload-bar-win-exe', statusId: 'upload-status-win-exe', type: 'windows' },
+    { field: 'windows_msi_url', inputId: 'setting-app-update-windows-msi', uploadId: 'upload-win-msi', progressId: 'upload-progress-win-msi', barId: 'upload-bar-win-msi', statusId: 'upload-status-win-msi', type: 'windows_msi' },
+    { field: 'macos_url', inputId: 'setting-app-update-macos', uploadId: 'upload-macos-dmg', progressId: 'upload-progress-macos-dmg', barId: 'upload-bar-macos-dmg', statusId: 'upload-status-macos-dmg', type: 'macos' },
+    { field: 'linux_url', inputId: 'setting-app-update-linux', uploadId: 'upload-linux-appimage', progressId: 'upload-progress-linux-appimage', barId: 'upload-bar-linux-appimage', statusId: 'upload-status-linux-appimage', type: 'linux' },
+    { field: 'linux_deb_url', inputId: 'setting-app-update-linux-deb', uploadId: 'upload-linux-deb', progressId: 'upload-progress-linux-deb', barId: 'upload-bar-linux-deb', statusId: 'upload-status-linux-deb', type: 'linux_deb' }
+  ];
   async function loadSettingsTab() {
     try {
       currentSettings = await API.getAdminSettings();
@@ -984,9 +995,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const uBuildEl = document.getElementById('setting-app-update-build');
         const uTitleEl = document.getElementById('setting-app-update-title');
         const uNotesEl = document.getElementById('setting-app-update-notes');
-        const uApkMobEl = document.getElementById('setting-app-update-apk-mobile');
-        const uApkTvEl = document.getElementById('setting-app-update-apk-tv');
-        const uIosEl = document.getElementById('setting-app-update-ios');
         const uForceEl = document.getElementById('setting-app-update-force');
 
         if (uEnabledEl) uEnabledEl.checked = appUpdate.enabled !== false;
@@ -994,9 +1002,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (uBuildEl) uBuildEl.value = appUpdate.latest_build != null ? appUpdate.latest_build : 2;
         if (uTitleEl) uTitleEl.value = appUpdate.title || 'Bản Cập Nhật CineViet Mới';
         if (uNotesEl) uNotesEl.value = appUpdate.release_notes || '';
-        if (uApkMobEl) uApkMobEl.value = appUpdate.apk_mobile_url || '';
-        if (uApkTvEl) uApkTvEl.value = appUpdate.apk_tv_url || '';
-        if (uIosEl) uIosEl.value = appUpdate.ios_url || '';
+        APP_UPDATE_PACKAGE_FIELDS.forEach(item => {
+          const el = document.getElementById(item.inputId);
+          if (el) el.value = appUpdate[item.field] || '';
+        });
         if (uForceEl) uForceEl.checked = Boolean(appUpdate.force_update);
       } catch (uErr) {
         console.warn('[CineViet Admin] Failed to load app update config:', uErr);
@@ -1099,9 +1108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  setupPackageUpload('upload-apk-mobile', 'setting-app-update-apk-mobile', 'upload-progress-apk-mobile', 'upload-bar-apk-mobile', 'upload-status-apk-mobile', 'apk_mobile');
-  setupPackageUpload('upload-apk-tv', 'setting-app-update-apk-tv', 'upload-progress-apk-tv', 'upload-bar-apk-tv', 'upload-status-apk-tv', 'apk_tv');
-  setupPackageUpload('upload-ipa-ios', 'setting-app-update-ios', 'upload-progress-ipa-ios', 'upload-bar-ipa-ios', 'upload-status-ipa-ios', 'ios');
+  APP_UPDATE_PACKAGE_FIELDS.forEach(cfg => setupPackageUpload(cfg.uploadId, cfg.inputId, cfg.progressId, cfg.barId, cfg.statusId, cfg.type));
 
   document.getElementById('btn-goto-banners')?.addEventListener('click', () => {
     document.querySelector('[data-tab="tab-banners"]')?.click();
@@ -1280,11 +1287,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         latest_build: Number(document.getElementById('setting-app-update-build')?.value) || 2,
         title: document.getElementById('setting-app-update-title')?.value.trim() || '',
         release_notes: document.getElementById('setting-app-update-notes')?.value.trim() || '',
-        apk_mobile_url: document.getElementById('setting-app-update-apk-mobile')?.value.trim() || '',
-        apk_tv_url: document.getElementById('setting-app-update-apk-tv')?.value.trim() || '',
-        ios_url: document.getElementById('setting-app-update-ios')?.value.trim() || '',
         force_update: document.getElementById('setting-app-update-force')?.checked || false
       };
+      APP_UPDATE_PACKAGE_FIELDS.forEach(item => {
+        payload[item.field] = document.getElementById(item.inputId)?.value.trim() || '';
+      });
       const res = await API.updateAdminAppUpdate(payload);
       if (res?.status) {
         if (window.showToast) window.showToast('Đã lưu cấu hình cập nhật ứng dụng thành công!');
@@ -1375,6 +1382,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).join('');
   }
 
+  function formatPlaybackClock(seconds) {
+    const total = Math.max(0, Math.floor(Number(seconds) || 0));
+    const hours = Math.floor(total / 3600);
+    const mins = Math.floor((total % 3600) / 60);
+    const secs = total % 60;
+    if (hours > 0) return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
   function renderUserBreakdown(userStats) {
     const container = document.getElementById('analytics-user-breakdown');
     if (!container) return;
@@ -1384,11 +1400,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       { label: 'Khán giả tiêu chuẩn', count: Number(userStats?.regularUsers) || 0, barClass: 'bg-primary' },
       { label: 'Quản trị viên (Admin)', count: Number(userStats?.admins) || 0, barClass: 'bg-purple-400' },
       { label: 'Thành viên VIP', count: Number(userStats?.vip) || 0, barClass: 'bg-amber-400' },
-      { label: 'Đã xác thực Email', count: Number(userStats?.emailVerified) || 0, barClass: 'bg-emerald-400' },
-      { label: 'Đã bật bảo mật 2FA (MFA)', count: Number(userStats?.mfaEnabled) || 0, barClass: 'bg-sky-400' },
       { label: 'Có lịch sử xem phim', count: Number(userStats?.withHistory) || 0, barClass: 'bg-secondary' },
       { label: 'Có danh sách yêu thích', count: Number(userStats?.withWatchlist) || 0, barClass: 'bg-emerald-500' },
-      { label: 'Tham gia bình luận', count: Number(userStats?.withComments) || 0, barClass: 'bg-amber-500' }
+      { label: 'Tham gia bình luận', count: Number(userStats?.withComments) || 0, barClass: 'bg-amber-500' },
+      { label: 'Đã đánh giá phim', count: Number(userStats?.withRatings) || 0, barClass: 'bg-sky-400' }
     ];
     if ((Number(userStats?.blocked) || 0) > 0) {
       rows.push({ label: 'Tài khoản đang bị khóa', count: Number(userStats.blocked) || 0, barClass: 'bg-error' });
@@ -1411,6 +1426,200 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).join('');
   }
 
+  let activeUserActivityDetail = null;
+  let activeUserActivityTab = 'history';
+
+  function closeUserActivityModal() {
+    document.getElementById('modal-user-activity')?.classList.add('hidden');
+  }
+
+  function renderUserActivityHistory(items) {
+    if (!items.length) {
+      return `<p class="text-center text-sm text-on-surface-variant py-8">Người dùng này chưa có lịch sử xem phim.</p>`;
+    }
+    return items.map(item => {
+      const currentSec = Math.max(0, Math.floor(Number(item.current_time ?? item.progress) || 0));
+      const durSec = Math.max(0, Math.floor(Number(item.duration) || 0));
+      const pct = durSec > 0
+        ? Math.min(100, Math.max(0, Math.round((currentSec / durSec) * 100)))
+        : Math.min(100, Math.max(0, Math.round(Number(item.progress_percent) || 0)));
+      const clockText = durSec > 0
+        ? `${formatPlaybackClock(currentSec)} / ${formatPlaybackClock(durSec)}`
+        : `${formatPlaybackClock(currentSec)}`;
+      const updated = item.updated_at ? new Date(item.updated_at).toLocaleString('vi-VN') : '--';
+      return `
+        <div class="p-3.5 rounded-2xl bg-surface-container-high/60 border border-surface-container-highest/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="min-w-0 space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <a href="/phim/${pathSegment(item.movie_slug)}" target="_blank" rel="noopener noreferrer" class="font-bold text-on-surface hover:text-primary transition-colors truncate">
+                ${escapeHtml(item.movie_name || item.movie_slug)}
+              </a>
+              <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/15 text-primary">${escapeHtml(item.episode_name || item.episode_slug || 'Tập 01')}</span>
+            </div>
+            <div class="text-[11px] text-on-surface-variant font-mono">Cập nhật: ${escapeHtml(updated)} • ${escapeHtml(clockText)}</div>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <div class="w-28 space-y-1">
+              <div class="text-right text-xs font-mono font-bold text-secondary">${pct}%</div>
+              <div class="w-full h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
+                <div class="h-1.5 rounded-full bg-secondary" style="width: ${pct}%"></div>
+              </div>
+            </div>
+            <a href="/xem-phim/${pathSegment(item.movie_slug)}/${pathSegment(item.episode_slug || 'tap-1')}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg bg-surface-container-highest hover:bg-primary hover:text-white text-on-surface text-xs font-semibold transition-colors">
+              Mở
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderUserActivityWatchlist(items) {
+    if (!items.length) {
+      return `<p class="text-center text-sm text-on-surface-variant py-8">Người dùng này chưa lưu phim yêu thích nào.</p>`;
+    }
+    return items.map(item => {
+      const added = item.added_at ? new Date(item.added_at).toLocaleString('vi-VN') : '--';
+      return `
+        <div class="p-3.5 rounded-2xl bg-surface-container-high/60 border border-surface-container-highest/50 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <a href="/phim/${pathSegment(item.movie_slug)}" target="_blank" rel="noopener noreferrer" class="font-bold text-on-surface hover:text-primary transition-colors block truncate">
+              ${escapeHtml(item.movie_name || item.movie_slug)}
+            </a>
+            <div class="text-xs text-on-surface-variant font-mono truncate">${escapeHtml(item.movie_slug)} • Lưu lúc: ${escapeHtml(added)}</div>
+          </div>
+          <a href="/phim/${pathSegment(item.movie_slug)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg bg-surface-container-highest hover:bg-primary hover:text-white text-on-surface text-xs font-semibold shrink-0 transition-colors">
+            Xem phim
+          </a>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderUserActivityComments(items) {
+    if (!items.length) {
+      return `<p class="text-center text-sm text-on-surface-variant py-8">Người dùng này chưa đăng bình luận nào.</p>`;
+    }
+    return items.map(item => {
+      const created = item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : '--';
+      const ratingBadge = item.rating != null
+        ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400">★ ${Math.max(1, Math.min(5, Number(item.rating) || 0))}/5</span>`
+        : '';
+      const replyBadge = item.is_reply
+        ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/15 text-sky-400">Phản hồi</span>`
+        : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/15 text-primary">Bình luận</span>`;
+      return `
+        <div class="p-3.5 rounded-2xl bg-surface-container-high/60 border border-surface-container-highest/50 space-y-1.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-1.5 min-w-0">
+              <a href="/phim/${pathSegment(item.movie_slug)}" target="_blank" rel="noopener noreferrer" class="font-bold text-sm text-on-surface hover:text-primary transition-colors truncate">
+                ${escapeHtml(item.movie_name || item.movie_slug)}
+              </a>
+              ${replyBadge}${ratingBadge}
+            </div>
+            <span class="text-[11px] text-on-surface-variant font-mono">${escapeHtml(created)}</span>
+          </div>
+          <p class="text-sm text-on-surface break-words">${escapeHtml(item.content)}</p>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderUserActivityRatings(items) {
+    if (!items.length) {
+      return `<p class="text-center text-sm text-on-surface-variant py-8">Người dùng này chưa đánh giá sao phim nào.</p>`;
+    }
+    return items.map(item => {
+      const created = item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : '--';
+      const score = Math.max(0, Math.min(5, Number(item.score) || 0));
+      const scale = Math.max(1, Number(item.scale) || 5);
+      return `
+        <div class="p-3.5 rounded-2xl bg-surface-container-high/60 border border-surface-container-highest/50 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <a href="/phim/${pathSegment(item.movie_slug)}" target="_blank" rel="noopener noreferrer" class="font-bold text-on-surface hover:text-primary transition-colors block truncate">
+              ${escapeHtml(item.movie_name || item.movie_slug)}
+            </a>
+            <div class="text-xs text-on-surface-variant font-mono">${escapeHtml(item.movie_slug)} • ${escapeHtml(created)}</div>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-display font-bold text-xs shrink-0">
+            ★ ${score} / ${scale}
+          </span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderActiveUserActivityTab(tabName) {
+    activeUserActivityTab = tabName;
+    document.querySelectorAll('.user-activity-tab-btn').forEach(btn => {
+      const isActive = btn.dataset.activityTab === tabName;
+      btn.className = isActive
+        ? 'user-activity-tab-btn px-3.5 py-2 rounded-t-xl text-xs font-bold bg-surface-container text-primary border-b-2 border-primary cursor-pointer transition-colors'
+        : 'user-activity-tab-btn px-3.5 py-2 rounded-t-xl text-xs font-bold text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors';
+    });
+
+    const body = document.getElementById('user-activity-modal-body');
+    if (!body || !activeUserActivityDetail) return;
+
+    if (tabName === 'watchlist') body.innerHTML = renderUserActivityWatchlist(activeUserActivityDetail.watchlist || []);
+    else if (tabName === 'comments') body.innerHTML = renderUserActivityComments(activeUserActivityDetail.comments || []);
+    else if (tabName === 'ratings') body.innerHTML = renderUserActivityRatings(activeUserActivityDetail.ratings || []);
+    else body.innerHTML = renderUserActivityHistory(activeUserActivityDetail.history || []);
+  }
+
+  async function openUserActivityModal(userId) {
+    const modal = document.getElementById('modal-user-activity');
+    const body = document.getElementById('user-activity-modal-body');
+    if (!modal || !body) return;
+
+    modal.classList.remove('hidden');
+    body.innerHTML = `<p class="text-center text-sm text-on-surface-variant py-8">Đang tải chi tiết hoạt động...</p>`;
+
+    try {
+      const detail = await API.getAdminUserActivity(userId);
+      activeUserActivityDetail = detail;
+      const u = detail?.user || {};
+
+      const avatarEl = document.getElementById('user-activity-avatar');
+      if (avatarEl) avatarEl.src = safeUrl(u.avatar || '/favicon.svg');
+      setElementText('user-activity-name', u.name || u.email || u.id || 'Người dùng');
+      setElementText('user-activity-email', u.email || u.id || '--');
+
+      const badgesEl = document.getElementById('user-activity-badges');
+      if (badgesEl) {
+        badgesEl.innerHTML = [
+          u.role === 'admin'
+            ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/30">Admin</span>'
+            : '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-on-surface-variant">User</span>',
+          u.is_vip ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">VIP</span>' : '',
+          u.blocked ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-error/20 text-error">Đã Khóa</span>' : ''
+        ].join('');
+      }
+
+      setElementText('ua-count-history', formatCount((detail.history || []).length));
+      setElementText('ua-count-watchlist', formatCount((detail.watchlist || []).length));
+      setElementText('ua-count-comments', formatCount((detail.comments || []).length));
+      setElementText('ua-count-ratings', formatCount((detail.ratings || []).length));
+
+      renderActiveUserActivityTab('history');
+    } catch (err) {
+      body.innerHTML = `<p class="text-center text-sm text-error py-8">${escapeHtml(err.message || 'Không thể tải hoạt động người dùng')}</p>`;
+    }
+  }
+
+  document.getElementById('btn-close-user-activity')?.addEventListener('click', closeUserActivityModal);
+  document.getElementById('modal-user-activity')?.addEventListener('click', (e) => {
+    if (e.target?.id === 'modal-user-activity') closeUserActivityModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeUserActivityModal();
+  });
+  document.querySelectorAll('.user-activity-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      renderActiveUserActivityTab(btn.dataset.activityTab || 'history');
+    });
+  });
+
   function renderTopUsersTable(topUsers) {
     const tbody = document.getElementById('top-users-table-body');
     if (!tbody) return;
@@ -1430,12 +1639,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const vipBadge = user.is_vip
         ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">VIP</span>'
         : '';
-      const verifiedBadge = user.email_verified
-        ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400">Đã Xác Thực</span>'
-        : '';
-      const mfaBadge = user.mfa_enabled
-        ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/15 text-sky-400">2FA</span>'
-        : '';
       const blockedBadge = user.blocked
         ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-error/20 text-error">Đã Khóa</span>'
         : '';
@@ -1444,7 +1647,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const activeSessions = Math.max(0, Math.round(Number(user.activeSessions) || 0));
 
       return `
-        <tr class="hover:bg-surface-container-high/40 transition-colors">
+        <tr class="hover:bg-surface-container-high/60 transition-colors cursor-pointer group" data-user-activity-id="${escapeHtml(user.id)}" title="Bấm để xem chi tiết phim đã xem, yêu thích, bình luận & đánh giá">
           <td class="p-3 text-center">
             <span class="w-7 h-7 rounded-full inline-flex items-center justify-center text-xs ${rankColor}">${rank}</span>
           </td>
@@ -1453,8 +1656,8 @@ document.addEventListener('DOMContentLoaded', async () => {
               <img src="${escapeHtml(safeUrl(user.avatar || '/favicon.svg'))}" class="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/10" />
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="font-bold text-on-surface truncate">${escapeHtml(user.name || user.email || user.id)}</span>
-                  ${roleBadge}${vipBadge}${verifiedBadge}${mfaBadge}${blockedBadge}
+                  <button type="button" class="btn-view-user-activity font-bold text-on-surface group-hover:text-primary transition-colors text-left truncate cursor-pointer" data-user-activity-id="${escapeHtml(user.id)}">${escapeHtml(user.name || user.email || user.id)}</button>
+                  ${roleBadge}${vipBadge}${blockedBadge}
                 </div>
                 <div class="text-xs text-on-surface-variant font-mono truncate">${escapeHtml(user.email || user.id)}</div>
               </div>
@@ -1471,6 +1674,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         </tr>
       `;
     }).join('');
+
+    tbody.querySelectorAll('tr[data-user-activity-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const uid = row.dataset.userActivityId;
+        if (uid) openUserActivityModal(uid);
+      });
+    });
   }
 
   function renderUserAnalytics(rawUserStats, stats = {}) {
@@ -1481,8 +1691,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       regularUsers: fallbackTotal,
       vip: Number(stats?.vipUsers) || 0,
       blocked: 0,
-      emailVerified: 0,
-      mfaEnabled: 0,
       newToday: 0,
       newLast7Days: 0,
       newLast30Days: 0,
@@ -1491,13 +1699,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       withHistory: 0,
       withWatchlist: 0,
       withComments: 0,
+      withRatings: 0,
       engagedUsers: 0,
       registrationTrend: [],
       topUsers: []
     };
 
     const total = Number(uStats.total) || 0;
-    const verifiedPct = total > 0 ? Math.round(((Number(uStats.emailVerified) || 0) / total) * 100) : 0;
 
     setElementText('analytics-user-total', formatCount(total));
     setElementText(
@@ -1514,10 +1722,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     setElementText('analytics-user-active-sessions', formatCount(uStats.activeSessionUsers));
     setElementText('analytics-user-sessions-sub', `${formatCount(uStats.activeSessions)} phiên hiệu lực`);
 
-    setElementText('analytics-user-verified', `${verifiedPct}%`);
+    setElementText('analytics-user-vip', formatCount(uStats.vip));
     setElementText(
-      'analytics-user-security-sub',
-      `Email: ${formatCount(uStats.emailVerified)} • MFA 2FA: ${formatCount(uStats.mfaEnabled)}`
+      'analytics-user-vip-sub',
+      `Đánh giá: ${formatCount(uStats.withRatings)} • Bị khóa: ${formatCount(uStats.blocked)}`
     );
 
     setElementText('analytics-user-engaged', formatCount(uStats.engagedUsers));
@@ -1624,12 +1832,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
           activityTbody.innerHTML = activities.map(act => {
             const timeStr = act.updated_at ? new Date(act.updated_at).toLocaleString('vi-VN') : 'Vừa xong';
-            const progSec = Math.floor(act.progress || 0);
-            const durSec = Math.floor(act.duration || 0);
-            const progPct = durSec > 0 ? Math.round((progSec / durSec) * 100) : 0;
+            const progSec = Math.max(0, Math.floor(Number(act.current_time ?? act.progress) || 0));
+            const durSec = Math.max(0, Math.floor(Number(act.duration) || 0));
+            const progPct = durSec > 0
+              ? Math.min(100, Math.max(0, Math.round((progSec / durSec) * 100)))
+              : Math.min(100, Math.max(0, Math.round(Number(act.progress_percent) || 0)));
+            const clockStr = durSec > 0
+              ? `${formatPlaybackClock(progSec)} / ${formatPlaybackClock(durSec)}`
+              : `${formatPlaybackClock(progSec)}`;
+            const viewerLabel = act.user_name ? `<div class="text-[11px] text-on-surface-variant truncate">${escapeHtml(act.user_name)}</div>` : '';
             return `
               <tr class="hover:bg-surface-container-high/40 transition-colors">
-                <td class="p-3 text-xs text-on-surface-variant font-mono">${timeStr}</td>
+                <td class="p-3 text-xs text-on-surface-variant font-mono">
+                  <div>${escapeHtml(timeStr)}</div>
+                  ${viewerLabel}
+                </td>
                 <td class="p-3">
                   <div class="font-bold text-on-surface">${escapeHtml(act.movie_name || act.movie_slug)}</div>
                   <span class="text-xs text-on-surface-variant font-mono">${escapeHtml(act.movie_slug)}</span>
@@ -1638,8 +1855,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                   <span class="px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary">${escapeHtml(act.episode_name || act.episode_slug || 'Tập 01')}</span>
                 </td>
                 <td class="p-3 text-right">
-                  <span class="text-xs font-mono font-semibold text-on-surface">${progPct}%</span>
-                  <div class="text-[11px] text-on-surface-variant">${progSec}s / ${durSec}s</div>
+                  <div class="flex flex-col items-end gap-1">
+                    <span class="text-xs font-mono font-semibold text-secondary">${progPct}%</span>
+                    <div class="w-24 bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+                      <div class="bg-secondary h-1.5 rounded-full" style="width: ${progPct}%"></div>
+                    </div>
+                    <div class="text-[11px] text-on-surface-variant font-mono">${escapeHtml(clockStr)}</div>
+                  </div>
                 </td>
                 <td class="p-3 text-right">
                   <a href="/xem-phim/${pathSegment(act.movie_slug)}/${pathSegment(act.episode_slug || 'tap-1')}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-container text-on-surface text-xs font-semibold inline-flex items-center gap-1 transition-colors">

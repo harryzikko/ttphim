@@ -154,3 +154,61 @@ test('upload-app-package streams APK and IPA files directly to public/downloads'
   assert.equal(fs.readFileSync(savedIpa, 'utf8'), 'IPA_BINARY_TEST_DATA_HELLO_IOS');
   fs.unlinkSync(savedIpa);
 });
+
+test('upload-app-package supports Windows, macOS, Linux, and webOS installers and /admin/app-update saves them', async () => {
+  const cases = [
+    ['webos', 'test-tv.ipk', 'IPK_TV'],
+    ['windows', 'test-setup.exe', 'EXE_WIN'],
+    ['windows_msi', 'test-installer.msi', 'MSI_WIN'],
+    ['macos', 'test-desktop.dmg', 'DMG_MAC'],
+    ['linux', 'test-desktop.AppImage', 'APPIMAGE_LINUX'],
+    ['linux_deb', 'test-desktop.deb', 'DEB_LINUX']
+  ];
+
+  for (const [type, filename, payload] of cases) {
+    const res = await fetch(`${base}/api/admin/upload-app-package?type=${encodeURIComponent(type)}&filename=${encodeURIComponent(filename)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream', 'Cookie': adminCookie },
+      body: Buffer.from(payload)
+    });
+    assert.equal(res.status, 200, `${type} upload status`);
+    const json = await res.json();
+    assert.equal(json.data.filename, filename);
+    assert.equal(json.data.url, `/downloads/${filename}`);
+    const saved = path.join(__dirname, '../public/downloads', filename);
+    assert.ok(fs.existsSync(saved));
+    assert.equal(fs.readFileSync(saved, 'utf8'), payload);
+    fs.unlinkSync(saved);
+  }
+
+  const badWin = await fetch(base + '/api/admin/upload-app-package?type=windows&filename=bad.dmg', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream', 'Cookie': adminCookie },
+    body: Buffer.from('BAD')
+  });
+  assert.equal(badWin.status, 400);
+
+  const saveRes = await fetch(base + '/api/admin/app-update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Cookie': adminCookie },
+    body: JSON.stringify({
+      enabled: true,
+      latest_version: '2.0.0',
+      latest_build: 20,
+      ipk_webos_url: '/downloads/custom-tv.ipk',
+      windows_url: '/downloads/custom-win.exe',
+      windows_msi_url: '/downloads/custom-win.msi',
+      macos_url: '/downloads/custom-mac.dmg',
+      linux_url: '/downloads/custom-linux.AppImage',
+      linux_deb_url: '/downloads/custom-linux.deb'
+    })
+  });
+  assert.equal(saveRes.status, 200);
+  const saveJson = await saveRes.json();
+  assert.equal(saveJson.data.ipk_webos_url, '/downloads/custom-tv.ipk');
+  assert.equal(saveJson.data.windows_url, '/downloads/custom-win.exe');
+  assert.equal(saveJson.data.windows_msi_url, '/downloads/custom-win.msi');
+  assert.equal(saveJson.data.macos_url, '/downloads/custom-mac.dmg');
+  assert.equal(saveJson.data.linux_url, '/downloads/custom-linux.AppImage');
+  assert.equal(saveJson.data.linux_deb_url, '/downloads/custom-linux.deb');
+});
