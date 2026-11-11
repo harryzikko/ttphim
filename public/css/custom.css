@@ -1142,3 +1142,39 @@ header .relative.hidden.md\:flex input:focus {
     margin-left: 0 !important;
   }
 }
+
+/* Quick Short Phim header pill when full horizontal nav is collapsed (<1680px) */
+.btn-header-short {
+  display: none !important;
+  align-items: center !important;
+  gap: 5px !important;
+  height: 34px !important;
+  padding: 0 12px !important;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #e1e1ef !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+}
+.btn-header-short .short-icon {
+  font-size: 16px !important;
+  color: #fbbf24 !important;
+}
+.btn-header-short:hover,
+.btn-header-short.is-active {
+  background: rgba(229, 9, 20, 0.2) !important;
+  border-color: rgba(229, 9, 20, 0.65) !important;
+  color: #ffffff !important;
+}
+@media (min-width: 768px) and (max-width: 1679px) {
+  .btn-header-short {
+    display: inline-flex !important;
+  }
+}

@@ -255,10 +255,17 @@ test('public/short-phim.html renders grid + 9:16 player safely against XSS and h
     await tick();
     await tick();
 
-    // Check Song Ngữ and Short Phim nav links on static page
+    // Check Song Ngữ and Short Phim nav links on static page + compact <1680px header pill
     const songNgu = window.document.querySelector('header nav [data-path="song-ngu"]');
     assert.equal(songNgu.previousElementSibling.dataset.path, 'chieu-rap');
     assert.ok(window.document.querySelector('header nav [data-path="short-phim"]'));
+    const headerShortPill = window.document.querySelector('header .btn-header-short');
+    assert.ok(headerShortPill);
+    assert.equal(headerShortPill.getAttribute('href'), '/short-phim');
+    assert.equal(headerShortPill.classList.contains('is-active'), true);
+    const indexHtml = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    assert.ok(indexHtml.includes('/js/header.js?v=3.4.0'));
+    assert.ok(indexHtml.includes('/css/custom.css?v=3.2.2'));
 
     // Check XSS safety in grid
     const grid = window.document.getElementById('short-grid');

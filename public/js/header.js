@@ -118,6 +118,22 @@
       }
     });
     const currentPath = window.location.pathname;
+    try {
+      const leftCluster = document.querySelector('header > div > div:first-child');
+      const desktopNav = leftCluster?.querySelector('nav');
+      if (leftCluster && desktopNav && !leftCluster.querySelector('.btn-header-short')) {
+        const quickShort = document.createElement('a');
+        quickShort.href = '/short-phim';
+        quickShort.className = 'btn-header-short';
+        if (currentPath.startsWith('/short-phim')) quickShort.classList.add('is-active');
+        quickShort.title = 'Short Phim — Phim ngắn dọc Full HD';
+        quickShort.innerHTML = `
+          <span class="material-symbols-outlined short-icon" aria-hidden="true">bolt</span>
+          <span class="short-label">Short Phim</span>
+        `;
+        desktopNav.before(quickShort);
+      }
+    } catch (_) {}
     const searchParams = new URLSearchParams(window.location.search);
     const typeParam = searchParams.get('type');
     const catParam = searchParams.get('category');

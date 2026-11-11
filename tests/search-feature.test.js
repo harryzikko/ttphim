@@ -285,7 +285,7 @@ test('catalog view sends an honest shell without unsafe SSR, provider access or 
     assert.equal(grid.querySelector('article'), null);
     assert.match(grid.textContent, /JavaScript/);
     assert.doesNotMatch(html, /onerror=alert\(1\)|30\.256|12[,.]450/);
-    assert.ok(dom.window.document.querySelector('script[src="/js/header.js?v=3.2.0"]'));
+    assert.ok(dom.window.document.querySelector('script[src="/js/header.js?v=3.4.0"]'));
     assert.ok(dom.window.document.querySelector('script[src="/js/catalog.js?v=4.2.0"]'));
   } finally { dom.window.close(); }
 });
