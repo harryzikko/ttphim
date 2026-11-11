@@ -500,6 +500,12 @@ const API = {
       body: JSON.stringify({})
     });
   },
+  async testAdminSocialTelegram() {
+    return this._socialRequest('/api/admin/social/integrations/telegram-test', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+  },
   async fillAdminSocialQueue(data = {}) {
     return this._socialRequest('/api/admin/social/jobs/fill-queue', {
       method: 'POST',

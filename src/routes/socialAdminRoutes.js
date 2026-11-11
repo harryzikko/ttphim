@@ -74,6 +74,10 @@ function createSocialAdminRouter({
     return forward(req, res, { method: 'POST', targetPath: '/api/integrations/verify', body: req.body || {} });
   });
 
+  router.post('/admin/social/integrations/telegram-test', (req, res) => {
+    return forward(req, res, { method: 'POST', targetPath: '/api/integrations/telegram-test', body: req.body || {} });
+  });
+
   router.post('/admin/social/jobs/fill-queue', (req, res) => {
     return forward(req, res, { method: 'POST', targetPath: '/api/jobs/fill-queue', body: req.body || {} });
   });

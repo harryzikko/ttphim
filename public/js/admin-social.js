@@ -4,6 +4,7 @@
   const VN_TIME_ZONE = 'Asia/Ho_Chi_Minh';
   const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
   const THREADS_MAX_CHARS = 500;
+  const TELEGRAM_MAX_CHARS = 1000;
 
   let initialized = false;
   let activeFilter = 'all';
@@ -129,6 +130,11 @@
         text: integrations.threads_configured ? 'Threads: Đã kết nối' : 'Threads: Chưa cấu hình'
       },
       {
+        ok: Boolean(integrations.telegram_bot_configured),
+        warn: !integrations.telegram_bot_configured && !settings.telegram_enabled,
+        text: integrations.telegram_bot_configured ? 'Telegram Bot: Đã kết nối' : 'Telegram Bot: Chưa cấu hình'
+      },
+      {
         ok: !settings.dry_run,
         warn: Boolean(settings.dry_run),
         text: settings.dry_run ? 'Chế độ: DRY RUN (Thử nghiệm)' : 'Chế độ: LIVE (Đăng thật)'
@@ -178,6 +184,7 @@
     setCheck('social-set-dry-run', s.dry_run);
     setCheck('social-set-fb', s.fb_enabled !== false);
     setCheck('social-set-threads', s.threads_enabled !== false);
+    setCheck('social-set-telegram', Boolean(s.telegram_enabled));
     setCheck('social-set-require-tmdb', s.require_tmdb_image !== false);
     setVal('social-set-slots', Array.isArray(s.slots_vn) ? s.slots_vn.join(', ') : '');
     setVal('social-set-lookahead', s.lookahead_days ?? 2);
@@ -230,6 +237,7 @@
     setStatusBadge('social-int-badge-tmdb', info.tmdb_configured, info.tmdb_api_key_masked);
     setStatusBadge('social-int-badge-fb', info.facebook_configured, info.fb_page_access_token_masked);
     setStatusBadge('social-int-badge-threads', info.threads_configured, info.threads_access_token_masked);
+    setStatusBadge('social-int-badge-telegram', info.telegram_bot_configured, info.telegram_bot_token_masked, 'Chưa bật');
     setStatusBadge('social-int-badge-openai', info.openai_configured, info.openai_api_key_masked, 'Chưa bật');
     setStatusBadge('social-int-badge-gemini', info.gemini_configured, info.gemini_api_key_masked, 'Chưa bật');
 
@@ -243,6 +251,10 @@
     setVal('social-int-th-user-id', info.threads_user_id || '');
     setVal('social-int-th-version', info.threads_api_version || 'v1.0');
     resetSecret('social-int-th-token', 'social-int-th-clear', info.threads_configured, info.threads_access_token_masked, 'Nhập Threads Token mới...');
+
+    setVal('social-int-tg-channel-id', info.telegram_channel_id || '@cinevietlivee');
+    setVal('social-int-tg-admin-chat-id', info.telegram_admin_chat_id || '');
+    resetSecret('social-int-tg-bot-token', 'social-int-tg-bot-clear', info.telegram_bot_configured, info.telegram_bot_token_masked, 'Nhập Bot Token mới...');
 
     setVal('social-int-tg-url', info.telegram_url || 'https://t.me/cinevietlivee');
     setVal('social-int-tg-handle', info.telegram_handle || '@cinevietlivee');
@@ -266,7 +278,8 @@
     const cards = [
       { title: 'TMDb API', res: data.tmdb },
       { title: 'Facebook Page', res: data.facebook },
-      { title: 'Meta Threads', res: data.threads }
+      { title: 'Meta Threads', res: data.threads },
+      { title: 'Telegram Bot', res: data.telegram }
     ];
     box.classList.remove('hidden');
     box.innerHTML = cards.map(({ title, res }) => {
@@ -309,10 +322,12 @@
       const fbImg = safeUrl(item.facebook_image_url);
       const thImg = safeUrl(item.threads_image_url);
       const threadsText = String(item.threads_caption || '');
+      const tgText = String(item.telegram_caption || '');
       const threadsLen = threadsText.length;
       const thLenCls = threadsLen > THREADS_MAX_CHARS ? 'text-rose-400' : 'text-on-surface-variant';
       const fbErr = item.platforms?.facebook?.error;
       const thErr = item.platforms?.threads?.error;
+      const tgErr = item.platforms?.telegram?.error;
       const disabledPublish = item.status === 'published' || item.status === 'publishing' ? 'disabled' : '';
       const scheduleLocal = toVnDatetimeLocal(item.scheduled_at);
 
@@ -339,13 +354,15 @@
             <div class="flex flex-wrap items-center gap-2 shrink-0">
               ${platformPillHtml('FB', item.platforms?.facebook)}
               ${platformPillHtml('Threads', item.platforms?.threads)}
+              ${platformPillHtml('TG', item.platforms?.telegram)}
             </div>
           </div>
 
-          ${(fbErr || thErr) ? `
+          ${(fbErr || thErr || tgErr) ? `
             <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 space-y-1">
               ${fbErr ? `<p><strong>Lỗi Facebook:</strong> ${escapeHtml(fbErr)}</p>` : ''}
               ${thErr ? `<p><strong>Lỗi Threads:</strong> ${escapeHtml(thErr)}</p>` : ''}
+              ${tgErr ? `<p><strong>Lỗi Telegram:</strong> ${escapeHtml(tgErr)}</p>` : ''}
             </div>
           ` : ''}
 
@@ -372,7 +389,7 @@
               </label>
             </div>
 
-            <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-3">
               <label class="block space-y-1">
                 <span class="flex items-center justify-between text-xs font-semibold text-on-surface-variant">
                   <span>Nội dung Facebook</span>
@@ -382,10 +399,18 @@
 
               <label class="block space-y-1">
                 <span class="flex items-center justify-between text-xs font-semibold text-on-surface-variant">
-                  <span>Nội dung Threads (tối đa 500 ký tự)</span>
+                  <span>Nội dung Threads</span>
                   <span class="social-threads-count text-[11px] font-bold ${thLenCls}">${threadsLen}/${THREADS_MAX_CHARS}</span>
                 </span>
                 <textarea rows="6" maxlength="500" class="social-input-threads w-full px-3 py-2.5 rounded-xl bg-surface-container text-on-surface text-xs leading-relaxed border border-surface-container-highest/60 focus:outline-none focus:border-primary">${escapeHtml(threadsText)}</textarea>
+              </label>
+
+              <label class="block space-y-1">
+                <span class="flex items-center justify-between text-xs font-semibold text-on-surface-variant">
+                  <span>Nội dung Telegram</span>
+                  <span class="text-[11px] text-on-surface-variant">+ Nút Xem Phim</span>
+                </span>
+                <textarea rows="6" maxlength="${TELEGRAM_MAX_CHARS}" class="social-input-telegram w-full px-3 py-2.5 rounded-xl bg-surface-container text-on-surface text-xs leading-relaxed border border-surface-container-highest/60 focus:outline-none focus:border-primary" placeholder="Để trống sẽ dùng nội dung Threads khi đăng Telegram">${escapeHtml(tgText)}</textarea>
               </label>
             </div>
           </div>
@@ -426,6 +451,7 @@
         <div class="flex flex-wrap items-center gap-1.5 shrink-0">
           ${row.facebook_post_id ? `<span class="px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-400 font-semibold">FB: ${escapeHtml(row.facebook_post_id)}</span>` : ''}
           ${row.threads_post_id ? `<span class="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 font-semibold">Threads: ${escapeHtml(row.threads_post_id)}</span>` : ''}
+          ${row.telegram_post_id ? `<span class="px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 font-semibold">TG: #${escapeHtml(row.telegram_post_id)}</span>` : ''}
         </div>
       </div>
     `).join('');
@@ -532,6 +558,7 @@
             dry_run: Boolean(document.getElementById('social-set-dry-run')?.checked),
             fb_enabled: Boolean(document.getElementById('social-set-fb')?.checked),
             threads_enabled: Boolean(document.getElementById('social-set-threads')?.checked),
+            telegram_enabled: Boolean(document.getElementById('social-set-telegram')?.checked),
             require_tmdb_image: Boolean(document.getElementById('social-set-require-tmdb')?.checked),
             slots_vn: document.getElementById('social-set-slots')?.value || '',
             lookahead_days: Number.parseInt(document.getElementById('social-set-lookahead')?.value || '2', 10),
@@ -560,6 +587,8 @@
             fb_graph_version: val('social-int-fb-version') || 'v21.0',
             threads_user_id: val('social-int-th-user-id'),
             threads_api_version: val('social-int-th-version') || 'v1.0',
+            telegram_channel_id: val('social-int-tg-channel-id'),
+            telegram_admin_chat_id: val('social-int-tg-admin-chat-id'),
             telegram_url: val('social-int-tg-url'),
             telegram_handle: val('social-int-tg-handle'),
             openai_model: val('social-int-openai-model') || 'gpt-4o-mini',
@@ -567,6 +596,7 @@
             clear_tmdb_api_key: chk('social-int-tmdb-clear'),
             clear_fb_token: chk('social-int-fb-clear'),
             clear_threads_token: chk('social-int-th-clear'),
+            clear_telegram_bot_token: chk('social-int-tg-bot-clear'),
             clear_openai_key: chk('social-int-openai-clear'),
             clear_gemini_key: chk('social-int-gemini-clear')
           };
@@ -574,16 +604,18 @@
           const tmdbKey = val('social-int-tmdb-key');
           const fbTok = val('social-int-fb-token');
           const thTok = val('social-int-th-token');
+          const tgBotTok = val('social-int-tg-bot-token');
           const openaiKey = val('social-int-openai-key');
           const geminiKey = val('social-int-gemini-key');
           if (tmdbKey) payload.tmdb_api_key = tmdbKey;
           if (fbTok) payload.fb_page_access_token = fbTok;
           if (thTok) payload.threads_access_token = thTok;
+          if (tgBotTok) payload.telegram_bot_token = tgBotTok;
           if (openaiKey) payload.openai_api_key = openaiKey;
           if (geminiKey) payload.gemini_api_key = geminiKey;
 
           await root.API.saveAdminSocialIntegrations(payload);
-          toast('Đã lưu cấu hình API TMDb / Facebook / Threads!');
+          toast('Đã lưu cấu hình API TMDb / Facebook / Threads / Telegram!');
           await loadSocialTab();
         } catch (err) {
           toast(err?.message || 'Lỗi khi lưu cấu hình API', 'error');
@@ -595,13 +627,26 @@
       if (!root.API?.verifyAdminSocialIntegrations) return;
       withLock(async () => {
         try {
-          toast('Đang kiểm tra kết nối TMDb, Facebook & Threads...');
+          toast('Đang kiểm tra kết nối TMDb, Facebook, Threads & Telegram...');
           const res = await root.API.verifyAdminSocialIntegrations();
           renderVerifyResults(res);
-          const allOk = res?.tmdb?.ok && res?.facebook?.ok && res?.threads?.ok;
-          toast(allOk ? 'Cả 3 kết nối TMDb, Facebook & Threads đều hợp lệ!' : 'Đã hoàn tất kiểm tra kết nối — xem chi tiết bên dưới.');
+          const allOk = res?.tmdb?.ok && res?.facebook?.ok && res?.threads?.ok && (!res?.telegram?.configured || res?.telegram?.ok);
+          toast(allOk ? 'Kết nối các kênh đã cấu hình đều hợp lệ!' : 'Đã hoàn tất kiểm tra kết nối — xem chi tiết bên dưới.');
         } catch (err) {
           toast(err?.message || 'Lỗi khi kiểm tra kết nối API', 'error');
+        }
+      });
+    });
+
+    document.getElementById('btn-social-test-tg-admin')?.addEventListener('click', () => {
+      if (!root.API?.testAdminSocialTelegram) return;
+      withLock(async () => {
+        try {
+          toast('Đang gửi tin nhắn thử tới Admin Telegram...');
+          await root.API.testAdminSocialTelegram();
+          toast('Đã gửi tin nhắn thử tới Telegram Admin thành công!');
+        } catch (err) {
+          toast(err?.message || 'Không gửi được tin nhắn thử Telegram', 'error');
         }
       });
     });
@@ -649,11 +694,13 @@
           try {
             const fbCaption = card.querySelector('.social-input-fb')?.value || '';
             const threadsCaption = card.querySelector('.social-input-threads')?.value || '';
+            const telegramCaption = card.querySelector('.social-input-telegram')?.value || '';
             const scheduleLocal = card.querySelector('.social-input-schedule')?.value || '';
             const scheduledAtIso = vnDatetimeLocalToIso(scheduleLocal);
             await root.API.updateAdminSocialPost(postId, {
               facebook_caption: fbCaption,
               threads_caption: threadsCaption,
+              telegram_caption: telegramCaption,
               ...(scheduledAtIso ? { scheduled_at: scheduledAtIso } : {})
             });
             toast('Đã lưu nội dung & lịch đăng bài viết!');
@@ -665,7 +712,7 @@
       } else if (publishBtn) {
         withLock(async () => {
           try {
-            toast('Đang đăng bài lên Facebook / Threads...');
+            toast('Đang đăng bài lên các kênh đã bật...');
             await root.API.publishAdminSocialPost(postId);
             toast('Đã xử lý đăng bài!');
             await loadSocialTab();

@@ -107,9 +107,14 @@ before(async () => {
           data: {
             tmdb: { ok: true, detail: 'Ket noi TMDb thanh cong' },
             facebook: { ok: true, detail: 'Ket noi Page: CineViet' },
-            threads: { ok: true, detail: 'Ket noi Threads: @cine.vietlive' }
+            threads: { ok: true, detail: 'Ket noi Threads: @cine.vietlive' },
+            telegram: { ok: true, detail: 'Bot @CineVietBot -> Kenh @cinevietlivee' }
           }
         }));
+        return;
+      }
+      if (req.url === '/api/integrations/telegram-test' && req.method === 'POST') {
+        res.end(JSON.stringify({ status: true, data: { sent: true, message_id: '555' } }));
         return;
       }
       if (req.url === '/api/jobs/fill-queue' && req.method === 'POST') {
@@ -177,6 +182,7 @@ test('/api/admin/social/* enforces admin authentication and rejects invalid IDs'
     ['POST', '/api/admin/social/settings', { dry_run: false }],
     ['POST', '/api/admin/social/integrations', { fb_page_id: '123' }],
     ['POST', '/api/admin/social/integrations/verify', {}],
+    ['POST', '/api/admin/social/integrations/telegram-test', {}],
     ['POST', '/api/admin/social/jobs/fill-queue', {}],
     ['POST', '/api/admin/social/jobs/tick', {}],
     ['PATCH', '/api/admin/social/queue/post_1234', { facebook_caption: 'hi' }],
@@ -244,8 +250,13 @@ test('/api/admin/social/* proxies cleanly to internal bot with bearer token and 
   const intVerify = await apiRequest('/api/admin/social/integrations/verify', { user: adminUser, method: 'POST', body: {} });
   assert.equal(intVerify.status, 200);
   assert.equal(intVerify.body.data.threads.ok, true);
+  assert.ok(intVerify.body.data.telegram.detail.includes('@CineVietBot'));
 
-  assert.equal(botRequests.length, 9);
+  const tgTest = await apiRequest('/api/admin/social/integrations/telegram-test', { user: adminUser, method: 'POST', body: {} });
+  assert.equal(tgTest.status, 200);
+  assert.equal(tgTest.body.data.sent, true);
+
+  assert.equal(botRequests.length, 10);
   for (const req of botRequests) {
     assert.equal(req.auth, 'Bearer test-social-secret-token');
   }
@@ -487,9 +498,12 @@ test('real public/js/api.js unwraps /api/admin/social/* envelopes cleanly for ad
               fb_page_access_token_masked: '••••6EZD',
               threads_configured: true,
               threads_user_id: '30446538011612918',
-              threads_access_token_masked: '••••HcZD'
+              threads_access_token_masked: '••••HcZD',
+              telegram_bot_configured: true,
+              telegram_bot_token_masked: '••••tg01',
+              telegram_channel_id: '@cinevietlivee'
             },
-            settings: { auto_schedule_enabled: true, dry_run: false, slots_vn: ['11:30', '21:00'] },
+            settings: { auto_schedule_enabled: true, dry_run: false, telegram_enabled: true, slots_vn: ['11:30', '21:00'] },
             open_slots: [],
             stats: { total_published: 4, scheduled_count: 8, published_queue_count: 4, failed_or_partial_count: 0 },
             queue: [],
@@ -507,9 +521,16 @@ test('real public/js/api.js unwraps /api/admin/social/* envelopes cleanly for ad
           data: {
             tmdb: { configured: true, ok: true, detail: 'Ket noi TMDb thanh cong' },
             facebook: { configured: true, ok: true, detail: 'Ket noi Page: CineViet.Live' },
-            threads: { configured: true, ok: true, detail: 'Ket noi Threads: @cine.vietlive' }
+            threads: { configured: true, ok: true, detail: 'Ket noi Threads: @cine.vietlive' },
+            telegram: { configured: true, ok: true, detail: 'Bot @CineVietBot -> Kenh @cinevietlivee' }
           }
         })
+      };
+    }
+    if (String(url).endsWith('/api/admin/social/integrations/telegram-test')) {
+      return {
+        status: 200,
+        text: async () => JSON.stringify({ status: true, data: { sent: true, message_id: '888' } })
       };
     }
     return { status: 200, text: async () => JSON.stringify({ status: true, data: {} }) };
@@ -527,6 +548,8 @@ test('real public/js/api.js unwraps /api/admin/social/* envelopes cleanly for ad
     assert.ok(window.document.getElementById('social-int-badge-tmdb').textContent.includes('••••93ed'));
     assert.ok(window.document.getElementById('social-int-badge-fb').textContent.includes('••••6EZD'));
     assert.ok(window.document.getElementById('social-int-badge-threads').textContent.includes('••••HcZD'));
+    assert.ok(window.document.getElementById('social-int-badge-telegram').textContent.includes('••••tg01'));
+    assert.equal(window.document.getElementById('social-set-telegram').checked, true);
 
     window.document.getElementById('btn-social-verify-integrations').click();
     await tick();
@@ -534,7 +557,11 @@ test('real public/js/api.js unwraps /api/admin/social/* envelopes cleanly for ad
     assert.ok(verifyText.includes('Hợp lệ'));
     assert.ok(verifyText.includes('Ket noi Page: CineViet.Live'));
     assert.ok(verifyText.includes('@cine.vietlive'));
+    assert.ok(verifyText.includes('Bot @CineVietBot'));
     assert.ok(!verifyText.includes('Chưa đạt'));
+
+    window.document.getElementById('btn-social-test-tg-admin').click();
+    await tick();
 
     failOffline = true;
     await window.loadAdminSocialTab();
