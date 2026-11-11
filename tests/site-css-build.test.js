@@ -33,7 +33,7 @@ test('all public HTML is free of runtime Tailwind CDN and executable config', ()
 });
 
 test('every migrated page has one existing content-versioned stylesheet before custom styles', () => {
-  assert.equal(Object.keys(manifest.pages).length, 20);
+  assert.equal(Object.keys(manifest.pages).length, 21);
   for (const [file, key] of Object.entries(manifest.pages)) {
     const html = read(file);
     const links = [...html.matchAll(/href="(\/css\/site-[a-f0-9]+\.css)\?v=([a-f0-9]+)"/g)];

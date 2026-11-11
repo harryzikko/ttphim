@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { footer, pages, informationPage } = require('./site-content.cjs');
 const root = path.join(__dirname, '..');
-const targets = ['index', 'kham-pha', 'chi-tiet', 'xem-phim', 'danh-sach', 'tai-khoan', 'dien-vien'].map(name => `public/${name}.html`).concat(['index', 'kham-pha', 'chi-tiet', 'xem-phim', 'danh-sach', 'tai-khoan'].map(name => `public/mobile/${name}.html`));
+const targets = ['index', 'kham-pha', 'short-phim', 'chi-tiet', 'xem-phim', 'danh-sach', 'tai-khoan', 'dien-vien'].map(name => `public/${name}.html`).concat(['index', 'kham-pha', 'chi-tiet', 'xem-phim', 'danh-sach', 'tai-khoan'].map(name => `public/mobile/${name}.html`));
 function updateTemplate(html, mobile) {
   if ((html.match(/<\/head>/gi) || []).length !== 1 || (html.match(/<\/body>/gi) || []).length !== 1) throw Error('Expected exactly one head/body close');
   const matches = [...html.matchAll(/<footer\b[\s\S]*?<\/footer>/gi)];

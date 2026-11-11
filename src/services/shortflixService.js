@@ -1,0 +1,294 @@
+const config = require('../config');
+
+const DEFAULT_GENRES = [
+  'Tổng tài', 'Cổ đại', 'Tâm lý', 'Ngôn tình', 'Khoa học viễn tưởng',
+  'Lồng tiếng', 'Hài hước', 'Nữ cường', 'Huyền huyễn', 'Tội phạm',
+  'Xuyên không', 'Thanh xuân', 'Hành động', 'Kinh dị', 'Gia đình',
+  'Bí ẩn', 'Dân quốc', 'Trọng sinh', 'Cưới trước yêu sau', 'Hành động ly kỳ',
+  'Hiện đại', 'Báo thù', 'Thể thao', 'Em bé', 'Ngược luyến',
+  'Sủng ngọt', 'Hiểu lầm', 'Hào môn', 'Tìm người thân', 'Quân phiệt',
+  'Vươn lên từ số không', 'Tái hợp', 'Sự trở lại', 'Tâm lý tình cảm',
+  'Trưởng thành', 'Khác'
+];
+
+const ALLOWED_SUBTITLE_HOSTS = new Set([
+  'shortflix.notthingp.workers.dev',
+  'shortlink.alokillgtv.workers.dev'
+]);
+
+const SAFE_SLUG_RE = /^[a-zA-Z0-9._-]{1,140}$/;
+
+function normalizeSlug(raw) {
+  let clean = String(raw || '').trim();
+  if (clean.startsWith('shortflix:')) clean = clean.slice('shortflix:'.length);
+  if (!SAFE_SLUG_RE.test(clean) || clean.includes('..')) return null;
+  return clean;
+}
+
+function isAllowedUpstreamUrl(rawUrl) {
+  try {
+    const parsed = new URL(String(rawUrl || '').trim());
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return false;
+    const host = parsed.hostname.toLowerCase();
+    if (ALLOWED_SUBTITLE_HOSTS.has(host)) return true;
+    return host === 'nsstorage.space' || host.endsWith('.nsstorage.space');
+  } catch {
+    return false;
+  }
+}
+
+function normalizeSubtitleToVtt(text) {
+  const raw = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').trim();
+  if (!raw) return 'WEBVTT\n\n';
+  if (/^WEBVTT\b/i.test(raw)) return `${raw}\n`;
+  // Convert SRT comma timestamps (00:00:01,500) to WebVTT dots (00:00:01.500)
+  const converted = raw.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+  return `WEBVTT\n\n${converted}\n`;
+}
+
+class ShortflixService {
+  constructor({
+    baseUrl = () => config.SHORTFLIX_BASE_URL,
+    fetcher = globalThis.fetch
+  } = {}) {
+    this.getBaseUrl = typeof baseUrl === 'function' ? baseUrl : () => String(baseUrl || '');
+    this.fetcher = fetcher;
+    this.cache = new Map();
+  }
+
+  getCached(key) {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.value;
+  }
+
+  setCached(key, value, ttlMs) {
+    if (this.cache.size >= 250) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey) this.cache.delete(oldestKey);
+    }
+    this.cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+    return value;
+  }
+
+  async fetchJson(relativePath, ttlMs = 300000) {
+    const cacheKey = `json:${relativePath}`;
+    const cached = this.getCached(cacheKey);
+    if (cached) return cached;
+
+    const root = String(this.getBaseUrl() || '').replace(/\/+$/, '');
+    if (!root) throw Object.assign(new Error('ShortFlix URL not configured'), { status: 503 });
+
+    const res = await this.fetcher(`${root}${relativePath}`, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'CineViet/1.0 (+https://cineviet.live)'
+      },
+      signal: AbortSignal.timeout(12000)
+    });
+
+    if (!res.ok) {
+      throw Object.assign(new Error(`ShortFlix upstream HTTP ${res.status}`), { status: res.status >= 500 ? 502 : res.status });
+    }
+    const data = await res.json();
+    return this.setCached(cacheKey, data, ttlMs);
+  }
+
+  async getGenres() {
+    try {
+      const manifest = await this.fetchJson('/manifest.json', 3600000);
+      const extra = manifest?.catalogs?.[0]?.extra || [];
+      const genreExtra = extra.find(e => e?.name === 'genre' && Array.isArray(e.options));
+      if (genreExtra && genreExtra.options.length > 0) {
+        return genreExtra.options.map(v => String(v));
+      }
+    } catch {
+      // Fall back safely to verified catalog genre list
+    }
+    return [...DEFAULT_GENRES];
+  }
+
+  async getCatalog({ page = 1, genre = '', keyword = '', limit = 24 } = {}) {
+    const cleanPage = Math.max(1, Number.parseInt(page, 10) || 1);
+    const cleanLimit = Math.min(48, Math.max(6, Number.parseInt(limit, 10) || 24));
+    const cleanGenre = String(genre || '').trim();
+    const cleanKeyword = String(keyword || '').trim();
+
+    const offsetGlobal = (cleanPage - 1) * cleanLimit;
+    const batchSkip = Math.floor(offsetGlobal / 100) * 100;
+    const localOffset = offsetGlobal - batchSkip;
+
+    const extras = [];
+    if (cleanKeyword) {
+      extras.push(`search=${encodeURIComponent(cleanKeyword)}`);
+    } else if (cleanGenre && cleanGenre !== 'all') {
+      extras.push(`genre=${encodeURIComponent(cleanGenre)}`);
+    }
+    if (batchSkip > 0) {
+      extras.push(`skip=${batchSkip}`);
+    }
+
+    const extraSegment = extras.length > 0 ? `/${extras.join('&')}` : '';
+    const [genres, raw] = await Promise.all([
+      this.getGenres(),
+      this.fetchJson(`/catalog/series/shortflix${extraSegment}.json`, 300000)
+    ]);
+
+    const allMetas = Array.isArray(raw?.metas) ? raw.metas : [];
+    const slice = allMetas.slice(localOffset, localOffset + cleanLimit);
+    const items = slice
+      .map(meta => {
+        const slug = normalizeSlug(meta?.id);
+        if (!slug) return null;
+        const desc = String(meta?.description || '').trim();
+        const epMatch = desc.match(/(\d{1,4})\s*tập/i);
+        return {
+          id: `shortflix:${slug}`,
+          slug,
+          name: String(meta?.name || slug).trim(),
+          poster_url: String(meta?.poster || '').trim(),
+          description: desc,
+          poster_shape: String(meta?.posterShape || 'poster'),
+          episode_count_hint: epMatch ? Number.parseInt(epMatch[1], 10) : null
+        };
+      })
+      .filter(Boolean);
+
+    const hasMore = (localOffset + cleanLimit < allMetas.length) || allMetas.length >= 100;
+    return {
+      items,
+      genres,
+      pagination: {
+        page: cleanPage,
+        limit: cleanLimit,
+        batchCount: allMetas.length,
+        hasMore
+      }
+    };
+  }
+
+  async getDetail(rawSlug) {
+    const slug = normalizeSlug(rawSlug);
+    if (!slug) throw Object.assign(new Error('Mã phim ngắn không hợp lệ'), { status: 400 });
+
+    const data = await this.fetchJson(`/meta/series/${encodeURIComponent(`shortflix:${slug}`)}.json`, 900000);
+    const meta = data?.meta;
+    if (!meta || !meta.id) {
+      throw Object.assign(new Error('Không tìm thấy phim ngắn'), { status: 404 });
+    }
+
+    const rawVideos = Array.isArray(meta.videos) ? meta.videos : [];
+    const episodes = rawVideos
+      .map((v, idx) => {
+        const epNum = Number.parseInt(v?.episode, 10) || (idx + 1);
+        return {
+          episode: epNum,
+          video_id: String(v?.id || `shortflix:${slug}:${epNum}`),
+          title: String(v?.title || `Tập ${epNum}`),
+          thumbnail_url: String(v?.thumbnail || meta.poster || '').trim(),
+          released: v?.released || null
+        };
+      })
+      .sort((a, b) => a.episode - b.episode);
+
+    return {
+      item: {
+        id: `shortflix:${slug}`,
+        slug,
+        name: String(meta.name || slug).trim(),
+        description: String(meta.description || '').trim(),
+        poster_url: String(meta.poster || '').trim(),
+        background_url: String(meta.background || meta.poster || '').trim(),
+        total_episodes: episodes.length
+      },
+      episodes
+    };
+  }
+
+  async getStreams(rawSlug, episode = 1) {
+    const slug = normalizeSlug(rawSlug);
+    const ep = Math.max(1, Number.parseInt(episode, 10) || 1);
+    if (!slug) throw Object.assign(new Error('Mã phim ngắn không hợp lệ'), { status: 400 });
+
+    const videoId = `shortflix:${slug}:${ep}`;
+    const data = await this.fetchJson(`/stream/series/${encodeURIComponent(videoId)}.json`, 300000);
+    const rawStreams = Array.isArray(data?.streams) ? data.streams : [];
+
+    const servers = rawStreams
+      .filter(s => s && typeof s.url === 'string' && isAllowedUpstreamUrl(s.url))
+      .map(s => {
+        const rawName = String(s.name || 'Server').trim();
+        const rawTitle = String(s.title || rawName).trim();
+        const isFull = /full/i.test(rawName) || /full/i.test(rawTitle);
+        const displayName = isFull ? 'Bản Full (Gộp tất cả tập)' : `Tập lẻ • Tập ${ep}`;
+
+        const subs = (Array.isArray(s.subtitles) ? s.subtitles : [])
+          .filter(sub => sub && typeof sub.url === 'string' && isAllowedUpstreamUrl(sub.url))
+          .slice(0, 2)
+          .map((sub, i) => ({
+            id: String(sub.id || `sub-${i}`),
+            lang: String(sub.lang || 'vi'),
+            label: 'Tiếng Việt',
+            proxy_url: `/api/shortflix/subtitle?url=${encodeURIComponent(sub.url)}`
+          }));
+
+        return {
+          name: displayName,
+          raw_title: rawTitle,
+          is_full: isFull,
+          url: s.url,
+          subtitles: subs
+        };
+      })
+      // Put episode-by-episode first for quick short-drama playback, Full right beside it
+      .sort((a, b) => Number(a.is_full) - Number(b.is_full));
+
+    return {
+      slug,
+      episode: ep,
+      servers
+    };
+  }
+
+  async fetchSubtitle(rawUrl) {
+    if (!isAllowedUpstreamUrl(rawUrl)) {
+      throw Object.assign(new Error('URL phụ đề không thuộc nguồn được phép'), { status: 400 });
+    }
+
+    const cacheKey = `sub:${rawUrl}`;
+    const cached = this.getCached(cacheKey);
+    if (cached) return cached;
+
+    const res = await this.fetcher(rawUrl, {
+      redirect: 'error',
+      headers: {
+        Accept: 'text/vtt, text/plain, */*',
+        'User-Agent': 'CineViet/1.0 (+https://cineviet.live)'
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!res.ok) {
+      throw Object.assign(new Error(`Không tải được phụ đề (HTTP ${res.status})`), { status: 502 });
+    }
+
+    const text = await res.text();
+    if (Buffer.byteLength(text, 'utf8') > 1048576) {
+      throw Object.assign(new Error('File phụ đề vượt quá dung lượng cho phép'), { status: 413 });
+    }
+
+    const normalized = normalizeSubtitleToVtt(text);
+    return this.setCached(cacheKey, normalized, 3600000);
+  }
+}
+
+const instance = new ShortflixService();
+
+module.exports = instance;
+module.exports.ShortflixService = ShortflixService;
+module.exports.normalizeSlug = normalizeSlug;
+module.exports.isAllowedUpstreamUrl = isAllowedUpstreamUrl;
+module.exports.normalizeSubtitleToVtt = normalizeSubtitleToVtt;

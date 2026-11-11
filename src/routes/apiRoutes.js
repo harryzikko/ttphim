@@ -39,7 +39,8 @@ router.use('/admin', adminAudit);
 router.use(operationsRoutes);
 router.use(require('./followRoutes'));
 router.use(require('./playbackRoutes'));
-router.use(require('./socialAdminRoutes').createSocialAdminRouter());
+router.use(require('./socialAdminRoutes').createSocialAdminRouter());
+router.use(require('./shortflixRoutes'));
 
 // --- Public Movie Endpoints ---
 

@@ -94,15 +94,28 @@
     } catch (_) {}
 
     document.querySelectorAll('header nav').forEach(nav => {
-      if (nav.querySelector('[data-path="song-ngu"]')) return;
-      const cinema = nav.querySelector('a[data-path="chieu-rap"], a[href="/kham-pha?type=chieu-rap"]');
-      if (!cinema) return;
-      const bilingual = document.createElement('a');
-      bilingual.href = '/kham-pha?type=song-ngu';
-      bilingual.dataset.path = 'song-ngu';
-      bilingual.className = cinema.className;
-      bilingual.textContent = 'Song Ngữ';
-      cinema.after(bilingual);
+      if (!nav.querySelector('[data-path="song-ngu"]')) {
+        const cinema = nav.querySelector('a[data-path="chieu-rap"], a[href="/kham-pha?type=chieu-rap"]');
+        if (cinema) {
+          const bilingual = document.createElement('a');
+          bilingual.href = '/kham-pha?type=song-ngu';
+          bilingual.dataset.path = 'song-ngu';
+          bilingual.className = cinema.className;
+          bilingual.textContent = 'Song Ngữ';
+          cinema.after(bilingual);
+        }
+      }
+      if (!nav.querySelector('[data-path="short-phim"]')) {
+        const anchor = nav.querySelector('a[data-path="song-ngu"]') || nav.querySelector('a[data-path="chieu-rap"], a[href="/kham-pha?type=chieu-rap"]');
+        if (anchor) {
+          const shortLink = document.createElement('a');
+          shortLink.href = '/short-phim';
+          shortLink.dataset.path = 'short-phim';
+          shortLink.className = anchor.className;
+          shortLink.textContent = 'Short Phim';
+          anchor.after(shortLink);
+        }
+      }
     });
     const currentPath = window.location.pathname;
     const searchParams = new URLSearchParams(window.location.search);
@@ -798,6 +811,10 @@
         <a href="/kham-pha?type=song-ngu" class="mobile-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-surface-container transition-colors ${typeParam === 'song-ngu' ? 'bg-primary-container text-on-primary-container font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}">
           <span class="material-symbols-outlined text-[20px]">record_voice_over</span>
           <span>Song Ngữ</span>
+        </a>
+        <a href="/short-phim" class="mobile-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-surface-container transition-colors ${currentPath.startsWith('/short-phim') ? 'bg-primary-container text-on-primary-container font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}">
+          <span class="material-symbols-outlined text-[20px]">bolt</span>
+          <span>Short Phim</span>
         </a>
 
         <!-- Accordion: Thể Loại -->

@@ -12,6 +12,10 @@ const pages = {
     'Khám phá kho phim Full HD Vietsub & Song Ngữ | CineViet',
     'Tìm phim theo tên tiếng Việt, tên gốc, thể loại, quốc gia và năm phát hành trên CineViet.'
   ],
+  '/short-phim': [
+    'Short Phim — Phim Ngắn Dọc Full HD Vietsub & Lồng Tiếng | CineViet',
+    'Xem phim ngắn Drama tổng tài, cổ đại, xuyên không, trọng sinh chuẩn 1080p HLS với phụ đề tiếng Việt, hỗ trợ tập lẻ và bản Full.'
+  ],
   '/tai-ung-dung': [
     'Tải App CineViet — Android, iOS, Smart TV & Desktop | CineViet',
     'Tải ứng dụng CineViet chính thức cho Android (APK), iPhone/iPad (IPA), Android TV và Máy tính (Windows, macOS, Linux).'

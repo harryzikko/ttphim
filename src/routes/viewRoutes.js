@@ -72,6 +72,11 @@ router.get('/mobile/kham-pha', (req, res) => {
   const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
   res.redirect(301, '/kham-pha' + query);
 });
+router.get(['/mobile/short-phim', '/mobile/short-phim/:slug'], (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  const slug = req.params.slug ? '/' + encodeURIComponent(req.params.slug) : '';
+  res.redirect(301, '/short-phim' + slug + query);
+});
 router.get('/mobile/phim/:slug', (req, res) => {
   const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
   res.redirect(301, '/phim/' + req.params.slug + query);
@@ -480,6 +485,15 @@ router.get(['/admin', '/quan-tri'], (req, res) => res.sendFile(publicFile('admin
 router.get(['/dien-vien', '/dien-vien/:name', '/dao-dien', '/dao-dien/:name', '/nghe-si/:name'], async (req, res, next) => {
   try {
     const rawHtml = await fs.readFile(publicFile('dien-vien.html'), 'utf8');
+    const settings = await dbService.getSettings();
+    res.send(bannerService.decorate(rawHtml, settings));
+  } catch (err) { next(err); }
+});
+
+// Short Phim (DramaWave / ShortFlix Vertical Short Drama)
+router.get(['/short-phim', '/short-phim/:slug'], async (req, res, next) => {
+  try {
+    const rawHtml = await fs.readFile(publicFile('short-phim.html'), 'utf8');
     const settings = await dbService.getSettings();
     res.send(bannerService.decorate(rawHtml, settings));
   } catch (err) { next(err); }

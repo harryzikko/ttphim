@@ -48,6 +48,7 @@ module.exports = {
   IMAGE_CDN: process.env.IMAGE_CDN || 'https://phimimg.com',
   SOCIAL_BOT_URL: (process.env.SOCIAL_BOT_URL || 'http://127.0.0.1:4100').replace(/\/+$/, ''),
   SOCIAL_BOT_TOKEN: (process.env.SOCIAL_BOT_TOKEN || '').trim(),
+  SHORTFLIX_BASE_URL: (process.env.SHORTFLIX_BASE_URL || 'https://shortflix.notthingp.workers.dev').replace(/\/+$/, ''),
   // Development secrets are ephemeral: a restart intentionally invalidates old tokens.
   JWT_SECRET: unsafeSecret ? crypto.randomBytes(48).toString('hex') : configuredSecret,
   DB_PATH: process.env.DB_PATH || path.join(__dirname, '..', 'data', 'db.json'),

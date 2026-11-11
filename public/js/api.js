@@ -82,6 +82,29 @@ const API = {
     return res.data;
   },
 
+  async getShortflixCatalog({ page = 1, genre = '', keyword = '', limit = 24 } = {}) {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    if (genre && genre !== 'all') params.set('genre', genre);
+    if (keyword) params.set('keyword', keyword);
+    const res = await this.request(`/api/shortflix/catalog?${params.toString()}`);
+    if (!res?.status) throw new Error(res?.message || 'Không tải được danh mục Short Phim');
+    return res.data;
+  },
+
+  async getShortflixDetail(slug) {
+    const res = await this.request(`/api/shortflix/detail/${encodeURIComponent(slug)}`);
+    if (!res?.status) throw new Error(res?.message || 'Không tải được thông tin phim ngắn');
+    return res.data;
+  },
+
+  async getShortflixStream(slug, episode = 1) {
+    const res = await this.request(`/api/shortflix/stream/${encodeURIComponent(slug)}/${encodeURIComponent(episode)}`);
+    if (!res?.status) throw new Error(res?.message || 'Không lấy được luồng phát phim ngắn');
+    return res.data;
+  },
+
   // Movie Details
   async getMovieDetail(slug) {
     const res = await this.request(`/api/movies/${slug}`);
