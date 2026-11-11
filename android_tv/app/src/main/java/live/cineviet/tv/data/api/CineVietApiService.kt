@@ -59,4 +59,23 @@ interface CineVietApiService {
 
     @GET("app-update")
     suspend fun getAppUpdate(): Response<ApiResponse<AppUpdateData>>
+
+    @GET("shortflix/catalog")
+    suspend fun getShortCatalog(
+        @Query("page") page: Int = 1,
+        @Query("genre") genre: String? = null,
+        @Query("keyword") keyword: String? = null,
+        @Query("limit") limit: Int = 25
+    ): Response<ApiResponse<ShortCatalogData>>
+
+    @GET("shortflix/detail/{slug}")
+    suspend fun getShortDetail(
+        @Path("slug") slug: String
+    ): Response<ApiResponse<ShortDetailData>>
+
+    @GET("shortflix/stream/{slug}/{episode}")
+    suspend fun getShortStream(
+        @Path("slug") slug: String,
+        @Path("episode") episode: Int = 1
+    ): Response<ApiResponse<ShortStreamData>>
 }

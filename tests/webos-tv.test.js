@@ -86,6 +86,42 @@ function createTestServer() {
   });
   app.post('/api/user/history', (req, res) => res.json({ status: true }));
 
+  app.get('/api/shortflix/catalog', (req, res) => res.json({
+    status: true,
+    data: {
+      genres: ['Tổng tài', 'Ngôn tình'],
+      pagination: { page: Number(req.query.page || 1), hasMore: false },
+      items: [{
+        slug: 'short-tv-1',
+        name: 'Short Drama TV',
+        poster_url: '',
+        poster_fallback_url: '',
+        description: 'Loạt phim 20 tập cho TV',
+        episode_count_hint: 20
+      }]
+    }
+  }));
+  app.get('/api/shortflix/detail/:slug', (req, res) => res.json({
+    status: true,
+    data: {
+      item: { slug: req.params.slug, name: 'Short Drama TV', description: 'Chi tiết Short Drama trên webOS TV', total_episodes: 2 },
+      episodes: [{ episode: 1, title: 'Tập 1' }, { episode: 2, title: 'Tập 2' }]
+    }
+  }));
+  app.get('/api/shortflix/stream/:slug/:ep', (req, res) => res.json({
+    status: true,
+    data: {
+      slug: req.params.slug,
+      episode: Number(req.params.ep),
+      servers: [
+        { name: 'Tập lẻ', is_full: false, url: 'about:blank', subtitles: [{ proxy_url: '/api/shortflix/subtitle?url=test' }] },
+        { name: 'Bản Full (Gộp tất cả tập)', is_full: true, url: '/api/shortflix/playlist?url=test', subtitles: [{ proxy_url: '/api/shortflix/subtitle?url=test' }] }
+      ]
+    }
+  }));
+  app.get('/api/shortflix/subtitle', (req, res) => res.type('text/vtt').send('WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nXin chào TV'));
+  app.get('/api/shortflix/playlist', (req, res) => res.type('application/vnd.apple.mpegurl').send('#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-ENDLIST\n'));
+
   app.use('/webos', (req, res, next) => {
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     next();
@@ -187,6 +223,20 @@ test('LG webOS TV app renders Nocturne Cinema UI, supports D-Pad & 461 Back key,
       return called;
     });
     assert.equal(calledPlatformBack, true);
+
+    // Short Phim tab -> opens Short Phim catalog -> detail -> portrait player & subtitle toggle -> Back 461 closes cleanly
+    await page.click('.tv-nav-item[data-nav="shorts"]');
+    await page.waitForSelector('.tv-card[data-short-slug="short-tv-1"]');
+    assert.match(await page.textContent('.tv-catalog-title'), /Short Phim/);
+    await page.click('.tv-card[data-short-slug="short-tv-1"]');
+    await page.waitForSelector('#tv-short-play-full');
+    await page.click('#tv-short-play');
+    await page.waitForSelector('#tv-btn-subtitle');
+    assert.equal(await page.evaluate(() => document.getElementById('tv-video')?.classList.contains('is-portrait')), true);
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 461, which: 461, bubbles: true })));
+    await page.waitForFunction(() => document.getElementById('tv-player-layer').classList.contains('hidden'));
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 461, which: 461, bubbles: true })));
+    await page.waitForFunction(() => document.getElementById('tv-detail-layer').classList.contains('hidden'));
 
     // Account QR login renders 6 digits & auto-approves on poll
     await page.click('.tv-nav-item[data-nav="account"]');

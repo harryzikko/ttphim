@@ -5,6 +5,9 @@ import live.cineviet.tv.data.models.CatalogData
 import live.cineviet.tv.data.models.HomeData
 import live.cineviet.tv.data.models.MovieDetailData
 import live.cineviet.tv.data.models.MovieItem
+import live.cineviet.tv.data.models.ShortCatalogData
+import live.cineviet.tv.data.models.ShortDetailData
+import live.cineviet.tv.data.models.ShortStreamData
 import live.cineviet.tv.data.models.UserLibraryData
 
 class MovieRepository {
@@ -148,6 +151,52 @@ class MovieRepository {
                 Result.success(true)
             } else {
                 Result.failure(Exception("Lỗi cập nhật yêu thích"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getShortCatalog(
+        page: Int = 1,
+        genre: String? = null,
+        keyword: String? = null,
+        limit: Int = 25
+    ): Result<ShortCatalogData> {
+        return try {
+            val cleanGenre = genre?.takeIf { it.isNotBlank() && it != "all" }
+            val cleanKw = keyword?.takeIf { it.isNotBlank() }
+            val response = api.getShortCatalog(page = page, genre = cleanGenre, keyword = cleanKw, limit = limit)
+            if (response.isSuccessful && response.body()?.status == true) {
+                Result.success(response.body()?.data ?: ShortCatalogData())
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Lỗi tải Short Phim"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getShortDetail(slug: String): Result<ShortDetailData> {
+        return try {
+            val response = api.getShortDetail(slug)
+            if (response.isSuccessful && response.body()?.status == true) {
+                Result.success(response.body()?.data ?: ShortDetailData())
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Lỗi tải chi tiết Short Phim"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getShortStream(slug: String, episode: Int): Result<ShortStreamData> {
+        return try {
+            val response = api.getShortStream(slug, episode.coerceAtLeast(1))
+            if (response.isSuccessful && response.body()?.status == true) {
+                Result.success(response.body()?.data ?: ShortStreamData())
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Lỗi tải luồng phát Short Phim"))
             }
         } catch (e: Exception) {
             Result.failure(e)

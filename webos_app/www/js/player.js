@@ -3,6 +3,14 @@
 
   var playerState = {
     open: false,
+    isShort: false,
+    shortSlug: '',
+    shortEpisode: 1,
+    shortEpisodes: [],
+    preferFull: false,
+    subtitleEnabled: true,
+    subtitleUrl: '',
+    shortLoadToken: 0,
     movie: null,
     servers: [],
     serverIndex: 0,
@@ -75,7 +83,26 @@
     }, 5200);
   }
 
+  function applySubtitleTrack(subUrl) {
+    playerState.subtitleUrl = subUrl || '';
+    var video = document.getElementById('tv-video');
+    var track = document.getElementById('tv-subtitle-track');
+    var btn = document.getElementById('tv-btn-subtitle');
+    if (btn) {
+      btn.classList.toggle('hidden', !playerState.isShort && !subUrl);
+      btn.textContent = playerState.subtitleEnabled ? 'Phụ đề: Bật' : 'Phụ đề: Tắt';
+    }
+    if (!video || !track) return;
+    track.src = subUrl || '';
+    try {
+      if (video.textTracks && video.textTracks.length > 0) {
+        video.textTracks[0].mode = (subUrl && playerState.subtitleEnabled) ? 'showing' : 'hidden';
+      }
+    } catch (_) {}
+  }
+
   function saveProgress() {
+    if (playerState.isShort) return;
     var v = document.getElementById('tv-video');
     if (!v || !playerState.movie || !playerState.episode) return;
     var dur = isFinite(v.duration) && v.duration > 0 ? Math.floor(v.duration) : 0;
@@ -172,7 +199,11 @@
         btn.addEventListener('click', function () {
           var idx = Number(btn.getAttribute('data-ep-idx'));
           closeDrawer();
-          playEpisode(eps[idx], 0);
+          if (playerState.isShort) {
+            loadShortEpisode((eps[idx] && eps[idx].episode) || (idx + 1), 0);
+          } else {
+            playEpisode(eps[idx], 0);
+          }
         });
       });
     } else if (mode === 'servers') {
@@ -197,6 +228,9 @@
           }
           if (!match) match = eps[0];
           playerState.serverIndex = idx;
+          if (playerState.isShort) {
+            playerState.preferFull = Boolean(srv && srv.is_full);
+          }
           closeDrawer();
           if (match) playEpisode(match, 0);
         });
@@ -221,6 +255,7 @@
 
   function getNextEpisode() {
     var srv = playerState.servers[playerState.serverIndex] || {};
+    if (playerState.isShort && srv.is_full) return null;
     var eps = Array.isArray(srv.server_data) ? srv.server_data : [];
     if (!playerState.episode || eps.length < 2) return null;
     for (var i = 0; i < eps.length; i++) {
@@ -229,6 +264,61 @@
       }
     }
     return null;
+  }
+
+  function loadShortEpisode(epNumber, seekSec) {
+    if (!playerState.isShort || !playerState.shortSlug) return;
+    var epNum = Math.max(1, Number(epNumber) || 1);
+    var token = ++playerState.shortLoadToken;
+    playerState.shortEpisode = epNum;
+    setStatus('Đang nạp luồng Short Phim Tập ' + epNum + '…');
+    global.TvApi.getShortflixStream(playerState.shortSlug, epNum).then(function (data) {
+      if (!playerState.open || token !== playerState.shortLoadToken) return;
+      var rawServers = Array.isArray(data && data.servers) ? data.servers : [];
+      var baseEpList = (playerState.shortEpisodes && playerState.shortEpisodes.length)
+        ? playerState.shortEpisodes
+        : [{ episode: epNum, title: 'Tập ' + epNum }];
+
+      playerState.servers = rawServers.map(function (srv) {
+        var subUrl = (srv.subtitles && srv.subtitles[0] && srv.subtitles[0].proxy_url) || '';
+        return {
+          server_name: srv.name || (srv.is_full ? 'Bản Full (Gộp tất cả tập)' : ('Tập lẻ • Tập ' + epNum)),
+          is_full: Boolean(srv.is_full),
+          server_data: baseEpList.map(function (epItem, idx) {
+            var num = Number(epItem.episode) || (idx + 1);
+            return {
+              slug: 'tap-' + num,
+              name: srv.is_full ? ('Tập ' + num + ' (Bản Full)') : ('Tập ' + num),
+              episode: num,
+              link_m3u8: num === epNum ? (srv.url || '') : '',
+              subtitle_url: num === epNum ? subUrl : ''
+            };
+          })
+        };
+      });
+
+      var preferredIdx = -1;
+      for (var i = 0; i < playerState.servers.length; i++) {
+        if (playerState.servers[i].is_full === playerState.preferFull) { preferredIdx = i; break; }
+      }
+      playerState.serverIndex = preferredIdx >= 0 ? preferredIdx : 0;
+
+      var activeSrv = playerState.servers[playerState.serverIndex] || {};
+      var epList = activeSrv.server_data || [];
+      var targetEp = null;
+      for (var j = 0; j < epList.length; j++) {
+        if (epList[j].episode === epNum) { targetEp = epList[j]; break; }
+      }
+      if (!targetEp) targetEp = epList[0];
+      if (!targetEp || !targetEp.link_m3u8) {
+        setStatus('Tập này chưa có luồng phát khả dụng.');
+        return;
+      }
+      playEpisode(targetEp, seekSec || 0);
+    }).catch(function (err) {
+      if (!playerState.open || token !== playerState.shortLoadToken) return;
+      setStatus((err && err.message) ? err.message : 'Không tải được luồng phát Short Phim.');
+    });
   }
 
   function cancelAutoNext() {
@@ -259,7 +349,8 @@
 
     document.getElementById('tv-next-go').addEventListener('click', function () {
       cancelAutoNext();
-      playEpisode(nextEp, 0);
+      if (playerState.isShort) loadShortEpisode(nextEp.episode || 1, 0);
+      else playEpisode(nextEp, 0);
     });
     document.getElementById('tv-next-cancel').addEventListener('click', function () {
       cancelAutoNext();
@@ -274,7 +365,8 @@
       if (el) el.textContent = 'Tự động chuyển sau ' + Math.max(0, left) + ' giây…';
       if (left <= 0) {
         cancelAutoNext();
-        playEpisode(nextEp, 0);
+        if (playerState.isShort) loadShortEpisode(nextEp.episode || 1, 0);
+        else playEpisode(nextEp, 0);
       }
     }, 1000);
   }
@@ -298,6 +390,7 @@
     if (titleEl) {
       titleEl.textContent = (playerState.movie.name || '') + ' — ' + (ep.name || ep.slug || '') + ' • ' + (srv.server_name || '');
     }
+    applySubtitleTrack(ep.subtitle_url || '');
     updateNextButtonUi();
 
     var video = document.getElementById('tv-video');
@@ -426,14 +519,23 @@
     if (!layer) return;
 
     playerState.open = true;
+    playerState.isShort = Boolean(opts.isShort);
+    playerState.shortSlug = (opts.movie && opts.movie.slug) || '';
+    playerState.shortEpisode = Math.max(1, Number(opts.episodeNumber) || 1);
+    playerState.shortEpisodes = Array.isArray(opts.episodes) ? opts.episodes : [];
+    playerState.preferFull = Boolean(opts.preferFull);
+    playerState.subtitleEnabled = true;
+    playerState.subtitleUrl = '';
     playerState.movie = opts.movie || {};
-    playerState.servers = preferHlsServers(opts.episodes || []);
+    playerState.servers = playerState.isShort ? [] : preferHlsServers(opts.episodes || []);
     playerState.serverIndex = Math.max(0, Math.min(opts.serverIndex || 0, Math.max(0, playerState.servers.length - 1)));
     playerState.onClose = opts.onClose || null;
     playerState.drawerOpen = false;
 
     layer.innerHTML =
-      '<video id="tv-video" class="tv-video" playsinline></video>' +
+      '<video id="tv-video" class="tv-video' + (playerState.isShort ? ' is-portrait' : '') + '" crossorigin="anonymous" playsinline>' +
+      '  <track id="tv-subtitle-track" kind="subtitles" srclang="vi" label="Tiếng Việt" default />' +
+      '</video>' +
       '<iframe id="tv-iframe" class="tv-iframe hidden" allowfullscreen></iframe>' +
       '<div id="tv-player-status" class="hidden" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(11,13,19,0.92);border:1px solid rgba(255,255,255,0.16);padding:18px 28px;border-radius:14px;font-size:18px;font-weight:700;z-index:92;"></div>' +
       '<div id="tv-next-prompt" class="hidden" style="position:absolute;right:48px;bottom:130px;background:rgba(19,23,34,0.96);border:1px solid rgba(255,255,255,0.18);padding:22px 26px;border-radius:18px;min-width:340px;z-index:94;"></div>' +
@@ -455,6 +557,7 @@
       '        <span id="tv-player-time" style="font-size:16px;font-weight:700;color:#E2E8F0;margin-left:8px;">00:00 / 00:00</span>' +
       '      </div>' +
       '      <div class="tv-hud-group">' +
+      '        <button class="tv-btn' + (playerState.isShort ? '' : ' hidden') + '" id="tv-btn-subtitle" data-focusable="true">Phụ đề: Bật</button>' +
       '        <button class="tv-btn" id="tv-btn-episodes" data-focusable="true">Tập phim</button>' +
       '        <button class="tv-btn" id="tv-btn-servers" data-focusable="true">Server</button>' +
       '      </div>' +
@@ -491,7 +594,13 @@
     document.getElementById('tv-btn-ff').addEventListener('click', function () { seekDelta(10); });
     document.getElementById('tv-btn-next').addEventListener('click', function () {
       var n = getNextEpisode();
-      if (n) playEpisode(n, 0);
+      if (!n) return;
+      if (playerState.isShort) loadShortEpisode(n.episode || 1, 0);
+      else playEpisode(n, 0);
+    });
+    document.getElementById('tv-btn-subtitle')?.addEventListener('click', function () {
+      playerState.subtitleEnabled = !playerState.subtitleEnabled;
+      applySubtitleTrack(playerState.subtitleUrl);
     });
     document.getElementById('tv-btn-episodes').addEventListener('click', function () { renderDrawer('episodes'); });
     document.getElementById('tv-btn-servers').addEventListener('click', function () { renderDrawer('servers'); });
@@ -505,14 +614,18 @@
     clearInterval(playerState.progressTimer);
     playerState.progressTimer = setInterval(saveProgress, 12000);
 
-    var srv = playerState.servers[playerState.serverIndex] || {};
-    var eps = Array.isArray(srv.server_data) ? srv.server_data : [];
-    var targetEp = null;
-    for (var i = 0; i < eps.length; i++) {
-      if (opts.episodeSlug && eps[i].slug === opts.episodeSlug) { targetEp = eps[i]; break; }
+    if (playerState.isShort) {
+      loadShortEpisode(playerState.shortEpisode, opts.startSec || 0);
+    } else {
+      var srv = playerState.servers[playerState.serverIndex] || {};
+      var eps = Array.isArray(srv.server_data) ? srv.server_data : [];
+      var targetEp = null;
+      for (var i = 0; i < eps.length; i++) {
+        if (opts.episodeSlug && eps[i].slug === opts.episodeSlug) { targetEp = eps[i]; break; }
+      }
+      if (!targetEp) targetEp = eps[0];
+      playEpisode(targetEp, opts.startSec || 0);
     }
-    if (!targetEp) targetEp = eps[0];
-    playEpisode(targetEp, opts.startSec || 0);
     global.TvSpatial.focusSelector('#tv-btn-playpause', layer);
   }
 

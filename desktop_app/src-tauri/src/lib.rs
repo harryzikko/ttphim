@@ -119,6 +119,10 @@ fn resolve_external_browser_url(current_url: Option<&tauri::Url>, fallback_origi
         .unwrap_or_else(|| fallback_origin.to_string())
 }
 
+fn build_short_phim_url(origin: &str) -> String {
+    format!("{}/short-phim", origin.trim_end_matches('/'))
+}
+
 fn parse_semver(value: &str) -> Vec<u32> {
     value
         .trim()
@@ -387,6 +391,14 @@ fn handle_menu_action(app: &AppHandle, action_id: &str) {
                 }
             }
         }
+        "go_short_phim" => {
+            focus_main_window(app);
+            if let Some(window) = app.get_webview_window("main") {
+                if let Ok(url) = build_short_phim_url(&load_saved_origin(app)).parse() {
+                    let _ = window.navigate(url);
+                }
+            }
+        }
         "go_launcher" => {
             focus_main_window(app);
             if let Some(window) = app.get_webview_window("main") {
@@ -461,6 +473,11 @@ fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry
                 .build(app)?,
         )
         .item(
+            &MenuItemBuilder::with_id("go_short_phim", "Short Phim (Phim Ngắn)")
+                .accelerator("CmdOrCtrl+Shift+S")
+                .build(app)?,
+        )
+        .item(
             &MenuItemBuilder::with_id("nav_back", "Quay lại")
                 .accelerator("Alt+Left")
                 .build(app)?,
@@ -516,6 +533,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let tray_menu = MenuBuilder::new(app)
         .item(&MenuItemBuilder::with_id("show_window", "Mở cửa sổ CineViet").build(app)?)
         .item(&MenuItemBuilder::with_id("go_home", "Về Trang chủ").build(app)?)
+        .item(&MenuItemBuilder::with_id("go_short_phim", "Mở Short Phim").build(app)?)
         .item(&MenuItemBuilder::with_id("reload_page", "Tải lại trang").build(app)?)
         .item(&MenuItemBuilder::with_id("open_in_browser", "Mở bằng trình duyệt mặc định").build(app)?)
         .separator()
@@ -615,9 +633,21 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{
-        format_host_port, is_allowed_external_popup, is_newer_semver, resolve_external_browser_url,
-        should_open_externally_on_nav,
+        build_short_phim_url, format_host_port, is_allowed_external_popup, is_newer_semver,
+        resolve_external_browser_url, should_open_externally_on_nav,
     };
+
+    #[test]
+    fn builds_short_phim_url_cleanly() {
+        assert_eq!(
+            build_short_phim_url("https://cineviet.live"),
+            "https://cineviet.live/short-phim"
+        );
+        assert_eq!(
+            build_short_phim_url("http://localhost:3001/"),
+            "http://localhost:3001/short-phim"
+        );
+    }
 
     #[test]
     fn validates_server_host_before_probing() {

@@ -5,6 +5,7 @@ const statusText = document.getElementById('status-text');
 const serverSelect = document.getElementById('server-select');
 const metaLine = document.getElementById('meta-line');
 const btnLaunch = document.getElementById('btn-launch');
+const btnLaunchShort = document.getElementById('btn-launch-short');
 const btnRetry = document.getElementById('btn-retry');
 const btnClearCache = document.getElementById('btn-clear-cache');
 const btnCheckUpdate = document.getElementById('btn-check-update');
@@ -15,12 +16,13 @@ function selectedOrigin() {
   return serverSelect.value;
 }
 
-function launch() {
+function launch(pathSuffix = '') {
   if (autoLaunchTimer) {
     clearTimeout(autoLaunchTimer);
     autoLaunchTimer = null;
   }
-  window.location.replace(selectedOrigin());
+  const base = selectedOrigin().replace(/\/+$/, '');
+  window.location.replace(pathSuffix ? `${base}${pathSuffix}` : selectedOrigin());
 }
 
 async function checkServer() {
@@ -45,7 +47,7 @@ async function checkServer() {
     if (res.reachable) {
       statusPill.className = 'status-pill ok';
       statusText.textContent = `Kết nối sẵn sàng (${res.latencyMs ?? 0} ms) — đang mở...`;
-      autoLaunchTimer = setTimeout(launch, 600);
+      autoLaunchTimer = setTimeout(() => launch(''), 600);
     } else {
       statusPill.className = 'status-pill err';
       statusText.textContent = res.error || 'Không thể kết nối máy chủ';
@@ -73,7 +75,8 @@ async function init() {
   await checkServer();
 }
 
-btnLaunch.addEventListener('click', launch);
+btnLaunch.addEventListener('click', () => launch(''));
+btnLaunchShort?.addEventListener('click', () => launch('/short-phim'));
 btnRetry.addEventListener('click', checkServer);
 
 serverSelect.addEventListener('change', async () => {

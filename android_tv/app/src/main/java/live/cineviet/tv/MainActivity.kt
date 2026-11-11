@@ -13,6 +13,8 @@ import live.cineviet.tv.ui.navigation.TvScreen
 import live.cineviet.tv.ui.screens.detail.TvDetailScreen
 import live.cineviet.tv.ui.screens.main.TvMainScreen
 import live.cineviet.tv.ui.screens.player.TvPlayerScreen
+import live.cineviet.tv.ui.screens.shorts.TvShortDetailScreen
+import live.cineviet.tv.ui.screens.shorts.TvShortPlayerScreen
 import live.cineviet.tv.ui.theme.CineVietTvTheme
 import live.cineviet.tv.ui.theme.TvBackground
 
@@ -44,6 +46,7 @@ class MainActivity : ComponentActivity() {
                         is TvScreen.Home,
                         is TvScreen.Series,
                         is TvScreen.Singles,
+                        is TvScreen.Shorts,
                         is TvScreen.Search,
                         is TvScreen.Login,
                         is TvScreen.Account -> {
@@ -52,8 +55,38 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToDetail = { slug ->
                                     backStack.add(TvScreen.Detail(slug))
                                 },
+                                onNavigateToShortDetail = { slug ->
+                                    backStack.add(TvScreen.ShortDetail(slug))
+                                },
                                 onNavigateToPlayer = { slug, epSlug, startMs ->
                                     backStack.add(TvScreen.Player(slug, epSlug, 0, startMs))
+                                }
+                            )
+                        }
+
+                        is TvScreen.ShortDetail -> {
+                            TvShortDetailScreen(
+                                slug = currentScreen.slug,
+                                onBack = {
+                                    if (backStack.size > 1) {
+                                        backStack.removeAt(backStack.lastIndex)
+                                    }
+                                },
+                                onPlayShort = { slug, ep, preferFull ->
+                                    backStack.add(TvScreen.ShortPlayer(slug, ep, preferFull))
+                                }
+                            )
+                        }
+
+                        is TvScreen.ShortPlayer -> {
+                            TvShortPlayerScreen(
+                                slug = currentScreen.slug,
+                                initialEpisode = currentScreen.episode,
+                                initialPreferFull = currentScreen.preferFull,
+                                onBack = {
+                                    if (backStack.size > 1) {
+                                        backStack.removeAt(backStack.lastIndex)
+                                    }
                                 }
                             )
                         }

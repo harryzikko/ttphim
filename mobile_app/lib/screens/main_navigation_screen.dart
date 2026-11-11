@@ -5,6 +5,7 @@ import '../widgets/update_dialog.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'explore_screen.dart';
+import 'short_phim_screen.dart';
 import 'search_screen.dart';
 import 'profile_screen.dart';
 
@@ -49,7 +50,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     setState(() {
       _currentIndex = index;
       if (index == 0) _homeRefresh++;
-      if (index == 3) _profileRefresh++;
+      if (index == 4) _profileRefresh++;
     });
   }
 
@@ -58,6 +59,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final screens = [
       HomeScreen(onNavigateTab: _onTabTapped, refreshVersion: _homeRefresh),
       const ExploreScreen(),
+      const ShortPhimScreen(),
       const SearchScreen(),
       ProfileScreen(key: ValueKey(_profileRefresh)),
     ];
@@ -85,6 +87,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               icon: Icon(Icons.explore_outlined),
               activeIcon: Icon(Icons.explore_rounded),
               label: 'Khám Phá',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bolt_outlined),
+              activeIcon: Icon(Icons.bolt_rounded),
+              label: 'Short Phim',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.search_outlined),

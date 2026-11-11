@@ -194,5 +194,30 @@
     return ApiClient.request('/user/watchlist/toggle', { method: 'POST', body: moviePayload });
   };
 
+  ApiClient.getShortflixCatalog = function (opts) {
+    opts = opts || {};
+    var page = Math.max(1, Number(opts.page) || 1);
+    var limit = Math.max(6, Math.min(48, Number(opts.limit) || 25));
+    var parts = ['page=' + encodeURIComponent(page), 'limit=' + encodeURIComponent(limit)];
+    if (opts.keyword) parts.push('keyword=' + encodeURIComponent(opts.keyword));
+    else if (opts.genre && opts.genre !== 'all') parts.push('genre=' + encodeURIComponent(opts.genre));
+    return ApiClient.request('/shortflix/catalog?' + parts.join('&')).then(function (res) {
+      return (res && res.data) ? res.data : { items: [], genres: [], pagination: { page: page, hasMore: false } };
+    });
+  };
+
+  ApiClient.getShortflixDetail = function (slug) {
+    return ApiClient.request('/shortflix/detail/' + encodeURIComponent(slug)).then(function (res) {
+      return (res && res.data) ? res.data : { item: {}, episodes: [] };
+    });
+  };
+
+  ApiClient.getShortflixStream = function (slug, episode) {
+    var ep = Math.max(1, Number(episode) || 1);
+    return ApiClient.request('/shortflix/stream/' + encodeURIComponent(slug) + '/' + ep).then(function (res) {
+      return (res && res.data) ? res.data : { slug: slug, episode: ep, servers: [] };
+    });
+  };
+
   global.TvApi = ApiClient;
 })(window);

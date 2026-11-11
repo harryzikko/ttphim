@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Person
@@ -56,12 +58,14 @@ import live.cineviet.tv.ui.navigation.TvScreen
 import live.cineviet.tv.ui.screens.auth.TvLoginScreen
 import live.cineviet.tv.ui.screens.home.TvHomeScreen
 import live.cineviet.tv.ui.screens.search.TvSearchScreen
+import live.cineviet.tv.ui.screens.shorts.TvShortScreen
 import live.cineviet.tv.ui.theme.*
 
 enum class TvNavTab(val title: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
     HOME("Trang chủ", Icons.Filled.Home, Icons.Outlined.Home),
     SERIES("Phim bộ", Icons.Filled.Tv, Icons.Outlined.Tv),
     SINGLES("Phim lẻ", Icons.Filled.Movie, Icons.Outlined.Movie),
+    SHORTS("Short Phim", Icons.Filled.Bolt, Icons.Outlined.Bolt),
     SEARCH("Tìm kiếm", Icons.Filled.Search, Icons.Outlined.Search),
     ACCOUNT("Tài khoản", Icons.Filled.Person, Icons.Outlined.Person)
 }
@@ -70,6 +74,7 @@ enum class TvNavTab(val title: String, val selectedIcon: ImageVector, val unsele
 fun TvMainScreen(
     sessionManager: TvSessionManager,
     onNavigateToDetail: (String) -> Unit,
+    onNavigateToShortDetail: (String) -> Unit,
     onNavigateToPlayer: (String, String?, Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -316,6 +321,11 @@ fun TvMainScreen(
                         sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
                         onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) }
+                    )
+                }
+                TvNavTab.SHORTS -> {
+                    TvShortScreen(
+                        onShortClick = onNavigateToShortDetail
                     )
                 }
                 TvNavTab.SEARCH -> {
