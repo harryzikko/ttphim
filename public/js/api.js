@@ -469,6 +469,44 @@ const API = {
       body: JSON.stringify(data)
     });
   },
+  async getAdminSocialDashboard() {
+    return this.request('/api/admin/social/dashboard');
+  },
+  async saveAdminSocialSettings(data) {
+    return this.request('/api/admin/social/settings', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  async fillAdminSocialQueue(data = {}) {
+    return this.request('/api/admin/social/jobs/fill-queue', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  async tickAdminSocial() {
+    return this.request('/api/admin/social/jobs/tick', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+  },
+  async updateAdminSocialPost(id, data) {
+    return this.request(`/api/admin/social/queue/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
+  },
+  async publishAdminSocialPost(id) {
+    return this.request(`/api/admin/social/queue/${encodeURIComponent(id)}/publish`, {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+  },
+  async deleteAdminSocialPost(id) {
+    return this.request(`/api/admin/social/queue/${encodeURIComponent(id)}`, {
+      method: 'DELETE'
+    });
+  },
   async uploadAppPackage(file, type, onProgress) {
     return new Promise((resolve, reject) => {
       const base = this.getBaseUrl();

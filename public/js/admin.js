@@ -74,6 +74,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadSourcesTab();
       } else if (targetId === 'tab-system') {
         loadDashboardStats();
+      } else if (targetId === 'tab-social') {
+        window.loadAdminSocialTab?.();
       }
     });
   });
@@ -1999,6 +2001,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSettingsTab();
     loadAnalyticsTab();
     loadSourcesTab();
+    if (!document.getElementById('tab-social')?.classList.contains('hidden')) {
+      window.loadAdminSocialTab?.();
+    }
   });
 
   // Initial fetch

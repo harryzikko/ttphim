@@ -13,7 +13,8 @@
   <link rel="stylesheet" href="/css/editorial.css?v=2.0.0">
   <script defer src="/js/admin-banners.js?v=1.2.0"></script>
   <script defer src="/js/admin-sources.js?v=1.1.0"></script>
-  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=bb28eff73de2">
+  <script defer src="/js/admin-social.js?v=1.0.0"></script>
+  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=aa34775349db">
   
   <link rel="stylesheet" href="/css/custom.css">
 </head>
@@ -95,6 +96,10 @@
       <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-system">
         <span class="material-symbols-outlined text-[20px]">memory</span>
         <span>Hệ Thống & Cache</span>
+      </button>
+      <button class="admin-nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-semibold text-sm transition-all text-left whitespace-nowrap cursor-pointer" data-tab="tab-social">
+        <span class="material-symbols-outlined text-[20px]">share</span>
+        <span>MXH &amp; Tự Đăng</span>
       </button>
       <a href="/operations.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant text-sm">Vận hành &amp; Kiểm duyệt</a>
     </aside>
@@ -1631,6 +1636,147 @@
         </div>
       </section>
 
+      <!-- ================= 9. TAB: MXH & TỰ ĐĂNG ================= -->
+      <section id="tab-social" class="admin-tab-pane hidden space-y-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h1 class="font-display text-2xl font-bold text-on-surface">MXH &amp; Tự Động Đăng Bài</h1>
+            <p class="text-on-surface-variant text-sm mt-0.5">Quản lý bot CineViet Social: tự quét phim mới + TMDb, lên lịch đăng Facebook Page &amp; Threads không trùng lặp</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button id="btn-social-refresh" type="button" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-sm font-semibold transition-all shadow cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">refresh</span>
+              <span>Làm mới</span>
+            </button>
+            <button id="btn-social-fill" type="button" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-sm font-semibold border border-primary/40 transition-all shadow cursor-pointer">
+              <span class="material-symbols-outlined text-[18px] text-primary">auto_awesome</span>
+              <span>Tạo &amp; Lên Lịch Tự Động</span>
+            </button>
+            <button id="btn-social-tick" type="button" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all shadow-lg shadow-primary/20 cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">bolt</span>
+              <span>Chạy Chu Kỳ Ngay</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="social-offline-banner" class="hidden p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-3">
+          <span class="material-symbols-outlined text-rose-400 text-[22px] shrink-0">cloud_off</span>
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-rose-300">Không kết nối được dịch vụ CineViet Social</p>
+            <p id="social-offline-message" class="text-xs text-rose-200/80 mt-0.5 break-words"></p>
+          </div>
+        </div>
+
+        <div id="social-status-pills" class="flex flex-wrap items-center gap-2"></div>
+
+        <!-- KPI Stats -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="p-5 rounded-2xl bg-surface-container-low border border-surface-container-highest/50 shadow-md">
+            <p class="text-xs text-on-surface-variant font-medium">Tổng phim đã đăng</p>
+            <p id="social-stat-published" class="font-display text-2xl font-extrabold text-emerald-400 mt-1">--</p>
+          </div>
+          <div class="p-5 rounded-2xl bg-surface-container-low border border-surface-container-highest/50 shadow-md">
+            <p class="text-xs text-on-surface-variant font-medium">Đang chờ trong hàng đợi</p>
+            <p id="social-stat-scheduled" class="font-display text-2xl font-extrabold text-sky-400 mt-1">--</p>
+          </div>
+          <div class="p-5 rounded-2xl bg-surface-container-low border border-surface-container-highest/50 shadow-md">
+            <p class="text-xs text-on-surface-variant font-medium">Đã xử lý thành công</p>
+            <p id="social-stat-queue-done" class="font-display text-2xl font-extrabold text-on-surface mt-1">--</p>
+          </div>
+          <div class="p-5 rounded-2xl bg-surface-container-low border border-surface-container-highest/50 shadow-md">
+            <p class="text-xs text-on-surface-variant font-medium">Lỗi / Đăng thiếu kênh</p>
+            <p id="social-stat-failed" class="font-display text-2xl font-extrabold text-rose-400 mt-1">--</p>
+          </div>
+        </div>
+
+        <!-- Settings Form -->
+        <form id="social-settings-form" class="p-6 rounded-2xl bg-surface-container-low border border-surface-container-highest/50 shadow-md space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-surface-container-highest/40 pb-3">
+            <div>
+              <h2 class="font-display text-lg font-bold text-on-surface">Cấu Hình Lịch Đăng &amp; Kênh MXH</h2>
+              <p class="text-xs text-on-surface-variant">Khung giờ dùng múi giờ Việt Nam (UTC+7). Thay đổi có hiệu lực ngay với bot.</p>
+            </div>
+            <button id="btn-social-save-settings" type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all shadow cursor-pointer shrink-0">
+              <span class="material-symbols-outlined text-[18px]">save</span>
+              <span>Lưu Cấu Hình MXH</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <label class="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container border border-surface-container-highest/40 cursor-pointer">
+              <input id="social-set-auto" type="checkbox" class="w-4 h-4 rounded accent-primary cursor-pointer">
+              <span class="text-xs font-semibold text-on-surface">Tự động lên lịch &amp; đăng theo giờ</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container border border-surface-container-highest/40 cursor-pointer">
+              <input id="social-set-fb" type="checkbox" class="w-4 h-4 rounded accent-primary cursor-pointer">
+              <span class="text-xs font-semibold text-on-surface">Bật đăng Facebook Page</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container border border-surface-container-highest/40 cursor-pointer">
+              <input id="social-set-threads" type="checkbox" class="w-4 h-4 rounded accent-primary cursor-pointer">
+              <span class="text-xs font-semibold text-on-surface">Bật đăng Meta Threads</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container border border-surface-container-highest/40 cursor-pointer">
+              <input id="social-set-require-tmdb" type="checkbox" class="w-4 h-4 rounded accent-primary cursor-pointer">
+              <span class="text-xs font-semibold text-on-surface">Chỉ chọn phim có ảnh TMDb rõ nét</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container border border-amber-500/30 cursor-pointer">
+              <input id="social-set-dry-run" type="checkbox" class="w-4 h-4 rounded accent-amber-500 cursor-pointer">
+              <span class="text-xs font-semibold text-amber-300">Chế độ DRY RUN (chỉ giả lập)</span>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <label class="block md:col-span-2 space-y-1">
+              <span class="text-xs font-semibold text-on-surface-variant">Khung giờ đăng VN (cách nhau dấu phẩy, HH:mm)</span>
+              <input id="social-set-slots" type="text" placeholder="11:30, 18:30, 21:00" class="w-full px-3.5 py-2.5 rounded-xl bg-surface-container text-on-surface text-sm border border-surface-container-highest/60 focus:outline-none focus:border-primary">
+            </label>
+            <label class="block space-y-1">
+              <span class="text-xs font-semibold text-on-surface-variant">Tìm lịch trước (1-14 ngày)</span>
+              <input id="social-set-lookahead" type="number" min="1" max="14" class="w-full px-3.5 py-2.5 rounded-xl bg-surface-container text-on-surface text-sm border border-surface-container-highest/60 focus:outline-none focus:border-primary">
+            </label>
+            <label class="block space-y-1">
+              <span class="text-xs font-semibold text-on-surface-variant">Cách tối thiểu (giờ) / Tối đa bài/ngày</span>
+              <div class="grid grid-cols-2 gap-2">
+                <input id="social-set-min-gap" type="number" min="1" max="24" title="Khoảng cách tối thiểu giữa 2 bài (giờ)" class="w-full px-3 py-2.5 rounded-xl bg-surface-container text-on-surface text-sm border border-surface-container-highest/60 focus:outline-none focus:border-primary">
+                <input id="social-set-max-day" type="number" min="1" max="24" title="Tối đa bài/ngày" class="w-full px-3 py-2.5 rounded-xl bg-surface-container text-on-surface text-sm border border-surface-container-highest/60 focus:outline-none focus:border-primary">
+              </div>
+            </label>
+          </div>
+
+          <div class="space-y-1.5">
+            <span class="block text-xs font-semibold text-on-surface-variant">Khung giờ trống tiếp theo:</span>
+            <div id="social-open-slots-preview" class="flex flex-wrap gap-2"></div>
+          </div>
+        </form>
+
+        <!-- Queue Filter & Cards -->
+        <div class="space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 class="font-display text-lg font-bold text-on-surface">Hàng Đợi &amp; Duyệt Nội Dung</h2>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" data-social-filter="all" class="social-filter-btn px-3 py-1.5 rounded-xl bg-primary text-white text-xs font-bold transition-colors cursor-pointer">Tất cả</button>
+              <button type="button" data-social-filter="scheduled" class="social-filter-btn px-3 py-1.5 rounded-xl bg-surface-container text-on-surface-variant text-xs font-bold transition-colors cursor-pointer">Đang chờ</button>
+              <button type="button" data-social-filter="failed" class="social-filter-btn px-3 py-1.5 rounded-xl bg-surface-container text-on-surface-variant text-xs font-bold transition-colors cursor-pointer">Lỗi / Thiếu</button>
+              <button type="button" data-social-filter="published" class="social-filter-btn px-3 py-1.5 rounded-xl bg-surface-container text-on-surface-variant text-xs font-bold transition-colors cursor-pointer">Đã đăng</button>
+            </div>
+          </div>
+
+          <div id="social-queue-list" class="space-y-4"></div>
+        </div>
+
+        <!-- History & Logs -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="p-5 rounded-2xl bg-surface-container-low border border-surface-container-highest/50 shadow-md space-y-3">
+            <h3 class="font-display text-base font-bold text-on-surface">Lịch Sử Phim Đã Đăng</h3>
+            <div id="social-published-list" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
+          </div>
+          <div class="p-5 rounded-2xl bg-surface-container-low border border-surface-container-highest/50 shadow-md space-y-3">
+            <h3 class="font-display text-base font-bold text-on-surface">Nhật Ký Hoạt Động Bot</h3>
+            <div id="social-logs-list" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -1718,9 +1864,9 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=3.6.1"></script>
+  <script src="/js/api.js?v=3.6.2"></script>
   <script src="/js/header.js?v=2.8.0"></script>
-  <script src="/js/admin.js?v=2.9.5"></script>
+  <script src="/js/admin.js?v=2.9.6"></script>
 </body>
 </html>
 
