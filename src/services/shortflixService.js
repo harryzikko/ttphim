@@ -46,6 +46,23 @@ function normalizeSubtitleToVtt(text) {
   return `WEBVTT\n\n${converted}\n`;
 }
 
+function buildFallbackPosterUrl(posterUrl, slug = '') {
+  const raw = String(posterUrl || '').trim();
+  if (!raw || !isAllowedUpstreamUrl(raw)) return '';
+  try {
+    const parsed = new URL(raw);
+    const match = parsed.pathname.match(/^\/([^/]+)\/((?:[a-z]{2}(?:_[A-Z]{2})?)\/.+)$/);
+    if (!match) return '';
+    const firstSeg = match[1];
+    const cleanSlug = normalizeSlug(slug);
+    if (cleanSlug && firstSeg !== cleanSlug) return '';
+    parsed.pathname = `/${firstSeg}/1/${match[2]}`;
+    return parsed.href;
+  } catch {
+    return '';
+  }
+}
+
 class ShortflixService {
   constructor({
     baseUrl = () => config.SHORTFLIX_BASE_URL,
@@ -146,11 +163,13 @@ class ShortflixService {
         if (!slug) return null;
         const desc = String(meta?.description || '').trim();
         const epMatch = desc.match(/(\d{1,4})\s*tập/i);
+        const posterUrl = String(meta?.poster || '').trim();
         return {
           id: `shortflix:${slug}`,
           slug,
           name: String(meta?.name || slug).trim(),
-          poster_url: String(meta?.poster || '').trim(),
+          poster_url: posterUrl,
+          poster_fallback_url: buildFallbackPosterUrl(posterUrl, slug),
           description: desc,
           poster_shape: String(meta?.posterShape || 'poster'),
           episode_count_hint: epMatch ? Number.parseInt(epMatch[1], 10) : null
@@ -195,14 +214,21 @@ class ShortflixService {
       })
       .sort((a, b) => a.episode - b.episode);
 
+    const posterUrl = String(meta.poster || '').trim();
+    const ep1Thumb = String(episodes[0]?.thumbnail_url || '').trim();
+    const fallbackPoster = (ep1Thumb && ep1Thumb !== posterUrl)
+      ? ep1Thumb
+      : buildFallbackPosterUrl(posterUrl, slug);
+
     return {
       item: {
         id: `shortflix:${slug}`,
         slug,
         name: String(meta.name || slug).trim(),
         description: String(meta.description || '').trim(),
-        poster_url: String(meta.poster || '').trim(),
-        background_url: String(meta.background || meta.poster || '').trim(),
+        poster_url: posterUrl,
+        poster_fallback_url: fallbackPoster,
+        background_url: String(meta.background || posterUrl).trim(),
         total_episodes: episodes.length
       },
       episodes
@@ -292,3 +318,4 @@ module.exports.ShortflixService = ShortflixService;
 module.exports.normalizeSlug = normalizeSlug;
 module.exports.isAllowedUpstreamUrl = isAllowedUpstreamUrl;
 module.exports.normalizeSubtitleToVtt = normalizeSubtitleToVtt;
+module.exports.buildFallbackPosterUrl = buildFallbackPosterUrl;

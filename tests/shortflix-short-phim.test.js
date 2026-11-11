@@ -10,7 +10,8 @@ const {
   ShortflixService,
   normalizeSlug,
   isAllowedUpstreamUrl,
-  normalizeSubtitleToVtt
+  normalizeSubtitleToVtt,
+  buildFallbackPosterUrl
 } = require('../src/services/shortflixService');
 const { createShortflixRouter } = require('../src/routes/shortflixRoutes');
 
@@ -32,6 +33,15 @@ test('ShortflixService validates slugs/hosts, converts SRT to WebVTT and caches 
   const vttFromSrt = normalizeSubtitleToVtt('1\r\n00:00:01,200 --> 00:00:03,400\r\nXin chào!\r\n');
   assert.ok(vttFromSrt.startsWith('WEBVTT\n\n'));
   assert.ok(vttFromSrt.includes('00:00:01.200 --> 00:00:03.400'));
+
+  assert.equal(
+    buildFallbackPosterUrl('https://cdn2.nsstorage.space/demo-slug/vi_VN/abc/cover.webp', 'demo-slug'),
+    'https://cdn2.nsstorage.space/demo-slug/1/vi_VN/abc/cover.webp'
+  );
+  assert.equal(
+    buildFallbackPosterUrl('https://evil.example/demo-slug/vi_VN/abc/cover.webp', 'demo-slug'),
+    ''
+  );
 
   const fetchedUrls = [];
   const metas100 = Array.from({ length: 100 }, (_, i) => ({
@@ -206,8 +216,16 @@ test('public/short-phim.html renders grid + 9:16 player safely against XSS and h
               slug: 'short-xss',
               name: attack,
               poster_url: badUrl,
+              poster_fallback_url: 'https://cdn2.nsstorage.space/short-xss/1/vi_VN/abc/cover.webp',
               description: attack,
               episode_count_hint: 45
+            }, {
+              slug: 'short-broken',
+              name: 'Phim Lỗi Ảnh',
+              poster_url: 'https://cdn2.nsstorage.space/short-broken/vi_VN/abc/cover.webp',
+              poster_fallback_url: 'https://cdn2.nsstorage.space/short-broken/1/vi_VN/abc/cover.webp',
+              description: 'Test fallback',
+              episode_count_hint: 10
             }]
           }
         })
@@ -267,11 +285,20 @@ test('public/short-phim.html renders grid + 9:16 player safely against XSS and h
     assert.ok(indexHtml.includes('/js/header.js?v=3.4.0'));
     assert.ok(indexHtml.includes('/css/custom.css?v=3.2.2'));
 
-    // Check XSS safety in grid
+    // Check XSS safety in grid & poster error fallback (ep1 -> visual badge)
     const grid = window.document.getElementById('short-grid');
     assert.equal(grid.querySelector('svg, script, img[src="x"]'), null);
     assert.ok(grid.textContent.includes(attack));
     assert.equal(window.pwned, undefined);
+
+    const brokenImg = grid.querySelector('[data-short-slug="short-broken"] img');
+    assert.ok(brokenImg);
+    brokenImg.dispatchEvent(new window.Event('error'));
+    assert.equal(brokenImg.getAttribute('src'), 'https://cdn2.nsstorage.space/short-broken/1/vi_VN/abc/cover.webp');
+    assert.equal(brokenImg.classList.contains('hidden'), false);
+    brokenImg.dispatchEvent(new window.Event('error'));
+    assert.equal(brokenImg.classList.contains('hidden'), true);
+    assert.ok(grid.querySelector('[data-short-slug="short-broken"] .short-poster-fallback'));
 
     // Click card -> opens vertical theatre player safely
     grid.querySelector('.short-card').click();

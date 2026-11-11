@@ -55,6 +55,51 @@
     }
   }
 
+  function derivePosterFallback(item) {
+    const explicit = safeUrl(item?.poster_fallback_url, '');
+    if (explicit) return explicit;
+    const primary = safeUrl(item?.poster_url, '');
+    if (!primary) return '';
+    try {
+      const parsed = new URL(primary);
+      const match = parsed.pathname.match(/^\/([^/]+)\/((?:[a-z]{2}(?:_[A-Z]{2})?)\/.+)$/);
+      if (!match) return '';
+      parsed.pathname = `/${match[1]}/1/${match[2]}`;
+      return parsed.href;
+    } catch {
+      return '';
+    }
+  }
+
+  function handlePosterError(img) {
+    if (!img || img.tagName !== 'IMG') return;
+    const fallbackSrc = safeUrl(img.dataset.fallbackSrc, '');
+    if (img.dataset.fallbackStage !== 'ep1' && fallbackSrc && img.getAttribute('src') !== fallbackSrc && img.src !== fallbackSrc) {
+      img.dataset.fallbackStage = 'ep1';
+      img.src = fallbackSrc;
+      return;
+    }
+    if (img.id === 'short-player-poster') {
+      img.onerror = null;
+      img.src = '/favicon.svg';
+      return;
+    }
+    img.classList.add('hidden');
+    const box = img.closest('.short-poster-box');
+    if (box && !box.querySelector('.short-poster-fallback')) {
+      const badge = document.createElement('div');
+      badge.className = 'short-poster-fallback w-full h-full flex flex-col items-center justify-center p-4 text-center bg-surface-container-highest text-on-surface-variant gap-2';
+      const icon = document.createElement('span');
+      icon.className = 'material-symbols-outlined text-[28px] text-primary';
+      icon.textContent = 'movie';
+      const label = document.createElement('span');
+      label.className = 'font-label-md text-xs font-semibold text-on-surface line-clamp-2';
+      label.textContent = img.dataset.shortTitle || 'Short Phim';
+      badge.append(icon, label);
+      box.prepend(badge);
+    }
+  }
+
   function toast(msg, type = 'success') {
     if (typeof root.showToast === 'function') root.showToast(msg, type);
   }
@@ -134,13 +179,15 @@
 
     grid.innerHTML = items.map((item) => {
       const slug = String(item.slug || '');
-      const poster = safeUrl(item.poster_url);
+      const poster = safeUrl(item.poster_url, '');
+      const fallbackPoster = derivePosterFallback(item);
+      const initialPoster = poster || fallbackPoster || '/favicon.svg';
       const isPlaying = slug === state.activeSlug;
       const ringCls = isPlaying ? 'ring-2 ring-primary' : '';
       return `
         <article class="short-card group relative flex flex-col bg-surface-container rounded-xl overflow-hidden hover:bg-surface-container-high transition-all duration-300 hover:-translate-y-1 shadow-md hover:shadow-2xl cursor-pointer ${ringCls}" data-short-slug="${escapeHtml(slug)}">
-          <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
-            <img src="${escapeHtml(poster)}" alt="${escapeHtml(item.name)}" loading="lazy" referrerpolicy="no-referrer" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+          <div class="short-poster-box relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
+            <img src="${escapeHtml(initialPoster)}" data-fallback-src="${escapeHtml(fallbackPoster)}" data-short-title="${escapeHtml(item.name || slug)}" alt="${escapeHtml(item.name)}" loading="lazy" referrerpolicy="no-referrer" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
             <div class="absolute top-2.5 left-2.5 flex flex-wrap gap-1 z-10">
               <span class="px-2 py-0.5 rounded bg-primary-container text-on-primary-container font-label-badge text-[10px] font-bold uppercase shadow">Short</span>
             </div>
@@ -302,7 +349,14 @@
 
       if (titleEl) titleEl.textContent = item.name || slug;
       if (descEl) descEl.textContent = item.description || '';
-      if (posterEl) posterEl.src = safeUrl(item.poster_url);
+      if (posterEl) {
+        const primary = safeUrl(item.poster_url, '');
+        const epFallback = derivePosterFallback(item);
+        posterEl.dataset.fallbackStage = '';
+        posterEl.dataset.fallbackSrc = epFallback;
+        posterEl.onerror = () => handlePosterError(posterEl);
+        posterEl.src = primary || epFallback || '/favicon.svg';
+      }
 
       const firstEp = state.episodes.find(e => Number(e.episode) === Number(episode))
         ? Number(episode)
@@ -378,6 +432,10 @@
       const slug = card?.getAttribute('data-short-slug');
       if (slug) openShortDetail(slug, 1);
     });
+
+    document.getElementById('short-grid')?.addEventListener('error', (e) => {
+      handlePosterError(e.target);
+    }, true);
 
     document.getElementById('short-episode-grid')?.addEventListener('click', (e) => {
       const btn = e.target.closest('.short-ep-btn');
