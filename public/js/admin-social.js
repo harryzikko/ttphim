@@ -197,6 +197,91 @@
     }
   }
 
+  function setStatusBadge(id, configured, maskedText, labelUnset = 'Chưa cấu hình') {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (configured) {
+      el.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400';
+      el.textContent = maskedText ? `Đã lưu (${maskedText})` : 'Đã kết nối';
+    } else {
+      el.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400';
+      el.textContent = labelUnset;
+    }
+  }
+
+  function renderIntegrations(integrations) {
+    const info = integrations || {};
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val ?? '';
+    };
+    const resetSecret = (inputId, clearId, configured, masked, fallbackPlaceholder) => {
+      const input = document.getElementById(inputId);
+      const chk = document.getElementById(clearId);
+      if (input) {
+        input.value = '';
+        input.placeholder = configured
+          ? `Đã lưu (${masked || '••••'}) - để trống nếu giữ nguyên`
+          : fallbackPlaceholder;
+      }
+      if (chk) chk.checked = false;
+    };
+
+    setStatusBadge('social-int-badge-tmdb', info.tmdb_configured, info.tmdb_api_key_masked);
+    setStatusBadge('social-int-badge-fb', info.facebook_configured, info.fb_page_access_token_masked);
+    setStatusBadge('social-int-badge-threads', info.threads_configured, info.threads_access_token_masked);
+    setStatusBadge('social-int-badge-openai', info.openai_configured, info.openai_api_key_masked, 'Chưa bật');
+    setStatusBadge('social-int-badge-gemini', info.gemini_configured, info.gemini_api_key_masked, 'Chưa bật');
+
+    resetSecret('social-int-tmdb-key', 'social-int-tmdb-clear', info.tmdb_configured, info.tmdb_api_key_masked, 'Nhập TMDb API Key mới...');
+    setVal('social-int-tmdb-lang', info.tmdb_language || 'vi-VN');
+
+    setVal('social-int-fb-page-id', info.fb_page_id || '');
+    setVal('social-int-fb-version', info.fb_graph_version || 'v21.0');
+    resetSecret('social-int-fb-token', 'social-int-fb-clear', info.facebook_configured, info.fb_page_access_token_masked, 'Nhập Page Access Token mới...');
+
+    setVal('social-int-th-user-id', info.threads_user_id || '');
+    setVal('social-int-th-version', info.threads_api_version || 'v1.0');
+    resetSecret('social-int-th-token', 'social-int-th-clear', info.threads_configured, info.threads_access_token_masked, 'Nhập Threads Token mới...');
+
+    setVal('social-int-tg-url', info.telegram_url || 'https://t.me/cinevietlivee');
+    setVal('social-int-tg-handle', info.telegram_handle || '@cinevietlivee');
+
+    resetSecret('social-int-openai-key', 'social-int-openai-clear', info.openai_configured, info.openai_api_key_masked, 'OpenAI API Key (tùy chọn)');
+    setVal('social-int-openai-model', info.openai_model || 'gpt-4o-mini');
+
+    resetSecret('social-int-gemini-key', 'social-int-gemini-clear', info.gemini_configured, info.gemini_api_key_masked, 'Gemini API Key (tùy chọn)');
+    setVal('social-int-gemini-model', info.gemini_model || 'gemini-2.0-flash');
+  }
+
+  function renderVerifyResults(data) {
+    const box = document.getElementById('social-verify-result');
+    if (!box) return;
+    if (!data) {
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      return;
+    }
+
+    const cards = [
+      { title: 'TMDb API', res: data.tmdb },
+      { title: 'Facebook Page', res: data.facebook },
+      { title: 'Meta Threads', res: data.threads }
+    ];
+    box.classList.remove('hidden');
+    box.innerHTML = cards.map(({ title, res }) => {
+      const ok = Boolean(res?.ok);
+      const cls = ok
+        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+        : 'bg-rose-500/10 border-rose-500/30 text-rose-300';
+      return `
+        <div class="p-3 rounded-xl border text-xs ${cls}">
+          <p class="font-bold">${escapeHtml(title)}: ${ok ? 'Hợp lệ' : 'Chưa đạt'}</p>
+          <p class="mt-0.5 opacity-90 break-words">${escapeHtml(res?.detail || '')}</p>
+        </div>`;
+    }).join('');
+  }
+
   function renderQueue(queue) {
     const listEl = document.getElementById('social-queue-list');
     if (!listEl) return;
@@ -375,6 +460,7 @@
     renderStatusPills(data);
     renderStats(data?.stats);
     renderSettings(data?.settings, data?.open_slots);
+    renderIntegrations(data?.integrations);
     renderQueue(data?.queue);
     renderPublishedHistory(data?.published_movies);
     renderRunLogs(data?.run_logs);
@@ -457,6 +543,65 @@
           await loadSocialTab();
         } catch (err) {
           toast(err?.message || 'Lỗi khi lưu cấu hình MXH', 'error');
+        }
+      });
+    });
+
+    document.getElementById('social-integrations-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!root.API?.saveAdminSocialIntegrations) return;
+      withLock(async () => {
+        try {
+          const val = id => String(document.getElementById(id)?.value || '').trim();
+          const chk = id => Boolean(document.getElementById(id)?.checked);
+          const payload = {
+            tmdb_language: val('social-int-tmdb-lang') || 'vi-VN',
+            fb_page_id: val('social-int-fb-page-id'),
+            fb_graph_version: val('social-int-fb-version') || 'v21.0',
+            threads_user_id: val('social-int-th-user-id'),
+            threads_api_version: val('social-int-th-version') || 'v1.0',
+            telegram_url: val('social-int-tg-url'),
+            telegram_handle: val('social-int-tg-handle'),
+            openai_model: val('social-int-openai-model') || 'gpt-4o-mini',
+            gemini_model: val('social-int-gemini-model') || 'gemini-2.0-flash',
+            clear_tmdb_api_key: chk('social-int-tmdb-clear'),
+            clear_fb_token: chk('social-int-fb-clear'),
+            clear_threads_token: chk('social-int-th-clear'),
+            clear_openai_key: chk('social-int-openai-clear'),
+            clear_gemini_key: chk('social-int-gemini-clear')
+          };
+
+          const tmdbKey = val('social-int-tmdb-key');
+          const fbTok = val('social-int-fb-token');
+          const thTok = val('social-int-th-token');
+          const openaiKey = val('social-int-openai-key');
+          const geminiKey = val('social-int-gemini-key');
+          if (tmdbKey) payload.tmdb_api_key = tmdbKey;
+          if (fbTok) payload.fb_page_access_token = fbTok;
+          if (thTok) payload.threads_access_token = thTok;
+          if (openaiKey) payload.openai_api_key = openaiKey;
+          if (geminiKey) payload.gemini_api_key = geminiKey;
+
+          await root.API.saveAdminSocialIntegrations(payload);
+          toast('Đã lưu cấu hình API TMDb / Facebook / Threads!');
+          await loadSocialTab();
+        } catch (err) {
+          toast(err?.message || 'Lỗi khi lưu cấu hình API', 'error');
+        }
+      });
+    });
+
+    document.getElementById('btn-social-verify-integrations')?.addEventListener('click', () => {
+      if (!root.API?.verifyAdminSocialIntegrations) return;
+      withLock(async () => {
+        try {
+          toast('Đang kiểm tra kết nối TMDb, Facebook & Threads...');
+          const res = await root.API.verifyAdminSocialIntegrations();
+          renderVerifyResults(res);
+          const allOk = res?.tmdb?.ok && res?.facebook?.ok && res?.threads?.ok;
+          toast(allOk ? 'Cả 3 kết nối TMDb, Facebook & Threads đều hợp lệ!' : 'Đã hoàn tất kiểm tra kết nối — xem chi tiết bên dưới.');
+        } catch (err) {
+          toast(err?.message || 'Lỗi khi kiểm tra kết nối API', 'error');
         }
       });
     });

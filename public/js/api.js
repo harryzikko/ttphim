@@ -478,6 +478,18 @@ const API = {
       body: JSON.stringify(data)
     });
   },
+  async saveAdminSocialIntegrations(data) {
+    return this.request('/api/admin/social/integrations', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  async verifyAdminSocialIntegrations() {
+    return this.request('/api/admin/social/integrations/verify', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+  },
   async fillAdminSocialQueue(data = {}) {
     return this.request('/api/admin/social/jobs/fill-queue', {
       method: 'POST',

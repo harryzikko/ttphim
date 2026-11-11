@@ -97,6 +97,21 @@ before(async () => {
         res.end(JSON.stringify({ status: true, data: parsed }));
         return;
       }
+      if (req.url === '/api/integrations' && req.method === 'POST') {
+        res.end(JSON.stringify({ status: true, data: { tmdb_configured: true, fb_page_id: parsed.fb_page_id || '' } }));
+        return;
+      }
+      if (req.url === '/api/integrations/verify' && req.method === 'POST') {
+        res.end(JSON.stringify({
+          status: true,
+          data: {
+            tmdb: { ok: true, detail: 'Ket noi TMDb thanh cong' },
+            facebook: { ok: true, detail: 'Ket noi Page: CineViet' },
+            threads: { ok: true, detail: 'Ket noi Threads: @cine.vietlive' }
+          }
+        }));
+        return;
+      }
       if (req.url === '/api/jobs/fill-queue' && req.method === 'POST') {
         res.end(JSON.stringify({ status: true, data: { added: [{ id: 'post_9999' }], skipped: [] } }));
         return;
@@ -160,6 +175,8 @@ test('/api/admin/social/* enforces admin authentication and rejects invalid IDs'
   const routes = [
     ['GET', '/api/admin/social/dashboard'],
     ['POST', '/api/admin/social/settings', { dry_run: false }],
+    ['POST', '/api/admin/social/integrations', { fb_page_id: '123' }],
+    ['POST', '/api/admin/social/integrations/verify', {}],
     ['POST', '/api/admin/social/jobs/fill-queue', {}],
     ['POST', '/api/admin/social/jobs/tick', {}],
     ['PATCH', '/api/admin/social/queue/post_1234', { facebook_caption: 'hi' }],
@@ -216,7 +233,19 @@ test('/api/admin/social/* proxies cleanly to internal bot with bearer token and 
   const del = await apiRequest('/api/admin/social/queue/post_1234', { user: adminUser, method: 'DELETE' });
   assert.equal(del.status, 200);
 
-  assert.equal(botRequests.length, 7);
+  const intSave = await apiRequest('/api/admin/social/integrations', {
+    user: adminUser,
+    method: 'POST',
+    body: { fb_page_id: '258215340705780', tmdb_api_key: 'abc123456' }
+  });
+  assert.equal(intSave.status, 200);
+  assert.equal(intSave.body.data.fb_page_id, '258215340705780');
+
+  const intVerify = await apiRequest('/api/admin/social/integrations/verify', { user: adminUser, method: 'POST', body: {} });
+  assert.equal(intVerify.status, 200);
+  assert.equal(intVerify.body.data.threads.ok, true);
+
+  assert.equal(botRequests.length, 9);
   for (const req of botRequests) {
     assert.equal(req.auth, 'Bearer test-social-secret-token');
   }
@@ -244,6 +273,8 @@ test('public/admin.html embeds tab-social UI safely and admin-social.js escapes 
   const callbacks = [];
   const errors = [];
   const savedCalls = [];
+  const savedIntegrations = [];
+  let verifyClicked = 0;
   const publishedCalls = [];
   const deletedCalls = [];
 
@@ -257,7 +288,20 @@ test('public/admin.html embeds tab-social UI safely and admin-social.js escapes 
     getAdminSocialDashboard: async () => {
       if (offlineMode) throw new Error('Bot dang tat');
       return {
-        integrations: { tmdb_configured: true, facebook_configured: true, threads_configured: false },
+        integrations: {
+          tmdb_configured: true,
+          tmdb_api_key_masked: '••••1234',
+          tmdb_language: 'vi-VN',
+          facebook_configured: true,
+          fb_page_id: '258215340705780',
+          fb_graph_version: 'v21.0',
+          fb_page_access_token_masked: '••••abcd',
+          threads_configured: false,
+          threads_user_id: '',
+          threads_api_version: 'v1.0',
+          telegram_url: 'https://t.me/cinevietlivee',
+          telegram_handle: '@cinevietlivee'
+        },
         settings: {
           auto_schedule_enabled: true,
           dry_run: true,
@@ -306,6 +350,18 @@ test('public/admin.html embeds tab-social UI safely and admin-social.js escapes 
       };
     },
     saveAdminSocialSettings: async (payload) => payload,
+    saveAdminSocialIntegrations: async (payload) => {
+      savedIntegrations.push(payload);
+      return {};
+    },
+    verifyAdminSocialIntegrations: async () => {
+      verifyClicked += 1;
+      return {
+        tmdb: { ok: true, detail: 'Ket noi TMDb thanh cong' },
+        facebook: { ok: true, detail: 'Ket noi Page: CineViet' },
+        threads: { ok: false, detail: attack }
+      };
+    },
     fillAdminSocialQueue: async () => ({ added: [] }),
     tickAdminSocial: async () => ({ published: [] }),
     updateAdminSocialPost: async (id, payload) => {
@@ -361,6 +417,28 @@ test('public/admin.html embeds tab-social UI safely and admin-social.js escapes 
     queueRoot.querySelector('.btn-social-delete-post').click();
     await tick();
     assert.deepEqual(deletedCalls, ['post_xss_1']);
+
+    // Integrations form renders masked indicators, saves non-empty updates & verifies safely against XSS
+    assert.equal(window.document.getElementById('social-int-fb-page-id').value, '258215340705780');
+    assert.equal(window.document.getElementById('social-int-tmdb-key').value, '');
+    assert.ok(window.document.getElementById('social-int-badge-tmdb').textContent.includes('••••1234'));
+
+    window.document.getElementById('social-int-th-user-id').value = '998877';
+    window.document.getElementById('social-int-th-token').value = 'TH_NEW_TEST_TOKEN';
+    window.document.getElementById('social-integrations-form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    await tick();
+    assert.equal(savedIntegrations.length, 1);
+    assert.equal(savedIntegrations[0].threads_user_id, '998877');
+    assert.equal(savedIntegrations[0].threads_access_token, 'TH_NEW_TEST_TOKEN');
+    assert.equal(savedIntegrations[0].tmdb_api_key, undefined);
+
+    window.document.getElementById('btn-social-verify-integrations').click();
+    await tick();
+    assert.equal(verifyClicked, 1);
+    const verifyBox = window.document.getElementById('social-verify-result');
+    assert.equal(verifyBox.classList.contains('hidden'), false);
+    assert.equal(verifyBox.querySelector('svg, script, img[src="x"]'), null);
+    assert.ok(verifyBox.textContent.includes(attack));
 
     // Offline banner activates cleanly when bot rejects
     offlineMode = true;

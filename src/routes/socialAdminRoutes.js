@@ -66,6 +66,14 @@ function createSocialAdminRouter({
     return forward(req, res, { method: 'POST', targetPath: '/api/settings', body: req.body || {} });
   });
 
+  router.post('/admin/social/integrations', (req, res) => {
+    return forward(req, res, { method: 'POST', targetPath: '/api/integrations', body: req.body || {} });
+  });
+
+  router.post('/admin/social/integrations/verify', (req, res) => {
+    return forward(req, res, { method: 'POST', targetPath: '/api/integrations/verify', body: req.body || {} });
+  });
+
   router.post('/admin/social/jobs/fill-queue', (req, res) => {
     return forward(req, res, { method: 'POST', targetPath: '/api/jobs/fill-queue', body: req.body || {} });
   });
