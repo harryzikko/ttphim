@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -88,8 +89,11 @@ fun TvShortPlayerScreen(
     var showControls by remember { mutableStateOf(true) }
     var showEpDrawer by remember { mutableStateOf(false) }
 
+    val playerFocus = remember { FocusRequester() }
     val playFocus = remember { FocusRequester() }
     val drawerFocus = remember { FocusRequester() }
+    val errorFocus = remember { FocusRequester() }
+    var lastInteractionMs by remember { mutableStateOf(System.currentTimeMillis()) }
     var activeServer by remember { mutableStateOf<ShortStreamServer?>(null) }
     var candidateUrls by remember { mutableStateOf<List<String>>(emptyList()) }
     var candidateIdx by remember { mutableStateOf(0) }
@@ -232,20 +236,26 @@ fun TvShortPlayerScreen(
         }
     }
 
-    LaunchedEffect(showControls, isPlaying, showEpDrawer) {
-        if (showControls && !showEpDrawer && isPlaying) {
-            delay(4500)
+    LaunchedEffect(showControls, isPlaying, showEpDrawer, errorMsg, lastInteractionMs) {
+        if (showControls && !showEpDrawer && isPlaying && errorMsg == null) {
+            delay(5000)
             showControls = false
         }
     }
 
-    LaunchedEffect(showControls, showEpDrawer) {
-        if (showEpDrawer) {
+    LaunchedEffect(showControls, showEpDrawer, errorMsg) {
+        if (errorMsg != null) {
+            delay(80)
+            try { errorFocus.requestFocus() } catch (_: Exception) {}
+        } else if (showEpDrawer) {
             delay(120)
             try { drawerFocus.requestFocus() } catch (_: Exception) {}
         } else if (showControls) {
             delay(100)
             try { playFocus.requestFocus() } catch (_: Exception) {}
+        } else {
+            delay(60)
+            try { playerFocus.requestFocus() } catch (_: Exception) {}
         }
     }
 
@@ -253,40 +263,79 @@ fun TvShortPlayerScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
+            .onPreviewKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    lastInteractionMs = System.currentTimeMillis()
+                }
+                false
+            }
             .onKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     val code = keyEvent.nativeKeyEvent.keyCode
-                    if (code == KeyEvent.KEYCODE_BACK) {
-                        if (showEpDrawer) {
-                            showEpDrawer = false
+                    when (code) {
+                        KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
+                            if (showEpDrawer) {
+                                showEpDrawer = false
+                                return@onKeyEvent true
+                            }
+                            if (showControls && errorMsg == null) {
+                                showControls = false
+                                return@onKeyEvent true
+                            }
+                            onBack()
                             return@onKeyEvent true
                         }
-                        if (showControls) {
-                            showControls = false
+
+                        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                        KeyEvent.KEYCODE_MEDIA_PLAY,
+                        KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                            if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                            showControls = true
                             return@onKeyEvent true
                         }
-                        onBack()
-                        return@onKeyEvent true
-                    }
-                    if (!showControls && (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER || code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_DOWN)) {
-                        showControls = true
-                        return@onKeyEvent true
-                    }
-                    if (!showEpDrawer && code == KeyEvent.KEYCODE_DPAD_LEFT) {
-                        showControls = true
-                        exoPlayer.seekTo((exoPlayer.currentPosition - 10_000L).coerceAtLeast(0L))
-                        return@onKeyEvent true
-                    }
-                    if (!showEpDrawer && code == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                        showControls = true
-                        val target = (exoPlayer.currentPosition + 10_000L).coerceAtMost(duration.coerceAtLeast(0L))
-                        exoPlayer.seekTo(target)
-                        return@onKeyEvent true
+
+                        KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                            showControls = true
+                            exoPlayer.seekTo((exoPlayer.currentPosition - 10_000L).coerceAtLeast(0L))
+                            return@onKeyEvent true
+                        }
+
+                        KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                            showControls = true
+                            val target = (exoPlayer.currentPosition + 10_000L).coerceAtMost(duration.coerceAtLeast(0L))
+                            exoPlayer.seekTo(target)
+                            return@onKeyEvent true
+                        }
+
+                        KeyEvent.KEYCODE_DPAD_CENTER,
+                        KeyEvent.KEYCODE_ENTER,
+                        KeyEvent.KEYCODE_NUMPAD_ENTER,
+                        KeyEvent.KEYCODE_DPAD_UP,
+                        KeyEvent.KEYCODE_DPAD_DOWN,
+                        KeyEvent.KEYCODE_DPAD_LEFT,
+                        KeyEvent.KEYCODE_DPAD_RIGHT,
+                        KeyEvent.KEYCODE_MENU -> {
+                            // Wake controls overlay when hidden so Compose moves focus onto controls
+                            if (!showControls && !showEpDrawer && errorMsg == null) {
+                                showControls = true
+                                return@onKeyEvent true
+                            }
+                        }
                     }
                 }
                 false
             }
     ) {
+        // Hidden-controls focus anchor so any remote key wakes the control bar cleanly
+        if (!showControls && !showEpDrawer && errorMsg == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .focusRequester(playerFocus)
+                    .focusable()
+            )
+        }
+
         // 9:16 Vertical Theatre Stage centered on 16:9 TV screen
         Box(
             modifier = Modifier
@@ -317,18 +366,29 @@ fun TvShortPlayerScreen(
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .background(TvSurface.copy(alpha = 0.92f), RoundedCornerShape(16.dp))
+                    .background(TvSurface.copy(alpha = 0.94f), RoundedCornerShape(16.dp))
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = errorMsg!!, color = CineVietRedLight, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(12.dp))
-                ShortPlayerBtn(label = "← Quay lại", isPrimary = true, onClick = onBack)
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ShortPlayerBtn(
+                        label = "Thử lại",
+                        isPrimary = true,
+                        modifier = Modifier.focusRequester(errorFocus),
+                        onClick = {
+                            val srv = activeServer ?: servers.firstOrNull { it.isFull == preferFull } ?: servers.firstOrNull()
+                            if (srv != null) applyMediaServer(srv)
+                        }
+                    )
+                    ShortPlayerBtn(label = "← Quay lại", isPrimary = false, onClick = onBack)
+                }
             }
         }
 
         AnimatedVisibility(
-            visible = showControls,
+            visible = showControls && !showEpDrawer,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
@@ -374,11 +434,32 @@ fun TvShortPlayerScreen(
 
                 // Bottom Controls
                 Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (preferFull) "Bản Full" else "Tập $activeEpisode/${episodes.size.coerceAtLeast(1)}",
+                            color = TvOnSurfaceVariant,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "${formatShortMs(currentPos)} / ${formatShortMs(duration)}",
+                            color = TvOnSurface,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     val progress = if (duration > 0L) (currentPos.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else 0f
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(8.dp)
+                            .height(7.dp)
                             .clip(RoundedCornerShape(4.dp))
                             .background(Color.White.copy(alpha = 0.22f))
                     ) {
@@ -397,7 +478,7 @@ fun TvShortPlayerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             ShortPlayerBtn(
                                 label = if (isPlaying) "❚❚ Tạm dừng" else "▶ Phát",
                                 isPrimary = true,
@@ -433,15 +514,9 @@ fun TvShortPlayerScreen(
                                     onClick = { activeEpisode += 1 }
                                 )
                             }
-                            Text(
-                                text = "${formatShortMs(currentPos)} / ${formatShortMs(duration)}",
-                                color = TvOnSurface,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ShortPlayerBtn(
                                 label = if (subtitleEnabled) "Phụ đề: Bật" else "Phụ đề: Tắt",
                                 isPrimary = false,
@@ -485,6 +560,16 @@ fun TvShortPlayerScreen(
                     .width(340.dp)
                     .fillMaxHeight()
                     .background(TvSurface.copy(alpha = 0.96f))
+                    .onKeyEvent { keyEvent ->
+                        if (keyEvent.type == KeyEventType.KeyDown &&
+                            keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                        ) {
+                            showEpDrawer = false
+                            true
+                        } else {
+                            false
+                        }
+                    }
                     .padding(22.dp)
             ) {
                 Row(
@@ -540,7 +625,7 @@ private fun ShortPlayerBtn(
             .border(1.5.dp, if (focused) Color.White else TvSurfaceHighest, RoundedCornerShape(10.dp))
             .focusable(interactionSource = source)
             .clickable(interactionSource = source, indication = null) { onClick() }
-            .padding(horizontal = 14.dp, vertical = 9.dp),
+            .padding(horizontal = 12.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(text = label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
