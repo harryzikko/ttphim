@@ -413,11 +413,11 @@
     },
     "app_update": {
       "enabled": true,
-      "latest_version": "1.0.0",
-      "latest_build": 1,
+      "latest_version": "1.0.3",
+      "latest_build": 4,
       "force_update": false,
-      "title": "Bản Cập Nhật CineViet Mới",
-      "release_notes": "• Phiên bản chính thức CineViet v1.0.0 đa nền tảng (Android Mobile, iOS & Android TV)\n• Hỗ trợ tự động kiểm tra bản cập nhật và nâng cấp cài đè trực tiếp trong app\n• Tối ưu tốc độ phát phim 4K HDR, âm thanh vòm Dolby Audio và điều khiển remote mượt mà",
+      "title": "Bản Cập Nhật CineViet 1.0.3 (Build 4)",
+      "release_notes": "• Cập nhật phiên bản mới v1.0.3 (Build 4) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Thêm mục Short Phim (phim ngắn tập màn hình dọc) lướt xem mượt mà trên tất cả nền tảng\n• Cải tiến điều khiển Remote & D-Pad trên Android TV và webOS Smart TV\n• Tối ưu hóa trình phát HLS, tăng độ mượt khi tua và chuyển tập",
       "apk_mobile_url": "/downloads/CineViet-Mobile-release.apk",
       "apk_tv_url": "/downloads/CineViet-AndroidTV-release.apk",
       "ios_url": "/downloads/CineViet-iOS-IPA-Unsigned.ipa"

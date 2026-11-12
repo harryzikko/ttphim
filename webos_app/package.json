@@ -1,6 +1,6 @@
 {
   "name": "cineviet-webos-tv",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "private": true,
   "description": "CineViet LG webOS Smart TV App (Nocturne Cinema UI)",
   "scripts": {

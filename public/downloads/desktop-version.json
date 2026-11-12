@@ -1,0 +1,7 @@
+{
+  "version": "1.0.3",
+  "notes": "• Phiên bản CineViet Desktop v1.0.3 (Tauri v2 + Rust)\n• Hỗ trợ Short Phim màn hình dọc mượt mà\n• Menu & khay hệ thống (F11 toàn màn hình, xóa cache WebView, kiểm tra cập nhật)\n• Tự động chặn tab popup quảng cáo từ player nhúng",
+  "windows_url": "https://github.com/hoangtuan090998/cineviet.live/releases/download/latest/CineViet-Desktop-Setup-Windows-x64.exe",
+  "macos_url": "https://github.com/hoangtuan090998/cineviet.live/releases/download/latest/CineViet-Desktop-macOS.dmg",
+  "linux_url": "https://github.com/hoangtuan090998/cineviet.live/releases/download/latest/CineViet-Desktop-Linux-x64.AppImage"
+}

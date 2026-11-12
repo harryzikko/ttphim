@@ -597,7 +597,7 @@
         '    <button class="tv-btn tv-btn-primary" id="tv-logout-btn" data-focusable="true">Đăng xuất tài khoản</button>' +
         '  </div>' +
         '  <div class="tv-profile-card">' +
-        '    <div><div style="font-size:19px;font-weight:800;">CineViet LG webOS TV</div><div style="color:#94A3B8;font-size:14px;margin-top:4px;">Phiên bản v1.0.0 • Giao diện Nocturne Cinema 10ft</div></div>' +
+        '    <div><div style="font-size:19px;font-weight:800;">CineViet LG webOS TV</div><div style="color:#94A3B8;font-size:14px;margin-top:4px;">Phiên bản v1.0.3 (Build 4) • Giao diện Nocturne Cinema 10ft</div></div>' +
         '    <div style="color:#10B981;font-weight:800;font-size:15px;">● Đã đồng bộ</div>' +
         '  </div>' +
         '  <div id="tv-watchlist-mount"><div class="tv-loading-screen" style="height:200px;"><div class="tv-spinner"></div></div></div>' +
