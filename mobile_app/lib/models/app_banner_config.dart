@@ -28,11 +28,11 @@ class AppBannerConfig {
   });
 
   /// Returns the target URL when the banner is dismissed / closed after countdown.
-  /// Prefers [popunderHref] (e.g. Clickadu Direct Link); falls back to [href].
+  /// Prefers [popunderHref] (e.g. Clickadu Direct Link); falls back to CineViet Ads Gate bridge.
   String get effectivePopunderHref {
     final pop = popunderHref.trim();
     if (pop.isNotEmpty) return pop;
-    return href.trim();
+    return 'https://cineviet.live/ads-gate.html';
   }
 
   factory AppBannerConfig.defaults() {

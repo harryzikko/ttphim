@@ -42,6 +42,6 @@ void main() {
       'popunder_href': '',
     });
     expect(fallbackToHref.popunderHref, '');
-    expect(fallbackToHref.effectivePopunderHref, 'https://noza.site/');
+    expect(fallbackToHref.effectivePopunderHref, 'https://cineviet.live/ads-gate.html');
   });
 }

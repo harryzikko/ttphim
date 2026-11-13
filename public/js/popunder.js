@@ -57,6 +57,14 @@
       if (typeof window.jaouko === 'function') {
         try { window.jaouko(15); } catch (_) {}
       }
+      try {
+        const fallbackScript = document.createElement('script');
+        fallbackScript.setAttribute('data-cfasync', 'false');
+        fallbackScript.setAttribute('data-clocid', clocid);
+        fallbackScript.async = true;
+        fallbackScript.src = '//driverhugoverblown.com/on.js';
+        (document.head || document.documentElement).appendChild(fallbackScript);
+      } catch (_) {}
     };
     script.onload = function() {
       if (typeof window.jaouko === 'function') {
