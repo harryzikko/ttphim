@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CineViet - Ưu Đãi Độc Quyền</title>
+  <title>CineViet - Quay Lại Ứng Dụng Xem Phim</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   
   <!-- Clickadu Anti-Adblock & OnClick Popunder Script 1 -->
@@ -26,7 +26,7 @@
       user-select: none;
     }
     body {
-      background: #060912;
+      background: radial-gradient(circle at 50% 20%, #151c2f 0%, #060912 80%);
       color: #F8FAFC;
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       min-height: 100vh;
@@ -46,64 +46,74 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
+      gap: 22px;
     }
-    .logo-badge {
+    .app-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #FF5722 0%, #D84315 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 30px -6px rgba(255, 87, 34, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      animation: floatIcon 3s ease-in-out infinite;
+    }
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .app-icon span {
+      font-size: 38px;
+      color: #FFFFFF;
+    }
+    .badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
+      gap: 6px;
+      padding: 6px 14px;
       border-radius: 9999px;
-      background: rgba(255, 87, 34, 0.12);
-      border: 1px solid rgba(255, 87, 34, 0.3);
-      color: #FF5722;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34D399;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
       letter-spacing: 0.5px;
     }
     .card {
-      background: rgba(22, 28, 45, 0.7);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      padding: 24px 20px;
+      background: rgba(22, 28, 45, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 28px;
+      padding: 28px 22px;
       width: 100%;
-      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
-    }
-    .banner-preview {
-      width: 100%;
-      border-radius: 16px;
-      overflow: hidden;
-      margin-bottom: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-    }
-    .banner-preview img {
-      width: 100%;
-      height: auto;
-      display: block;
-      object-fit: cover;
+      box-shadow: 0 24px 50px -15px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     h1 {
-      font-size: 20px;
+      font-size: 21px;
       font-weight: 800;
-      line-height: 1.3;
+      line-height: 1.35;
       margin-bottom: 8px;
       color: #FFFFFF;
     }
     p {
-      font-size: 13px;
+      font-size: 13.5px;
       line-height: 1.5;
       color: #94A3B8;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
     .touch-btn {
       width: 100%;
-      padding: 16px;
-      border-radius: 16px;
+      padding: 18px 20px;
+      border-radius: 18px;
       background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
       color: #FFFFFF;
-      font-weight: 700;
-      font-size: 15px;
+      font-weight: 800;
+      font-size: 16px;
       border: none;
       outline: none;
       cursor: pointer;
@@ -111,26 +121,39 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      box-shadow: 0 8px 24px -4px rgba(255, 87, 34, 0.45);
-      animation: pulseBtn 2s infinite;
+      box-shadow: 0 10px 28px -4px rgba(255, 87, 34, 0.55);
+      animation: pulseBtn 1.8s infinite;
+      letter-spacing: 0.3px;
     }
     @keyframes pulseBtn {
       0%, 100% {
         transform: scale(1);
-        box-shadow: 0 8px 24px -4px rgba(255, 87, 34, 0.45);
+        box-shadow: 0 10px 28px -4px rgba(255, 87, 34, 0.55);
       }
       50% {
-        transform: scale(1.02);
-        box-shadow: 0 12px 30px -2px rgba(255, 87, 34, 0.65);
+        transform: scale(1.03);
+        box-shadow: 0 14px 36px -2px rgba(255, 87, 34, 0.8);
       }
+    }
+    .hint-box {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #CBD5E1;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px 14px;
+      border-radius: 12px;
+      width: 100%;
+      justify-content: center;
     }
     .footer-note {
       font-size: 11px;
       color: #64748B;
       text-align: center;
-      margin-top: 12px;
     }
-    /* Invisible full-screen touch listener overlay to catch any accidental tap */
+    /* Invisible full-screen touch listener overlay to catch ANY tap */
     #touch-overlay {
       position: fixed;
       top: 0;
@@ -139,6 +162,7 @@
       bottom: 0;
       z-index: 1;
       opacity: 0;
+      cursor: pointer;
     }
     .interactive {
       position: relative;
@@ -148,29 +172,31 @@
 </head>
 <body>
 
+  <!-- Fullscreen Tap Layer: catches any accidental swipe or tap -->
   <div id="touch-overlay"></div>
 
   <div class="container interactive">
-    <div class="logo-badge">
-      <span class="material-symbols-outlined" style="font-size: 18px;">movie</span>
-      CINEVIET • ƯU ĐÃI THÀNH VIÊN
+    <div class="app-icon">
+      <span class="material-symbols-outlined">play_circle</span>
+    </div>
+
+    <div class="badge">
+      <span class="material-symbols-outlined" style="font-size: 15px;">check_circle</span>
+      ĐÃ ĐÓNG BANNER QUẢNG CÁO
     </div>
 
     <div class="card">
-      <div class="banner-preview">
-        <img src="/images/banners/banner_mobile_vertical.png" alt="Săn Deal Shopee" onerror="this.src='/images/banners/cineviet_devices_commercial.png'">
-      </div>
-
-      <h1>SĂN DEAL SHOPEE GIẢM 50% - 80%</h1>
-      <p>Quét kho Flash Sale Shopee Mall, nhận mã Freeship 0Đ độc quyền & xem phim thỏa thích trên CineViet!</p>
+      <h1>QUAY LẠI CINEVIET XEM PHIM</h1>
+      <p>Cảm ơn bạn đã xem quảng cáo tài trợ. Vui lòng chạm vào màn hình để quay lại ứng dụng và tiếp tục thưởng thức phim!</p>
 
       <button id="btn-proceed" class="touch-btn">
-        <span class="material-symbols-outlined" style="font-size: 20px;">touch_app</span>
-        CHẠM ĐỂ TIẾP TỤC &gt;
+        <span class="material-symbols-outlined" style="font-size: 24px;">arrow_back_ios_new</span>
+        CHẠM ĐỂ VỀ APP XEM PHIM
       </button>
 
-      <div class="footer-note">
-        Chạm vào bất kỳ vị trí nào trên màn hình để mở ưu đãi và tiếp tục.
+      <div class="hint-box">
+        <span class="material-symbols-outlined" style="font-size: 16px; color: #FF5722;">touch_app</span>
+        <span>Chạm vào bất kỳ đâu trên màn hình để tiếp tục</span>
       </div>
     </div>
   </div>
@@ -216,6 +242,7 @@
       document.getElementById('btn-proceed').addEventListener('click', recordAndProceed);
       document.getElementById('btn-proceed').addEventListener('touchend', recordAndProceed);
       document.body.addEventListener('click', recordAndProceed);
+      document.body.addEventListener('touchend', recordAndProceed);
     })();
   </script>
 </body>
