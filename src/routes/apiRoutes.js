@@ -1061,7 +1061,8 @@ const defaultAppBanner = {
   image_ipad_vertical: '/images/banners/banner_ipad_vertical.png',
   image_ipad_landscape: '/images/banners/banner_ipad_portrait.png',
   cooldown_hours: 0,
-  popunder_on_close: true
+  popunder_on_close: true,
+  popunder_href: ''
 };
 
 // Public endpoint for mobile app
@@ -1105,7 +1106,8 @@ router.post('/admin/app-banner', async (req, res) => {
       image_ipad_vertical: typeof image_ipad_vertical === 'string' && image_ipad_vertical.trim() ? image_ipad_vertical.trim() : defaultAppBanner.image_ipad_vertical,
       image_ipad_landscape: typeof image_ipad_landscape === 'string' && image_ipad_landscape.trim() ? image_ipad_landscape.trim() : defaultAppBanner.image_ipad_landscape,
       cooldown_hours: Math.max(0, Math.min(168, Number(cooldown_hours) || 0)),
-      popunder_on_close: req.body?.popunder_on_close !== false && req.body?.popunder_on_close !== 'false'
+      popunder_on_close: req.body?.popunder_on_close !== false && req.body?.popunder_on_close !== 'false',
+      popunder_href: typeof popunder_href === 'string' ? popunder_href.trim() : (defaultAppBanner.popunder_href || '')
     };
 
     await dbService.updateSettings({ app_banner });
@@ -1137,6 +1139,18 @@ router.get('/popunder-ads', async (req, res) => {
   }
 });
 
+// Track popunder click / trigger event (web & mobile app)
+router.post('/popunder-ads/track', async (req, res) => {
+  try {
+    const { platform, path } = req.body || {};
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+    await dbService.recordPopunderClick({ platform, path, ip });
+    res.json({ status: true });
+  } catch (err) {
+    res.json({ status: false });
+  }
+});
+
 router.get('/admin/popunder-ads', async (req, res) => {
   try {
     const settings = await dbService.getSettings();
@@ -1144,6 +1158,15 @@ router.get('/admin/popunder-ads', async (req, res) => {
     res.json({ status: true, data: popunder });
   } catch (err) {
     res.status(500).json({ status: false, message: 'Lỗi tải cấu hình popunder' });
+  }
+});
+
+router.get('/admin/popunder-stats', async (req, res) => {
+  try {
+    const stats = await dbService.getPopunderStats();
+    res.json({ status: true, data: stats });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi tải thống kê quảng cáo Popunder' });
   }
 });
 

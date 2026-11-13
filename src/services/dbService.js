@@ -836,6 +836,91 @@ class DbService {
     await this.write(db);
     return db.movie_views[slug];
   }
+
+  // --- Popunder Click Tracking & Analytics ---
+  async recordPopunderClick({ platform = 'desktop', path = '/', ip = '' } = {}) {
+    const db = await this.read();
+    if (!db.popunder_metrics) {
+      db.popunder_metrics = {
+        total_clicks: 0,
+        by_platform: { desktop: 0, mobile: 0 },
+        by_date: {},
+        recent_clicks: []
+      };
+    }
+    const metrics = db.popunder_metrics;
+    metrics.total_clicks = (metrics.total_clicks || 0) + 1;
+    metrics.by_platform = metrics.by_platform || { desktop: 0, mobile: 0, mobile_app: 0 };
+    const platKey = platform === 'mobile_app' ? 'mobile_app' : (platform === 'mobile' ? 'mobile' : 'desktop');
+    metrics.by_platform[platKey] = (metrics.by_platform[platKey] || 0) + 1;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    metrics.by_date = metrics.by_date || {};
+    metrics.by_date[todayStr] = (metrics.by_date[todayStr] || 0) + 1;
+
+    let maskedIp = 'Anonymous';
+    if (typeof ip === 'string' && ip.trim()) {
+      const trimmed = ip.trim();
+      const parts = trimmed.split('.');
+      if (parts.length === 4) {
+        maskedIp = `${parts[0]}.${parts[1]}.***.***`;
+      } else if (trimmed.includes(':')) {
+        maskedIp = trimmed.split(':').slice(0, 3).join(':') + ':****';
+      }
+    }
+
+    metrics.recent_clicks = metrics.recent_clicks || [];
+    metrics.recent_clicks.unshift({
+      timestamp: new Date().toISOString(),
+      platform: platKey,
+      path: String(path || '/').slice(0, 120),
+      ip: maskedIp
+    });
+
+    if (metrics.recent_clicks.length > 60) {
+      metrics.recent_clicks = metrics.recent_clicks.slice(0, 60);
+    }
+
+    await this.write(db);
+    return metrics;
+  }
+
+  async getPopunderStats() {
+    const db = await this.read();
+    const settings = db.settings || {};
+    const popunderSettings = settings.popunder_ads || {};
+    const metrics = db.popunder_metrics || {
+      total_clicks: 0,
+      by_platform: { desktop: 0, mobile: 0 },
+      by_date: {},
+      recent_clicks: []
+    };
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayClicks = (metrics.by_date && metrics.by_date[todayStr]) || 0;
+
+    let last7dClicks = 0;
+    const nowMs = Date.now();
+    for (let i = 0; i < 7; i++) {
+      const dStr = new Date(nowMs - i * 86400000).toISOString().slice(0, 10);
+      last7dClicks += ((metrics.by_date && metrics.by_date[dStr]) || 0);
+    }
+
+    const lastClickAt = (metrics.recent_clicks && metrics.recent_clicks[0]?.timestamp) || null;
+
+    return {
+      enabled: popunderSettings.enabled !== false,
+      provider: popunderSettings.provider || 'clickadu',
+      clocid: popunderSettings.clocid || '2119458',
+      frequency_minutes: popunderSettings.frequency_minutes || 30,
+      total_clicks: metrics.total_clicks || 0,
+      today_clicks: todayClicks,
+      last_7d_clicks: last7dClicks,
+      by_platform: metrics.by_platform || { desktop: 0, mobile: 0 },
+      last_click_at: lastClickAt,
+      recent_clicks: metrics.recent_clicks || []
+    };
+  }
 }
 
 module.exports = new DbService();

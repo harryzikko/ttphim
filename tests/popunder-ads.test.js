@@ -65,9 +65,24 @@ test('header.js loads popunder.js asynchronously', () => {
   assert.ok(headerJs.includes('initPopunderScript'), 'header.js must call initPopunderScript');
 });
 
-test('admin.html has popunder-on-close toggle and fresh script versions', () => {
+test('admin.html has popunder-on-close toggle, popunder-href input and fresh script versions', () => {
   const adminHtml = fs.readFileSync('public/admin.html', 'utf8');
   assert.ok(adminHtml.includes('id="setting-app-ad-popunder-close"'), 'admin.html must contain setting-app-ad-popunder-close');
-  assert.ok(adminHtml.includes('admin.js?v=2.9.7'), 'admin.js cache version must be bumped to 2.9.7');
-  assert.ok(adminHtml.includes('api.js?v=3.6.6'), 'api.js cache version must be bumped to 3.6.6');
+  assert.ok(adminHtml.includes('id="setting-app-ad-popunder-href"'), 'admin.html must contain setting-app-ad-popunder-href');
+  assert.ok(adminHtml.includes('admin.js?v=2.9.8'), 'admin.js cache version must be bumped to 2.9.8');
+  assert.ok(adminHtml.includes('api.js?v=3.6.7'), 'api.js cache version must be bumped to 3.6.7');
+  assert.ok(adminHtml.includes('analytics-popunder-today'), 'admin.html must contain analytics popunder widget');
+});
+
+test('dbService tracks popunder clicks and returns aggregated metrics', async () => {
+  const dbService = require('../src/services/dbService');
+  await dbService.recordPopunderClick({ platform: 'desktop', path: '/phim/test', ip: '113.161.12.34' });
+  await dbService.recordPopunderClick({ platform: 'mobile_app', path: '/app-banner-close', ip: '14.162.55.77' });
+  const stats = await dbService.getPopunderStats();
+  assert.ok(stats.total_clicks >= 2, 'Total clicks should increment');
+  assert.ok(stats.today_clicks >= 2, 'Today clicks should increment');
+  assert.ok(stats.by_platform.desktop >= 1, 'Desktop clicks recorded');
+  assert.ok(stats.by_platform.mobile_app >= 1, 'Mobile app clicks recorded');
+  assert.ok(stats.recent_clicks.length >= 2, 'Recent clicks logged');
+  assert.ok(stats.recent_clicks[0].ip.includes('***'), 'IP must be anonymized');
 });

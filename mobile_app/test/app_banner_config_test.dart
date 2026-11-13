@@ -26,4 +26,22 @@ void main() {
     });
     expect(configMissing.popunderOnClose, isTrue);
   });
+
+  test('AppBannerConfig parses popunder_href and effectivePopunderHref', () {
+    final withPopunder = AppBannerConfig.fromJson({
+      'enabled': true,
+      'href': 'https://noza.site/',
+      'popunder_href': 'https://xml.clickadu.com/apu.php?zoneid=2119458',
+    });
+    expect(withPopunder.popunderHref, 'https://xml.clickadu.com/apu.php?zoneid=2119458');
+    expect(withPopunder.effectivePopunderHref, 'https://xml.clickadu.com/apu.php?zoneid=2119458');
+
+    final fallbackToHref = AppBannerConfig.fromJson({
+      'enabled': true,
+      'href': 'https://noza.site/',
+      'popunder_href': '',
+    });
+    expect(fallbackToHref.popunderHref, '');
+    expect(fallbackToHref.effectivePopunderHref, 'https://noza.site/');
+  });
 }

@@ -68,8 +68,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadFeaturedMovies();
       } else if (targetId === 'tab-settings') {
         loadSettingsTab();
+    renderPopunderStats();
       } else if (targetId === 'tab-analytics') {
         loadAnalyticsTab();
+    renderPopunderStats();
       } else if (targetId === 'tab-sources') {
         loadSourcesTab();
       } else if (targetId === 'tab-system') {
@@ -986,6 +988,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (aImgIpadHEl) aImgIpadHEl.value = appBanner.image_ipad_landscape || '/images/banners/banner_ipad_portrait.png';
         if (aCooldownEl) aCooldownEl.value = appBanner.cooldown_hours != null ? appBanner.cooldown_hours : 0;
         const aPopunderCloseEl = document.getElementById('setting-app-ad-popunder-close');
+        const aPopunderHrefEl = document.getElementById('setting-app-ad-popunder-href');
+        if (aPopunderHrefEl) aPopunderHrefEl.value = appBanner.popunder_href || '';
         if (aPopunderCloseEl) aPopunderCloseEl.checked = appBanner.popunder_on_close !== false;
       } catch (aErr) {
         console.warn('[CineViet Admin] Failed to load app banner config:', aErr);
@@ -1207,7 +1211,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         image_ipad_vertical: document.getElementById('setting-app-ad-image-ipad-v')?.value.trim() || '',
         image_ipad_landscape: document.getElementById('setting-app-ad-image-ipad-h')?.value.trim() || '',
         cooldown_hours: Number(document.getElementById('setting-app-ad-cooldown')?.value) || 0,
-        popunder_on_close: document.getElementById('setting-app-ad-popunder-close')?.checked !== false
+        popunder_on_close: document.getElementById('setting-app-ad-popunder-close')?.checked !== false,
+        popunder_href: document.getElementById('setting-app-ad-popunder-href')?.value.trim() || ''
       };
       const res = await API.updateAdminAppBanner(payload);
       if (res?.status) {
@@ -1391,7 +1396,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           image_ipad_vertical: document.getElementById('setting-app-ad-image-ipad-v')?.value.trim() || '',
           image_ipad_landscape: document.getElementById('setting-app-ad-image-ipad-h')?.value.trim() || '',
           cooldown_hours: Number(document.getElementById('setting-app-ad-cooldown')?.value) || 0,
-          popunder_on_close: document.getElementById('setting-app-ad-popunder-close')?.checked !== false
+          popunder_on_close: document.getElementById('setting-app-ad-popunder-close')?.checked !== false,
+        popunder_href: document.getElementById('setting-app-ad-popunder-href')?.value.trim() || ''
         };
       }
       const res = await API.updateAdminSettings(payload);
@@ -1962,6 +1968,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('btn-refresh-analytics')?.addEventListener('click', () => {
+      renderPopunderStats();
     window.showToast('Đang làm mới thống kê...');
     loadAnalyticsTab();
   });
@@ -2097,3 +2104,94 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadSourcesTab();
 });
 
+
+
+  // Render Popunder Click Statistics in Analytics & Settings tabs
+  async function renderPopunderStats() {
+    try {
+      const stats = await API.getAdminPopunderStats();
+      if (!stats) return;
+
+      // 1. Settings Tab Quick Status
+      const dotEl = document.getElementById('settings-popunder-status-dot');
+      const textEl = document.getElementById('settings-popunder-status-text');
+      const countsEl = document.getElementById('settings-popunder-counts');
+      if (dotEl && textEl) {
+        if (stats.enabled) {
+          dotEl.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
+          textEl.textContent = 'Popunder Đang BẬT (' + (stats.clocid || 'Clickadu') + ' - Tần suất ' + stats.frequency_minutes + 'p)';
+        } else {
+          dotEl.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+          textEl.textContent = 'Popunder Đang TẮT';
+        }
+      }
+      if (countsEl) {
+        countsEl.textContent = 'Hôm nay: ' + (stats.today_clicks || 0) + ' • 7 ngày: ' + (stats.last_7d_clicks || 0) + ' • Tổng: ' + (stats.total_clicks || 0);
+      }
+
+      // 2. Analytics Tab Detailed Card
+      const pillEl = document.getElementById('analytics-popunder-status-pill');
+      if (pillEl) {
+        if (stats.enabled) {
+          pillEl.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 flex items-center gap-1.5 self-start sm:self-auto border border-emerald-500/20';
+          pillEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Đang Hoạt Động';
+        } else {
+          pillEl.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 flex items-center gap-1.5 self-start sm:self-auto border border-rose-500/20';
+          pillEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-400"></span> Đang Tạm Dừng';
+        }
+      }
+
+      const todayEl = document.getElementById('analytics-popunder-today');
+      if (todayEl) todayEl.textContent = (stats.today_clicks || 0).toLocaleString();
+
+      const last7dEl = document.getElementById('analytics-popunder-7d');
+      if (last7dEl) last7dEl.textContent = (stats.last_7d_clicks || 0).toLocaleString();
+
+      const totalEl = document.getElementById('analytics-popunder-total');
+      if (totalEl) totalEl.textContent = (stats.total_clicks || 0).toLocaleString();
+
+      const deskEl = document.getElementById('analytics-popunder-desktop');
+      if (deskEl) deskEl.textContent = ((stats.by_platform && stats.by_platform.desktop) || 0).toLocaleString();
+
+      const mobEl = document.getElementById('analytics-popunder-mobile-web');
+      if (mobEl) mobEl.textContent = ((stats.by_platform && stats.by_platform.mobile) || 0).toLocaleString();
+
+      const appEl = document.getElementById('analytics-popunder-mobile-app');
+      if (appEl) appEl.textContent = ((stats.by_platform && stats.by_platform.mobile_app) || 0).toLocaleString();
+
+      const lastTimeEl = document.getElementById('analytics-popunder-last-time');
+      if (lastTimeEl) {
+        if (stats.last_click_at) {
+          const d = new Date(stats.last_click_at);
+          lastTimeEl.textContent = 'Gần nhất: ' + d.toLocaleTimeString('vi-VN') + ' ' + d.toLocaleDateString('vi-VN');
+        } else {
+          lastTimeEl.textContent = 'Chưa có lượt click nào';
+        }
+      }
+
+      const tbody = document.getElementById('analytics-popunder-log-tbody');
+      if (tbody && Array.isArray(stats.recent_clicks)) {
+        if (stats.recent_clicks.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-on-surface-variant">Chưa có lượt click nào được ghi nhận</td></tr>';
+        } else {
+          tbody.innerHTML = stats.recent_clicks.slice(0, 15).map(item => {
+            const dt = new Date(item.timestamp);
+            const timeStr = dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + dt.toLocaleDateString('vi-VN');
+            const platBadge = item.platform === 'mobile_app'
+              ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-400">Mobile App</span>'
+              : (item.platform === 'mobile'
+                ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400">Mobile Web</span>'
+                : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">Desktop Web</span>');
+            return '<tr>' +
+              '<td class="p-3 text-on-surface font-mono text-[11px]">' + timeStr + '</td>' +
+              '<td class="p-3">' + platBadge + '</td>' +
+              '<td class="p-3 text-on-surface-variant font-mono text-[11px] truncate max-w-[200px]" title="' + (item.path || '/') + '">' + (item.path || '/') + '</td>' +
+              '<td class="p-3 text-on-surface-variant font-mono text-[11px]">' + (item.ip || 'Anonymous') + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+      }
+    } catch (err) {
+      console.warn('[CineViet Admin] Failed to render popunder stats:', err);
+    }
+  }

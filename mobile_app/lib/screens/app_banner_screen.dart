@@ -112,8 +112,8 @@ class _AppBannerScreenState extends State<AppBannerScreen> {
     );
   }
 
-  Future<void> _openLink() async {
-    final href = _config?.href;
+  Future<void> _openLink([String? targetUrl]) async {
+    final href = targetUrl ?? _config?.href;
     if (href == null || href.isEmpty) return;
     final uri = Uri.tryParse(href);
     if (uri != null && await canLaunchUrl(uri)) {
@@ -123,7 +123,14 @@ class _AppBannerScreenState extends State<AppBannerScreen> {
 
   void _handleDismiss() {
     if (_config?.popunderOnClose == true) {
-      unawaited(_openLink());
+      final target = _config?.effectivePopunderHref;
+      if (target != null && target.isNotEmpty) {
+        unawaited(_openLink(target));
+        unawaited(ApiService.trackPopunderClick(
+          platform: 'mobile_app',
+          path: '/app-banner-close',
+        ));
+      }
     }
     _proceedToMain();
   }

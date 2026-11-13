@@ -827,6 +827,19 @@ class ApiService {
     return AppBannerConfig.defaults();
   }
 
+  /// Track popunder click / trigger event (e.g. when app banner is dismissed after countdown)
+  static Future<void> trackPopunderClick({
+    String platform = 'mobile_app',
+    String path = '/app-banner-close',
+  }) async {
+    try {
+      await _backend('/api/popunder-ads/track', body: {
+        'platform': platform,
+        'path': path,
+      });
+    } catch (_) {}
+  }
+
   /// Fetch in-app update information from backend
   static Future<AppUpdateInfo> getAppUpdate() async {
     try {

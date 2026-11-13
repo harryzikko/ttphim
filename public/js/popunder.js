@@ -99,6 +99,24 @@
         } catch (_) {}
         window.removeEventListener('click', trigger, true);
         window.removeEventListener('touchend', trigger, true);
+
+        // Ping backend popunder stats
+        try {
+          const trackData = JSON.stringify({
+            platform: isMobile ? 'mobile' : 'desktop',
+            path: window.location.pathname || '/'
+          });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/popunder-ads/track', new Blob([trackData], { type: 'application/json' }));
+          } else {
+            fetch('/api/popunder-ads/track', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: trackData,
+              keepalive: true
+            }).catch(function() {});
+          }
+        } catch (_) {}
       };
 
       window.addEventListener('click', trigger, true);
