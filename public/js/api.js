@@ -469,6 +469,18 @@ const API = {
     });
   },
 
+  async getAdminPopunder() {
+    const res = await this.request('/api/admin/popunder-ads');
+    return res.data;
+  },
+
+  async updateAdminPopunder(data) {
+    return this.request('/api/admin/popunder-ads', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
   async getAdminAppBanner() {
     const res = await this.request('/api/admin/app-banner');
     return res.data;

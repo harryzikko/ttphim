@@ -421,6 +421,15 @@
       "apk_mobile_url": "/downloads/CineViet-Mobile-release.apk",
       "apk_tv_url": "/downloads/CineViet-AndroidTV-release.apk",
       "ios_url": "/downloads/CineViet-iOS-IPA-Unsigned.ipa"
+    },
+    "popunder_ads": {
+      "enabled": true,
+      "provider": "clickadu",
+      "clocid": "2119458",
+      "frequency_minutes": 30,
+      "script_url": "//nappyonsetstiffness.com/on.js",
+      "allow_desktop_web": true,
+      "allow_mobile_web": true
     }
   },
   "movie_views": {

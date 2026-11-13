@@ -38,7 +38,19 @@
     initProfile();
     initNotifications();
     initAnnouncement();
+    initPopunderScript();
   });
+
+  function initPopunderScript() {
+    try {
+      if (!document.querySelector('script[src*="popunder.js"]')) {
+        const s = document.createElement('script');
+        s.src = '/js/popunder.js';
+        s.async = true;
+        document.head.appendChild(s);
+      }
+    } catch (_) {}
+  }
 
   async function initAnnouncement() {
     try {

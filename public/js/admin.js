@@ -989,6 +989,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn('[CineViet Admin] Failed to load app banner config:', aErr);
       }
 
+      // Load Popunder config
+      try {
+        const popunder = currentSettings.popunder_ads || (await API.getAdminPopunder()) || {};
+        const popEnabledEl = document.getElementById('setting-popunder-enabled');
+        const popClocidEl = document.getElementById('setting-popunder-clocid');
+        const popFreqEl = document.getElementById('setting-popunder-frequency');
+
+        if (popEnabledEl) popEnabledEl.checked = popunder.enabled !== false;
+        if (popClocidEl) popClocidEl.value = popunder.clocid || '2119458';
+        if (popFreqEl) popFreqEl.value = popunder.frequency_minutes != null ? popunder.frequency_minutes : 30;
+      } catch (pErr) {
+        console.warn('[CineViet Admin] Failed to load popunder config:', pErr);
+      }
+
       // Load In-App Update config
       try {
         const appUpdate = currentSettings.app_update || (await API.getAdminAppUpdate()) || {};
@@ -1277,6 +1291,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-preview-app-ad-mobile')?.addEventListener('click', () => previewAppBanner('mobile'));
   document.getElementById('btn-preview-app-ad-ipad-v')?.addEventListener('click', () => previewAppBanner('ipad-v'));
   document.getElementById('btn-preview-app-ad-ipad-h')?.addEventListener('click', () => previewAppBanner('ipad-h'));
+
+  // --- Popunder / OnClick Save Handler ---
+  document.getElementById('btn-save-popunder-ad')?.addEventListener('click', async () => {
+    const saveBtn = document.getElementById('btn-save-popunder-ad');
+    try {
+      saveBtn.disabled = true;
+      const payload = {
+        enabled: document.getElementById('setting-popunder-enabled')?.checked || false,
+        clocid: document.getElementById('setting-popunder-clocid')?.value.trim() || '2119458',
+        frequency_minutes: Number(document.getElementById('setting-popunder-frequency')?.value) || 30
+      };
+      const res = await API.updateAdminPopunder(payload);
+      if (res?.status) {
+        if (window.showToast) window.showToast('Đã lưu cấu hình quảng cáo Popunder thành công!');
+        else alert('Đã lưu cấu hình quảng cáo Popunder thành công!');
+      } else {
+        throw new Error(res?.message || 'Lỗi lưu cấu hình quảng cáo Popunder');
+      }
+    } catch (err) {
+      if (window.showToast) window.showToast(err.message || 'Lỗi lưu quảng cáo Popunder', 'error');
+      else alert(err.message || 'Lỗi lưu quảng cáo Popunder');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('btn-reset-popunder-cooldown')?.addEventListener('click', () => {
+    try {
+      localStorage.removeItem('cv_popunder_last');
+      if (window.showToast) window.showToast('Đã đặt lại bộ đếm! Bạn có thể kiểm tra quảng cáo khi click trên web ngay bây giờ.');
+      else alert('Đã đặt lại bộ đếm!');
+    } catch (_) {}
+  });
 
   // --- In-App Update Save Handler ---
   document.getElementById('btn-save-app-update')?.addEventListener('click', async () => {

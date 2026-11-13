@@ -1113,6 +1113,56 @@ router.post('/admin/app-banner', async (req, res) => {
   }
 });
 
+// --- Popunder / OnClick Ads Management ---
+
+const defaultPopunderAds = {
+  enabled: true,
+  provider: 'clickadu',
+  clocid: '2119458',
+  frequency_minutes: 30,
+  script_url: '//nappyonsetstiffness.com/on.js',
+  allow_desktop_web: true,
+  allow_mobile_web: true
+};
+
+router.get('/popunder-ads', async (req, res) => {
+  try {
+    const settings = await dbService.getSettings();
+    const popunder = { ...defaultPopunderAds, ...(settings.popunder_ads || {}) };
+    res.json({ status: true, data: popunder });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi tải cấu hình popunder' });
+  }
+});
+
+router.get('/admin/popunder-ads', async (req, res) => {
+  try {
+    const settings = await dbService.getSettings();
+    const popunder = { ...defaultPopunderAds, ...(settings.popunder_ads || {}) };
+    res.json({ status: true, data: popunder });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi tải cấu hình popunder' });
+  }
+});
+
+router.post('/admin/popunder-ads', async (req, res) => {
+  try {
+    const { enabled, clocid, frequency_minutes, allow_desktop_web, allow_mobile_web } = req.body || {};
+    const popunder_ads = {
+      ...defaultPopunderAds,
+      enabled: enabled === true || enabled === 'true',
+      clocid: typeof clocid === 'string' && clocid.trim() ? clocid.trim() : defaultPopunderAds.clocid,
+      frequency_minutes: Math.max(1, Math.min(1440, Number(frequency_minutes) || 30)),
+      allow_desktop_web: allow_desktop_web !== false && allow_desktop_web !== 'false',
+      allow_mobile_web: allow_mobile_web !== false && allow_mobile_web !== 'false'
+    };
+    await dbService.updateSettings({ popunder_ads });
+    res.json({ status: true, message: 'Đã lưu cấu hình quảng cáo Popunder thành công!', data: popunder_ads });
+  } catch (err) {
+    res.status(500).json({ status: false, message: 'Lỗi lưu cấu hình quảng cáo Popunder' });
+  }
+});
+
 // --- App Update Management (In-App Updates - Android & iOS) ---
 
 const defaultAppUpdate = {

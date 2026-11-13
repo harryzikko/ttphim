@@ -14,7 +14,7 @@
   <script defer src="/js/admin-banners.js?v=1.2.0"></script>
   <script defer src="/js/admin-sources.js?v=1.1.0"></script>
   <script defer src="/js/admin-social.js?v=1.3.0"></script>
-  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=5d355c7a7b1b">
+  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=43a73f36cb70">
   
   <link rel="stylesheet" href="/css/custom.css?v=3.2.2">
 </head>
@@ -1411,6 +1411,60 @@
               </button>
               <button id="btn-preview-app-ad-ipad-h" type="button" class="px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-secondary text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
                 <span class="material-symbols-outlined text-[18px]">tablet</span> Xem Thử iPad Ngang
+              </button>
+            </div>
+          </div>
+
+          <!-- Popunder / OnClick Monetization (Clickadu) -->
+          <div class="p-6 rounded-2xl bg-surface-container border border-surface-container-highest/60 space-y-4 lg:col-span-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-surface-container-highest/60 pb-3">
+              <div>
+                <h3 class="font-display font-bold text-lg text-on-surface flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">ads_click</span> Quảng Cáo Popunder / Nhảy Tab Khi Click (Clickadu)
+                </h3>
+                <p class="text-xs text-on-surface-variant mt-1">Quảng cáo mở tab ngầm khi người dùng bấm chuột hoặc chạm màn hình trên website. Tích hợp WebAssembly tự động chống AdBlock và tối ưu hóa doanh thu CPM/CPC.</p>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[14px]">check_circle</span> Web Desktop &amp; Mobile
+                </span>
+                <span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-semibold flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[14px]">tv_off</span> Chặn trên Smart TV &amp; App Desktop
+                </span>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-high border border-surface-container-highest/40 md:col-span-2">
+                <div>
+                  <span class="text-sm font-bold text-on-surface block">Kích hoạt quảng cáo Popunder khi click</span>
+                  <span class="text-xs text-on-surface-variant">Bật để kích hoạt mã quảng cáo Clickadu nhảy tab nền cho khách xem phim trên web</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input id="setting-popunder-enabled" type="checkbox" class="sr-only peer">
+                  <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Mã Vùng Quảng Cáo (Zone ID - data-clocid)</label>
+                <input id="setting-popunder-clocid" type="text" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary font-mono" placeholder="2119458" />
+                <span class="text-[11px] text-on-surface-variant mt-1 block">Mã Placement ID từ tài khoản Clickadu (mặc định: 2119458).</span>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Giãn cách hiển thị giữa 2 lần click (Số phút)</label>
+                <input id="setting-popunder-frequency" type="number" min="1" max="1440" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="30" />
+                <span class="text-[11px] text-on-surface-variant mt-1 block">Khuyến nghị: 30 phút (tránh làm người xem khó chịu khi bấm chọn tập liên tục).</span>
+              </div>
+            </div>
+
+            <div class="pt-2 flex items-center gap-3">
+              <button id="btn-save-popunder-ad" type="button" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-primary/20 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">save</span> Lưu Cấu Hình Popunder
+              </button>
+              <button id="btn-reset-popunder-cooldown" type="button" class="px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer" title="Đặt lại bộ đếm để bạn có thể tự kiểm tra popunder ngay trên trình duyệt">
+                <span class="material-symbols-outlined text-[18px]">restart_alt</span> Đặt lại bộ đếm trên máy này
               </button>
             </div>
           </div>
