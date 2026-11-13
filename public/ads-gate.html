@@ -182,16 +182,16 @@
 
     <div class="badge">
       <span class="material-symbols-outlined" style="font-size: 15px;">check_circle</span>
-      ĐÃ ĐÓNG BANNER QUẢNG CÁO
+      ĐÃ ĐÓNG QUẢNG CÁO
     </div>
 
     <div class="card">
-      <h1>QUAY LẠI CINEVIET XEM PHIM</h1>
-      <p>Cảm ơn bạn đã xem quảng cáo tài trợ. Vui lòng chạm vào màn hình để quay lại ứng dụng và tiếp tục thưởng thức phim!</p>
+      <h1 id="header-title">QUAY LẠI CINEVIET XEM PHIM</h1>
+      <p id="header-desc">Cảm ơn bạn đã xem quảng cáo tài trợ. Vui lòng chạm vào màn hình để quay lại ứng dụng và tiếp tục thưởng thức phim!</p>
 
       <button id="btn-proceed" class="touch-btn">
         <span class="material-symbols-outlined" style="font-size: 24px;">arrow_back_ios_new</span>
-        CHẠM ĐỂ VỀ APP XEM PHIM
+        <span id="btn-text">CHẠM ĐỂ TIẾP TỤC XEM PHIM</span>
       </button>
 
       <div class="hint-box">
@@ -208,12 +208,16 @@
   <script>
     (function() {
       var searchParams = new URLSearchParams(window.location.search);
-      var destination = searchParams.get('redirect') || searchParams.get('url') || 'https://noza.site/';
+      // Default to CineViet home page, NOT noza.site!
+      var destination = searchParams.get('redirect') || searchParams.get('url') || 'https://cineviet.live/';
       var triggered = false;
 
       function recordAndProceed(e) {
         if (triggered) return;
         triggered = true;
+
+        var btnText = document.getElementById('btn-text');
+        if (btnText) btnText.textContent = 'ĐANG MỞ PHIM...';
 
         // Ping analytics to CineViet Backend
         try {
@@ -230,10 +234,10 @@
           }
         } catch (_) {}
 
-        // Small delay to let Clickadu's OnClick handler trigger first, then redirect this main tab
+        // Allow Clickadu's OnClick handler to fire first and establish popunder window, then redirect to CineViet
         setTimeout(function() {
           window.location.href = destination;
-        }, 350);
+        }, 1200);
       }
 
       // Listen on the full body, overlay and button
