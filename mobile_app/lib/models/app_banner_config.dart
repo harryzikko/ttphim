@@ -9,6 +9,7 @@ class AppBannerConfig {
   final String imageIpadVertical;
   final String imageIpadLandscape;
   final int cooldownHours;
+  final bool popunderOnClose;
 
   const AppBannerConfig({
     required this.enabled,
@@ -21,6 +22,7 @@ class AppBannerConfig {
     required this.imageIpadVertical,
     required this.imageIpadLandscape,
     required this.cooldownHours,
+    this.popunderOnClose = true,
   });
 
   factory AppBannerConfig.defaults() {
@@ -35,6 +37,7 @@ class AppBannerConfig {
       imageIpadVertical: '/images/banners/banner_ipad_vertical.png',
       imageIpadLandscape: '/images/banners/banner_ipad_portrait.png',
       cooldownHours: 0,
+      popunderOnClose: true,
     );
   }
 
@@ -50,6 +53,7 @@ class AppBannerConfig {
       imageIpadVertical: json['image_ipad_vertical'] as String? ?? '/images/banners/banner_ipad_vertical.png',
       imageIpadLandscape: json['image_ipad_landscape'] as String? ?? '/images/banners/banner_ipad_portrait.png',
       cooldownHours: (json['cooldown_hours'] as num?)?.toInt() ?? 0,
+      popunderOnClose: json['popunder_on_close'] != false,
     );
   }
 }

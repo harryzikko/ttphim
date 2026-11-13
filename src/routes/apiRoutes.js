@@ -1060,7 +1060,8 @@ const defaultAppBanner = {
   image_mobile_vertical: '/images/banners/banner_mobile_vertical.png',
   image_ipad_vertical: '/images/banners/banner_ipad_vertical.png',
   image_ipad_landscape: '/images/banners/banner_ipad_portrait.png',
-  cooldown_hours: 0
+  cooldown_hours: 0,
+  popunder_on_close: true
 };
 
 // Public endpoint for mobile app
@@ -1103,7 +1104,8 @@ router.post('/admin/app-banner', async (req, res) => {
       image_mobile_vertical: typeof image_mobile_vertical === 'string' && image_mobile_vertical.trim() ? image_mobile_vertical.trim() : defaultAppBanner.image_mobile_vertical,
       image_ipad_vertical: typeof image_ipad_vertical === 'string' && image_ipad_vertical.trim() ? image_ipad_vertical.trim() : defaultAppBanner.image_ipad_vertical,
       image_ipad_landscape: typeof image_ipad_landscape === 'string' && image_ipad_landscape.trim() ? image_ipad_landscape.trim() : defaultAppBanner.image_ipad_landscape,
-      cooldown_hours: Math.max(0, Math.min(168, Number(cooldown_hours) || 0))
+      cooldown_hours: Math.max(0, Math.min(168, Number(cooldown_hours) || 0)),
+      popunder_on_close: req.body?.popunder_on_close !== false && req.body?.popunder_on_close !== 'false'
     };
 
     await dbService.updateSettings({ app_banner });
@@ -1148,8 +1150,11 @@ router.get('/admin/popunder-ads', async (req, res) => {
 router.post('/admin/popunder-ads', async (req, res) => {
   try {
     const { enabled, clocid, frequency_minutes, allow_desktop_web, allow_mobile_web } = req.body || {};
+    const currentSettings = await dbService.getSettings();
+    const currentPopunder = currentSettings.popunder_ads || {};
     const popunder_ads = {
       ...defaultPopunderAds,
+      ...currentPopunder,
       enabled: enabled === true || enabled === 'true',
       clocid: typeof clocid === 'string' && clocid.trim() ? clocid.trim() : defaultPopunderAds.clocid,
       frequency_minutes: Math.max(1, Math.min(1440, Number(frequency_minutes) || 30)),
@@ -1362,7 +1367,25 @@ router.get('/admin/settings', async (req, res) => {
 router.post('/admin/settings', async (req, res) => {
   try {
     if (Object.hasOwn(req.body, 'banner_config') || Object.hasOwn(req.body, 'advertising')) return res.status(400).json({ status: false, message: 'Dùng trình quản lý banner để lưu cấu hình banner' });
-    const updated = await dbService.updateSettings(req.body);
+    const updated = await dbService.updateSettings(await (async () => {
+    const current = await dbService.getSettings();
+    const updatePayload = { ...req.body };
+    if (req.body.popunder_ads && typeof req.body.popunder_ads === 'object') {
+      updatePayload.popunder_ads = {
+        ...defaultPopunderAds,
+        ...(current.popunder_ads || {}),
+        ...req.body.popunder_ads
+      };
+    }
+    if (req.body.app_banner && typeof req.body.app_banner === 'object') {
+      updatePayload.app_banner = {
+        ...defaultAppBanner,
+        ...(current.app_banner || {}),
+        ...req.body.app_banner
+      };
+    }
+    return updatePayload;
+  })());
     kkphimService.clearHomeCache();
     res.json({ status: true, message: 'Đã lưu cài đặt hệ thống thành công!', data: updated });
   } catch (err) {

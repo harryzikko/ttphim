@@ -985,13 +985,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (aImgIpadVEl) aImgIpadVEl.value = appBanner.image_ipad_vertical || '/images/banners/banner_ipad_vertical.png';
         if (aImgIpadHEl) aImgIpadHEl.value = appBanner.image_ipad_landscape || '/images/banners/banner_ipad_portrait.png';
         if (aCooldownEl) aCooldownEl.value = appBanner.cooldown_hours != null ? appBanner.cooldown_hours : 0;
+        const aPopunderCloseEl = document.getElementById('setting-app-ad-popunder-close');
+        if (aPopunderCloseEl) aPopunderCloseEl.checked = appBanner.popunder_on_close !== false;
       } catch (aErr) {
         console.warn('[CineViet Admin] Failed to load app banner config:', aErr);
       }
 
       // Load Popunder config
       try {
-        const popunder = currentSettings.popunder_ads || (await API.getAdminPopunder()) || {};
+        const popunder = (await API.getAdminPopunder()) || currentSettings?.popunder_ads || {};
+        if (currentSettings) currentSettings.popunder_ads = popunder;
         const popEnabledEl = document.getElementById('setting-popunder-enabled');
         const popClocidEl = document.getElementById('setting-popunder-clocid');
         const popFreqEl = document.getElementById('setting-popunder-frequency');
@@ -1203,7 +1206,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         image_mobile_vertical: document.getElementById('setting-app-ad-image-mobile')?.value.trim() || '',
         image_ipad_vertical: document.getElementById('setting-app-ad-image-ipad-v')?.value.trim() || '',
         image_ipad_landscape: document.getElementById('setting-app-ad-image-ipad-h')?.value.trim() || '',
-        cooldown_hours: Number(document.getElementById('setting-app-ad-cooldown')?.value) || 0
+        cooldown_hours: Number(document.getElementById('setting-app-ad-cooldown')?.value) || 0,
+        popunder_on_close: document.getElementById('setting-app-ad-popunder-close')?.checked !== false
       };
       const res = await API.updateAdminAppBanner(payload);
       if (res?.status) {
@@ -1304,6 +1308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
       const res = await API.updateAdminPopunder(payload);
       if (res?.status) {
+        if (currentSettings) currentSettings.popunder_ads = { ...(currentSettings.popunder_ads || {}), ...(res.data || payload) };
         if (window.showToast) window.showToast('Đã lưu cấu hình quảng cáo Popunder thành công!');
         else alert('Đã lưu cấu hình quảng cáo Popunder thành công!');
       } else {
@@ -1362,14 +1367,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     const siteTitle = document.getElementById('setting-site-title')?.value.trim();
 
     try {
-      const res = await API.updateAdminSettings({
+      const payload = {
         announcement: ann,
         announcement_active: annActive,
         site_title: siteTitle
-      });
-      window.showToast(res.message || 'Đã lưu cấu hình website thành công!');
+      };
+      if (document.getElementById('setting-popunder-enabled')) {
+        payload.popunder_ads = {
+          enabled: document.getElementById('setting-popunder-enabled')?.checked ?? true,
+          clocid: document.getElementById('setting-popunder-clocid')?.value.trim() || '2119458',
+          frequency_minutes: Math.max(1, Math.min(1440, Number(document.getElementById('setting-popunder-frequency')?.value) || 30))
+        };
+      }
+      if (document.getElementById('setting-app-ad-enabled')) {
+        payload.app_banner = {
+          enabled: document.getElementById('setting-app-ad-enabled')?.checked || false,
+          title: document.getElementById('setting-app-ad-title')?.value.trim() || '',
+          description: document.getElementById('setting-app-ad-desc')?.value.trim() || '',
+          href: document.getElementById('setting-app-ad-href')?.value.trim() || '',
+          cta_text: document.getElementById('setting-app-ad-cta')?.value.trim() || '',
+          countdown_seconds: Number(document.getElementById('setting-app-ad-countdown')?.value) || 5,
+          image_mobile_vertical: document.getElementById('setting-app-ad-image-mobile')?.value.trim() || '',
+          image_ipad_vertical: document.getElementById('setting-app-ad-image-ipad-v')?.value.trim() || '',
+          image_ipad_landscape: document.getElementById('setting-app-ad-image-ipad-h')?.value.trim() || '',
+          cooldown_hours: Number(document.getElementById('setting-app-ad-cooldown')?.value) || 0,
+          popunder_on_close: document.getElementById('setting-app-ad-popunder-close')?.checked !== false
+        };
+      }
+      const res = await API.updateAdminSettings(payload);
+      if (currentSettings) {
+        if (payload.popunder_ads) currentSettings.popunder_ads = { ...(currentSettings.popunder_ads || {}), ...payload.popunder_ads };
+        if (payload.app_banner) currentSettings.app_banner = { ...(currentSettings.app_banner || {}), ...payload.app_banner };
+      }
+      if (window.showToast) window.showToast(res?.message || 'Đã lưu cấu hình website thành công!');
+      else alert('Đã lưu cấu hình website thành công!');
     } catch(e) {
-      window.showToast('Lỗi lưu cấu hình website', 'error');
+      if (window.showToast) window.showToast('Lỗi lưu cấu hình website', 'error');
+      else alert('Lỗi lưu cấu hình website');
     }
   });
 

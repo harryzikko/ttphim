@@ -1397,6 +1397,17 @@
                 <input id="setting-app-ad-cooldown" type="number" min="0" max="168" class="w-full p-3 rounded-xl bg-surface-container-high text-on-surface text-sm border border-surface-container-highest focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0" />
                 <span class="text-[11px] text-on-surface-variant mt-1 block">Đặt là 0 để hiển thị mỗi lần người dùng mở app.</span>
               </div>
+
+              <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-high border border-surface-container-highest/40 md:col-span-2">
+                <div>
+                  <span class="text-sm font-bold text-on-surface block">Mở quảng cáo khi ấn Đóng / Bỏ qua (Popunder on Close)</span>
+                  <span class="text-xs text-on-surface-variant">Khi người dùng ấn Đóng/Bỏ qua banner sau 5s đếm ngược trên app iOS/Android, tự động mở liên kết quảng cáo ra trình duyệt ngoài (Chrome/Safari) trước khi vào trang chủ</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input id="setting-app-ad-popunder-close" type="checkbox" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
             </div>
 
             <div class="pt-2 flex flex-wrap items-center gap-3">
@@ -2087,9 +2098,9 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=3.6.5"></script>
+  <script src="/js/api.js?v=3.6.6"></script>
   <script src="/js/header.js?v=3.4.0"></script>
-  <script src="/js/admin.js?v=2.9.6"></script>
+  <script src="/js/admin.js?v=2.9.7"></script>
 </body>
 </html>
 

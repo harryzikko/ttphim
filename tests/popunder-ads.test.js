@@ -64,3 +64,10 @@ test('header.js loads popunder.js asynchronously', () => {
   assert.ok(headerJs.includes('popunder.js'), 'header.js must reference popunder.js');
   assert.ok(headerJs.includes('initPopunderScript'), 'header.js must call initPopunderScript');
 });
+
+test('admin.html has popunder-on-close toggle and fresh script versions', () => {
+  const adminHtml = fs.readFileSync('public/admin.html', 'utf8');
+  assert.ok(adminHtml.includes('id="setting-app-ad-popunder-close"'), 'admin.html must contain setting-app-ad-popunder-close');
+  assert.ok(adminHtml.includes('admin.js?v=2.9.7'), 'admin.js cache version must be bumped to 2.9.7');
+  assert.ok(adminHtml.includes('api.js?v=3.6.6'), 'api.js cache version must be bumped to 3.6.6');
+});

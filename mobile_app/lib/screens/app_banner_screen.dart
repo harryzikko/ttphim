@@ -121,6 +121,13 @@ class _AppBannerScreenState extends State<AppBannerScreen> {
     }
   }
 
+  void _handleDismiss() {
+    if (_config?.popunderOnClose == true) {
+      unawaited(_openLink());
+    }
+    _proceedToMain();
+  }
+
   String _resolveUrl(String path) {
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
     final base = AppConfig.backendUrl.replaceAll(RegExp(r'/+$'), '');
@@ -293,7 +300,7 @@ class _AppBannerScreenState extends State<AppBannerScreen> {
                     child: _canDismiss
                         ? InkWell(
                             key: const ValueKey('dismiss_active'),
-                            onTap: _proceedToMain,
+                            onTap: _handleDismiss,
                             borderRadius: BorderRadius.circular(22),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
