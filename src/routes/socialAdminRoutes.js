@@ -104,6 +104,42 @@ function createSocialAdminRouter({
     return forward(req, res, { method: 'DELETE', targetPath: `/api/queue/${encodeURIComponent(id)}` });
   });
 
+  router.get('/admin/social/radar', (req, res) => {
+    return forward(req, res, { method: 'GET', targetPath: '/api/radar' });
+  });
+
+  router.post('/admin/social/radar', (req, res) => {
+    return forward(req, res, { method: 'POST', targetPath: '/api/radar', body: req.body || {} });
+  });
+
+  router.post('/admin/social/radar/scan', (req, res) => {
+    return forward(req, res, { method: 'POST', targetPath: '/api/radar/scan', body: req.body || {} });
+  });
+
+  router.post('/admin/social/radar/:id/regenerate', (req, res) => {
+    const id = validId(req, res);
+    if (!id) return;
+    return forward(req, res, { method: 'POST', targetPath: `/api/radar/${encodeURIComponent(id)}/regenerate`, body: req.body || {} });
+  });
+
+  router.patch('/admin/social/radar/:id/status', (req, res) => {
+    const id = validId(req, res);
+    if (!id) return;
+    return forward(req, res, { method: 'PATCH', targetPath: `/api/radar/${encodeURIComponent(id)}/status`, body: req.body || {} });
+  });
+
+  router.delete('/admin/social/radar/:id', (req, res) => {
+    const id = validId(req, res);
+    if (!id) return;
+    return forward(req, res, { method: 'DELETE', targetPath: `/api/radar/${encodeURIComponent(id)}` });
+  });
+
+  router.post('/admin/social/radar/:id/alert', (req, res) => {
+    const id = validId(req, res);
+    if (!id) return;
+    return forward(req, res, { method: 'POST', targetPath: `/api/radar/${encodeURIComponent(id)}/alert`, body: req.body || {} });
+  });
+
   return router;
 }
 

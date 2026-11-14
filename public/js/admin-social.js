@@ -161,7 +161,9 @@
       'social-stat-published': s.total_published ?? 0,
       'social-stat-scheduled': s.scheduled_count ?? 0,
       'social-stat-queue-done': s.published_queue_count ?? 0,
-      'social-stat-failed': s.failed_or_partial_count ?? 0
+      'social-stat-failed': s.failed_or_partial_count ?? 0,
+      'social-stat-radar-pending': s.radar_pending_count ?? 0,
+      'social-stat-radar-done': s.radar_commented_count ?? 0
     };
     for (const [id, val] of Object.entries(map)) {
       const el = document.getElementById(id);
@@ -480,6 +482,177 @@
     }).join('');
   }
 
+  let activeRadarFilter = 'all';
+  let cachedRadarPosts = [];
+
+  function radarStatusBadgeHtml(status) {
+    if (status === 'commented') {
+      return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Đã bình luận</span>';
+    }
+    if (status === 'skipped') {
+      return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface-container-highest text-on-surface-variant border border-surface-container-highest">Đã bỏ qua</span>';
+    }
+    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">Chờ tương tác</span>';
+  }
+
+  function renderRadar(posts = null) {
+    if (posts) cachedRadarPosts = posts;
+    const all = cachedRadarPosts || [];
+    const rootEl = document.getElementById('social-radar-list');
+    if (!rootEl) return;
+
+    const countAll = all.length;
+    const countPending = all.filter(p => p.status === 'pending').length;
+    const countCommented = all.filter(p => p.status === 'commented').length;
+    const countSkipped = all.filter(p => p.status === 'skipped').length;
+
+    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
+    setTxt('radar-count-all', countAll);
+    setTxt('radar-count-pending', countPending);
+    setTxt('radar-count-commented', countCommented);
+    setTxt('radar-count-skipped', countSkipped);
+    setTxt('social-stat-radar-pending', countPending);
+    setTxt('social-stat-radar-done', countCommented);
+
+    const filtered = activeRadarFilter === 'all'
+      ? all
+      : all.filter(p => p.status === activeRadarFilter);
+
+    if (!filtered.length) {
+      rootEl.innerHTML = '<div class="p-6 rounded-xl bg-surface-container text-center text-xs text-on-surface-variant">Không có bài viết nào trong bộ lọc này. Hãy bấm "Quét Bài Mới Ngay" hoặc "Thêm Bài Thủ Công".</div>';
+      return;
+    }
+
+    rootEl.innerHTML = filtered.map(post => {
+      const drafts = Array.isArray(post.suggested_comments) ? post.suggested_comments : [];
+      const link = safeUrl(post.url);
+      const timeStr = formatVnDateTime(post.created_at);
+      const tgBadge = post.telegram_alert_sent
+        ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30" title="Đã gửi về Telegram">📲 Đã báo Telegram</span>'
+        : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-highest text-on-surface-variant/70">Chưa báo Telegram</span>';
+
+      return `
+        <div class="p-4 rounded-xl bg-surface-container border border-surface-container-highest/60 space-y-3" data-radar-id="${escapeHtml(post.id)}">
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="font-bold text-sm text-on-surface">
+                ${link ? `<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="hover:underline text-sky-400 inline-flex items-center gap-1">${escapeHtml(post.title)} <span class="material-symbols-outlined text-[14px]">open_in_new</span></a>` : `<span>${escapeHtml(post.title)}</span>`}
+              </div>
+              <div class="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-on-surface-variant">
+                <span>Nền tảng: <b class="text-on-surface">${escapeHtml((post.platform || 'MXH').toUpperCase())}</b></span>
+                <span>•</span>
+                <span>Chủ đề: <b class="text-on-surface">${escapeHtml(post.topic || 'Review Phim')}</b></span>
+                <span>•</span>
+                <span>${escapeHtml(timeStr)}</span>
+                <span>•</span>
+                ${radarStatusBadgeHtml(post.status)}
+                ${tgBadge}
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+              ${post.status !== 'commented'
+                ? `<button type="button" class="btn-radar-status px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 text-xs font-bold border border-emerald-500/30 transition-colors cursor-pointer" data-id="${escapeHtml(post.id)}" data-status="commented">✅ Đã cmt</button>`
+                : `<button type="button" class="btn-radar-status px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest text-xs font-semibold transition-colors cursor-pointer" data-id="${escapeHtml(post.id)}" data-status="pending">↩ Chờ lại</button>`}
+              <button type="button" class="btn-radar-alert px-2.5 py-1 rounded-lg bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 text-xs font-bold border border-sky-500/30 transition-colors cursor-pointer" data-id="${escapeHtml(post.id)}" title="Gửi lại về Telegram">📲 Báo Telegram</button>
+              <button type="button" class="btn-radar-regen px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest text-xs font-semibold transition-colors cursor-pointer" data-id="${escapeHtml(post.id)}" title="Tạo lại 3 mẫu bình luận khác">🔄 Đổi mẫu</button>
+              <button type="button" class="btn-radar-del px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 text-xs font-bold border border-rose-500/30 transition-colors cursor-pointer" data-id="${escapeHtml(post.id)}">Xóa</button>
+            </div>
+          </div>
+
+          ${post.snippet ? `<div class="p-2.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant italic border-l-2 border-primary/50">"${escapeHtml(post.snippet)}"</div>` : ''}
+
+          <div class="space-y-2">
+            ${drafts.map((d, idx) => {
+              const icon = idx === 0 ? '💬' : idx === 1 ? '🎬' : '⭐';
+              return `
+                <div class="p-3 rounded-lg bg-surface-container-low border border-surface-container-highest/40 space-y-1.5">
+                  <div class="flex items-center justify-between text-[11px] font-bold text-on-surface-variant uppercase tracking-wide">
+                    <span>${icon} ${escapeHtml(d.label || d.type)}</span>
+                    <button type="button" class="btn-radar-copy px-2.5 py-0.5 rounded-md bg-surface-container-high hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-copy="${escapeHtml(d.text)}">📋 Sao chép</button>
+                  </div>
+                  <div class="text-xs text-on-surface leading-relaxed select-all whitespace-pre-wrap">${escapeHtml(d.text)}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    rootEl.querySelectorAll('.btn-radar-copy').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const text = btn.dataset.copy || '';
+        try {
+          await navigator.clipboard.writeText(text);
+          const orig = btn.textContent;
+          btn.textContent = '✓ Đã chép!';
+          btn.classList.add('bg-emerald-500', 'text-white');
+          setTimeout(() => {
+            btn.textContent = orig;
+            btn.classList.remove('bg-emerald-500', 'text-white');
+          }, 2000);
+          toast('Đã sao chép bình luận vào clipboard!');
+        } catch (_) {
+          toast('Không thể tự sao chép, vui lòng bôi đen văn bản');
+        }
+      });
+    });
+
+    rootEl.querySelectorAll('.btn-radar-status').forEach(btn => {
+      btn.addEventListener('click', () => withLock(async () => {
+        try {
+          await root.API.updateAdminSocialRadarStatus(btn.dataset.id, btn.dataset.status);
+          toast('Đã cập nhật trạng thái bài viết!');
+          await loadSocialTab();
+        } catch (err) {
+          toast(err?.message || 'Lỗi cập nhật trạng thái', 'error');
+        }
+      }));
+    });
+
+    rootEl.querySelectorAll('.btn-radar-alert').forEach(btn => {
+      btn.addEventListener('click', () => withLock(async () => {
+        btn.disabled = true;
+        try {
+          await root.API.alertAdminSocialRadarPost(btn.dataset.id);
+          toast('Đã gửi thông báo kèm 3 mẫu cmt về Telegram!');
+          await loadSocialTab();
+        } catch (err) {
+          toast(err?.message || 'Lỗi gửi Telegram', 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      }));
+    });
+
+    rootEl.querySelectorAll('.btn-radar-regen').forEach(btn => {
+      btn.addEventListener('click', () => withLock(async () => {
+        btn.disabled = true;
+        try {
+          await root.API.regenerateAdminSocialRadarPost(btn.dataset.id);
+          toast('Đã tạo 3 mẫu bình luận mới!');
+          await loadSocialTab();
+        } catch (err) {
+          toast(err?.message || 'Lỗi tạo lại mẫu', 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      }));
+    });
+
+    rootEl.querySelectorAll('.btn-radar-del').forEach(btn => {
+      btn.addEventListener('click', () => withLock(async () => {
+        try {
+          await root.API.deleteAdminSocialRadarPost(btn.dataset.id);
+          toast('Đã xóa bài viết khỏi radar');
+          await loadSocialTab();
+        } catch (err) {
+          toast(err?.message || 'Lỗi xóa bài', 'error');
+        }
+      }));
+    });
+  }
+
   function renderDashboard(data) {
     lastDashboard = data;
     showOfflineBanner('');
@@ -487,6 +660,7 @@
     renderStats(data?.stats);
     renderSettings(data?.settings, data?.open_slots);
     renderIntegrations(data?.integrations);
+    renderRadar(data?.radar_posts);
     renderQueue(data?.queue);
     renderPublishedHistory(data?.published_movies);
     renderRunLogs(data?.run_logs);
@@ -664,6 +838,89 @@
         if (lastDashboard) renderQueue(lastDashboard.queue);
       });
     });
+
+    document.querySelectorAll('.social-radar-filter-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-radar-filter') || 'all';
+        activeRadarFilter = target;
+        document.querySelectorAll('.social-radar-filter-btn').forEach((b) => {
+          const active = b.getAttribute('data-radar-filter') === target;
+          b.classList.toggle('bg-primary', active);
+          b.classList.toggle('text-white', active);
+          b.classList.toggle('bg-surface-container', !active);
+          b.classList.toggle('text-on-surface-variant', !active);
+        });
+        if (lastDashboard) renderRadar(lastDashboard.radar_posts);
+      });
+    });
+
+    document.getElementById('btn-social-radar-scan')?.addEventListener('click', () => withLock(async () => {
+      const btn = document.getElementById('btn-social-radar-scan');
+      if (btn) btn.disabled = true;
+      toast('Đang quét các bài viết review phim mới nhất...');
+      try {
+        const res = await root.API.scanAdminSocialRadar({ max_new: 3 });
+        const count = res?.added_count || 0;
+        toast(count > 0 ? `Đã phát hiện và thêm ${count} bài viết mới kèm 3 mẫu cmt!` : 'Không có bài viết mới chưa quét.');
+        await loadSocialTab();
+      } catch (err) {
+        toast(err?.message || 'Lỗi khi quét bài radar', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }));
+
+    document.getElementById('btn-social-radar-toggle-form')?.addEventListener('click', () => {
+      const form = document.getElementById('social-radar-form-wrap');
+      if (!form) return;
+      form.classList.toggle('hidden');
+      if (!form.classList.contains('hidden')) {
+        document.getElementById('social-radar-input-url')?.focus();
+      }
+    });
+
+    document.getElementById('btn-social-radar-cancel')?.addEventListener('click', () => {
+      document.getElementById('social-radar-form-wrap')?.classList.add('hidden');
+    });
+
+    document.getElementById('btn-social-radar-submit')?.addEventListener('click', () => withLock(async () => {
+      const btn = document.getElementById('btn-social-radar-submit');
+      const url = document.getElementById('social-radar-input-url')?.value.trim();
+      const title = document.getElementById('social-radar-input-title')?.value.trim();
+      const platform = document.getElementById('social-radar-input-platform')?.value || 'facebook';
+      const topic = document.getElementById('social-radar-input-topic')?.value || 'Review Phim';
+      const movieContext = document.getElementById('social-radar-input-movie')?.value.trim();
+      const sendAlert = document.getElementById('social-radar-input-alert')?.checked ?? true;
+
+      if (!url && !title) {
+        toast('Vui lòng nhập đường link bài viết hoặc tiêu đề', 'error');
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      toast('Đang phân tích bài viết & tạo 3 gợi ý bình luận...');
+      try {
+        await root.API.addAdminSocialRadarPost({
+          url,
+          title,
+          snippet: title,
+          platform,
+          topic,
+          movieContext,
+          sendAlert
+        });
+        toast('Đã thêm bài viết và gửi thông báo về Telegram!');
+        if (document.getElementById('social-radar-input-url')) document.getElementById('social-radar-input-url').value = '';
+        if (document.getElementById('social-radar-input-title')) document.getElementById('social-radar-input-title').value = '';
+        if (document.getElementById('social-radar-input-movie')) document.getElementById('social-radar-input-movie').value = '';
+        document.getElementById('social-radar-form-wrap')?.classList.add('hidden');
+        await loadSocialTab();
+      } catch (err) {
+        toast(err?.message || 'Lỗi thêm bài viết', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }));
 
     const queueList = document.getElementById('social-queue-list');
     queueList?.addEventListener('input', (e) => {
