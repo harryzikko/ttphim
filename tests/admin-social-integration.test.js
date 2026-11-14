@@ -137,34 +137,6 @@ before(async () => {
         res.end(JSON.stringify({ status: true }));
         return;
       }
-      if (req.url === '/api/radar' && req.method === 'GET') {
-        res.end(JSON.stringify({ status: true, data: [] }));
-        return;
-      }
-      if (req.url === '/api/radar' && req.method === 'POST') {
-        res.end(JSON.stringify({ status: true, data: { id: 'radar_1234', title: 'Post 1' } }));
-        return;
-      }
-      if (req.url === '/api/radar/scan' && req.method === 'POST') {
-        res.end(JSON.stringify({ status: true, data: { added_count: 2 } }));
-        return;
-      }
-      if (req.url === '/api/radar/radar_1234/regenerate' && req.method === 'POST') {
-        res.end(JSON.stringify({ status: true, data: { id: 'radar_1234', suggested_comments: [] } }));
-        return;
-      }
-      if (req.url === '/api/radar/radar_1234/status' && req.method === 'PATCH') {
-        res.end(JSON.stringify({ status: true, data: { id: 'radar_1234', status: parsed.status } }));
-        return;
-      }
-      if (req.url === '/api/radar/radar_1234/alert' && req.method === 'POST') {
-        res.end(JSON.stringify({ status: true, message: 'Sent' }));
-        return;
-      }
-      if (req.url === '/api/radar/radar_1234' && req.method === 'DELETE') {
-        res.end(JSON.stringify({ status: true }));
-        return;
-      }
 
       res.statusCode = 404;
       res.end(JSON.stringify({ status: false, message: 'Not found' }));
@@ -215,14 +187,7 @@ test('/api/admin/social/* enforces admin authentication and rejects invalid IDs'
     ['POST', '/api/admin/social/jobs/tick', {}],
     ['PATCH', '/api/admin/social/queue/post_1234', { facebook_caption: 'hi' }],
     ['POST', '/api/admin/social/queue/post_1234/publish', {}],
-    ['DELETE', '/api/admin/social/queue/post_1234'],
-    ['GET', '/api/admin/social/radar'],
-    ['POST', '/api/admin/social/radar', { url: 'https://fb.com/123' }],
-    ['POST', '/api/admin/social/radar/scan', {}],
-    ['POST', '/api/admin/social/radar/radar_1234/regenerate', {}],
-    ['PATCH', '/api/admin/social/radar/radar_1234/status', { status: 'commented' }],
-    ['POST', '/api/admin/social/radar/radar_1234/alert', {}],
-    ['DELETE', '/api/admin/social/radar/radar_1234']
+    ['DELETE', '/api/admin/social/queue/post_1234']
   ];
 
   for (const [method, url, body] of routes) {
@@ -291,36 +256,7 @@ test('/api/admin/social/* proxies cleanly to internal bot with bearer token and 
   assert.equal(tgTest.status, 200);
   assert.equal(tgTest.body.data.sent, true);
 
-  const radarList = await apiRequest('/api/admin/social/radar', { user: adminUser });
-  assert.equal(radarList.status, 200);
-
-  const radarScan = await apiRequest('/api/admin/social/radar/scan', { user: adminUser, method: 'POST', body: {} });
-  assert.equal(radarScan.status, 200);
-
-  const radarAdd = await apiRequest('/api/admin/social/radar', {
-    user: adminUser,
-    method: 'POST',
-    body: { url: 'https://threads.net/@user/post/123' }
-  });
-  assert.equal(radarAdd.status, 200);
-
-  const radarRegen = await apiRequest('/api/admin/social/radar/radar_1234/regenerate', { user: adminUser, method: 'POST', body: {} });
-  assert.equal(radarRegen.status, 200);
-
-  const radarStatus = await apiRequest('/api/admin/social/radar/radar_1234/status', {
-    user: adminUser,
-    method: 'PATCH',
-    body: { status: 'commented' }
-  });
-  assert.equal(radarStatus.status, 200);
-
-  const radarAlert = await apiRequest('/api/admin/social/radar/radar_1234/alert', { user: adminUser, method: 'POST', body: {} });
-  assert.equal(radarAlert.status, 200);
-
-  const radarDel = await apiRequest('/api/admin/social/radar/radar_1234', { user: adminUser, method: 'DELETE' });
-  assert.equal(radarDel.status, 200);
-
-  assert.equal(botRequests.length, 17);
+  assert.equal(botRequests.length, 10);
   for (const req of botRequests) {
     assert.equal(req.auth, 'Bearer test-social-secret-token');
   }

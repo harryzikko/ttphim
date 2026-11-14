@@ -69,8 +69,8 @@ test('admin.html has popunder-on-close toggle, popunder-href input and fresh scr
   const adminHtml = fs.readFileSync('public/admin.html', 'utf8');
   assert.ok(adminHtml.includes('id="setting-app-ad-popunder-close"'), 'admin.html must contain setting-app-ad-popunder-close');
   assert.ok(adminHtml.includes('id="setting-app-ad-popunder-href"'), 'admin.html must contain setting-app-ad-popunder-href');
-  assert.ok(/admin\.js\?v=(?:2\.9\.8|[3-9]\.\d+\.\d+)/.test(adminHtml), 'admin.js cache version must be >= 2.9.8');
-  assert.ok(/api\.js\?v=(?:3\.6\.7|[3-9]\.[7-9]\.\d+|[4-9]\.\d+\.\d+)/.test(adminHtml), 'api.js cache version must be >= 3.6.7');
+  assert.ok(adminHtml.includes('admin.js?v=2.9.8'), 'admin.js cache version must be bumped to 2.9.8');
+  assert.ok(adminHtml.includes('api.js?v=3.6.7'), 'api.js cache version must be bumped to 3.6.7');
   assert.ok(adminHtml.includes('analytics-popunder-today'), 'admin.html must contain analytics popunder widget');
 });
 

@@ -575,41 +575,6 @@ const API = {
       method: 'DELETE'
     });
   },
-  async scanAdminSocialRadar(data = {}) {
-    return this._socialRequest('/api/admin/social/radar/scan', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  },
-  async addAdminSocialRadarPost(data) {
-    return this._socialRequest('/api/admin/social/radar', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  },
-  async regenerateAdminSocialRadarPost(id) {
-    return this._socialRequest(`/api/admin/social/radar/${encodeURIComponent(id)}/regenerate`, {
-      method: 'POST',
-      body: JSON.stringify({})
-    });
-  },
-  async updateAdminSocialRadarStatus(id, status) {
-    return this._socialRequest(`/api/admin/social/radar/${encodeURIComponent(id)}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status })
-    });
-  },
-  async deleteAdminSocialRadarPost(id) {
-    return this._socialRequest(`/api/admin/social/radar/${encodeURIComponent(id)}`, {
-      method: 'DELETE'
-    });
-  },
-  async alertAdminSocialRadarPost(id) {
-    return this._socialRequest(`/api/admin/social/radar/${encodeURIComponent(id)}/alert`, {
-      method: 'POST',
-      body: JSON.stringify({})
-    });
-  },
   async uploadAppPackage(file, type, onProgress) {
     return new Promise((resolve, reject) => {
       const base = this.getBaseUrl();
