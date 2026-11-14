@@ -527,6 +527,10 @@
       const drafts = Array.isArray(post.suggested_comments) ? post.suggested_comments : [];
       const link = safeUrl(post.url);
       const timeStr = formatVnDateTime(post.created_at);
+      const isThreads = (post.platform || '').toLowerCase() === 'threads';
+      const platBadge = isThreads
+        ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-fuchsia-500/15 text-fuchsia-400 border border-fuchsia-500/30">🧵 Threads</span>'
+        : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">📘 Facebook</span>';
       const tgBadge = post.telegram_alert_sent
         ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30" title="Đã gửi về Telegram">📲 Đã báo Telegram</span>'
         : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-highest text-on-surface-variant/70">Chưa báo Telegram</span>';
@@ -539,7 +543,7 @@
                 ${link ? `<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="hover:underline text-sky-400 inline-flex items-center gap-1">${escapeHtml(post.title)} <span class="material-symbols-outlined text-[14px]">open_in_new</span></a>` : `<span>${escapeHtml(post.title)}</span>`}
               </div>
               <div class="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-on-surface-variant">
-                <span>Nền tảng: <b class="text-on-surface">${escapeHtml((post.platform || 'MXH').toUpperCase())}</b></span>
+                ${platBadge}
                 <span>•</span>
                 <span>Chủ đề: <b class="text-on-surface">${escapeHtml(post.topic || 'Review Phim')}</b></span>
                 <span>•</span>
@@ -857,11 +861,11 @@
     document.getElementById('btn-social-radar-scan')?.addEventListener('click', () => withLock(async () => {
       const btn = document.getElementById('btn-social-radar-scan');
       if (btn) btn.disabled = true;
-      toast('Đang quét các bài viết review phim mới nhất...');
+      toast('Đang quét các bài thảo luận phim trên Facebook & Threads...');
       try {
         const res = await root.API.scanAdminSocialRadar({ max_new: 3 });
         const count = res?.added_count || 0;
-        toast(count > 0 ? `Đã phát hiện và thêm ${count} bài viết mới kèm 3 mẫu cmt!` : 'Không có bài viết mới chưa quét.');
+        toast(count > 0 ? `Đã tìm thấy ${count} bài thảo luận mới trên Facebook/Threads kèm 3 mẫu cmt!` : 'Không có bài thảo luận mới chưa quét trên Facebook/Threads.');
         await loadSocialTab();
       } catch (err) {
         toast(err?.message || 'Lỗi khi quét bài radar', 'error');

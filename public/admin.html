@@ -13,8 +13,8 @@
   <link rel="stylesheet" href="/css/editorial.css?v=2.0.0">
   <script defer src="/js/admin-banners.js?v=1.2.0"></script>
   <script defer src="/js/admin-sources.js?v=1.1.0"></script>
-  <script defer src="/js/admin-social.js?v=1.4.2"></script>
-  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=771a0ff685a3">
+  <script defer src="/js/admin-social.js?v=1.4.3"></script>
+  <link rel="stylesheet" href="/css/site-0b7e5c2c2091.css?v=a1e228656e7d">
   
   <link rel="stylesheet" href="/css/custom.css?v=3.2.2">
 </head>
@@ -2078,12 +2078,20 @@
             <div class="flex flex-wrap items-center gap-2">
               <button id="btn-social-radar-scan" type="button" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-500/90 text-white text-xs font-bold transition-all shadow cursor-pointer">
                 <span class="material-symbols-outlined text-[16px]">radar</span>
-                <span>Quét Bài Mới Ngay</span>
+                <span>Quét Bài FB &amp; Threads</span>
               </button>
               <button id="btn-social-radar-toggle-form" type="button" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold border border-surface-container-highest transition-all cursor-pointer">
                 <span class="material-symbols-outlined text-[16px]">add_link</span>
                 <span>Thêm Bài Thủ Công</span>
               </button>
+              <a href="https://www.facebook.com/search/posts?q=review%20phim" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-sky-400 text-xs font-semibold border border-surface-container-highest transition-all" title="Mở trang tìm kiếm thảo luận phim trên Facebook">
+                <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                <span>Tìm trên FB</span>
+              </a>
+              <a href="https://www.threads.net/search?q=review+phim" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-fuchsia-400 text-xs font-semibold border border-surface-container-highest transition-all" title="Mở trang tìm kiếm thảo luận phim trên Threads">
+                <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                <span>Tìm trên Threads</span>
+              </a>
             </div>
           </div>
 
@@ -2092,23 +2100,20 @@
             <h3 class="text-xs font-bold text-on-surface uppercase tracking-wider">Thêm bài viết cần phân tích &amp; gợi ý bình luận</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-semibold text-on-surface-variant mb-1">Đường link bài viết (Facebook / Threads / Báo chí)</label>
-                <input id="social-radar-input-url" type="url" placeholder="https://www.facebook.com/... hoặc link bài báo" class="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface text-xs border border-surface-container-highest/60 focus:outline-none focus:border-primary">
+                <label class="block text-xs font-semibold text-on-surface-variant mb-1">Đường link bài viết (Facebook hoặc Threads)</label>
+                <input id="social-radar-input-url" type="url" placeholder="https://www.facebook.com/... hoặc https://www.threads.net/@..." class="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface text-xs border border-surface-container-highest/60 focus:outline-none focus:border-primary">
               </div>
               <div>
                 <label class="block text-xs font-semibold text-on-surface-variant mb-1">Tiêu đề hoặc trích đoạn bài viết</label>
-                <input id="social-radar-input-title" type="text" placeholder="Ví dụ: Đánh giá phim Mùa Hè Năm Ấy tập 9" class="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface text-xs border border-surface-container-highest/60 focus:outline-none focus:border-primary">
+                <input id="social-radar-input-title" type="text" placeholder="Ví dụ: Đánh giá phim Mùa Hè Năm Ấy hoặc trích đoạn thảo luận" class="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface text-xs border border-surface-container-highest/60 focus:outline-none focus:border-primary">
               </div>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <label class="block text-xs font-semibold text-on-surface-variant mb-1">Nền tảng</label>
                 <select id="social-radar-input-platform" class="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface text-xs border border-surface-container-highest/60 focus:outline-none focus:border-primary">
-                  <option value="facebook">Facebook</option>
-                  <option value="threads">Threads</option>
-                  <option value="tin_tuc_mxh">Tin tức / MXH</option>
-                  <option value="reddit">Reddit</option>
-                  <option value="other">Khác</option>
+                  <option value="facebook">📘 Facebook</option>
+                  <option value="threads">🧵 Threads</option>
                 </select>
               </div>
               <div>
@@ -2275,7 +2280,7 @@
 
   <script src="/js/api.js?v=3.7.2"></script>
   <script src="/js/header.js?v=3.4.0"></script>
-  <script src="/js/admin.js?v=3.0.1"></script>
+  <script src="/js/admin.js?v=3.0.2"></script>
 </body>
 </html>
 
