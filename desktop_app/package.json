@@ -1,6 +1,6 @@
 {
   "name": "cineviet-desktop",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "CineViet Desktop App built with Tauri v2 (Rust)",
   "scripts": {

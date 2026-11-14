@@ -1195,11 +1195,11 @@ router.post('/admin/popunder-ads', async (req, res) => {
 
 const defaultAppUpdate = {
   enabled: true,
-  latest_version: '1.0.3',
-  latest_build: 4,
+  latest_version: '1.0.4',
+  latest_build: 5,
   force_update: false,
-  title: 'Bản Cập Nhật CineViet 1.0.3 (Build 4)',
-  release_notes: '• Cập nhật phiên bản mới v1.0.3 (Build 4) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Thêm mục Short Phim (phim ngắn tập màn hình dọc) lướt xem mượt mà trên tất cả nền tảng\n• Cải tiến điều khiển Remote & D-Pad trên Android TV và webOS Smart TV\n• Tối ưu hóa trình phát HLS, tăng độ mượt khi tua và chuyển tập',
+  title: 'Bản Cập Nhật CineViet 1.0.4 (Build 5)',
+  release_notes: '• Cập nhật phiên bản mới v1.0.4 (Build 5) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Thêm mục Short Phim (phim ngắn tập màn hình dọc) lướt xem mượt mà trên tất cả nền tảng\n• Cải tiến điều khiển Remote & D-Pad trên Android TV và webOS Smart TV\n• Tối ưu hóa trình phát HLS, tăng độ mượt khi tua và chuyển tập',
   apk_mobile_url: '/downloads/CineViet-Mobile-release.apk',
   apk_tv_url: '/downloads/CineViet-AndroidTV-release.apk',
   ipk_webos_url: '/downloads/CineViet-webOS-TV.ipk',

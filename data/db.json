@@ -413,11 +413,11 @@
     },
     "app_update": {
       "enabled": true,
-      "latest_version": "1.0.3",
-      "latest_build": 4,
+      "latest_version": "1.0.4",
+      "latest_build": 5,
       "force_update": false,
-      "title": "Bản Cập Nhật CineViet 1.0.3 (Build 4)",
-      "release_notes": "• Cập nhật phiên bản mới v1.0.3 (Build 4) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Thêm mục Short Phim (phim ngắn tập màn hình dọc) lướt xem mượt mà trên tất cả nền tảng\n• Cải tiến điều khiển Remote & D-Pad trên Android TV và webOS Smart TV\n• Tối ưu hóa trình phát HLS, tăng độ mượt khi tua và chuyển tập",
+      "title": "Bản Cập Nhật CineViet 1.0.4 (Build 5)",
+      "release_notes": "• Cập nhật phiên bản mới v1.0.4 (Build 5) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Thêm mục Short Phim (phim ngắn tập màn hình dọc) lướt xem mượt mà trên tất cả nền tảng\n• Cải tiến điều khiển Remote & D-Pad trên Android TV và webOS Smart TV\n• Tối ưu hóa trình phát HLS, tăng độ mượt khi tua và chuyển tập",
       "apk_mobile_url": "/downloads/CineViet-Mobile-release.apk",
       "apk_tv_url": "/downloads/CineViet-AndroidTV-release.apk",
       "ios_url": "/downloads/CineViet-iOS-IPA-Unsigned.ipa"
@@ -2379,5 +2379,39 @@
   "follow_notifications": [],
   "follow_checks": [],
   "sessions": [],
-  "donations": []
+  "donations": [],
+  "movie_reactions": [
+    {
+      "id": "react_c981d03d-175c-47b6-bc9c-33e91dbb77ec",
+      "movie_slug": "test-db-reaction-1794622183980",
+      "user_id": "test-user-db-1794622183980",
+      "reaction": "laugh",
+      "created_at": "2026-11-14T02:09:44.048Z"
+    }
+  ],
+  "popunder_metrics": {
+    "total_clicks": 2,
+    "by_platform": {
+      "desktop": 1,
+      "mobile": 0,
+      "mobile_app": 1
+    },
+    "by_date": {
+      "2026-11-14": 2
+    },
+    "recent_clicks": [
+      {
+        "timestamp": "2026-11-14T02:09:59.979Z",
+        "platform": "mobile_app",
+        "path": "/app-banner-close",
+        "ip": "14.162.***.***"
+      },
+      {
+        "timestamp": "2026-11-14T02:09:59.919Z",
+        "platform": "desktop",
+        "path": "/phim/test",
+        "ip": "113.161.***.***"
+      }
+    ]
+  }
 }
