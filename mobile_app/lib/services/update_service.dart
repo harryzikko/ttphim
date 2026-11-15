@@ -12,8 +12,8 @@ import 'api_service.dart';
 import 'app_config.dart';
 
 class UpdateService {
-  static String _version = '1.0.4';
-  static int _buildNumber = 5;
+  static String _version = '1.0.5';
+  static int _buildNumber = 6;
   static bool _versionInitialized = false;
 
   static String get currentVersion => _version;
