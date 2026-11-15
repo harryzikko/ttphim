@@ -769,7 +769,15 @@
 
   function openContinueDialog(item) {
     var modal = document.getElementById('tv-modal-layer');
-    var isShortItem = Boolean(item.is_short || item.type === 'short-phim' || item.type === 'short' || (item.movie_slug && item.movie_slug.indexOf('shortflix:') === 0));
+    var isShortItem = Boolean(
+      item.is_short ||
+      item.type === 'short-phim' ||
+      item.type === 'short' ||
+      item.type === 'shortflix' ||
+      (item.server_name && item.server_name.toLowerCase().indexOf('shortflix') !== -1) ||
+      (item.origin_name && item.origin_name.indexOf('Short') !== -1) ||
+      (item.movie_slug && item.movie_slug.indexOf('shortflix:') === 0)
+    );
     var cleanSlug = (item.movie_slug || '').replace(/^shortflix:/, '');
 
     modal.innerHTML =

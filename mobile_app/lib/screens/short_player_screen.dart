@@ -11,11 +11,13 @@ import '../theme/app_theme.dart';
 class ShortPlayerScreen extends StatefulWidget {
   final ShortDramaItem item;
   final int initialEpisode;
+  final int initialPositionSeconds;
 
   const ShortPlayerScreen({
     super.key,
     required this.item,
     this.initialEpisode = 1,
+    this.initialPositionSeconds = 0,
   });
 
   @override
@@ -42,6 +44,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
   bool _isLoadingStream = true;
   bool _showOverlay = true;
   bool _isFastForwarding = false;
+  bool _hasSeekedInitial = false;
   String? _error;
 
   int _loadToken = 0;
@@ -210,6 +213,12 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
           return;
         }
         nextController.addListener(_onVideoTick);
+        if (widget.initialPositionSeconds > 0 && !_hasSeekedInitial) {
+          _hasSeekedInitial = true;
+          try {
+            await nextController.seekTo(Duration(seconds: widget.initialPositionSeconds));
+          } catch (_) {}
+        }
         await nextController.play();
         setState(() {
           _controller = nextController;
@@ -397,7 +406,9 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
     final ctrl = _controller;
     final ready = ctrl != null && ctrl.value.isInitialized;
     final durationMs = ready ? ctrl.value.duration.inMilliseconds : 0;
-    final positionMs = ready ? ctrl.value.position.inMilliseconds.clamp(0, durationMs > 0 ? durationMs : 1) : 0;
+    final positionMs = ready && durationMs > 0
+        ? ctrl.value.position.inMilliseconds.clamp(0, durationMs)
+        : 0;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -423,7 +434,9 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
               Center(
                 child: ready
                     ? AspectRatio(
-                        aspectRatio: ctrl.value.aspectRatio > 0 ? ctrl.value.aspectRatio : 9 / 16,
+                        aspectRatio: (ctrl.value.aspectRatio.isFinite && ctrl.value.aspectRatio > 0)
+                            ? ctrl.value.aspectRatio
+                            : 9 / 16,
                         child: VideoPlayer(ctrl),
                       )
                     : const SizedBox.shrink(),
@@ -623,9 +636,9 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
                                     thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                                   ),
                                   child: Slider(
-                                    value: positionMs.toDouble(),
+                                    value: positionMs.toDouble().clamp(0.0, durationMs > 0 ? durationMs.toDouble() : 1.0),
                                     min: 0,
-                                    max: durationMs.toDouble(),
+                                    max: durationMs > 0 ? durationMs.toDouble() : 1.0,
                                     activeColor: AppTheme.primary,
                                     inactiveColor: Colors.white24,
                                     onChanged: (v) {

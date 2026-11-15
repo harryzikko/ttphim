@@ -82,7 +82,15 @@
       section.classList.remove('hidden'); section.hidden = false;
       for (const item of items) {
         const card = node('article', 'continue-card'); card.dataset.slug = item.movie_slug;
-        const isShort = Boolean(item.type === 'short-phim' || item.type === 'short' || item.is_short || (item.movie_slug || '').startsWith('shortflix:'));
+        const isShort = Boolean(
+          item.is_short ||
+          item.type === 'short-phim' ||
+          item.type === 'short' ||
+          item.type === 'shortflix' ||
+          (item.server_name && item.server_name.toLowerCase().includes('shortflix')) ||
+          (item.origin_name && item.origin_name.includes('Short')) ||
+          (item.movie_slug || '').startsWith('shortflix:')
+        );
         const cleanSlug = (item.movie_slug || '').replace(/^shortflix:/, '');
         const epNumber = (item.episode_slug || 'tap-1').replace(/^tap-/, '') || '1';
         const path = isShort

@@ -6,6 +6,7 @@ import '../screens/detail_screen.dart';
 import '../screens/player_screen.dart';
 import '../screens/short_player_screen.dart';
 import '../services/api_service.dart';
+import '../services/shortflix_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 
@@ -44,6 +45,28 @@ class _ContinueWatchingRailState extends State<ContinueWatchingRail> {
     }
   }
 
+  void _openShortPlayer(BuildContext context, WatchHistoryItem item, {ShortDramaItem? resolvedItem}) async {
+    final cleanSlug = item.movieSlug.replaceFirst('shortflix:', '');
+    final shortItem = resolvedItem ?? ShortDramaItem(
+      slug: cleanSlug,
+      name: item.movieName,
+      posterUrl: item.posterUrl,
+      posterFallbackUrl: item.thumbUrl,
+      description: '',
+    );
+    final epNum = int.tryParse(item.episodeSlug.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ShortPlayerScreen(
+          item: shortItem,
+          initialEpisode: epNum,
+          initialPositionSeconds: item.positionSeconds,
+        ),
+      ),
+    );
+    widget.onRefresh?.call();
+  }
+
   void _resumePlayback(BuildContext context, WatchHistoryItem item) async {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -57,24 +80,7 @@ class _ContinueWatchingRailState extends State<ContinueWatchingRail> {
     );
 
     if (item.isShortDrama) {
-      final cleanSlug = item.movieSlug.replaceFirst('shortflix:', '');
-      final shortItem = ShortDramaItem(
-        slug: cleanSlug,
-        name: item.movieName,
-        posterUrl: item.posterUrl,
-        posterFallbackUrl: item.thumbUrl,
-        description: '',
-      );
-      final epNum = int.tryParse(item.episodeSlug.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ShortPlayerScreen(
-            item: shortItem,
-            initialEpisode: epNum,
-          ),
-        ),
-      );
-      widget.onRefresh?.call();
+      _openShortPlayer(context, item);
       return;
     }
 
@@ -110,6 +116,17 @@ class _ContinueWatchingRailState extends State<ContinueWatchingRail> {
       );
       widget.onRefresh?.call();
     } else {
+      // Auto-fallback: check if this is a Short Drama before giving up
+      try {
+        final shortDetail = await ShortflixService.getDetail(item.movieSlug.replaceFirst('shortflix:', ''));
+        if (!context.mounted) return;
+        if (shortDetail.item.name.isNotEmpty) {
+          _openShortPlayer(context, item, resolvedItem: shortDetail.item);
+          return;
+        }
+      } catch (_) {}
+
+      if (!context.mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => MovieDetailScreen(slug: item.movieSlug),
@@ -251,23 +268,20 @@ class _ContinueWatchingRailState extends State<ContinueWatchingRail> {
               ListTile(
                 leading: const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 22),
                 title: const Text('Xem thông tin & danh sách tập', style: TextStyle(color: Colors.white)),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(ctx);
                   if (item.isShortDrama) {
-                    final cleanSlug = item.movieSlug.replaceFirst('shortflix:', '');
-                    final shortItem = ShortDramaItem(
-                      slug: cleanSlug,
-                      name: item.movieName,
-                      posterUrl: item.posterUrl,
-                      posterFallbackUrl: item.thumbUrl,
-                      description: '',
-                    );
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ShortPlayerScreen(item: shortItem),
-                      ),
-                    ).then((_) => widget.onRefresh?.call());
+                    _openShortPlayer(context, item);
                   } else {
+                    try {
+                      final shortDetail = await ShortflixService.getDetail(item.movieSlug.replaceFirst('shortflix:', ''));
+                      if (context.mounted && shortDetail.item.name.isNotEmpty) {
+                        _openShortPlayer(context, item, resolvedItem: shortDetail.item);
+                        return;
+                      }
+                    } catch (_) {}
+
+                    if (!context.mounted) return;
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => MovieDetailScreen(slug: item.movieSlug),

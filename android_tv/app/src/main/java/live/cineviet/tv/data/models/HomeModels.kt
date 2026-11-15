@@ -215,7 +215,12 @@ data class WatchHistoryItem(
     @SerializedName("origin_name") val originName: String? = null
 ) {
     val isShortDrama: Boolean
-        get() = isShort || type == "short-phim" || type == "short" || movieSlug.startsWith("shortflix:")
+        get() = isShort ||
+                type == "short-phim" ||
+                type == "short" ||
+                type == "shortflix" ||
+                (originName?.contains("Short", ignoreCase = true) == true) ||
+                movieSlug.startsWith("shortflix:")
 
     val displayThumb: String
         get() {

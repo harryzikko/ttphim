@@ -27,7 +27,15 @@ class WatchHistoryItem {
     this.isShort = false,
   });
 
-  bool get isShortDrama => isShort || type == 'short-phim' || type == 'short' || movieSlug.startsWith('shortflix:');
+  bool get isShortDrama =>
+      isShort ||
+      type == 'short-phim' ||
+      type == 'short' ||
+      type == 'shortflix' ||
+      type.toLowerCase().contains('short') ||
+      serverName.toLowerCase().contains('shortflix') ||
+      originName.toLowerCase().contains('short') ||
+      movieSlug.startsWith('shortflix:');
 
   double get progressPercentage => durationSeconds <= 0 ? 0 : (positionSeconds / durationSeconds).clamp(0.0, 1.0);
 
@@ -88,21 +96,35 @@ class WatchHistoryItem {
     int number(dynamic input) => num.tryParse(input?.toString() ?? '')?.round() ?? 0;
     final pUrl = value['poster_url']?.toString() ?? '';
     final tUrl = value['thumb_url']?.toString() ?? '';
-    final t = value['type']?.toString() ?? 'single';
-    final s = value['is_short'] == true || value['is_short'] == 1 || value['is_short'] == 'true' || t == 'short-phim' || t == 'short';
+    final t = value['type']?.toString() ?? '';
+    final orig = value['origin_name']?.toString() ?? '';
+    final srv = value['server_name']?.toString() ?? '';
+    final slug = value['movie_slug']?.toString() ?? '';
+    final isShortVal = value['is_short'];
+    final s = isShortVal == true ||
+        isShortVal == 1 ||
+        isShortVal == 'true' ||
+        isShortVal == '1' ||
+        t == 'short-phim' ||
+        t == 'short' ||
+        t == 'shortflix' ||
+        t.toLowerCase().contains('short') ||
+        srv.toLowerCase().contains('shortflix') ||
+        orig.toLowerCase().contains('short') ||
+        slug.startsWith('shortflix:');
     return WatchHistoryItem(
-      movieSlug: value['movie_slug']?.toString() ?? '',
+      movieSlug: slug,
       movieName: value['movie_name']?.toString() ?? '',
       posterUrl: pUrl.isNotEmpty ? pUrl : tUrl,
       thumbUrl: tUrl.isNotEmpty ? tUrl : pUrl,
-      serverName: value['server_name']?.toString() ?? '',
+      serverName: srv,
       episodeName: value['episode_name']?.toString() ?? '',
       episodeSlug: value['episode_slug']?.toString() ?? '',
       positionSeconds: number(value['position_seconds'] ?? value['current_time']),
       durationSeconds: number(value['duration_seconds'] ?? value['duration']),
       updatedAt: DateTime.tryParse(value['updated_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
-      type: t,
-      originName: value['origin_name']?.toString() ?? '',
+      type: t.isNotEmpty ? t : (s ? 'short-phim' : 'single'),
+      originName: orig,
       isShort: s,
     );
   }

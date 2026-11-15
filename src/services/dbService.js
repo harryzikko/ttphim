@@ -296,16 +296,27 @@ class DbService {
         }
       }
     }
+    const isShort = Boolean(
+      data.is_short === true ||
+      data.is_short === 1 ||
+      data.is_short === 'true' ||
+      data.is_short === '1' ||
+      ['short', 'shortflix', 'short-phim'].includes(data.type) ||
+      (typeof data.server_name === 'string' && data.server_name.toLowerCase().includes('shortflix')) ||
+      (typeof data.origin_name === 'string' && data.origin_name.toLowerCase().includes('short')) ||
+      (typeof data.movie_slug === 'string' && data.movie_slug.startsWith('shortflix:'))
+    );
     const historyItem = {
       id: existingIndex > -1 ? db.history[existingIndex].id : 'hist_' + Date.now(),
       user_id: userId,
       movie_slug: data.movie_slug,
       movie_name: data.movie_name,
-      origin_name: data.origin_name || (['short', 'shortflix', 'short-phim'].includes(data.type) ? 'Short Phim Dọc' : ''),
+      origin_name: data.origin_name || (isShort ? 'Short Phim Dọc' : ''),
       poster_url: data.poster_url || '',
       thumb_url: data.thumb_url || (data.poster_url && data.poster_url.includes('-poster.') ? data.poster_url.replace('-poster.', '-thumb.') : (previous?.thumb_url || '')),
       category: (Array.isArray(data.category) ? data.category : (existingIndex >= 0 && Array.isArray(db.history[existingIndex].category) ? db.history[existingIndex].category : [])).filter(item => typeof item === 'string' && item.length <= 100).slice(0, 20),
-      type: ['single', 'series', 'tv', 'movie', 'phim-bo', 'phim-le', 'hoathinh', 'tvshows', 'short', 'shortflix', 'short-phim'].includes(data.type) ? data.type : (existingIndex >= 0 ? db.history[existingIndex].type || '' : ''),
+      type: isShort ? (data.type || 'short-phim') : (['single', 'series', 'tv', 'movie', 'phim-bo', 'phim-le', 'hoathinh', 'tvshows'].includes(data.type) ? data.type : (existingIndex >= 0 ? db.history[existingIndex].type || '' : '')),
+      is_short: isShort,
       episode_slug: epSlug,
       server_name: typeof data.server_name === 'string' ? data.server_name : '',
       episode_name: formatEpBadge(data.episode_name),

@@ -1005,6 +1005,14 @@ router.get('/user/library', async (req, res) => {
 
       ...item,
 
+      is_short: Boolean(
+        item.is_short ||
+        ['short', 'shortflix', 'short-phim'].includes(item.type) ||
+        (item.server_name && item.server_name.toLowerCase().includes('shortflix')) ||
+        (item.origin_name && item.origin_name.toLowerCase().includes('short')) ||
+        (item.movie_slug && item.movie_slug.startsWith('shortflix:'))
+      ),
+
       thumb_url: item.thumb_url || (item.poster_url && item.poster_url.includes('-poster.') ? item.poster_url.replace('-poster.', '-thumb.') : (item.thumb_url || item.poster_url || '')),
 
       has_song_ngu: Boolean(

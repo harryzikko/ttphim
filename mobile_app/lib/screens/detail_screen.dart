@@ -3,9 +3,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../services/api_service.dart';
+import '../services/shortflix_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'player_screen.dart';
+import 'short_player_screen.dart';
 import 'person_screen.dart';
 import 'login_screen.dart';
 
@@ -115,6 +117,20 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   Future<void> _fetchDetail() async {
     final res = await ApiService.getMovieDetail(widget.slug);
+    if (res == null && mounted) {
+      // Auto-detect Short Drama and seamlessly redirect to ShortPlayerScreen
+      try {
+        final shortDetail = await ShortflixService.getDetail(widget.slug.replaceFirst('shortflix:', ''));
+        if (mounted && shortDetail.item.name.isNotEmpty) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => ShortPlayerScreen(item: shortDetail.item),
+            ),
+          );
+          return;
+        }
+      } catch (_) {}
+    }
     final seasons = await ApiService.getMovieSeasons(widget.slug, knownMovie: res?.movie ?? widget.initialMovie);
     if (mounted) {
       setState(() {
@@ -302,26 +318,62 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
           // Content
           SliverToBoxAdapter(
-            child: movie == null && _isLoading
+            child: _isLoading
                 ? const SizedBox(
                     height: 300,
                     child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
                   )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Title
-                        Text(
-                          movie!.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.3,
+                : movie == null
+                    ? SizedBox(
+                        height: 320,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.movie_filter_outlined, color: AppTheme.textMuted, size: 54),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Không tìm thấy thông tin phim',
+                                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Nội dung có thể đã được cập nhật hoặc không khả dụng.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                                  label: const Text('Quay lại'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primary,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Title
+                            Text(
+                              movie.name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
                         if (movie.originName.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(

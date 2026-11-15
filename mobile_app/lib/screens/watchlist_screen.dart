@@ -4,6 +4,7 @@ import '../models/movie.dart';
 import '../models/movie_detail.dart';
 import '../models/short_drama.dart';
 import '../services/api_service.dart';
+import '../services/shortflix_service.dart';
 import '../services/storage_service.dart';
 import '../services/session_service.dart';
 import '../theme/app_theme.dart';
@@ -180,6 +181,28 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
     }
   }
 
+  void _openShortPlayer(BuildContext context, WatchHistoryItem item, {ShortDramaItem? resolvedItem}) async {
+    final cleanSlug = item.movieSlug.replaceFirst('shortflix:', '');
+    final shortItem = resolvedItem ?? ShortDramaItem(
+      slug: cleanSlug,
+      name: item.movieName,
+      posterUrl: item.posterUrl,
+      posterFallbackUrl: item.thumbUrl,
+      description: '',
+    );
+    final epNum = int.tryParse(item.episodeSlug.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ShortPlayerScreen(
+          item: shortItem,
+          initialEpisode: epNum,
+          initialPositionSeconds: item.positionSeconds,
+        ),
+      ),
+    );
+    _loadData();
+  }
+
   void _resumePlayback(BuildContext context, WatchHistoryItem item) async {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -193,24 +216,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
     );
 
     if (item.isShortDrama) {
-      final cleanSlug = item.movieSlug.replaceFirst('shortflix:', '');
-      final shortItem = ShortDramaItem(
-        slug: cleanSlug,
-        name: item.movieName,
-        posterUrl: item.posterUrl,
-        posterFallbackUrl: item.thumbUrl,
-        description: '',
-      );
-      final epNum = int.tryParse(item.episodeSlug.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ShortPlayerScreen(
-            item: shortItem,
-            initialEpisode: epNum,
-          ),
-        ),
-      );
-      _loadData();
+      _openShortPlayer(context, item);
       return;
     }
 
@@ -246,6 +252,17 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
       );
       _loadData();
     } else {
+      // Auto-fallback: check if this is a Short Drama before giving up
+      try {
+        final shortDetail = await ShortflixService.getDetail(item.movieSlug.replaceFirst('shortflix:', ''));
+        if (!context.mounted) return;
+        if (shortDetail.item.name.isNotEmpty) {
+          _openShortPlayer(context, item, resolvedItem: shortDetail.item);
+          return;
+        }
+      } catch (_) {}
+
+      if (!context.mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => MovieDetailScreen(slug: item.movieSlug),
