@@ -4,6 +4,7 @@
   var playerState = {
     open: false,
     isShort: false,
+    playbackRate: 1,
     shortSlug: '',
     shortEpisode: 1,
     shortEpisodes: [],
@@ -99,6 +100,34 @@
         video.textTracks[0].mode = (subUrl && playerState.subtitleEnabled) ? 'showing' : 'hidden';
       }
     } catch (_) {}
+  }
+
+  function updateSpeedBtnUi() {
+    var btn = document.getElementById('tv-btn-speed');
+    var badge = document.getElementById('tv-speed-badge');
+    var is2x = (playerState.playbackRate === 2);
+    if (btn) {
+      btn.textContent = is2x ? '⚡ Tua 2x' : 'Tua 2x';
+      if (is2x) {
+        btn.classList.add('tv-btn-primary');
+      } else {
+        btn.classList.remove('tv-btn-primary');
+      }
+    }
+    if (badge) {
+      badge.classList.toggle('hidden', !is2x || !playerState.isShort);
+    }
+  }
+
+  function togglePlaybackSpeed() {
+    var video = document.getElementById('tv-video');
+    var nextRate = (playerState.playbackRate === 2) ? 1 : 2;
+    playerState.playbackRate = nextRate;
+    if (video) {
+      try { video.playbackRate = nextRate; } catch (_) {}
+    }
+    updateSpeedBtnUi();
+    showHud();
   }
 
   function saveProgress() {
@@ -548,6 +577,7 @@
     playerState.preferFull = Boolean(opts.preferFull);
     playerState.subtitleEnabled = true;
     playerState.subtitleUrl = '';
+    playerState.playbackRate = 1;
     playerState.movie = opts.movie || {};
     playerState.servers = playerState.isShort ? [] : preferHlsServers(opts.episodes || []);
     playerState.serverIndex = Math.max(0, Math.min(opts.serverIndex || 0, Math.max(0, playerState.servers.length - 1)));
@@ -558,6 +588,7 @@
       '<video id="tv-video" class="tv-video' + (playerState.isShort ? ' is-portrait' : '') + '" crossorigin="anonymous" playsinline>' +
       '  <track id="tv-subtitle-track" kind="subtitles" srclang="vi" label="Tiếng Việt" default />' +
       '</video>' +
+      '<div id="tv-speed-badge" class="hidden" style="position:absolute;top:28px;right:36px;background:rgba(229,9,20,0.88);color:#fff;padding:6px 14px;border-radius:12px;font-size:15px;font-weight:800;letter-spacing:0.5px;z-index:91;pointer-events:none;">⚡ 2x</div>' +
       '<iframe id="tv-iframe" class="tv-iframe hidden" allowfullscreen></iframe>' +
       '<div id="tv-player-status" class="hidden" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(11,13,19,0.92);border:1px solid rgba(255,255,255,0.16);padding:18px 28px;border-radius:14px;font-size:18px;font-weight:700;z-index:92;"></div>' +
       '<div id="tv-next-prompt" class="hidden" style="position:absolute;right:48px;bottom:130px;background:rgba(19,23,34,0.96);border:1px solid rgba(255,255,255,0.18);padding:22px 26px;border-radius:18px;min-width:340px;z-index:94;"></div>' +
@@ -575,6 +606,7 @@
       '        <button class="tv-btn tv-btn-primary" id="tv-btn-playpause" data-focusable="true">❚❚ Tạm dừng</button>' +
       '        <button class="tv-btn" id="tv-btn-rw" data-focusable="true">↺ -10s</button>' +
       '        <button class="tv-btn" id="tv-btn-ff" data-focusable="true">+10s ↻</button>' +
+      '        <button class="tv-btn' + (playerState.isShort ? '' : ' hidden') + '" id="tv-btn-speed" data-focusable="true">Tua 2x</button>' +
       '        <button class="tv-btn hidden" id="tv-btn-next" data-focusable="true">⏭ Tập sau</button>' +
       '        <span id="tv-player-time" style="font-size:16px;font-weight:700;color:#E2E8F0;margin-left:8px;">00:00 / 00:00</span>' +
       '      </div>' +
@@ -593,7 +625,12 @@
 
     var video = document.getElementById('tv-video');
     video.addEventListener('timeupdate', updateTimeUi);
-    video.addEventListener('play', updatePlayIcon);
+    video.addEventListener('play', function () {
+      updatePlayIcon();
+      if (playerState.playbackRate && video.playbackRate !== playerState.playbackRate) {
+        try { video.playbackRate = playerState.playbackRate; } catch (_) {}
+      }
+    });
     video.addEventListener('pause', function () {
       updatePlayIcon();
       saveProgress();
@@ -624,6 +661,7 @@
       playerState.subtitleEnabled = !playerState.subtitleEnabled;
       applySubtitleTrack(playerState.subtitleUrl);
     });
+    document.getElementById('tv-btn-speed')?.addEventListener('click', togglePlaybackSpeed);
     document.getElementById('tv-btn-episodes').addEventListener('click', function () { renderDrawer('episodes'); });
     document.getElementById('tv-btn-servers').addEventListener('click', function () { renderDrawer('servers'); });
 
@@ -674,6 +712,7 @@
       layer.innerHTML = '';
     }
     playerState.open = false;
+    playerState.playbackRate = 1;
     if (playerState.onClose) playerState.onClose();
   }
 

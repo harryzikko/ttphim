@@ -83,6 +83,7 @@ fun TvShortPlayerScreen(
     var activeEpisode by remember { mutableStateOf(initialEpisode.coerceAtLeast(1)) }
     var preferFull by remember { mutableStateOf(initialPreferFull) }
     var subtitleEnabled by remember { mutableStateOf(true) }
+    var playbackSpeed by remember { mutableStateOf(1.0f) }
 
     var isPlaying by remember { mutableStateOf(true) }
     var isBuffering by remember { mutableStateOf(true) }
@@ -137,6 +138,7 @@ fun TvShortPlayerScreen(
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !subtitleEnabled)
             .build()
         exoPlayer.setMediaItem(builder.build())
+        exoPlayer.setPlaybackSpeed(playbackSpeed)
         exoPlayer.prepare()
         exoPlayer.play()
     }
@@ -410,6 +412,24 @@ fun TvShortPlayerScreen(
                 },
                 modifier = Modifier.fillMaxSize()
             )
+
+            if (playbackSpeed == 2.0f) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(CineVietRed.copy(alpha = 0.85f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "⚡ 2x",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
 
         if (isBuffering) {
@@ -550,6 +570,14 @@ fun TvShortPlayerScreen(
                                 onClick = {
                                     val target = (exoPlayer.currentPosition + 10_000L).coerceAtMost(duration.coerceAtLeast(0L))
                                     exoPlayer.seekTo(target)
+                                }
+                            )
+                            ShortPlayerBtn(
+                                label = if (playbackSpeed == 2.0f) "⚡ Tua 2x" else "Tua 2x",
+                                isPrimary = playbackSpeed == 2.0f,
+                                onClick = {
+                                    playbackSpeed = if (playbackSpeed == 1.0f) 2.0f else 1.0f
+                                    exoPlayer.setPlaybackSpeed(playbackSpeed)
                                 }
                             )
                             if (activeEpisode > 1) {

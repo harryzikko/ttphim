@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/short_drama.dart';
@@ -40,6 +41,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
   bool _isLoadingDetail = true;
   bool _isLoadingStream = true;
   bool _showOverlay = true;
+  bool _isFastForwarding = false;
   String? _error;
 
   int _loadToken = 0;
@@ -62,6 +64,23 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
     });
   }
 
+  void _startFastForward() {
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
+    HapticFeedback.lightImpact();
+    if (!ctrl.value.isPlaying) {
+      ctrl.play();
+    }
+    setState(() => _isFastForwarding = true);
+    ctrl.setPlaybackSpeed(2.0);
+  }
+
+  void _stopFastForward() {
+    if (!_isFastForwarding) return;
+    setState(() => _isFastForwarding = false);
+    _controller?.setPlaybackSpeed(1.0);
+  }
+
   void _saveProgress() {
     final c = _controller;
     if (c == null || !c.value.isInitialized) return;
@@ -70,7 +89,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
     if (dur <= 0 || pos <= 0) return;
 
     final poster = _item.posterUrl.isNotEmpty ? _item.posterUrl : _item.posterFallbackUrl;
-    final thumb = _item.backgroundUrl.isNotEmpty ? _item.backgroundUrl : poster;
+    final thumb = poster;
     StorageService.saveHistory(WatchHistoryItem(
       movieSlug: _item.slug,
       movieName: _item.name.isNotEmpty ? _item.name : _item.slug,
@@ -90,6 +109,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
 
   @override
   void dispose() {
+    _stopFastForward();
     _saveProgress();
     _progressTimer?.cancel();
     _hideTimer?.cancel();
@@ -122,6 +142,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
   }
 
   Future<void> _loadEpisode(int epNum) async {
+    _stopFastForward();
     _saveProgress();
     final token = ++_loadToken;
     _handledEndedForToken = false;
@@ -384,10 +405,17 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
+            if (_isFastForwarding) {
+              _stopFastForward();
+              return;
+            }
             setState(() => _showOverlay = !_showOverlay);
             if (_showOverlay) _scheduleOverlayHide();
           },
           onDoubleTap: _togglePlayPause,
+          onLongPressStart: (_) => _startFastForward(),
+          onLongPressEnd: (_) => _stopFastForward(),
+          onLongPressCancel: () => _stopFastForward(),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -400,6 +428,47 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
                       )
                     : const SizedBox.shrink(),
               ),
+
+              // Fast Forward 2x Indicator (Hold to 2x)
+              if (_isFastForwarding)
+                Positioned(
+                  top: 70,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppTheme.primary, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primary.withOpacity(0.4),
+                            blurRadius: 12,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.fast_forward_rounded, color: AppTheme.primary, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Tua x2',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
               // WebVTT Subtitles overlay
               if (ready && _showSubtitles && ctrl.value.caption.text.isNotEmpty)

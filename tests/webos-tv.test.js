@@ -232,6 +232,11 @@ test('LG webOS TV app renders Nocturne Cinema UI, supports D-Pad & 461 Back key,
     await page.waitForSelector('#tv-short-play-full');
     await page.click('#tv-short-play');
     await page.waitForSelector('#tv-btn-subtitle');
+    await page.waitForSelector('#tv-btn-speed:not(.hidden)');
+    await page.click('#tv-btn-speed');
+    assert.equal(await page.evaluate(() => document.getElementById('tv-video')?.playbackRate), 2);
+    assert.match(await page.textContent('#tv-btn-speed'), /2x/);
+    assert.equal(await page.evaluate(() => document.getElementById('tv-speed-badge')?.classList.contains('hidden')), false);
     assert.equal(await page.evaluate(() => document.getElementById('tv-video')?.classList.contains('is-portrait')), true);
     await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 461, which: 461, bubbles: true })));
     await page.waitForFunction(() => document.getElementById('tv-player-layer').classList.contains('hidden'));
