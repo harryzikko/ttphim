@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/movie.dart';
+import '../models/short_drama.dart';
 import '../theme/app_theme.dart';
 import '../screens/detail_screen.dart';
+import '../screens/short_player_screen.dart';
 
 /// Premium Netflix-style Movie Card for Mobile & Tablet (iPad)
 class MovieCard extends StatelessWidget {
@@ -177,6 +179,29 @@ class MovieCard extends StatelessWidget {
                     ),
                   ),
 
+                  // Top-Left Short Drama Badge
+                  if (movie.isShortDrama)
+                    Positioned(
+                      top: 6,
+                      left: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withOpacity(0.95),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          '⚡ SHORT',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Bottom Episode / Lang Tag (Sleek Modern Netflix-style Capsule)
                   if (movie.episodeCurrent.isNotEmpty)
                     Positioned(
@@ -299,11 +324,26 @@ class MovieCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => MovieDetailScreen(slug: movie.slug, initialMovie: movie),
-          ),
-        );
+        if (movie.isShortDrama) {
+          final shortItem = ShortDramaItem(
+            slug: movie.slug.replaceFirst('shortflix:', ''),
+            name: movie.name,
+            posterUrl: movie.posterUrl,
+            posterFallbackUrl: movie.thumbUrl,
+            description: movie.content,
+          );
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ShortPlayerScreen(item: shortItem),
+            ),
+          );
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => MovieDetailScreen(slug: movie.slug, initialMovie: movie),
+            ),
+          );
+        }
       },
       child: cardContent,
     );

@@ -82,7 +82,12 @@
       section.classList.remove('hidden'); section.hidden = false;
       for (const item of items) {
         const card = node('article', 'continue-card'); card.dataset.slug = item.movie_slug;
-        const path = `${mobile ? '/mobile' : ''}/xem-phim/${encodeURIComponent(item.movie_slug)}/${encodeURIComponent(item.episode_slug || 'tap-1')}`;
+        const isShort = Boolean(item.type === 'short-phim' || item.type === 'short' || item.is_short || (item.movie_slug || '').startsWith('shortflix:'));
+        const cleanSlug = (item.movie_slug || '').replace(/^shortflix:/, '');
+        const epNumber = (item.episode_slug || 'tap-1').replace(/^tap-/, '') || '1';
+        const path = isShort
+          ? `/short-phim/${encodeURIComponent(cleanSlug)}?ep=${encodeURIComponent(epNumber)}`
+          : `${mobile ? '/mobile' : ''}/xem-phim/${encodeURIComponent(item.movie_slug)}/${encodeURIComponent(item.episode_slug || 'tap-1')}`;
         const link = node('a', 'continue-play'); link.href = path;
         link.setAttribute('aria-label', `Xem tiếp ${item.movie_name || item.movie_slug}`);
         const image = node('img'); image.src = safeImage(item.thumb_url || item.poster_url || '/favicon.svg'); image.alt = ''; image.loading = 'lazy';

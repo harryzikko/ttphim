@@ -70,12 +70,14 @@
     var slug = m.slug || m.movie_slug || '';
     var name = m.name || m.movie_name || '';
     var img = Api.fullImg(m.poster_url || m.thumb_url);
-    var badge = m.episode_current || m.quality || '';
-    var meta = [m.origin_name || '', m.year || ''].filter(Boolean).join(' • ');
-    return '<button class="tv-card" data-focusable="true" data-slug="' + esc(slug) + '" ' + (extraAttrs || '') + '>' +
+    var isShort = Boolean(m.is_short || m.type === 'short-phim' || m.type === 'short');
+    var badge = isShort ? '⚡ Short' : (m.episode_current || m.quality || '');
+    var meta = isShort ? 'Short Phim Dọc' : ([m.origin_name || '', m.year || ''].filter(Boolean).join(' • '));
+    var shortAttr = isShort ? 'data-is-short="1"' : '';
+    return '<button class="tv-card" data-focusable="true" data-slug="' + esc(slug) + '" ' + shortAttr + ' ' + (extraAttrs || '') + '>' +
       '<div class="tv-card-poster">' +
       (img ? '<img src="' + esc(img) + '" alt="' + esc(name) + '" loading="lazy" />' : '') +
-      (badge ? '<span class="tv-card-badge">' + esc(badge) + '</span>' : '') +
+      (badge ? '<span class="tv-card-badge' + (isShort ? ' badge-short' : '') + '" style="' + (isShort ? 'background:#E50914;color:#fff;font-weight:800;' : '') + '">' + esc(badge) + '</span>' : '') +
       '<div class="tv-card-scrim"></div>' +
       '</div>' +
       '<div class="tv-card-title">' + esc(name) + '</div>' +
@@ -200,7 +202,18 @@
   function wireStageCardClicks(stage) {
     Spatial.eachNode(stage, '.tv-card[data-slug]', function (card) {
       card.addEventListener('click', function () {
-        openDetail(card.getAttribute('data-slug'));
+        var isShort = card.getAttribute('data-is-short') === '1' || card.getAttribute('data-type') === 'short-phim';
+        var slug = card.getAttribute('data-slug') || '';
+        if (isShort || slug.indexOf('shortflix:') === 0) {
+          openShortDetail(slug.replace(/^shortflix:/, ''));
+        } else {
+          openDetail(slug);
+        }
+      });
+    });
+    Spatial.eachNode(stage, '.tv-card[data-short-slug]', function (card) {
+      card.addEventListener('click', function () {
+        openShortDetail(card.getAttribute('data-short-slug'));
       });
     });
     Spatial.eachNode(stage, '.tv-cw-card[data-cw-idx]', function (card) {
@@ -337,9 +350,9 @@
         return '<button class="tv-chip' + (active ? ' active' : '') + '" style="' + (active ? 'background:#E50914;color:#FFF;border-color:#E50914;' : '') + '" data-focusable="true" data-short-genre="' + esc(g) + '">' + esc(label) + '</button>';
       }).join('');
 
-      var navPagerHtml = '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;">' +
+      var navPagerHtml = '<div style="display:flex;align-items:center;justify-content:center;gap:16px;margin:32px 0 48px 0;">' +
         (appState.shortPage > 1 ? '<button class="tv-btn" id="tv-short-prev" data-focusable="true">← Trang trước</button>' : '') +
-        '<span style="color:#94A3B8;font-size:15px;font-weight:700;">Trang ' + appState.shortPage + '</span>' +
+        '<span style="color:#94A3B8;font-size:16px;font-weight:700;">Trang ' + appState.shortPage + '</span>' +
         (appState.shortHasMore ? '<button class="tv-btn" id="tv-short-next" data-focusable="true">Trang sau →</button>' : '') +
         '</div>';
 
@@ -352,9 +365,9 @@
         '  <h1 class="tv-catalog-title">Short Phim (Phim Ngắn Dọc)</h1>' +
         '  <div class="tv-catalog-sub">Phim ngắn kịch tính 1080p Vietsub &amp; Lồng tiếng · Chọn Tập lẻ hoặc Bản Full gộp tập</div>' +
         '  <div class="tv-chips" style="margin-top:14px;">' + chipsHtml + '</div>' +
-        '  ' + navPagerHtml +
         '</div>' +
-        gridHtml;
+        gridHtml +
+        navPagerHtml;
 
       Spatial.eachNode(stage, '[data-short-genre]', function (btn) {
         btn.addEventListener('click', function () {
@@ -471,7 +484,7 @@
       ['U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3'],
       ['4', '5', '6', '7', '8', '9', '-', '&', '.', ':']
     ];
-    var chips = ['Chiếu rạp', 'Hành động', 'Kinh dị', 'Tình cảm', 'Hàn Quốc', 'Anime', 'Thuyết minh'];
+    var chips = ['Chiếu rạp', 'Hành động', 'Kinh dị', 'Tình cảm', 'Hàn Quốc', 'Anime', 'Thuyết minh', 'Short Phim'];
 
     var kbdHtml = keysRows.map(function (row) {
       return '<div class="tv-kbd-row">' + row.map(function (ch) {
@@ -484,17 +497,58 @@
       '  <button class="tv-key" data-focusable="true" data-act="clear">Xóa hết</button>' +
       '</div>';
 
-    var rightList = appState.searchQuery.trim() ? appState.searchResults : appState.searchTrending;
+    function getFilteredList() {
+      var source = appState.searchQuery.trim() ? appState.searchResults : appState.searchTrending;
+      if (!appState.searchQuery.trim()) return source;
+      if (appState.searchFilter === 'movies') {
+        return source.filter(function (m) {
+          return !m.is_short && m.type !== 'short-phim' && (!m.slug || m.slug.indexOf('shortflix:') !== 0);
+        });
+      }
+      if (appState.searchFilter === 'shorts') {
+        return source.filter(function (m) {
+          return Boolean(m.is_short || m.type === 'short-phim' || (m.slug && m.slug.indexOf('shortflix:') === 0));
+        });
+      }
+      return source;
+    }
+
+    function renderTabsHtml() {
+      if (!appState.searchQuery.trim()) return '';
+      var totalCount = appState.searchResults.length;
+      var movieCount = (appState.searchResults || []).filter(function (m) {
+        return !m.is_short && m.type !== 'short-phim' && (!m.slug || m.slug.indexOf('shortflix:') !== 0);
+      }).length;
+      var shortCount = totalCount - movieCount;
+      var cur = appState.searchFilter || 'all';
+
+      return '<div class="tv-chips" style="margin-bottom:14px;">' +
+        '<button class="tv-chip' + (cur === 'all' ? ' active' : '') + '" style="' + (cur === 'all' ? 'background:#E50914;color:#FFF;border-color:#E50914;' : '') + '" data-focusable="true" data-search-filter="all">Tất cả (' + totalCount + ')</button>' +
+        '<button class="tv-chip' + (cur === 'movies' ? ' active' : '') + '" style="' + (cur === 'movies' ? 'background:#E50914;color:#FFF;border-color:#E50914;' : '') + '" data-focusable="true" data-search-filter="movies">🎬 Phim (' + movieCount + ')</button>' +
+        '<button class="tv-chip' + (cur === 'shorts' ? ' active' : '') + '" style="' + (cur === 'shorts' ? 'background:#E50914;color:#FFF;border-color:#E50914;' : '') + '" data-focusable="true" data-search-filter="shorts">⚡ Short Phim (' + shortCount + ')</button>' +
+        '</div>';
+    }
+
+    function renderBottomInfoHtml(list) {
+      if (!appState.searchQuery.trim()) {
+        return '<div id="tv-search-footer" style="margin-top:20px;text-align:center;color:#94A3B8;font-size:14px;font-weight:600;">Gợi ý phim thịnh hành đề xuất</div>';
+      }
+      return '<div id="tv-search-footer" style="margin-top:24px;margin-bottom:20px;text-align:center;color:#94A3B8;font-size:15px;font-weight:700;">' +
+        'Hiển thị ' + list.length + ' kết quả cho "' + esc(appState.searchQuery) + '"' +
+        '</div>';
+    }
+
+    var rightList = getFilteredList();
     var rightTitle = appState.searchQuery.trim()
-      ? ('Kết quả cho "' + appState.searchQuery + '" (' + rightList.length + ')')
+      ? ('Tìm kiếm: "' + appState.searchQuery + '"')
       : 'Phim Thịnh Hành Đề Xuất';
 
     stage.innerHTML =
       '<div class="tv-search-layout">' +
       '  <div class="tv-search-left">' +
-      '    <h1 style="font-size:28px;font-weight:900;">Tìm Kiếm Phim</h1>' +
+      '    <h1 style="font-size:28px;font-weight:900;">Tìm Kiếm Phim &amp; Short</h1>' +
       '    <div class="tv-search-box" id="tv-search-display">' +
-      (appState.searchQuery ? esc(appState.searchQuery) : '<span class="tv-search-placeholder">Nhập tên phim bằng bàn phím TV…</span>') +
+      (appState.searchQuery ? esc(appState.searchQuery) : '<span class="tv-search-placeholder">Nhập tên phim, short phim bằng bàn phím TV…</span>') +
       '    </div>' +
       '    <div class="tv-chips">' + chips.map(function (c) {
         return '<button class="tv-chip" data-focusable="true" data-chip="' + esc(c) + '">' + esc(c) + '</button>';
@@ -502,10 +556,12 @@
       '    <div class="tv-kbd">' + kbdHtml + '</div>' +
       '  </div>' +
       '  <div class="tv-search-right">' +
-      '    <h2 id="tv-search-heading" style="font-size:22px;font-weight:800;margin-bottom:14px;">' + esc(rightTitle) + '</h2>' +
+      '    <h2 id="tv-search-heading" style="font-size:22px;font-weight:800;margin-bottom:12px;">' + esc(rightTitle) + '</h2>' +
+      '    <div id="tv-search-tabs">' + renderTabsHtml() + '</div>' +
       '    <div id="tv-search-grid" class="tv-grid-4">' +
-      (rightList.length ? rightList.map(function (m) { return movieCardHtml(m); }).join('') : '<div style="color:#94A3B8;font-size:17px;">Không tìm thấy phim phù hợp.</div>') +
+      (rightList.length ? rightList.map(function (m) { return movieCardHtml(m); }).join('') : '<div style="color:#94A3B8;font-size:17px;padding:24px 0;">Không tìm thấy nội dung phù hợp.</div>') +
       '    </div>' +
+      '    ' + renderBottomInfoHtml(rightList) +
       '  </div>' +
       '</div>';
 
@@ -516,18 +572,36 @@
       }).catch(function () {});
     }
 
+    function wireSearchTabs() {
+      Spatial.eachNode(stage, '[data-search-filter]', function (btn) {
+        btn.addEventListener('click', function () {
+          appState.searchFilter = btn.getAttribute('data-search-filter') || 'all';
+          updateSearchGrid();
+        });
+      });
+    }
+
     function updateSearchGrid() {
       var box = document.getElementById('tv-search-display');
       var head = document.getElementById('tv-search-heading');
+      var tabs = document.getElementById('tv-search-tabs');
       var grid = document.getElementById('tv-search-grid');
+      var footer = document.getElementById('tv-search-footer');
       if (box) {
-        box.innerHTML = appState.searchQuery ? esc(appState.searchQuery) : '<span class="tv-search-placeholder">Nhập tên phim bằng bàn phím TV…</span>';
+        box.innerHTML = appState.searchQuery ? esc(appState.searchQuery) : '<span class="tv-search-placeholder">Nhập tên phim, short phim bằng bàn phím TV…</span>';
       }
-      var list = appState.searchQuery.trim() ? appState.searchResults : appState.searchTrending;
-      if (head) head.textContent = appState.searchQuery.trim() ? ('Kết quả cho "' + appState.searchQuery + '" (' + list.length + ')') : 'Phim Thịnh Hành Đề Xuất';
+      var list = getFilteredList();
+      if (head) head.textContent = appState.searchQuery.trim() ? ('Tìm kiếm: "' + appState.searchQuery + '"') : 'Phim Thịnh Hành Đề Xuất';
+      if (tabs) {
+        tabs.innerHTML = renderTabsHtml();
+        wireSearchTabs();
+      }
       if (grid) {
-        grid.innerHTML = list.length ? list.map(function (m) { return movieCardHtml(m); }).join('') : '<div style="color:#94A3B8;font-size:17px;">Không tìm thấy phim phù hợp.</div>';
+        grid.innerHTML = list.length ? list.map(function (m) { return movieCardHtml(m); }).join('') : '<div style="color:#94A3B8;font-size:17px;padding:24px 0;">Không tìm thấy nội dung phù hợp.</div>';
         wireStageCardClicks(grid);
+      }
+      if (footer) {
+        footer.outerHTML = renderBottomInfoHtml(list);
       }
     }
 
@@ -560,13 +634,14 @@
       });
     });
 
-    Spatial.eachNode(stage, '.tv-chip', function (chip) {
+    Spatial.eachNode(stage, '.tv-chip[data-chip]', function (chip) {
       chip.addEventListener('click', function () {
         appState.searchQuery = chip.getAttribute('data-chip') || '';
         triggerSearch();
       });
     });
 
+    wireSearchTabs();
     wireStageCardClicks(stage);
   }
 
@@ -694,10 +769,13 @@
 
   function openContinueDialog(item) {
     var modal = document.getElementById('tv-modal-layer');
+    var isShortItem = Boolean(item.is_short || item.type === 'short-phim' || item.type === 'short' || (item.movie_slug && item.movie_slug.indexOf('shortflix:') === 0));
+    var cleanSlug = (item.movie_slug || '').replace(/^shortflix:/, '');
+
     modal.innerHTML =
       '<div class="tv-modal-box">' +
-      '  <h2 style="font-size:24px;font-weight:900;">' + esc(item.movie_name || item.movie_slug) + '</h2>' +
-      '  <div style="color:#94A3B8;font-size:15px;">Đã xem ' + esc(item.episode_name || '') + ' đến mốc ' + formatMmSs(item.current_time) + '</div>' +
+      '  <h2 style="font-size:24px;font-weight:900;">' + (isShortItem ? '⚡ ' : '') + esc(item.movie_name || item.movie_slug) + '</h2>' +
+      '  <div style="color:#94A3B8;font-size:15px;">Đã xem ' + esc(item.episode_name || '') + ' đến mốc ' + formatMmSs(item.current_time) + (isShortItem ? ' · Short Phim' : '') + '</div>' +
       '  <div style="display:flex;flex-direction:column;gap:12px;margin-top:6px;">' +
       '    <button class="tv-btn tv-btn-primary" id="tv-cw-resume" data-focusable="true">▶ Xem tiếp từ ' + formatMmSs(item.current_time) + '</button>' +
       '    <button class="tv-btn" id="tv-cw-restart" data-focusable="true">↺ Phát lại từ đầu</button>' +
@@ -717,15 +795,27 @@
 
     document.getElementById('tv-cw-resume').addEventListener('click', function () {
       closeModal();
-      openDirectPlay(item.movie_slug, item.episode_slug, Number(item.current_time) || 0);
+      if (isShortItem) {
+        openShortDetail(cleanSlug);
+      } else {
+        openDirectPlay(item.movie_slug, item.episode_slug, Number(item.current_time) || 0);
+      }
     });
     document.getElementById('tv-cw-restart').addEventListener('click', function () {
       closeModal();
-      openDirectPlay(item.movie_slug, item.episode_slug, 0);
+      if (isShortItem) {
+        openShortDetail(cleanSlug);
+      } else {
+        openDirectPlay(item.movie_slug, item.episode_slug, 0);
+      }
     });
     document.getElementById('tv-cw-detail').addEventListener('click', function () {
       closeModal();
-      openDetail(item.movie_slug);
+      if (isShortItem) {
+        openShortDetail(cleanSlug);
+      } else {
+        openDetail(item.movie_slug);
+      }
     });
     document.getElementById('tv-cw-remove').addEventListener('click', function () {
       Api.removeHistory(item.movie_slug).then(function () {

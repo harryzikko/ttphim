@@ -102,13 +102,35 @@
   }
 
   function saveProgress() {
-    if (playerState.isShort) return;
     var v = document.getElementById('tv-video');
-    if (!v || !playerState.movie || !playerState.episode) return;
+    if (!v || !playerState.movie) return;
     var dur = isFinite(v.duration) && v.duration > 0 ? Math.floor(v.duration) : 0;
     var cur = isFinite(v.currentTime) && v.currentTime > 0 ? Math.floor(v.currentTime) : 0;
-    if (cur < 5 || dur <= 0) return;
+    if (cur < 2 || dur <= 0) return;
     var pct = Math.min(100, Math.round((cur / dur) * 100));
+
+    if (playerState.isShort) {
+      var epNum = Math.max(1, Number(playerState.shortEpisode) || 1);
+      var shortSlug = playerState.movie.slug || playerState.shortSlug;
+      global.TvApi.saveHistory({
+        movie_slug: shortSlug,
+        movie_name: playerState.movie.name || shortSlug,
+        origin_name: 'Short Phim Dọc',
+        poster_url: global.TvApi.fullImg(playerState.movie.poster_url || playerState.movie.thumb_url),
+        thumb_url: global.TvApi.fullImg(playerState.movie.thumb_url || playerState.movie.poster_url),
+        type: 'short-phim',
+        is_short: true,
+        episode_slug: 'tap-' + epNum,
+        episode_name: 'Tập ' + epNum,
+        server_name: 'ShortFlix',
+        current_time: cur,
+        duration: dur,
+        progress_percent: pct
+      });
+      return;
+    }
+
+    if (!playerState.episode) return;
     global.TvApi.saveHistory({
       movie_slug: playerState.movie.slug,
       movie_name: playerState.movie.name || playerState.movie.slug,

@@ -6,9 +6,10 @@ import 'backend_service.dart';
 import 'app_config.dart';
 
 class WatchHistoryItem {
-  final String movieSlug, movieName, posterUrl, thumbUrl, serverName, episodeName, episodeSlug;
+  final String movieSlug, movieName, posterUrl, thumbUrl, serverName, episodeName, episodeSlug, type, originName;
   final int positionSeconds, durationSeconds;
   final DateTime updatedAt;
+  final bool isShort;
 
   WatchHistoryItem({
     required this.movieSlug,
@@ -21,7 +22,12 @@ class WatchHistoryItem {
     required this.positionSeconds,
     required this.durationSeconds,
     required this.updatedAt,
+    this.type = 'single',
+    this.originName = '',
+    this.isShort = false,
   });
+
+  bool get isShortDrama => isShort || type == 'short-phim' || type == 'short' || movieSlug.startsWith('shortflix:');
 
   double get progressPercentage => durationSeconds <= 0 ? 0 : (positionSeconds / durationSeconds).clamp(0.0, 1.0);
 
@@ -64,18 +70,26 @@ class WatchHistoryItem {
     'position_seconds': positionSeconds,
     'duration_seconds': durationSeconds,
     'updated_at': updatedAt.toIso8601String(),
+    'type': type,
+    'origin_name': originName,
+    'is_short': isShort,
   };
 
   Map<String, dynamic> toBackend() => {
     ...toJson(),
     'current_time': positionSeconds,
     'duration': durationSeconds,
+    'type': type,
+    'is_short': isShort,
+    if (originName.isNotEmpty) 'origin_name': originName,
   };
 
   factory WatchHistoryItem.fromJson(Map<String, dynamic> value) {
     int number(dynamic input) => num.tryParse(input?.toString() ?? '')?.round() ?? 0;
     final pUrl = value['poster_url']?.toString() ?? '';
     final tUrl = value['thumb_url']?.toString() ?? '';
+    final t = value['type']?.toString() ?? 'single';
+    final s = value['is_short'] == true || value['is_short'] == 1 || value['is_short'] == 'true' || t == 'short-phim' || t == 'short';
     return WatchHistoryItem(
       movieSlug: value['movie_slug']?.toString() ?? '',
       movieName: value['movie_name']?.toString() ?? '',
@@ -87,6 +101,9 @@ class WatchHistoryItem {
       positionSeconds: number(value['position_seconds'] ?? value['current_time']),
       durationSeconds: number(value['duration_seconds'] ?? value['duration']),
       updatedAt: DateTime.tryParse(value['updated_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
+      type: t,
+      originName: value['origin_name']?.toString() ?? '',
+      isShort: s,
     );
   }
 }

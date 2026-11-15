@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/movie.dart';
 import '../models/movie_detail.dart';
+import '../models/short_drama.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../services/session_service.dart';
 import '../theme/app_theme.dart';
 import 'detail_screen.dart';
 import 'player_screen.dart';
+import 'short_player_screen.dart';
 
 class WatchlistScreen extends StatefulWidget {
   final Function(int tabIndex)? onNavigateTab;
@@ -189,6 +191,28 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
+
+    if (item.isShortDrama) {
+      final cleanSlug = item.movieSlug.replaceFirst('shortflix:', '');
+      final shortItem = ShortDramaItem(
+        slug: cleanSlug,
+        name: item.movieName,
+        posterUrl: item.posterUrl,
+        posterFallbackUrl: item.thumbUrl,
+        description: '',
+      );
+      final epNum = int.tryParse(item.episodeSlug.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ShortPlayerScreen(
+            item: shortItem,
+            initialEpisode: epNum,
+          ),
+        ),
+      );
+      _loadData();
+      return;
+    }
 
     final detail = await ApiService.getMovieDetail(item.movieSlug);
     if (!context.mounted) return;
@@ -576,6 +600,26 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
                               child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 16),
                             ),
                           ),
+                          if (item.isShortDrama)
+                            Positioned(
+                              top: 2,
+                              left: 2,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF59E0B).withOpacity(0.95),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: const Text(
+                                  'SHORT',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),

@@ -33,51 +33,65 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import live.cineviet.tv.data.models.MovieItem
+import live.cineviet.tv.data.models.ShortDramaItem
 import live.cineviet.tv.data.repository.MovieRepository
 import live.cineviet.tv.ui.components.TvLoadingSpinner
 import live.cineviet.tv.ui.components.TvMovieCard
+import live.cineviet.tv.ui.screens.shorts.TvPillButton
+import live.cineviet.tv.ui.screens.shorts.TvShortCard
 import live.cineviet.tv.ui.theme.*
+
+sealed class TvSearchResultItem {
+    data class Movie(val movie: MovieItem) : TvSearchResultItem()
+    data class Short(val short: ShortDramaItem) : TvSearchResultItem()
+}
 
 @Composable
 fun TvSearchScreen(
     onMovieClick: (String) -> Unit,
+    onShortClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val repository = remember { MovieRepository() }
     val scope = rememberCoroutineScope()
 
     var searchQuery by remember { mutableStateOf("") }
-    var searchResults by remember { mutableStateOf<List<MovieItem>>(emptyList()) }
+    var searchMovieResults by remember { mutableStateOf<List<MovieItem>>(emptyList()) }
+    var searchShortResults by remember { mutableStateOf<List<ShortDramaItem>>(emptyList()) }
     var trendingMovies by remember { mutableStateOf<List<MovieItem>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
+    var searchFilter by remember { mutableStateOf("all") }
     var searchJob by remember { mutableStateOf<Job?>(null) }
 
     val firstKeyRequester = remember { FocusRequester() }
 
     // Quick search keywords
-    val suggestions = listOf("Chiếu rạp", "Hành động", "Kinh dị", "Tình cảm", "Hàn Quốc", "Anime", "Thuyết minh")
+    val suggestions = listOf("Chiếu rạp", "Hành động", "Kinh dị", "Tình cảm", "Hàn Quốc", "Anime", "Thuyết minh", "Short Phim")
 
     fun performSearch(query: String) {
         searchJob?.cancel()
         if (query.isBlank()) {
-            searchResults = emptyList()
+            searchMovieResults = emptyList()
+            searchShortResults = emptyList()
             isSearching = false
             return
         }
         searchJob = scope.launch {
             delay(280)
             isSearching = true
-            val result = repository.searchMovies(query.trim())
-            result.onSuccess {
-                searchResults = it
-                isSearching = false
-            }.onFailure {
-                searchResults = emptyList()
-                isSearching = false
-            }
+            val movieDeferred = async { repository.searchMovies(query.trim()) }
+            val shortDeferred = async { repository.getShortCatalog(keyword = query.trim(), limit = 20) }
+
+            val movieRes = movieDeferred.await()
+            val shortRes = shortDeferred.await()
+
+            searchMovieResults = movieRes.getOrDefault(emptyList())
+            searchShortResults = shortRes.getOrDefault(null)?.items ?: emptyList()
+            isSearching = false
         }
     }
 
@@ -269,12 +283,15 @@ fun TvSearchScreen(
                 .weight(1f)
                 .fillMaxHeight()
         ) {
+            val totalResults = searchMovieResults.size + searchShortResults.size
+            val isSearchingQuery = searchQuery.isNotBlank()
+
             val titleText = when {
                 isSearching -> "Đang tìm kiếm..."
-                searchQuery.isNotBlank() && searchResults.isNotEmpty() ->
-                    "Tìm thấy ${searchResults.size} phim phù hợp"
-                searchQuery.isNotBlank() && searchResults.isEmpty() ->
-                    "Không tìm thấy phim phù hợp với \"$searchQuery\""
+                isSearchingQuery && totalResults > 0 ->
+                    "Tìm thấy $totalResults nội dung cho \"$searchQuery\""
+                isSearchingQuery && totalResults == 0 ->
+                    "Không tìm thấy nội dung phù hợp với \"$searchQuery\""
                 else -> "Gợi ý phim thịnh hành hôm nay"
             }
 
@@ -287,6 +304,34 @@ fun TvSearchScreen(
                 overflow = TextOverflow.Ellipsis
             )
 
+            // Filter Tabs (Tất cả, Phim, Short Phim)
+            if (isSearchingQuery && totalResults > 0) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TvPillButton(
+                        label = "Tất cả ($totalResults)",
+                        enabled = true,
+                        isActive = searchFilter == "all",
+                        onClick = { searchFilter = "all" }
+                    )
+                    TvPillButton(
+                        label = "🎬 Phim (${searchMovieResults.size})",
+                        enabled = true,
+                        isActive = searchFilter == "movies",
+                        onClick = { searchFilter = "movies" }
+                    )
+                    TvPillButton(
+                        label = "⚡ Short Phim (${searchShortResults.size})",
+                        enabled = true,
+                        isActive = searchFilter == "shorts",
+                        onClick = { searchFilter = "shorts" }
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             if (isSearching) {
@@ -297,20 +342,62 @@ fun TvSearchScreen(
                     TvLoadingSpinner(color = CineVietRed)
                 }
             } else {
-                val displayList = if (searchQuery.isNotBlank()) searchResults else trendingMovies
+                val displayItems: List<TvSearchResultItem> = remember(searchQuery, searchMovieResults, searchShortResults, trendingMovies, searchFilter) {
+                    if (searchQuery.isBlank()) {
+                        trendingMovies.map { TvSearchResultItem.Movie(it) }
+                    } else {
+                        when (searchFilter) {
+                            "movies" -> searchMovieResults.map { TvSearchResultItem.Movie(it) }
+                            "shorts" -> searchShortResults.map { TvSearchResultItem.Short(it) }
+                            else -> {
+                                val list = mutableListOf<TvSearchResultItem>()
+                                list.addAll(searchMovieResults.map { TvSearchResultItem.Movie(it) })
+                                list.addAll(searchShortResults.map { TvSearchResultItem.Short(it) })
+                                list
+                            }
+                        }
+                    }
+                }
 
-                if (displayList.isNotEmpty()) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 24.dp)
-                    ) {
-                        items(displayList) { movie ->
-                            TvMovieCard(
-                                movie = movie,
-                                onClick = { onMovieClick(movie.slug) }
+                if (displayItems.isNotEmpty()) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(bottom = 12.dp)
+                        ) {
+                            items(displayItems) { item ->
+                                when (item) {
+                                    is TvSearchResultItem.Movie -> TvMovieCard(
+                                        movie = item.movie,
+                                        onClick = { onMovieClick(item.movie.slug) }
+                                    )
+                                    is TvSearchResultItem.Short -> TvShortCard(
+                                        item = item.short,
+                                        onClick = { onShortClick(item.short.slug) }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Bottom results count / pagination indicator
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isSearchingQuery)
+                                    "Hiển thị ${displayItems.size} kết quả phù hợp"
+                                else
+                                    "Gợi ý phim thịnh hành đề xuất",
+                                color = TvOnSurfaceVariant,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -321,7 +408,7 @@ fun TvSearchScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "Không tìm thấy phim phù hợp với \"$searchQuery\"",
+                                text = "Không tìm thấy phim hoặc short phim phù hợp với \"$searchQuery\"",
                                 color = Color.White,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold

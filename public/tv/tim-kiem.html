@@ -221,12 +221,15 @@
 
         resultsGrid.innerHTML = movies.map(m => {
           const thumb = m.thumb_url || m.poster_url;
+          const isShort = Boolean(m.is_short || m.type === 'short-phim' || (m.slug && m.slug.startsWith('shortflix:')));
+          const cleanSlug = (m.slug || '').replace(/^shortflix:/, '');
+          const link = isShort ? `/short-phim/${cleanSlug}` : `/tv/chi-tiet/${cleanSlug}`;
           return `
-            <a href="/tv/chi-tiet/${m.slug}" class="tv-focusable flex flex-col rounded-xl overflow-hidden bg-surface-container hover:bg-surface-container-high transition-all border border-white/5 group shadow-md">
+            <a href="${link}" class="tv-focusable flex flex-col rounded-xl overflow-hidden bg-surface-container hover:bg-surface-container-high transition-all border border-white/5 group shadow-md">
               <div class="relative aspect-[2/3] w-full overflow-hidden bg-black">
                 <img src="${thumb}" alt="${m.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" onerror="this.src='/images/placeholder.jpg'"/>
-                <div class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-white text-[10px] font-bold">
-                  ${m.quality || 'FHD'}
+                <div class="absolute top-2 right-2 px-2 py-0.5 rounded ${isShort ? 'bg-amber-500/90 text-black' : 'bg-black/80 text-white'} text-[10px] font-bold">
+                  ${isShort ? '⚡ Short' : (m.quality || 'FHD')}
                 </div>
               </div>
               <div class="p-2.5 flex flex-col gap-0.5">

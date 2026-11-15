@@ -395,27 +395,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       return clean;
     };
 
-    gridContainer.innerHTML = items.map(movie => `
-      <a href="/phim/${pathSegment(movie.slug)}" class="movie-card group relative flex flex-col bg-surface-container rounded-xl overflow-hidden cursor-pointer border border-white/5">
+    gridContainer.innerHTML = items.map(movie => {
+      const isShort = Boolean(movie.is_short || movie.type === 'short-phim' || movie.type === 'short' || (movie.slug && movie.slug.startsWith('shortflix:')));
+      const cleanSlug = pathSegment((movie.slug || '').replace(/^shortflix:/, ''));
+      const targetUrl = isShort ? `/short-phim/${cleanSlug}` : `/phim/${cleanSlug}`;
+      return `
+      <a href="${targetUrl}" class="movie-card group relative flex flex-col bg-surface-container rounded-xl overflow-hidden cursor-pointer border border-white/5">
         <!-- 2:3 Aspect ratio poster container -->
         <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
           <img src="${escapeHtml(safeUrl(movie.poster_url || movie.thumb_url))}" alt="${escapeHtml(movie.name)}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" />
           
           <!-- Badges -->
           <div class="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10 items-start pointer-events-none">
-            ${movie.has_song_ngu ? `
+            ${isShort ? `
+              <span class="badge-glass-sub bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                ⚡ Short Phim
+              </span>` : ''}
+            ${!isShort && movie.has_song_ngu ? `
               <span class="badge-song-ngu">
                 <span class="material-symbols-outlined">record_voice_over</span>Song Ngữ
               </span>` : ''}
-            ${movie.lang ? `<span class="badge-glass-sub">${escapeHtml(formatLangBadge(movie.lang))}</span>` : ''}
+            ${movie.lang && !isShort ? `<span class="badge-glass-sub">${escapeHtml(formatLangBadge(movie.lang))}</span>` : ''}
           </div>
           <div class="absolute top-2.5 right-2.5 z-10 pointer-events-none">
-            <span class="badge-glass-quality">${escapeHtml(movie.quality || 'FHD')}</span>
+            <span class="badge-glass-quality">${escapeHtml(isShort ? '1080p' : (movie.quality || 'FHD'))}</span>
           </div>
 
           <!-- Bottom Gradient & Episode -->
           <div class="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/80 to-transparent flex items-end justify-between z-10">
-            <span class="font-label-badge text-[11px] text-amber-300 font-semibold truncate max-w-[110px]">${escapeHtml(movie.episode_current || movie.time || 'Chưa có thông tin tập')}</span>
+            <span class="font-label-badge text-[11px] text-amber-300 font-semibold truncate max-w-[110px]">${escapeHtml(movie.episode_current || movie.time || (isShort ? 'Trọn bộ' : 'Chưa có thông tin tập'))}</span>
             <span class="px-1.5 py-0.2 rounded bg-surface-container-high/90 text-on-surface-variant font-label-badge text-[10px]">${escapeHtml(movie.year)}</span>
           </div>
 
@@ -439,7 +447,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
       </a>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function renderPagination(pagination) {

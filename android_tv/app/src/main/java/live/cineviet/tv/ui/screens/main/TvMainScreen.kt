@@ -304,7 +304,8 @@ fun TvMainScreen(
                         categoryFilter = null,
                         sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
-                        onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) }
+                        onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) },
+                        onNavigateToShortDetail = onNavigateToShortDetail
                     )
                 }
                 TvNavTab.SERIES -> {
@@ -312,7 +313,8 @@ fun TvMainScreen(
                         categoryFilter = "series",
                         sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
-                        onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) }
+                        onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) },
+                        onNavigateToShortDetail = onNavigateToShortDetail
                     )
                 }
                 TvNavTab.SINGLES -> {
@@ -320,7 +322,8 @@ fun TvMainScreen(
                         categoryFilter = "singles",
                         sessionManager = sessionManager,
                         onMovieClick = onNavigateToDetail,
-                        onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) }
+                        onPlayClick = { slug, ep, pos -> onNavigateToPlayer(slug, ep, pos) },
+                        onNavigateToShortDetail = onNavigateToShortDetail
                     )
                 }
                 TvNavTab.SHORTS -> {
@@ -330,7 +333,8 @@ fun TvMainScreen(
                 }
                 TvNavTab.SEARCH -> {
                     TvSearchScreen(
-                        onMovieClick = onNavigateToDetail
+                        onMovieClick = onNavigateToDetail,
+                        onShortClick = onNavigateToShortDetail
                     )
                 }
                 TvNavTab.ACCOUNT -> {

@@ -71,6 +71,7 @@ fun TvHomeScreen(
     sessionManager: TvSessionManager? = null,
     onMovieClick: (String) -> Unit,
     onPlayClick: (String, String?, Long) -> Unit,
+    onNavigateToShortDetail: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val repository = remember { MovieRepository() }
@@ -442,7 +443,12 @@ fun TvHomeScreen(
                 val ep = continueItem.episodeSlug?.takeIf { it.isNotBlank() }
                 val startMs = continueItem.currentTimeMs
                 selectedContinueItem = null
-                onPlayClick(slug, ep, startMs)
+                if (continueItem.isShortDrama && onNavigateToShortDetail != null) {
+                    val cleanSlug = slug.removePrefix("shortflix:")
+                    onNavigateToShortDetail(cleanSlug)
+                } else {
+                    onPlayClick(slug, ep, startMs)
+                }
             },
             onDelete = {
                 val slug = continueItem.movieSlug
@@ -516,6 +522,23 @@ fun TvContinueWatchingCard(
                     }
                 }
             )
+
+            if (item.isShortDrama) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                        .background(CineVietRed.copy(alpha = 0.95f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "SHORT",
+                        color = Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
             // Center Play Icon Overlay when focused
             if (isFocused) {

@@ -99,11 +99,14 @@ class MovieRepository {
         episodeName: String,
         episodeSlug: String,
         currentTime: Long,
-        duration: Long
+        duration: Long,
+        type: String = "single",
+        originName: String? = null,
+        isShort: Boolean = false
     ) {
         try {
             val progressPercent = if (duration > 0) ((currentTime * 100) / duration).toInt().coerceIn(0, 100) else 0
-            val payload = mapOf(
+            val payload = mutableMapOf<String, Any>(
                 "movie_slug" to movieSlug,
                 "movie_name" to movieName,
                 "poster_url" to (posterUrl ?: ""),
@@ -114,8 +117,13 @@ class MovieRepository {
                 "position_seconds" to currentTime,
                 "duration" to duration,
                 "duration_seconds" to duration,
-                "progress_percent" to progressPercent
+                "progress_percent" to progressPercent,
+                "type" to type,
+                "is_short" to isShort
             )
+            if (!originName.isNullOrBlank()) {
+                payload["origin_name"] = originName
+            }
             api.saveHistory(payload)
         } catch (_: Exception) {}
     }

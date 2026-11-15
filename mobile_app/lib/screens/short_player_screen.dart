@@ -4,6 +4,7 @@ import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/short_drama.dart';
 import '../services/shortflix_service.dart';
+import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 
 class ShortPlayerScreen extends StatefulWidget {
@@ -44,6 +45,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
   int _loadToken = 0;
   bool _handledEndedForToken = false;
   Timer? _hideTimer;
+  Timer? _progressTimer;
 
   @override
   void initState() {
@@ -52,10 +54,44 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
     _activeEpisode = widget.initialEpisode < 1 ? 1 : widget.initialEpisode;
     WakelockPlus.enable().catchError((_) {});
     _loadDetail();
+
+    _progressTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted && (_controller?.value.isPlaying ?? false)) {
+        _saveProgress();
+      }
+    });
+  }
+
+  void _saveProgress() {
+    final c = _controller;
+    if (c == null || !c.value.isInitialized) return;
+    final dur = c.value.duration.inSeconds;
+    final pos = c.value.position.inSeconds;
+    if (dur <= 0 || pos <= 0) return;
+
+    final poster = _item.posterUrl.isNotEmpty ? _item.posterUrl : _item.posterFallbackUrl;
+    final thumb = _item.backgroundUrl.isNotEmpty ? _item.backgroundUrl : poster;
+    StorageService.saveHistory(WatchHistoryItem(
+      movieSlug: _item.slug,
+      movieName: _item.name.isNotEmpty ? _item.name : _item.slug,
+      posterUrl: poster,
+      thumbUrl: thumb,
+      serverName: 'ShortFlix',
+      episodeName: 'Tập $_activeEpisode',
+      episodeSlug: 'tap-$_activeEpisode',
+      positionSeconds: pos,
+      durationSeconds: dur,
+      updatedAt: DateTime.now(),
+      type: 'short-phim',
+      originName: 'Short Phim Dọc',
+      isShort: true,
+    ));
   }
 
   @override
   void dispose() {
+    _saveProgress();
+    _progressTimer?.cancel();
     _hideTimer?.cancel();
     _controller?.removeListener(_onVideoTick);
     _controller?.dispose();
@@ -86,6 +122,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
   }
 
   Future<void> _loadEpisode(int epNum) async {
+    _saveProgress();
     final token = ++_loadToken;
     _handledEndedForToken = false;
     setState(() {

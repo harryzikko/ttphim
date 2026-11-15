@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/movie_detail.dart';
+import '../models/short_drama.dart';
 import '../screens/detail_screen.dart';
 import '../screens/player_screen.dart';
+import '../screens/short_player_screen.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
@@ -53,6 +55,28 @@ class _ContinueWatchingRailState extends State<ContinueWatchingRail> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
+
+    if (item.isShortDrama) {
+      final cleanSlug = item.movieSlug.replaceFirst('shortflix:', '');
+      final shortItem = ShortDramaItem(
+        slug: cleanSlug,
+        name: item.movieName,
+        posterUrl: item.posterUrl,
+        posterFallbackUrl: item.thumbUrl,
+        description: '',
+      );
+      final epNum = int.tryParse(item.episodeSlug.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ShortPlayerScreen(
+            item: shortItem,
+            initialEpisode: epNum,
+          ),
+        ),
+      );
+      widget.onRefresh?.call();
+      return;
+    }
 
     final detail = await ApiService.getMovieDetail(item.movieSlug);
     if (!context.mounted) return;
@@ -229,11 +253,27 @@ class _ContinueWatchingRailState extends State<ContinueWatchingRail> {
                 title: const Text('Xem thông tin & danh sách tập', style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(ctx);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => MovieDetailScreen(slug: item.movieSlug),
-                    ),
-                  ).then((_) => widget.onRefresh?.call());
+                  if (item.isShortDrama) {
+                    final cleanSlug = item.movieSlug.replaceFirst('shortflix:', '');
+                    final shortItem = ShortDramaItem(
+                      slug: cleanSlug,
+                      name: item.movieName,
+                      posterUrl: item.posterUrl,
+                      posterFallbackUrl: item.thumbUrl,
+                      description: '',
+                    );
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ShortPlayerScreen(item: shortItem),
+                      ),
+                    ).then((_) => widget.onRefresh?.call());
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MovieDetailScreen(slug: item.movieSlug),
+                      ),
+                    ).then((_) => widget.onRefresh?.call());
+                  }
                 },
               ),
 
@@ -424,7 +464,7 @@ class _ContinueWatchingRailState extends State<ContinueWatchingRail> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.75),
+                                    color: item.isShortDrama ? const Color(0xFFF59E0B).withOpacity(0.95) : Colors.black.withOpacity(0.75),
                                     borderRadius: BorderRadius.circular(5),
                                     border: Border.all(color: Colors.white12),
                                   ),
@@ -434,18 +474,18 @@ class _ContinueWatchingRailState extends State<ContinueWatchingRail> {
                                       Container(
                                         width: 5,
                                         height: 5,
-                                        decoration: const BoxDecoration(
-                                          color: AppTheme.primary,
+                                        decoration: BoxDecoration(
+                                          color: item.isShortDrama ? Colors.black : AppTheme.primary,
                                           shape: BoxShape.circle,
                                         ),
                                       ),
                                       const SizedBox(width: 4.5),
                                       Text(
-                                        item.episodeName.isNotEmpty ? item.episodeName : 'Tập 1',
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        item.isShortDrama ? 'SHORT · ${item.episodeName.isNotEmpty ? item.episodeName : "Tập 1"}' : (item.episodeName.isNotEmpty ? item.episodeName : 'Tập 1'),
+                                        style: TextStyle(
+                                          color: item.isShortDrama ? Colors.black : Colors.white,
                                           fontSize: 10.5,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ],

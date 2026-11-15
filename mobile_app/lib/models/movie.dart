@@ -66,6 +66,32 @@ class Movie {
     this.hasSongNgu = false,
   });
 
+  bool get isShortDrama => type == 'short-phim' || type == 'short' || slug.startsWith('shortflix:') || id.startsWith('shortflix:');
+
+  factory Movie.fromShortDrama(dynamic item) {
+    final sSlug = (item.slug ?? '').toString();
+    final sName = (item.name ?? '').toString();
+    final sPoster = (item.posterUrl ?? '').toString();
+    final sPosterFb = (item.posterFallbackUrl ?? '').toString();
+    final sDesc = (item.description ?? '').toString();
+    final epHint = item.episodeCountHint;
+
+    return Movie(
+      id: 'shortflix:$sSlug',
+      name: sName,
+      slug: sSlug,
+      originName: 'Short Phim Dọc',
+      type: 'short-phim',
+      posterUrl: sPoster.isNotEmpty ? sPoster : sPosterFb,
+      thumbUrl: sPosterFb.isNotEmpty ? sPosterFb : sPoster,
+      year: DateTime.now().year,
+      quality: '1080p',
+      lang: 'Vietsub • LT',
+      episodeCurrent: epHint != null ? '$epHint tập' : 'Full HD',
+      content: sDesc,
+    );
+  }
+
   factory Movie.fromJson(Map<String, dynamic> json) {
     // Parse TMDB / IMDB vote average
     double vote = 0.0;

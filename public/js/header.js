@@ -275,24 +275,33 @@
                 <span>Gợi ý tìm kiếm</span>
                 <span class="text-primary">${results.length} kết quả</span>
               </div>
-              ${results.map(item => `
-                <a href="/phim/${pathSegment(item.slug)}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-container-highest transition-colors group">
+              ${results.map(item => {
+                const isShort = Boolean(item.is_short || item.type === 'short-phim' || item.type === 'short' || (item.slug && item.slug.startsWith('shortflix:')));
+                const cleanSlug = pathSegment((item.slug || '').replace(/^shortflix:/, ''));
+                const targetUrl = isShort ? `/short-phim/${cleanSlug}` : `/phim/${cleanSlug}`;
+                return `
+                <a href="${targetUrl}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-container-highest transition-colors group">
                   <img src="${escapeHtml(safeUrl(item.poster_url || item.thumb_url))}" class="w-10 h-14 object-cover rounded bg-surface-container shrink-0 group-hover:scale-105 transition-transform" />
                   <div class="flex-1 min-w-0">
                     <h4 class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors truncate">${escapeHtml(item.name)}</h4>
-                    <p class="font-body-sm text-[12px] text-on-surface-variant truncate">${escapeHtml(item.origin_name || item.year)}</p>
+                    <p class="font-body-sm text-[12px] text-on-surface-variant truncate">${escapeHtml(item.origin_name || item.year || '')}</p>
                     <div class="flex items-center gap-1.5 mt-0.5">
-                      ${item.has_song_ngu ? `
+                      ${isShort ? `
+                        <span class="text-[9px] py-0.5 px-1.5 font-bold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          ⚡ Short Phim
+                        </span>
+                      ` : ''}
+                      ${!isShort && item.has_song_ngu ? `
                         <span class="badge-song-ngu text-[9px] py-0 px-1.5">
                           <span class="material-symbols-outlined text-[10px]">record_voice_over</span>Song Ngữ
                         </span>
                       ` : ''}
-                      <span class="badge-glass-quality text-[9px] py-0 px-1.5">${escapeHtml(item.quality || 'FHD')}</span>
-                      <span class="badge-glass-sub text-[9px] py-0 px-1.5">${escapeHtml(item.year)}</span>
+                      ${!isShort ? `<span class="badge-glass-quality text-[9px] py-0 px-1.5">${escapeHtml(item.quality || 'FHD')}</span>` : ''}
+                      ${item.year ? `<span class="badge-glass-sub text-[9px] py-0 px-1.5">${escapeHtml(item.year)}</span>` : ''}
                     </div>
                   </div>
                 </a>
-              `).join('')}
+              `;}).join('')}
               <a href="/kham-pha?keyword=${encodeURIComponent(query)}" class="block text-center py-2 mt-1 rounded-lg bg-surface-container hover:bg-primary-container hover:text-on-primary-container text-primary font-label-md text-label-md transition-colors">
                 Xem tất cả kết quả cho "${escapeHtml(query)}" &rarr;
               </a>

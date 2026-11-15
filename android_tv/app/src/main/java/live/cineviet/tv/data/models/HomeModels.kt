@@ -209,8 +209,14 @@ data class WatchHistoryItem(
     @SerializedName("duration") val duration: Any? = null,
     @SerializedName("duration_seconds") val durationSeconds: Any? = null,
     @SerializedName("progress_percent") val progressPercent: Any? = null,
-    @SerializedName("has_song_ngu") val hasSongNgu: Boolean = false
+    @SerializedName("has_song_ngu") val hasSongNgu: Boolean = false,
+    @SerializedName("type") val type: String? = null,
+    @SerializedName("is_short") val isShort: Boolean = false,
+    @SerializedName("origin_name") val originName: String? = null
 ) {
+    val isShortDrama: Boolean
+        get() = isShort || type == "short-phim" || type == "short" || movieSlug.startsWith("shortflix:")
+
     val displayThumb: String
         get() {
             val url = thumbUrl ?: posterUrl ?: ""

@@ -54,7 +54,10 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import live.cineviet.tv.data.models.ShortDramaItem
 import live.cineviet.tv.data.models.ShortEpisodeItem
 import live.cineviet.tv.data.models.ShortStreamServer
@@ -209,8 +212,57 @@ fun TvShortPlayerScreen(
         }
         exoPlayer.addListener(listener)
         onDispose {
+            val curr = exoPlayer.currentPosition / 1000L
+            val rawDur = exoPlayer.duration.coerceAtLeast(0L) / 1000L
+            val dur = if (rawDur > 0) rawDur else (duration / 1000L)
+            val itm = item
+            if (dur > 0 && curr > 0 && itm != null) {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    repository.saveHistory(
+                        movieSlug = slug,
+                        movieName = itm.name.ifBlank { slug },
+                        posterUrl = itm.posterUrl.ifBlank { itm.posterFallbackUrl },
+                        thumbUrl = itm.backgroundUrl ?: itm.posterUrl,
+                        episodeName = "Tập $activeEpisode",
+                        episodeSlug = "tap-$activeEpisode",
+                        currentTime = curr,
+                        duration = dur,
+                        type = "short-phim",
+                        originName = "Short Phim Dọc",
+                        isShort = true
+                    )
+                }
+            }
             exoPlayer.removeListener(listener)
             exoPlayer.release()
+        }
+    }
+
+    // Periodic history progress tracking every 10 seconds
+    LaunchedEffect(isPlaying, slug, activeEpisode, item) {
+        if (isPlaying) {
+            while (true) {
+                delay(10000)
+                val curr = exoPlayer.currentPosition / 1000L
+                val rawDur = exoPlayer.duration.coerceAtLeast(0L) / 1000L
+                val dur = if (rawDur > 0) rawDur else (duration / 1000L)
+                val itm = item
+                if (dur > 0 && curr > 0 && itm != null) {
+                    repository.saveHistory(
+                        movieSlug = slug,
+                        movieName = itm.name.ifBlank { slug },
+                        posterUrl = itm.posterUrl.ifBlank { itm.posterFallbackUrl },
+                        thumbUrl = itm.backgroundUrl ?: itm.posterUrl,
+                        episodeName = "Tập $activeEpisode",
+                        episodeSlug = "tap-$activeEpisode",
+                        currentTime = curr,
+                        duration = dur,
+                        type = "short-phim",
+                        originName = "Short Phim Dọc",
+                        isShort = true
+                    )
+                }
+            }
         }
     }
 

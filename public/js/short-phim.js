@@ -271,6 +271,9 @@
     if (loading) loading.classList.remove('hidden');
     const finishLoad = () => loading?.classList.add('hidden');
 
+    video.onplay = () => startProgressTimer();
+    video.onpause = () => { saveShortProgress(); stopProgressTimer(); };
+
     if (root.Hls && root.Hls.isSupported()) {
       const hls = new root.Hls({ enableWorker: true, lowLatencyMode: false });
       state.hls = hls;
@@ -307,10 +310,72 @@
     }
   }
 
+  let progressTimer = null;
+
+  function saveShortProgress() {
+    const video = document.getElementById('short-video');
+    if (!video || !state.activeSlug) return;
+    const dur = Math.round(Number(video.duration) || 0);
+    const cur = Math.round(Number(video.currentTime) || 0);
+    if (cur < 2 || dur <= 0) return;
+
+    const titleEl = document.getElementById('short-player-title');
+    const posterEl = document.getElementById('short-player-poster');
+    const activeItem = state.items.find(i => i.slug === state.activeSlug);
+    const activeEp = state.activeEpisode || 1;
+    const movieName = activeItem?.name || titleEl?.textContent?.trim() || state.activeSlug;
+    const posterUrl = activeItem?.poster_url || posterEl?.src || '';
+    const thumbUrl = activeItem?.poster_fallback_url || posterUrl;
+    const progressPercent = Math.min(100, Math.round((cur / dur) * 100));
+
+    const historyData = {
+      movie_slug: state.activeSlug,
+      movie_name: movieName,
+      origin_name: 'Short Phim Dọc',
+      poster_url: posterUrl,
+      thumb_url: thumbUrl,
+      type: 'short-phim',
+      is_short: true,
+      category: ['Short Phim'],
+      episode_slug: `tap-${activeEp}`,
+      episode_name: `Tập ${activeEp}`,
+      server_name: 'ShortFlix',
+      current_time: cur,
+      duration: dur,
+      progress_percent: progressPercent
+    };
+
+    try {
+      const user = root.API?.getUser?.();
+      const userId = user?.id || 'guest';
+      const key = `TTPhim_progress_${userId}`;
+      const records = JSON.parse(localStorage.getItem(key) || '{}');
+      records[state.activeSlug] = { ...historyData, updated_at: new Date().toISOString() };
+      localStorage.setItem(key, JSON.stringify(records));
+    } catch (_) {}
+
+    if (root.API?.saveHistory) {
+      root.API.saveHistory(historyData).catch(() => {});
+    }
+  }
+
+  function startProgressTimer() {
+    stopProgressTimer();
+    progressTimer = setInterval(saveShortProgress, 10000);
+  }
+
+  function stopProgressTimer() {
+    if (progressTimer) {
+      clearInterval(progressTimer);
+      progressTimer = null;
+    }
+  }
+
   async function loadEpisode(episodeNum) {
     if (!state.activeSlug || !root.API?.getShortflixStream) return;
     const myToken = ++state.loadToken;
     state.activeEpisode = Number(episodeNum) || 1;
+    saveShortProgress();
     renderEpisodes();
 
     const loading = document.getElementById('short-player-loading');
@@ -483,6 +548,7 @@
     });
 
     document.getElementById('short-video')?.addEventListener('ended', () => {
+      saveShortProgress();
       const autoNext = document.getElementById('short-auto-next')?.checked;
       const isFull = Boolean(state.servers[state.serverIndex]?.is_full);
       if (autoNext && !isFull && state.activeEpisode < state.episodes.length) {
@@ -491,6 +557,8 @@
     });
 
     document.getElementById('btn-short-close-player')?.addEventListener('click', () => {
+      saveShortProgress();
+      stopProgressTimer();
       destroyHls();
       const video = document.getElementById('short-video');
       if (video) {
@@ -528,7 +596,11 @@
       }
     });
 
-    root.addEventListener?.('pagehide', destroyHls);
+    root.addEventListener?.('pagehide', () => {
+      saveShortProgress();
+      stopProgressTimer();
+      destroyHls();
+    });
   }
 
   function init() {
@@ -536,10 +608,11 @@
     renderGenres();
     loadCatalog();
 
+    const searchParams = new URLSearchParams(root.location?.search || '');
     const pathMatch = String(root.location?.pathname || '').match(/^\/short-phim\/([^/]+)\/?$/);
-    if (pathMatch && pathMatch[1]) {
-      const slug = decodeURIComponent(pathMatch[1]);
-      const ep = Number.parseInt(new URLSearchParams(root.location?.search || '').get('ep') || '1', 10) || 1;
+    const slug = (pathMatch && pathMatch[1]) ? decodeURIComponent(pathMatch[1]) : (searchParams.get('slug') || '');
+    if (slug) {
+      const ep = Number.parseInt(searchParams.get('ep') || '1', 10) || 1;
       openShortDetail(slug, ep, { pushHistory: false });
     }
   }

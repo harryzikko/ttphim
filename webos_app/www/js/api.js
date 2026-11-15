@@ -131,7 +131,10 @@
 
   ApiClient.searchMovies = function (query) {
     return ApiClient.request('/search?q=' + encodeURIComponent(query || '')).then(function (res) {
-      return Array.isArray(res && res.data) ? res.data : [];
+      var arr = Array.isArray(res && res.data) ? res.data : [];
+      arr.movies = Array.isArray(res && res.movies) ? res.movies : [];
+      arr.shorts = Array.isArray(res && res.shorts) ? res.shorts : [];
+      return arr;
     });
   };
 

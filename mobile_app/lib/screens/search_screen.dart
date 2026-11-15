@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/movie.dart';
 import '../services/api_service.dart';
+import '../services/shortflix_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/movie_card.dart';
 
@@ -17,7 +18,9 @@ class _SearchScreenState extends State<SearchScreen> {
   Timer? _debounceTimer;
 
   bool _isSearching = false;
-  List<Movie> _results = [];
+  List<Movie> _movieResults = [];
+  List<Movie> _shortResults = [];
+  String _selectedFilter = 'all';
   bool _hasSearched = false;
   int _searchGeneration = 0;
 
@@ -32,6 +35,7 @@ class _SearchScreenState extends State<SearchScreen> {
     'Naruto',
     'Harry Potter',
     'John Wick',
+    'Short Phim',
   ];
 
   @override
@@ -46,7 +50,8 @@ class _SearchScreenState extends State<SearchScreen> {
     _searchGeneration++;
     if (query.trim().isEmpty) {
       setState(() {
-        _results = [];
+        _movieResults = [];
+        _shortResults = [];
         _hasSearched = false;
         _isSearching = false;
       });
@@ -67,14 +72,28 @@ class _SearchScreenState extends State<SearchScreen> {
       _hasSearched = true;
     });
 
-    final res = await ApiService.searchMovies(query);
+    final movieFuture = ApiService.searchMovies(query);
+    final shortFuture = ShortflixService.getCatalog(keyword: query, limit: 18)
+        .then((cat) => cat.items.map((s) => Movie.fromShortDrama(s)).toList())
+        .catchError((_) => <Movie>[]);
+
+    final results = await Future.wait([movieFuture, shortFuture]);
+    final movies = results[0];
+    final shorts = results[1];
 
     if (mounted && generation == _searchGeneration) {
       setState(() {
-        _results = res;
+        _movieResults = movies;
+        _shortResults = shorts;
         _isSearching = false;
       });
     }
+  }
+
+  List<Movie> get _filteredResults {
+    if (_selectedFilter == 'movies') return _movieResults;
+    if (_selectedFilter == 'shorts') return _shortResults;
+    return [..._movieResults, ..._shortResults];
   }
 
   @override
@@ -97,7 +116,7 @@ class _SearchScreenState extends State<SearchScreen> {
             style: const TextStyle(color: Colors.white, fontSize: 14),
             onChanged: _onQueryChanged,
             decoration: InputDecoration(
-              hintText: 'Tìm kiếm tên phim, diễn viên...',
+              hintText: 'Tìm kiếm tên phim, short phim...',
               hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
               prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary, size: 20),
               suffixIcon: _controller.text.isNotEmpty
@@ -121,7 +140,7 @@ class _SearchScreenState extends State<SearchScreen> {
             )
           : !_hasSearched
               ? _buildTrendingSection()
-              : _results.isEmpty
+              : (_movieResults.isEmpty && _shortResults.isEmpty)
                   ? _buildEmptyResults()
                   : _buildResultsGrid(),
     );
@@ -189,37 +208,89 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildResultsGrid() {
+    final list = _filteredResults;
+    final total = _movieResults.length + _shortResults.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
+        // Filter Tabs
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              _buildFilterChip('all', 'Tất cả ($total)'),
+              const SizedBox(width: 8),
+              _buildFilterChip('movies', '🎬 Phim (${_movieResults.length})'),
+              const SizedBox(width: 8),
+              _buildFilterChip('shorts', '⚡ Short Phim (${_shortResults.length})'),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Text(
-            'Tìm thấy ${_results.length} kết quả:',
+            'Hiển thị ${list.length} kết quả:',
             style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
           ),
         ),
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            physics: const BouncingScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: MediaQuery.of(context).size.width >= 1000 ? 6 : (MediaQuery.of(context).size.width >= 600 ? 4 : 3),
-              childAspectRatio: MediaQuery.of(context).size.width >= 600 ? 0.58 : 0.54,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 14,
-            ),
-            itemCount: _results.length,
-            itemBuilder: (context, index) {
-              return MovieCard(
-                movie: _results[index],
-                width: null,
-                margin: EdgeInsets.zero,
-              );
-            },
-          ),
+          child: list.isEmpty
+              ? const Center(
+                  child: Text(
+                    'Không có nội dung trong mục này',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  ),
+                )
+              : GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: MediaQuery.of(context).size.width >= 1000 ? 6 : (MediaQuery.of(context).size.width >= 600 ? 4 : 3),
+                    childAspectRatio: MediaQuery.of(context).size.width >= 600 ? 0.58 : 0.54,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 14,
+                  ),
+                  itemCount: list.length,
+                  itemBuilder: (context, index) {
+                    return MovieCard(
+                      movie: list[index],
+                      width: null,
+                      margin: EdgeInsets.zero,
+                    );
+                  },
+                ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFilterChip(String key, String label) {
+    final isActive = _selectedFilter == key;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedFilter = key);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? AppTheme.primary : AppTheme.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isActive ? AppTheme.primary : AppTheme.border,
+            width: 0.8,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.white : AppTheme.textSecondary,
+            fontSize: 12,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 }

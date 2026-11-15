@@ -79,59 +79,29 @@ fun TvShortScreen(
             .background(TvBackground)
             .padding(horizontal = 32.dp, vertical = 22.dp)
     ) {
-        // Header + Page Navigation
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.Bolt,
-                        contentDescription = null,
-                        tint = TvGold,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Short Phim (Phim Ngắn Dọc 9:16)",
-                        color = Color.White,
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
+        // Header
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.Bolt,
+                    contentDescription = null,
+                    tint = TvGold,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "1080p Vietsub & Lồng tiếng · Chọn Tập lẻ hoặc Bản Full gộp tất cả tập",
-                    color = TvOnSurfaceVariant,
-                    fontSize = 13.sp
+                    text = "Short Phim (Phim Ngắn Dọc 9:16)",
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Black
                 )
             }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                TvPillButton(
-                    label = "← Trang trước",
-                    enabled = page > 1,
-                    isActive = false,
-                    onClick = { if (page > 1) page -= 1 }
-                )
-                Text(
-                    text = "Trang $page",
-                    color = TvOnSurface,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                TvPillButton(
-                    label = "Trang sau →",
-                    enabled = hasMore,
-                    isActive = false,
-                    onClick = { if (hasMore) page += 1 }
-                )
-            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "1080p Vietsub & Lồng tiếng · Chọn Tập lẻ hoặc Bản Full gộp tất cả tập",
+                color = TvOnSurfaceVariant,
+                fontSize = 13.sp
+            )
         }
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -183,17 +153,49 @@ fun TvShortScreen(
                 }
             }
             else -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(5),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
-                    contentPadding = PaddingValues(bottom = 28.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(items, key = { it.slug }) { item ->
-                        TvShortCard(
-                            item = item,
-                            onClick = { onShortClick(item.slug) }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(5),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp),
+                        contentPadding = PaddingValues(bottom = 12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(items, key = { it.slug }) { item ->
+                            TvShortCard(
+                                item = item,
+                                onClick = { onShortClick(item.slug) }
+                            )
+                        }
+                    }
+
+                    // Bottom pagination
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        TvPillButton(
+                            label = "← Trang trước",
+                            enabled = page > 1,
+                            isActive = false,
+                            onClick = { if (page > 1) page -= 1 }
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = "Trang $page",
+                            color = TvOnSurface,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        TvPillButton(
+                            label = "Trang sau →",
+                            enabled = hasMore,
+                            isActive = false,
+                            onClick = { if (hasMore) page += 1 }
                         )
                     }
                 }
@@ -203,7 +205,7 @@ fun TvShortScreen(
 }
 
 @Composable
-private fun TvPillButton(
+fun TvPillButton(
     label: String,
     enabled: Boolean,
     isActive: Boolean,
@@ -241,7 +243,7 @@ private fun TvPillButton(
 }
 
 @Composable
-private fun TvShortCard(
+fun TvShortCard(
     item: ShortDramaItem,
     onClick: () -> Unit
 ) {
@@ -334,7 +336,7 @@ private fun TvShortCard(
 }
 
 @Composable
-private fun ShortFallbackCover(title: String) {
+fun ShortFallbackCover(title: String) {
     Box(
         modifier = Modifier
             .fillMaxSize()
