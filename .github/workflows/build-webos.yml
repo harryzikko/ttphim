@@ -1,4 +1,5 @@
 name: Build CineViet LG webOS TV (.ipk)
+# Multi-platform build: Android, iOS, Android TV, webOS TV, Windows, macOS, Linux
 
 on:
   push:

@@ -159,7 +159,7 @@ jobs:
           cat > release-files/desktop-version.json <<EOF
           {
             "version": "${VERSION}",
-            "notes": "• Phiên bản CineViet Desktop v${VERSION} (Tauri v2 + Rust)\n• Menu & khay hệ thống (F11 toàn màn hình, xóa cache WebView, kiểm tra cập nhật)\n• Tự động chặn tab popup quảng cáo từ player nhúng",
+            "notes": "• Phiên bản CineViet Desktop v${VERSION} (Tauri v2 + Rust)\n• Hỗ trợ tìm kiếm Short Phim và đồng bộ lịch sử xem đa nền tảng\n• Menu & khay hệ thống (F11 toàn màn hình, xóa cache WebView, kiểm tra cập nhật)\n• Tự động chặn tab popup quảng cáo từ player nhúng",
             "windows_url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/latest/CineViet-Desktop-Setup-Windows-x64.exe",
             "macos_url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/latest/CineViet-Desktop-macOS.dmg",
             "linux_url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/latest/CineViet-Desktop-Linux-x64.AppImage"
