@@ -58,6 +58,11 @@ mobile_app/ios/.symlinks/
 public/downloads/*.apk
 public/downloads/*.ipa
 public/downloads/*.ipk
+public/downloads/*.AppImage
+public/downloads/*.deb
+public/downloads/*.exe
+public/downloads/*.msi
+public/downloads/*.dmg
 
 # Local server dumps and configs
 *.sql

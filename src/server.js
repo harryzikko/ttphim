@@ -142,6 +142,16 @@ app.use(express.static(config.PUBLIC_DIR, {
   }
 }));
 
+// Fallback for missing installer downloads -> redirect to GitHub Releases latest
+app.get('/downloads/:filename', (req, res, next) => {
+  const allowedExts = ['.apk', '.ipa', '.ipk', '.exe', '.msi', '.dmg', '.appimage', '.deb'];
+  const ext = path.extname(req.params.filename || '').toLowerCase();
+  if (allowedExts.includes(ext)) {
+    return res.redirect(302, `https://github.com/harryzikko/ttphim/releases/download/latest/${encodeURIComponent(req.params.filename)}`);
+  }
+  next();
+});
+
 // Fallback for SPA/routing or 404
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).set('Cache-Control', 'no-store').json({ status: false, message: 'Không tìm thấy API' });
