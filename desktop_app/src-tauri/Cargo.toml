@@ -1,6 +1,6 @@
 [package]
 name = "cineviet-desktop"
-version = "1.0.5"
+version = "1.0.6"
 description = "CineViet Desktop App (Tauri v2 · Rust)"
 authors = ["CineViet <admin@cineviet.live>"]
 edition = "2021"

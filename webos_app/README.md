@@ -1,6 +1,6 @@
 # CineViet LG webOS Smart TV App
 
-Ứng dụng LG webOS TV (`live.cineviet.webos`, `v1.0.5`) thiết kế theo chuẩn **Nocturne Cinema** (`#0B0D13` + `#E50914` Cinema Red) đồng bộ với bản **CineViet Android TV**.
+Ứng dụng LG webOS TV (`live.cineviet.webos`, `v1.0.6`) thiết kế theo chuẩn **Nocturne Cinema** (`#0B0D13` + `#E50914` Cinema Red) đồng bộ với bản **CineViet Android TV**.
 
 ## Tính năng chính
 - **Màn hình chính 10ft (`Nocturne Cinema`)**: Thanh điều hướng thu gọn bên trái (5 tab: Trang chủ, Phim bộ, Phim lẻ, Tìm kiếm, Tài khoản), Hero Spotlight Billboard, Tiếp tục xem, Bảng xếp hạng Top 10, Phim mới, Chiếu rạp, Phim bộ, Phim lẻ, TV Shows, Hoạt hình.
@@ -13,7 +13,7 @@
 cd webos_app
 npm install
 npm run package
-# File .ipk nằm tại webos_app/output/live.cineviet.webos_1.0.5_all.ipk
+# File .ipk nằm tại webos_app/output/live.cineviet.webos_1.0.6_all.ipk
 ```
 
 ## Cài lên LG TV (Developer Mode / webOS Dev Manager)

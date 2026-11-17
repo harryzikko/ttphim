@@ -1,6 +1,7 @@
 {
-  "version": "1.0.5",
-  "notes": "• Cập nhật phiên bản mới v1.0.5 (Build 6) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Sửa lỗi màn hình xám khi bấm xem tiếp phim short drama từ thanh Tiếp tục xem và tab Đang xem\n• Thêm tính năng giữ màn hình để tua nhanh x2 trên Android & iOS mobile\n• Thêm nút bật/tắt tua nhanh x2 trên trình phát short phim cho Android TV & LG webOS TV\n• Tối ưu hoá tìm kiếm phim short và phân trang phía dưới giao diện Smart TV",
+  "version": "1.0.6",
+  "build": 7,
+  "notes": "• Cập nhật phiên bản mới v1.0.6 (Build 7) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Sửa triệt để lỗi đang xem bản gộp full phim short bị nhảy sang bản lẻ từng tập\n• Sửa lỗi lưu và hiển thị lịch sử xem phim và phim short trên Android TV và các nền tảng\n• Bổ sung mục Tiếp Tục Xem & Lịch Sử Xem Phim trong tab Tài Khoản trên Android TV & LG webOS TV\n• Tối ưu đồng bộ lịch sử xem cục bộ tức thì",
   "windows_url": "https://cineviet.live/downloads/CineViet-Desktop-Setup-Windows-x64.exe",
   "macos_url": "https://cineviet.live/downloads/CineViet-Desktop-macOS.dmg",
   "linux_url": "https://cineviet.live/downloads/CineViet-Desktop-Linux-x64.AppImage"

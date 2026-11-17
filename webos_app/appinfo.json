@@ -1,6 +1,6 @@
 {
   "id": "live.cineviet.webos",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "vendor": "CineViet",
   "type": "web",
   "main": "index.html",

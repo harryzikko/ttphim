@@ -2354,15 +2354,15 @@ const defaultAppUpdate = {
 
   enabled: true,
 
-  latest_version: '1.0.5',
+  latest_version: '1.0.6',
 
-  latest_build: 6,
+  latest_build: 7,
 
   force_update: false,
 
-  title: 'Bản Cập Nhật CineViet 1.0.5 (Build 6)',
+  title: 'Bản Cập Nhật CineViet 1.0.6 (Build 7)',
 
-  release_notes: '• Cập nhật phiên bản mới v1.0.5 (Build 6) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Sửa lỗi màn hình xám khi bấm xem tiếp phim short drama từ thanh Tiếp tục xem và tab Đang xem\n• Thêm tính năng giữ màn hình để tua nhanh x2 trên Android & iOS mobile\n• Thêm nút bật/tắt tua nhanh x2 trên trình phát short phim cho Android TV & LG webOS TV\n• Tối ưu hoá tìm kiếm phim short và phân trang phía dưới giao diện Smart TV',
+  release_notes: '• Cập nhật phiên bản mới v1.0.6 (Build 7) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Sửa triệt để lỗi đang xem bản gộp full phim short bị nhảy sang bản lẻ từng tập\n• Sửa lỗi lưu và hiển thị lịch sử xem phim và phim short trên Android TV và các nền tảng\n• Bổ sung mục Tiếp Tục Xem & Lịch Sử Xem Phim trong tab Tài Khoản trên Android TV & LG webOS TV\n• Tối ưu đồng bộ lịch sử xem cục bộ tức thì',
 
   apk_mobile_url: '/downloads/CineViet-Mobile-release.apk',
 
