@@ -85,6 +85,7 @@ fun TvMainScreen(
     var pendingUpdate by remember { mutableStateOf<AppUpdateData?>(null) }
 
     LaunchedEffect(Unit) {
+        live.cineviet.tv.data.repository.TvAuthRepository(sessionManager).refreshSessionIfLoggedIn()
         val check = TvUpdateManager.checkUpdate()
         check.onSuccess { update ->
             if (update != null) {

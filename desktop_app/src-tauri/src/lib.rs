@@ -571,13 +571,22 @@ fn create_main_window(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let nav_handle = app.clone();
     let popup_handle = app.clone();
 
-    WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+    let mut builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
         .title("CineViet — Rạp Phim Trực Tuyến")
         .inner_size(1360.0, 840.0)
         .min_inner_size(960.0, 600.0)
         .center()
         .theme(Some(tauri::Theme::Dark))
         .background_color(tauri::window::Color(11, 13, 19, 255))
+        .initialization_script("window.__CINEVIET_DESKTOP__ = true;");
+
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    if let Ok(local_dir) = app.path().app_local_data_dir() {
+        let _ = fs::create_dir_all(&local_dir);
+        builder = builder.data_directory(local_dir);
+    }
+
+    builder
         .on_navigation(move |url| {
             if should_open_externally_on_nav(url) {
                 let _ = nav_handle.opener().open_url(url.as_str(), None::<&str>);

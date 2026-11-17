@@ -24,6 +24,7 @@ class BackendService {
     } catch (e) {
       return {
         'status': false,
+        'networkError': true,
         'message': 'Không thể kết nối đến máy chủ (${uri.host}): Vui lòng kiểm tra mạng hoặc địa chỉ máy chủ.',
       };
     }
@@ -39,16 +40,30 @@ class BackendService {
       final msg = isCloudflare522
           ? 'Máy chủ ${uri.host} báo lỗi 522 (Cloudflare Timeout): Máy chủ gốc backend chưa được bật hoặc không phản hồi.'
           : 'Máy chủ ${uri.host} báo lỗi HTTP ${response.statusCode}.';
-      return {'status': false, 'message': msg};
+      return {
+        'status': false,
+        'httpStatus': response.statusCode,
+        'networkError': true,
+        'message': msg,
+      };
     }
 
     try {
       final decoded = json.decode(utf8.decode(response.bodyBytes));
-      if (decoded is Map<String, dynamic>) return decoded;
-      return {'status': false, 'message': 'Phản hồi từ máy chủ không đúng định dạng JSON'};
+      if (decoded is Map<String, dynamic>) {
+        decoded.putIfAbsent('httpStatus', () => response.statusCode);
+        return decoded;
+      }
+      return {
+        'status': false,
+        'httpStatus': response.statusCode,
+        'message': 'Phản hồi từ máy chủ không đúng định dạng JSON',
+      };
     } catch (_) {
       return {
         'status': false,
+        'httpStatus': response.statusCode,
+        'networkError': response.statusCode >= 500,
         'message': 'Máy chủ ${uri.host} phản hồi lỗi (HTTP ${response.statusCode})',
       };
     }

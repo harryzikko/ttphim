@@ -30,9 +30,9 @@ const shortflixService = require('../services/shortflixService');
 
 const { SharedTvAuthService } = require('../services/sharedTvAuthService');
 
-const tvAuthService = new SharedTvAuthService(dbService.store, user => require('../services/authService').issueSession(user, { device: 'TV QR login' }));
+const tvAuthService = new SharedTvAuthService(dbService.store, user => require('../services/authService').issueSession(user, { device: 'TV QR login', isApp: true, clientType: 'tv' }));
 
-const { authMiddleware, requireAuth, requireAdmin, generateToken } = require('../services/authService');
+const { authMiddleware, requireAuth, requireAdmin, generateToken, renewAppSession, APP_SESSION_TTL, BROWSER_COOKIE_MAX_AGE } = require('../services/authService');
 
 const { publicUser } = require('../services/passwordService');
 
@@ -959,9 +959,47 @@ router.post('/comments/:id/like', requireAuth, async (req, res) => {
 
 
 
-router.get('/auth/me', (req, res) => {
+router.get('/auth/me', async (req, res) => {
 
   if (req.user) {
+
+    const clientType = String(req.get('x-client-type') || '').toLowerCase().trim();
+
+    const needsUpgradeOrRefresh = !req.authSessionIsApp || (Number(req.authExpiresAt || 0) - Date.now()) < (APP_SESSION_TTL - 30 * 24 * 60 * 60 * 1000);
+
+    if (req.authMethod === 'cookie' && clientType === 'desktop' && req.authToken) {
+
+      let nextToken = req.authToken;
+
+      if (needsUpgradeOrRefresh) {
+
+        const renewed = await renewAppSession(req).catch(() => null);
+
+        if (renewed?.token) nextToken = renewed.token;
+
+      }
+
+      res.cookie('token', nextToken, { ...cookieOptions, maxAge: BROWSER_COOKIE_MAX_AGE });
+
+      return res.json({ status: true, data: req.user });
+
+    }
+
+    if (req.authMethod === 'bearer' && ['native', 'tv', 'webos', 'mobile', 'app'].includes(clientType) && !req.cookies?.token) {
+
+      if (needsUpgradeOrRefresh) {
+
+        const renewed = await renewAppSession(req).catch(() => null);
+
+        if (renewed?.token) {
+
+          return res.json({ status: true, data: req.user, token: renewed.token });
+
+        }
+
+      }
+
+    }
 
     return res.json({ status: true, data: req.user });
 
@@ -2354,15 +2392,15 @@ const defaultAppUpdate = {
 
   enabled: true,
 
-  latest_version: '1.0.6',
+  latest_version: '1.0.7',
 
-  latest_build: 7,
+  latest_build: 8,
 
   force_update: false,
 
-  title: 'Bản Cập Nhật CineViet 1.0.6 (Build 7)',
+  title: 'Bản Cập Nhật CineViet 1.0.7 (Build 8)',
 
-  release_notes: '• Cập nhật phiên bản mới v1.0.6 (Build 7) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Sửa triệt để lỗi đang xem bản gộp full phim short bị nhảy sang bản lẻ từng tập\n• Sửa lỗi lưu và hiển thị lịch sử xem phim và phim short trên Android TV và các nền tảng\n• Bổ sung mục Tiếp Tục Xem & Lịch Sử Xem Phim trong tab Tài Khoản trên Android TV & LG webOS TV\n• Tối ưu đồng bộ lịch sử xem cục bộ tức thì',
+  release_notes: '• Cập nhật phiên bản mới v1.0.7 (Build 8) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Nâng cấp chính sách giữ phiên đăng nhập: App giữ đăng nhập vĩnh viễn cho đến khi gỡ cài đặt hoặc tự đăng xuất\n• Chống đẩy phiên chéo giữa trình duyệt Web (48h) và ứng dụng Mobile/TV/Desktop\n• Tự động gia hạn và nâng cấp phiên cũ khi mở ứng dụng, không đăng xuất oan khi mạng chập chờn\n• Tối ưu lưu trữ Cookie & WebView cho Windows, Linux AppImage và macOS',
 
   apk_mobile_url: '/downloads/CineViet-Mobile-release.apk',
 

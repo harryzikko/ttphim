@@ -40,3 +40,9 @@ data class UserDto(
             return "https://cineviet.live$clean"
         }
 }
+
+data class AuthMeResponse(
+    @SerializedName("status") val status: Boolean = false,
+    @SerializedName("data") val data: UserDto? = null,
+    @SerializedName("token") val token: String? = null
+)

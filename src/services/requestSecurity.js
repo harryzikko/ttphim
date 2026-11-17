@@ -37,7 +37,7 @@ const corsMiddleware = cors((req, callback) => callback(null, {
   origin: trustedOrigin(req, req.get('origin')),
   credentials: true,
   methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Account-ID']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Account-ID', 'X-Client-Type']
 }));
 
 const { sharedRateOptions } = require('./postgresRateLimitStore');

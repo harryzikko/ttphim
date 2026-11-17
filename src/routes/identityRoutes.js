@@ -1,5 +1,6 @@
 const express = require('express');
 const { createIdentityService, IdentityError } = require('../services/identityService');
+const { BROWSER_COOKIE_MAX_AGE } = require('../services/authService');
 const { cookieOptions, originGuard } = require('../services/requestSecurity');
 const { rateLimit } = require('express-rate-limit');
 const { sharedRateOptions } = require('../services/postgresRateLimitStore');
@@ -24,7 +25,8 @@ function createIdentityRouter({ service = createIdentityService() } = {}) {
     try {
       const result = await operation(req, res);
       if (result?.token) {
-        res.cookie('token', result.token, { ...cookieOptions, maxAge: Math.max(0, result.expiresAt - Date.now()) });
+        const cookieAge = Math.min(Math.max(0, result.expiresAt - Date.now()), BROWSER_COOKIE_MAX_AGE);
+        res.cookie('token', result.token, { ...cookieOptions, maxAge: cookieAge });
       }
       const { token, ...data } = result || {};
       if (token && req.get('x-client-type') === 'native' && !req.get('origin')) data.token = token;

@@ -34,6 +34,9 @@ interface CineVietApiService {
         @Query("token") token: String
     ): Response<TvStatusResponse>
 
+    @GET("auth/me")
+    suspend fun getAuthMe(): Response<AuthMeResponse>
+
     @POST("movies/{slug}/view")
     suspend fun trackView(
         @Path("slug") slug: String

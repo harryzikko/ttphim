@@ -47,12 +47,20 @@ class ApiService {
         return await StorageService.getUser();
       if (result?['status'] == true &&
           result?['data'] is Map<String, dynamic>) {
+        final nextToken = (result!['token'] is String && (result['token'] as String).isNotEmpty)
+            ? result['token'] as String
+            : token;
         await StorageService.saveSession(
-          token,
-          result!['data'] as Map<String, dynamic>,
+          nextToken,
+          result['data'] as Map<String, dynamic>,
         );
-      } else if (result != null) {
-        await StorageService.clearSession();
+      } else if (result != null && result['networkError'] != true) {
+        final httpStatus = result['httpStatus'];
+        final explicitlyLoggedOut = httpStatus == 401 ||
+            (httpStatus == 200 && result['status'] == false && result['data'] == null);
+        if (explicitlyLoggedOut) {
+          await StorageService.clearSession();
+        }
       }
     } catch (_) {
       /* Preserve a saved session while temporarily offline. */

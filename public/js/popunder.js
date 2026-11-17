@@ -18,7 +18,7 @@
     if (/Android.*TV|SmartTV|webOS|Tizen|NetCast|HbbTV|AppleTV|BRAVIA/i.test(ua)) return true;
 
     // Desktop App detection (Tauri v2)
-    if (window.__TAURI__ || window.__TAURI_INTERNALS__ || window.__TAURI_METADATA__) return true;
+    if (window.__CINEVIET_DESKTOP__ || window.__TAURI__ || window.__TAURI_INTERNALS__ || window.__TAURI_METADATA__) return true;
     if (window.location.protocol === 'tauri:') return true;
 
     // Admin pages or internal pages

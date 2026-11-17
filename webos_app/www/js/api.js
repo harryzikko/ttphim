@@ -77,7 +77,7 @@
   ApiClient.request = function (path, options) {
     options = options || {};
     var method = options.method || 'GET';
-    var headers = { 'Accept': 'application/json' };
+    var headers = { 'Accept': 'application/json', 'X-Client-Type': 'webos' };
     var token = ApiClient.getToken();
     if (token) headers['Authorization'] = 'Bearer ' + token;
     var bodyStr = null;
@@ -156,6 +156,29 @@
 
   ApiClient.getTvStatus = function (token) {
     return ApiClient.request('/auth/tv/status?token=' + encodeURIComponent(token));
+  };
+
+  ApiClient.restoreSession = function () {
+    var currentToken = ApiClient.getToken();
+    if (!currentToken) return Promise.resolve(null);
+    return ApiClient.request('/auth/me').then(function (res) {
+      if (ApiClient.getToken() !== currentToken) return ApiClient.getUser();
+      if (res && res.status && res.data) {
+        ApiClient.saveSession(res.token || currentToken, res.data);
+        return res.data;
+      }
+      if (res && res.status === false && res.data === null) {
+        ApiClient.logout();
+        return null;
+      }
+      return ApiClient.getUser();
+    }).catch(function (err) {
+      if (err && err.status === 401 && ApiClient.getToken() === currentToken) {
+        ApiClient.logout();
+        return null;
+      }
+      return ApiClient.getUser();
+    });
   };
 
   ApiClient.getUserLibrary = function () {

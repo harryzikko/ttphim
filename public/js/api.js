@@ -20,6 +20,14 @@ function cacheUserProfile(user) {
   }
   try { localStorage.setItem('kk_user', JSON.stringify(profile)); } catch (_) { /* Display caching must not turn a committed save into a failure. */ }
 }
+function getDesktopClientType() {
+  try {
+    if (window.__CINEVIET_DESKTOP__ || window.__TAURI__ || window.__TAURI_INTERNALS__ || window.__TAURI_METADATA__) {
+      return 'desktop';
+    }
+  } catch (_) {}
+  return '';
+}
 const API = {
   getBaseUrl() {
     if (window.TTPhim_API_BASE) return window.TTPhim_API_BASE;
@@ -36,12 +44,14 @@ const API = {
     const mutation = !['GET', 'HEAD', 'OPTIONS'].includes(String(options.method || 'GET').toUpperCase());
     if (mutation && accountIdentityChanged) return { status: false, httpStatus: 409, code: 'ACCOUNT_CHANGED', message: 'Tài khoản đã thay đổi. Vui lòng tải lại trang.' };
     const accountId = confirmedAccountId;
+    const clientType = getDesktopClientType();
     const res = await fetch(finalUrl, {
       credentials: 'include',
       ...options,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        ...(clientType ? { 'X-Client-Type': clientType } : {}),
         ...(mutation && accountId ? { 'X-Account-ID': accountId } : {}),
         ...options.headers
       }

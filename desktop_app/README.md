@@ -1,6 +1,6 @@
 # CineViet Desktop (Tauri v2 · Rust)
 
-Ứng dụng Desktop đa nền tảng cho **CineViet** (`v1.0.6 - Build 7`) sử dụng **Tauri v2** (nhân Rust + WebView2 trên Windows / WebKit trên macOS / WebKitGTK trên Linux).
+Ứng dụng Desktop đa nền tảng cho **CineViet** (`v1.0.7 - Build 8`) sử dụng **Tauri v2** (nhân Rust + WebView2 trên Windows / WebKit trên macOS / WebKitGTK trên Linux).
 
 ## Tính năng đã tích hợp
 - **Single Instance (`tauri-plugin-single-instance`):** bấm lại biểu tượng app sẽ focus cửa sổ đang mở thay vì mở trùng nhiều cửa sổ.

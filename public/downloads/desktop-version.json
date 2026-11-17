@@ -1,7 +1,7 @@
 {
-  "version": "1.0.6",
-  "build": 7,
-  "notes": "• Cập nhật phiên bản mới v1.0.6 (Build 7) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Sửa triệt để lỗi đang xem bản gộp full phim short bị nhảy sang bản lẻ từng tập\n• Sửa lỗi lưu và hiển thị lịch sử xem phim và phim short trên Android TV và các nền tảng\n• Bổ sung mục Tiếp Tục Xem & Lịch Sử Xem Phim trong tab Tài Khoản trên Android TV & LG webOS TV\n• Tối ưu đồng bộ lịch sử xem cục bộ tức thì",
+  "version": "1.0.7",
+  "build": 8,
+  "notes": "• Cập nhật phiên bản mới v1.0.7 (Build 8) cho Android Mobile, iOS, Android TV, Windows, Linux, macOS, webOS TV\n• Nâng cấp chính sách giữ phiên đăng nhập: App giữ đăng nhập vĩnh viễn cho đến khi gỡ cài đặt hoặc tự đăng xuất\n• Chống đẩy phiên chéo giữa trình duyệt Web (48h) và ứng dụng Mobile/TV/Desktop\n• Tự động gia hạn và nâng cấp phiên cũ khi mở ứng dụng, không đăng xuất oan khi mạng chập chờn\n• Tối ưu lưu trữ Cookie & WebView cho Windows, Linux AppImage và macOS",
   "windows_url": "https://cineviet.live/downloads/CineViet-Desktop-Setup-Windows-x64.exe",
   "macos_url": "https://cineviet.live/downloads/CineViet-Desktop-macOS.dmg",
   "linux_url": "https://cineviet.live/downloads/CineViet-Desktop-Linux-x64.AppImage"

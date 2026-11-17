@@ -70,4 +70,18 @@ void main() {
     pending.complete(ok({'status': true, 'data': {'watchlist': [{'movie_slug': 'private', 'movie_name': 'Private'}], 'history': []}}));
     expect(await reading, isEmpty);
   });
+  test('restoreSession keeps login on network or 5xx failure and saves refreshed token', () async {
+    await StorageService.saveSession('token-old', {'id': 'a', 'name': 'Alice'});
+    BackendService.setClientForTesting(MockClient((_) async => throw http.ClientException('offline')));
+    expect((await ApiService.restoreSession())?['id'], 'a');
+    expect(await StorageService.getToken(), 'token-old');
+
+    BackendService.setClientForTesting(MockClient((_) async => http.Response('Bad Gateway', 502)));
+    expect((await ApiService.restoreSession())?['id'], 'a');
+    expect(await StorageService.getToken(), 'token-old');
+
+    BackendService.setClientForTesting(MockClient((_) async => ok({'status': true, 'data': {'id': 'a', 'name': 'Alice'}, 'token': 'token-10y'})));
+    expect((await ApiService.restoreSession())?['name'], 'Alice');
+    expect(await StorageService.getToken(), 'token-10y');
+  });
 }

@@ -275,7 +275,7 @@
           }
           if (data.token) {
             localStorage.setItem('tv_jwt', data.token);
-            document.cookie = `token=${data.token}; path=/; max-age=2592000`;
+            document.cookie = `token=${data.token}; path=/; max-age=34560000`;
           }
 
           // Show celebration and redirect

@@ -92,6 +92,7 @@ object ApiClient {
             .addInterceptor { chain ->
                 val requestBuilder = chain.request().newBuilder()
                     .header("User-Agent", "CineViet-AndroidTV/1.0 (Kotlin/Compose)")
+                    .header("X-Client-Type", "tv")
                     .header("Accept", "application/json")
                     .header("Cache-Control", "no-cache, no-store, must-revalidate")
                     .header("Pragma", "no-cache")
