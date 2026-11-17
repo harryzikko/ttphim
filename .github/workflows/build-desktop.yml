@@ -28,7 +28,7 @@ jobs:
             os: windows-latest
             artifact_name: desktop-windows
           - label: macOS
-            os: macos-14
+            os: macos-15-intel
             artifact_name: desktop-macos
           - label: Linux x64
             os: ubuntu-22.04
