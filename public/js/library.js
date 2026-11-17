@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   const escapeText = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   function displayItems(items) {
-    return items.filter(item => /^[a-zA-Z0-9_-]+$/.test(item.movie_slug || '')).map(item => Object.fromEntries(Object.entries(item).map(([key, value]) => {
+    return items.filter(item => /^[a-zA-Z0-9_:-]+$/.test(item.movie_slug || '')).map(item => Object.fromEntries(Object.entries(item).map(([key, value]) => {
       if (key === 'episode_slug') return [key, encodeURIComponent(value || 'tap-1')];
       if (key === 'poster_url' || key === 'thumb_url') {
         try { const url = new URL(value, location.href); return [key, /^https?:$/.test(url.protocol) ? escapeText(url.href) : '/favicon.svg']; }
@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <p class="font-body-sm text-[12px] text-on-surface-variant">Đã xem ${item.progress_percent}% (${Math.floor((item.current_time || 0) / 60)} phút)</p>
           </div>
           <div class="flex items-center gap-2 pt-1 border-t border-surface-container-highest">
-            <a href="${(item.is_short || item.type === 'short-phim' || item.type === 'short' || item.type === 'shortflix' || (item.server_name && item.server_name.toLowerCase().includes('shortflix')) || (item.origin_name && item.origin_name.includes('Short')) || (item.movie_slug || '').startsWith('shortflix:')) ? `/short-phim/${encodeURIComponent((item.movie_slug || '').replace(/^shortflix:/, ''))}?ep=${encodeURIComponent((item.episode_slug || 'tap-1').replace(/^tap-/, '') || '1')}` : `/xem-phim/${item.movie_slug}/${item.episode_slug || 'tap-1'}`}" class="flex-1 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-label-badge text-[11px] font-bold text-center hover:bg-inverse-primary transition-all flex items-center justify-center gap-1">
+            <a href="${(item.is_short || item.type === 'short-phim' || item.type === 'short' || item.type === 'shortflix' || (item.server_name && item.server_name.toLowerCase().includes('shortflix')) || (item.origin_name && item.origin_name.includes('Short')) || (item.movie_slug || '').startsWith('shortflix:')) ? `/short-phim/${encodeURIComponent((item.movie_slug || '').replace(/^shortflix:/, ''))}?ep=${encodeURIComponent((item.episode_slug || 'tap-1').replace(/^tap-/, '') || '1')}${item.is_full ? '&mode=full' : ''}` : `/xem-phim/${item.movie_slug}/${item.episode_slug || 'tap-1'}`}" class="flex-1 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-label-badge text-[11px] font-bold text-center hover:bg-inverse-primary transition-all flex items-center justify-center gap-1">
               <span class="material-symbols-outlined text-[14px]">play_arrow</span> Xem tiếp
             </a>
             <button class="btn-remove-hist p-1.5 rounded-lg hover:bg-error/20 text-on-surface-variant hover:text-error transition-colors cursor-pointer" data-slug="${item.movie_slug}" title="Ẩn khỏi Xem tiếp, giữ lịch sử" aria-label="Ẩn khỏi Xem tiếp, giữ lịch sử">
@@ -505,7 +505,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <h4 class="font-label-md text-label-md font-bold text-on-surface group-hover:text-primary transition-colors truncate">${item.movie_name}</h4>
             <div class="flex items-center justify-between text-on-surface-variant font-body-sm text-[11px] pt-1 border-t border-surface-container-highest">
               <span>${new Date(item.updated_at).toLocaleDateString('vi-VN')}</span>
-              <a href="${(item.is_short || item.type === 'short-phim' || item.type === 'short' || item.type === 'shortflix' || (item.server_name && item.server_name.toLowerCase().includes('shortflix')) || (item.origin_name && item.origin_name.includes('Short')) || (item.movie_slug || '').startsWith('shortflix:')) ? `/short-phim/${encodeURIComponent((item.movie_slug || '').replace(/^shortflix:/, ''))}?ep=${encodeURIComponent((item.episode_slug || 'tap-1').replace(/^tap-/, '') || '1')}` : `/xem-phim/${item.movie_slug}/${item.episode_slug || 'tap-1'}`}" class="text-primary hover:underline font-semibold flex items-center gap-0.5">
+              <a href="${(item.is_short || item.type === 'short-phim' || item.type === 'short' || item.type === 'shortflix' || (item.server_name && item.server_name.toLowerCase().includes('shortflix')) || (item.origin_name && item.origin_name.includes('Short')) || (item.movie_slug || '').startsWith('shortflix:')) ? `/short-phim/${encodeURIComponent((item.movie_slug || '').replace(/^shortflix:/, ''))}?ep=${encodeURIComponent((item.episode_slug || 'tap-1').replace(/^tap-/, '') || '1')}${item.is_full ? '&mode=full' : ''}` : `/xem-phim/${item.movie_slug}/${item.episode_slug || 'tap-1'}`}" class="text-primary hover:underline font-semibold flex items-center gap-0.5">
                 Xem lại <span class="material-symbols-outlined text-[13px]">arrow_forward</span>
               </a>
             </div>

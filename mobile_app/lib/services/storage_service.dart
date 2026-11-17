@@ -10,6 +10,7 @@ class WatchHistoryItem {
   final int positionSeconds, durationSeconds;
   final DateTime updatedAt;
   final bool isShort;
+  final bool isFull;
 
   WatchHistoryItem({
     required this.movieSlug,
@@ -25,6 +26,7 @@ class WatchHistoryItem {
     this.type = 'single',
     this.originName = '',
     this.isShort = false,
+    this.isFull = false,
   });
 
   bool get isShortDrama =>
@@ -36,6 +38,12 @@ class WatchHistoryItem {
       serverName.toLowerCase().contains('shortflix') ||
       originName.toLowerCase().contains('short') ||
       movieSlug.startsWith('shortflix:');
+
+  bool get preferFull =>
+      isFull ||
+      serverName.toLowerCase().contains('full') ||
+      episodeSlug.toLowerCase().contains('full') ||
+      episodeName.toLowerCase().contains('full');
 
   double get progressPercentage => durationSeconds <= 0 ? 0 : (positionSeconds / durationSeconds).clamp(0.0, 1.0);
 
@@ -81,6 +89,7 @@ class WatchHistoryItem {
     'type': type,
     'origin_name': originName,
     'is_short': isShort,
+    'is_full': isFull,
   };
 
   Map<String, dynamic> toBackend() => {
@@ -89,6 +98,7 @@ class WatchHistoryItem {
     'duration': durationSeconds,
     'type': type,
     'is_short': isShort,
+    'is_full': isFull,
     if (originName.isNotEmpty) 'origin_name': originName,
   };
 
@@ -101,10 +111,18 @@ class WatchHistoryItem {
     final srv = value['server_name']?.toString() ?? '';
     final slug = value['movie_slug']?.toString() ?? '';
     final isShortVal = value['is_short'];
+    final isFullVal = value['is_full'];
+    final f = isFullVal == true ||
+        isFullVal == 1 ||
+        isFullVal == 'true' ||
+        isFullVal == '1' ||
+        srv.toLowerCase().contains('full') ||
+        (value['episode_slug']?.toString() == 'full');
     final s = isShortVal == true ||
         isShortVal == 1 ||
         isShortVal == 'true' ||
         isShortVal == '1' ||
+        f ||
         t == 'short-phim' ||
         t == 'short' ||
         t == 'shortflix' ||
@@ -126,6 +144,7 @@ class WatchHistoryItem {
       type: t.isNotEmpty ? t : (s ? 'short-phim' : 'single'),
       originName: orig,
       isShort: s,
+      isFull: f,
     );
   }
 }

@@ -153,7 +153,10 @@ fun TvPlayerScreen(
                         episodeName = ep.name,
                         episodeSlug = ep.slug,
                         currentTime = curr,
-                        duration = dur
+                        duration = dur,
+                        type = detail.movie.type ?: "single",
+                        originName = detail.movie.originName,
+                        serverName = "KKPhim"
                     )
                 }
             }
@@ -190,7 +193,10 @@ fun TvPlayerScreen(
                         episodeName = currentEpisode!!.name,
                         episodeSlug = currentEpisode!!.slug,
                         currentTime = currentPosition / 1000L,
-                        duration = duration / 1000L
+                        duration = duration / 1000L,
+                        type = detailData!!.movie.type ?: "single",
+                        originName = detailData!!.movie.originName,
+                        serverName = "KKPhim"
                     )
                 }
             }

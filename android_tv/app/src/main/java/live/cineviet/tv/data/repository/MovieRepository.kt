@@ -80,14 +80,50 @@ class MovieRepository {
 
     suspend fun getUserLibrary(): Result<UserLibraryData> {
         return try {
+            val localHist = ApiClient.sessionManager?.getLocalHistory() ?: emptyList()
             val response = api.getUserLibrary()
             if (response.isSuccessful && response.body()?.status == true) {
-                Result.success(response.body()?.data ?: UserLibraryData())
+                val data = response.body()?.data ?: UserLibraryData()
+                val serverHist = data.history.toMutableList()
+                val mergedHist = (localHist + serverHist).distinctBy { it.movieSlug }
+                val continueWatching = (data.continueWatching + localHist.filter {
+                    val p = it.progressPercentInt
+                    val t = it.currentTimeSeconds
+                    p < 95 && t > 0
+                }).distinctBy { it.movieSlug }
+
+                Result.success(data.copy(
+                    history = mergedHist,
+                    continueWatching = continueWatching
+                ))
+            } else if (localHist.isNotEmpty()) {
+                val continueWatching = localHist.filter {
+                    val p = it.progressPercentInt
+                    val t = it.currentTimeSeconds
+                    p < 95 && t > 0
+                }
+                Result.success(UserLibraryData(
+                    history = localHist,
+                    continueWatching = continueWatching
+                ))
             } else {
                 Result.failure(Exception(response.body()?.message ?: "Lỗi tải thư viện phim"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            val localHist = ApiClient.sessionManager?.getLocalHistory() ?: emptyList()
+            if (localHist.isNotEmpty()) {
+                val continueWatching = localHist.filter {
+                    val p = it.progressPercentInt
+                    val t = it.currentTimeSeconds
+                    p < 95 && t > 0
+                }
+                Result.success(UserLibraryData(
+                    history = localHist,
+                    continueWatching = continueWatching
+                ))
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
@@ -102,10 +138,34 @@ class MovieRepository {
         duration: Long,
         type: String = "single",
         originName: String? = null,
-        isShort: Boolean = false
+        isShort: Boolean = false,
+        isFull: Boolean = false,
+        serverName: String? = null
     ) {
+        val progressPercent = if (duration > 0) ((currentTime * 100) / duration).toInt().coerceIn(0, 100) else 0
+        val historyItem = live.cineviet.tv.data.models.WatchHistoryItem(
+            movieSlug = movieSlug,
+            movieName = movieName,
+            posterUrl = posterUrl,
+            thumbUrl = thumbUrl,
+            episodeName = episodeName,
+            episodeSlug = episodeSlug,
+            currentTime = currentTime,
+            positionSeconds = currentTime,
+            duration = duration,
+            durationSeconds = duration,
+            progressPercent = progressPercent,
+            type = type,
+            isShort = isShort,
+            isFull = isFull,
+            serverName = serverName,
+            originName = originName
+        )
+        // 1. Immediately cache locally
+        ApiClient.sessionManager?.saveLocalHistoryItem(historyItem)
+
+        // 2. Dispatch to backend
         try {
-            val progressPercent = if (duration > 0) ((currentTime * 100) / duration).toInt().coerceIn(0, 100) else 0
             val payload = mutableMapOf<String, Any>(
                 "movie_slug" to movieSlug,
                 "movie_name" to movieName,
@@ -119,25 +179,30 @@ class MovieRepository {
                 "duration_seconds" to duration,
                 "progress_percent" to progressPercent,
                 "type" to type,
-                "is_short" to isShort
+                "is_short" to isShort,
+                "is_full" to isFull
             )
             if (!originName.isNullOrBlank()) {
                 payload["origin_name"] = originName
+            }
+            if (!serverName.isNullOrBlank()) {
+                payload["server_name"] = serverName
             }
             api.saveHistory(payload)
         } catch (_: Exception) {}
     }
 
     suspend fun removeFromHistory(movieSlug: String): Result<Unit> {
+        ApiClient.sessionManager?.removeLocalHistory(movieSlug)
         return try {
             val response = api.removeFromHistory(mapOf("movie_slug" to movieSlug))
             if (response.isSuccessful && response.body()?.status == true) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "Lỗi xóa phim khỏi danh sách tiếp tục xem"))
+                Result.success(Unit)
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.success(Unit)
         }
     }
 

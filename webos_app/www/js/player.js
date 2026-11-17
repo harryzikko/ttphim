@@ -141,6 +141,7 @@
     if (playerState.isShort) {
       var epNum = Math.max(1, Number(playerState.shortEpisode) || 1);
       var shortSlug = playerState.movie.slug || playerState.shortSlug;
+      var isFull = Boolean(playerState.preferFull);
       global.TvApi.saveHistory({
         movie_slug: shortSlug,
         movie_name: playerState.movie.name || shortSlug,
@@ -149,9 +150,10 @@
         thumb_url: global.TvApi.fullImg(playerState.movie.thumb_url || playerState.movie.poster_url),
         type: 'short-phim',
         is_short: true,
-        episode_slug: 'tap-' + epNum,
-        episode_name: 'Tập ' + epNum,
-        server_name: 'ShortFlix',
+        is_full: isFull,
+        episode_slug: isFull ? 'full' : ('tap-' + epNum),
+        episode_name: isFull ? 'Bản Full' : ('Tập ' + epNum),
+        server_name: isFull ? 'Bản Full (Gộp tất cả tập)' : ('Tập lẻ • Tập ' + epNum),
         current_time: cur,
         duration: dur,
         progress_percent: pct
@@ -341,7 +343,7 @@
               slug: 'tap-' + num,
               name: srv.is_full ? ('Tập ' + num + ' (Bản Full)') : ('Tập ' + num),
               episode: num,
-              link_m3u8: num === epNum ? (srv.url || '') : '',
+              link_m3u8: srv.is_full ? (srv.url || '') : (num === epNum ? (srv.url || '') : ''),
               subtitle_url: num === epNum ? subUrl : ''
             };
           })

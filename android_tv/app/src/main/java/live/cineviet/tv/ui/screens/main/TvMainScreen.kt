@@ -49,6 +49,7 @@ import live.cineviet.tv.BuildConfig
 import live.cineviet.tv.data.local.TvSessionManager
 import live.cineviet.tv.data.models.AppUpdateData
 import live.cineviet.tv.data.models.MovieItem
+import live.cineviet.tv.data.models.WatchHistoryItem
 import live.cineviet.tv.data.repository.MovieRepository
 import live.cineviet.tv.data.updater.TvUpdateManager
 import live.cineviet.tv.ui.components.TvLoadingSpinner
@@ -57,6 +58,7 @@ import live.cineviet.tv.ui.components.TvUpdateDialog
 import live.cineviet.tv.ui.navigation.TvScreen
 import live.cineviet.tv.ui.screens.auth.TvLoginScreen
 import live.cineviet.tv.ui.screens.home.TvHomeScreen
+import live.cineviet.tv.ui.screens.home.TvContinueWatchingCard
 import live.cineviet.tv.ui.screens.search.TvSearchScreen
 import live.cineviet.tv.ui.screens.shorts.TvShortScreen
 import live.cineviet.tv.ui.theme.*
@@ -74,7 +76,7 @@ enum class TvNavTab(val title: String, val selectedIcon: ImageVector, val unsele
 fun TvMainScreen(
     sessionManager: TvSessionManager,
     onNavigateToDetail: (String) -> Unit,
-    onNavigateToShortDetail: (String) -> Unit,
+    onNavigateToShortDetail: (String, Boolean) -> Unit,
     onNavigateToPlayer: (String, String?, Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -328,13 +330,13 @@ fun TvMainScreen(
                 }
                 TvNavTab.SHORTS -> {
                     TvShortScreen(
-                        onShortClick = onNavigateToShortDetail
+                        onShortClick = { slug -> onNavigateToShortDetail(slug, false) }
                     )
                 }
                 TvNavTab.SEARCH -> {
                     TvSearchScreen(
                         onMovieClick = onNavigateToDetail,
-                        onShortClick = onNavigateToShortDetail
+                        onShortClick = { slug -> onNavigateToShortDetail(slug, false) }
                     )
                 }
                 TvNavTab.ACCOUNT -> {
@@ -342,6 +344,8 @@ fun TvMainScreen(
                         TvAccountInfoScreen(
                             sessionManager = sessionManager,
                             onNavigateToDetail = onNavigateToDetail,
+                            onNavigateToShortDetail = onNavigateToShortDetail,
+                            onNavigateToPlayer = onNavigateToPlayer,
                             onLoggedOut = { selectedTab = TvNavTab.HOME },
                             onShowUpdate = { pendingUpdate = it }
                         )
@@ -370,13 +374,17 @@ fun TvMainScreen(
 fun TvAccountInfoScreen(
     sessionManager: TvSessionManager,
     onNavigateToDetail: (String) -> Unit,
+    onNavigateToShortDetail: ((String, Boolean) -> Unit)? = null,
+    onNavigateToPlayer: ((String, String?, Long) -> Unit)? = null,
     onLoggedOut: () -> Unit,
     onShowUpdate: (AppUpdateData) -> Unit
 ) {
     val user = sessionManager.getUser()
     val repository = remember { MovieRepository() }
     var watchlist by remember { mutableStateOf<List<MovieItem>>(emptyList()) }
-    var isLoadingWatchlist by remember { mutableStateOf(true) }
+    var continueWatching by remember { mutableStateOf<List<WatchHistoryItem>>(emptyList()) }
+    var history by remember { mutableStateOf<List<WatchHistoryItem>>(emptyList()) }
+    var isLoadingLibrary by remember { mutableStateOf(true) }
 
     val logoutSource = remember { MutableInteractionSource() }
     val isLogoutFocused by logoutSource.collectIsFocusedAsState()
@@ -385,8 +393,27 @@ fun TvAccountInfoScreen(
         val result = repository.getUserLibrary()
         result.onSuccess { lib ->
             watchlist = lib.watchlist
+            continueWatching = lib.continueWatching
+            history = lib.history
         }
-        isLoadingWatchlist = false
+        isLoadingLibrary = false
+    }
+
+    val handleHistoryClick: (WatchHistoryItem) -> Unit = { item ->
+        val slug = item.movieSlug
+        val isShort = item.isShortDrama
+        val isFull = item.isFull ||
+            item.serverName?.contains("full", ignoreCase = true) == true ||
+            item.episodeSlug?.contains("full", ignoreCase = true) == true
+        if (isShort && onNavigateToShortDetail != null) {
+            val cleanSlug = slug.removePrefix("shortflix:")
+            onNavigateToShortDetail(cleanSlug, isFull)
+        } else if (onNavigateToPlayer != null) {
+            val ep = item.episodeSlug?.takeIf { it.isNotBlank() }
+            onNavigateToPlayer(slug, ep, item.currentTimeMs)
+        } else {
+            onNavigateToDetail(slug)
+        }
     }
 
     LazyColumn(
@@ -567,7 +594,35 @@ fun TvAccountInfoScreen(
             }
         }
 
-        // 3. Favorites Section (Watchlist)
+        // 3. Continue Watching Section
+        if (continueWatching.isNotEmpty()) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Tiếp Tục Xem (${continueWatching.size} phim/tập)",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(continueWatching) { item ->
+                            TvContinueWatchingCard(
+                                item = item,
+                                onClick = { handleHistoryClick(item) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Favorites Section (Watchlist)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -579,7 +634,7 @@ fun TvAccountInfoScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (isLoadingWatchlist) {
+                if (isLoadingLibrary) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -592,7 +647,7 @@ fun TvAccountInfoScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 32.dp),
+                            .padding(vertical = 24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -612,6 +667,34 @@ fun TvAccountInfoScreen(
                             TvMovieCard(
                                 movie = movie,
                                 onClick = { onNavigateToDetail(movie.effectiveSlug) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Watch History Section
+        if (history.isNotEmpty()) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Lịch Sử Xem Phim (${history.size} phim/tập)",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(history) { item ->
+                            TvContinueWatchingCard(
+                                item = item,
+                                onClick = { handleHistoryClick(item) }
                             )
                         }
                     }

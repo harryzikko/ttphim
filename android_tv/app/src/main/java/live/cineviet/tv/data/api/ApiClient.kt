@@ -56,7 +56,8 @@ class SafeTvDns : Dns {
 object ApiClient {
     private const val BASE_URL = "https://cineviet.live/api/"
 
-    private var sessionManager: TvSessionManager? = null
+    var sessionManager: TvSessionManager? = null
+        private set
 
     fun initialize(manager: TvSessionManager) {
         sessionManager = manager

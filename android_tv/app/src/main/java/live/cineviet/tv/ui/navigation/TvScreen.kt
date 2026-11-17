@@ -9,7 +9,7 @@ sealed class TvScreen {
     object Login : TvScreen()
     object Account : TvScreen()
     data class Detail(val slug: String) : TvScreen()
-    data class ShortDetail(val slug: String) : TvScreen()
+    data class ShortDetail(val slug: String, val preferFull: Boolean = false) : TvScreen()
     data class ShortPlayer(
         val slug: String,
         val episode: Int = 1,

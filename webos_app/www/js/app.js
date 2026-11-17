@@ -393,7 +393,7 @@
     });
   }
 
-  function openShortDetail(slug) {
+  function openShortDetail(slug, initialPreferFull) {
     if (!slug) return;
     var layer = document.getElementById('tv-detail-layer');
     appState.lastStageFocus = Spatial.getCurrent();
@@ -405,7 +405,7 @@
     Api.getShortflixDetail(slug).then(function (data) {
       var item = (data && data.item) || {};
       var episodes = Array.isArray(data && data.episodes) ? data.episodes : [{ episode: 1, title: 'Tập 1' }];
-      var preferFull = false;
+      var preferFull = Boolean(initialPreferFull);
       var poster = item.poster_url || item.poster_fallback_url || '';
       var fb = item.poster_fallback_url || '';
       var backdrop = item.background_url || poster;
@@ -688,12 +688,24 @@
 
       Api.getUserLibrary().then(function (lib) {
         appState.watchlist = lib.watchlist || [];
+        appState.history = lib.history || lib.continueWatching || [];
         var mount = document.getElementById('tv-watchlist-mount');
         if (!mount) return;
-        if (!appState.watchlist.length) {
-          mount.innerHTML = '<div style="color:#94A3B8;font-size:16px;padding:18px;">Chưa có phim yêu thích nào. Bấm Yêu thích trong chi tiết phim để lưu tại đây.</div>';
+        var sectionsHtml = '';
+        var cwList = lib.continueWatching || [];
+        if (cwList.length) {
+          sectionsHtml += renderSection('Tiếp Tục Xem (' + cwList.length + ')', 'XEM DỞ DANG', cwList.map(continueCardHtml).join(''), true);
+        }
+        if (appState.watchlist.length) {
+          sectionsHtml += renderSection('Danh Sách Yêu Thích (' + appState.watchlist.length + ')', 'ĐÃ LƯU', appState.watchlist.map(function (m) { return movieCardHtml(m); }).join(''), true);
+        }
+        if (appState.history.length) {
+          sectionsHtml += renderSection('Lịch Sử Xem Phim (' + appState.history.length + ')', 'ĐÃ XEM GẦN ĐÂY', appState.history.map(continueCardHtml).join(''), true);
+        }
+        if (!sectionsHtml) {
+          mount.innerHTML = '<div style="color:#94A3B8;font-size:16px;padding:18px;">Chưa có phim yêu thích hoặc lịch sử xem nào. Bắt đầu xem để lưu tại đây.</div>';
         } else {
-          mount.innerHTML = renderSection('Danh Sách Yêu Thích (' + appState.watchlist.length + ')', 'ĐÃ LƯU', appState.watchlist.map(function (m) { return movieCardHtml(m); }).join(''), true);
+          mount.innerHTML = sectionsHtml;
           wireStageCardClicks(mount);
         }
       }).catch(function () {});
@@ -778,6 +790,11 @@
       (item.origin_name && item.origin_name.indexOf('Short') !== -1) ||
       (item.movie_slug && item.movie_slug.indexOf('shortflix:') === 0)
     );
+    var isFullItem = Boolean(
+      item.is_full ||
+      (item.server_name && item.server_name.toLowerCase().indexOf('full') !== -1) ||
+      (item.episode_name && item.episode_name.toLowerCase().indexOf('full') !== -1)
+    );
     var cleanSlug = (item.movie_slug || '').replace(/^shortflix:/, '');
 
     modal.innerHTML =
@@ -804,7 +821,7 @@
     document.getElementById('tv-cw-resume').addEventListener('click', function () {
       closeModal();
       if (isShortItem) {
-        openShortDetail(cleanSlug);
+        openShortDetail(cleanSlug, isFullItem);
       } else {
         openDirectPlay(item.movie_slug, item.episode_slug, Number(item.current_time) || 0);
       }
@@ -812,7 +829,7 @@
     document.getElementById('tv-cw-restart').addEventListener('click', function () {
       closeModal();
       if (isShortItem) {
-        openShortDetail(cleanSlug);
+        openShortDetail(cleanSlug, isFullItem);
       } else {
         openDirectPlay(item.movie_slug, item.episode_slug, 0);
       }
@@ -820,7 +837,7 @@
     document.getElementById('tv-cw-detail').addEventListener('click', function () {
       closeModal();
       if (isShortItem) {
-        openShortDetail(cleanSlug);
+        openShortDetail(cleanSlug, isFullItem);
       } else {
         openDetail(item.movie_slug);
       }

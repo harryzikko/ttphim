@@ -55,8 +55,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToDetail = { slug ->
                                     backStack.add(TvScreen.Detail(slug))
                                 },
-                                onNavigateToShortDetail = { slug ->
-                                    backStack.add(TvScreen.ShortDetail(slug))
+                                onNavigateToShortDetail = { slug, preferFull ->
+                                    backStack.add(TvScreen.ShortDetail(slug, preferFull))
                                 },
                                 onNavigateToPlayer = { slug, epSlug, startMs ->
                                     backStack.add(TvScreen.Player(slug, epSlug, 0, startMs))
@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
                         is TvScreen.ShortDetail -> {
                             TvShortDetailScreen(
                                 slug = currentScreen.slug,
+                                initialPreferFull = currentScreen.preferFull,
                                 onBack = {
                                     if (backStack.size > 1) {
                                         backStack.removeAt(backStack.lastIndex)

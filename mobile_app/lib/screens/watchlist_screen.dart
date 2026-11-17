@@ -191,12 +191,14 @@ class _WatchlistScreenState extends State<WatchlistScreen> with SingleTickerProv
       description: '',
     );
     final epNum = int.tryParse(item.episodeSlug.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+    final isFull = item.preferFull;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ShortPlayerScreen(
           item: shortItem,
           initialEpisode: epNum,
           initialPositionSeconds: item.positionSeconds,
+          initialPreferFull: isFull,
         ),
       ),
     );

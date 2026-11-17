@@ -26,6 +26,7 @@
     episodes: [],
     servers: [],
     serverIndex: 0,
+    preferFull: false,
     subtitleEnabled: true,
     loadToken: 0,
     hls: null
@@ -327,6 +328,8 @@
     const posterUrl = activeItem?.poster_url || posterEl?.src || '';
     const thumbUrl = activeItem?.poster_fallback_url || posterUrl;
     const progressPercent = Math.min(100, Math.round((cur / dur) * 100));
+    const activeServer = state.servers[state.serverIndex];
+    const isFull = Boolean(state.preferFull || activeServer?.is_full);
 
     const historyData = {
       movie_slug: state.activeSlug,
@@ -336,10 +339,11 @@
       thumb_url: thumbUrl,
       type: 'short-phim',
       is_short: true,
+      is_full: isFull,
       category: ['Short Phim'],
-      episode_slug: `tap-${activeEp}`,
-      episode_name: `Tập ${activeEp}`,
-      server_name: 'ShortFlix',
+      episode_slug: isFull ? 'full' : `tap-${activeEp}`,
+      episode_name: isFull ? 'Bản Full' : `Tập ${activeEp}`,
+      server_name: isFull ? 'Bản Full (Gộp tất cả tập)' : (activeServer?.name || `Tập lẻ • Tập ${activeEp}`),
       current_time: cur,
       duration: dur,
       progress_percent: progressPercent
@@ -385,7 +389,9 @@
       const data = await root.API.getShortflixStream(state.activeSlug, state.activeEpisode);
       if (myToken !== state.loadToken) return;
       state.servers = Array.isArray(data?.servers) ? data.servers : [];
-      if (state.serverIndex >= state.servers.length) state.serverIndex = 0;
+      let matchIdx = state.servers.findIndex(s => Boolean(s.is_full) === Boolean(state.preferFull));
+      if (matchIdx < 0) matchIdx = 0;
+      state.serverIndex = matchIdx;
       renderServerList();
       renderEpisodes();
 
@@ -402,7 +408,7 @@
     }
   }
 
-  async function openShortDetail(slug, episode = 1, { pushHistory = true } = {}) {
+  async function openShortDetail(slug, episode = 1, { pushHistory = true, preferFull = false } = {}) {
     if (!slug || !root.API?.getShortflixDetail) return;
     const section = document.getElementById('short-player-section');
     const titleEl = document.getElementById('short-player-title');
@@ -410,6 +416,8 @@
     const posterEl = document.getElementById('short-player-poster');
 
     state.activeSlug = slug;
+    const urlParams = new URLSearchParams(root.location?.search || '');
+    state.preferFull = Boolean(preferFull || urlParams.get('mode') === 'full' || urlParams.get('full') === 'true' || (urlParams.get('server') && /full/i.test(urlParams.get('server'))));
     state.serverIndex = 0;
     section?.classList.remove('hidden');
     section?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
@@ -527,6 +535,7 @@
       const idx = Number.parseInt(btn?.getAttribute('data-short-server') || '', 10);
       if (!Number.isFinite(idx) || !state.servers[idx]) return;
       state.serverIndex = idx;
+      state.preferFull = Boolean(state.servers[idx]?.is_full);
       renderServerList();
       renderEpisodes();
       attachStreamToVideo(state.servers[idx]);

@@ -5,7 +5,7 @@
   function normalize(history) {
     const latest = new Map();
     for (const item of Array.isArray(history) ? history : []) {
-      if (!item || typeof item.movie_slug !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(item.movie_slug)) continue;
+      if (!item || typeof item.movie_slug !== 'string' || !/^[a-zA-Z0-9_:-]+$/.test(item.movie_slug)) continue;
       const previous = latest.get(item.movie_slug);
       if (!previous || (Date.parse(item.updated_at) || 0) > (Date.parse(previous.updated_at) || 0)) latest.set(item.movie_slug, item);
     }
@@ -92,9 +92,10 @@
           (item.movie_slug || '').startsWith('shortflix:')
         );
         const cleanSlug = (item.movie_slug || '').replace(/^shortflix:/, '');
+        const isFull = Boolean(item.is_full || (item.server_name && /full/i.test(item.server_name)));
         const epNumber = (item.episode_slug || 'tap-1').replace(/^tap-/, '') || '1';
         const path = isShort
-          ? `/short-phim/${encodeURIComponent(cleanSlug)}?ep=${encodeURIComponent(epNumber)}`
+          ? `/short-phim/${encodeURIComponent(cleanSlug)}?ep=${encodeURIComponent(epNumber)}${isFull ? '&mode=full' : ''}`
           : `${mobile ? '/mobile' : ''}/xem-phim/${encodeURIComponent(item.movie_slug)}/${encodeURIComponent(item.episode_slug || 'tap-1')}`;
         const link = node('a', 'continue-play'); link.href = path;
         link.setAttribute('aria-label', `Xem tiếp ${item.movie_name || item.movie_slug}`);

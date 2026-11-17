@@ -12,12 +12,14 @@ class ShortPlayerScreen extends StatefulWidget {
   final ShortDramaItem item;
   final int initialEpisode;
   final int initialPositionSeconds;
+  final bool initialPreferFull;
 
   const ShortPlayerScreen({
     super.key,
     required this.item,
     this.initialEpisode = 1,
     this.initialPositionSeconds = 0,
+    this.initialPreferFull = false,
   });
 
   @override
@@ -56,6 +58,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
   void initState() {
     super.initState();
     _item = widget.item;
+    _preferFull = widget.initialPreferFull;
     _activeEpisode = widget.initialEpisode < 1 ? 1 : widget.initialEpisode;
     WakelockPlus.enable().catchError((_) {});
     _loadDetail();
@@ -98,15 +101,16 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
       movieName: _item.name.isNotEmpty ? _item.name : _item.slug,
       posterUrl: poster,
       thumbUrl: thumb,
-      serverName: 'ShortFlix',
-      episodeName: 'Tập $_activeEpisode',
-      episodeSlug: 'tap-$_activeEpisode',
+      serverName: _preferFull ? 'Bản Full (Gộp tất cả tập)' : 'ShortFlix',
+      episodeName: _preferFull ? 'Bản Full' : 'Tập $_activeEpisode',
+      episodeSlug: _preferFull ? 'full' : 'tap-$_activeEpisode',
       positionSeconds: pos,
       durationSeconds: dur,
       updatedAt: DateTime.now(),
       type: 'short-phim',
       originName: 'Short Phim Dọc',
       isShort: true,
+      isFull: _preferFull,
     ));
   }
 
@@ -171,6 +175,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
         (s) => s.isFull == _preferFull,
         orElse: () => servers.first,
       );
+      _preferFull = chosen.isFull;
       setState(() => _servers = servers);
       await _attachServer(chosen, token);
     } catch (e) {
@@ -317,6 +322,7 @@ class _ShortPlayerScreenState extends State<ShortPlayerScreen> {
                       borderRadius: BorderRadius.circular(8),
                       onTap: () {
                         Navigator.pop(ctx);
+                        _preferFull = false;
                         _loadEpisode(ep.episode);
                       },
                       child: Container(

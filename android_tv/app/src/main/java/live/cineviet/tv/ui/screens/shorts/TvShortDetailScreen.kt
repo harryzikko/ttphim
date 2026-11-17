@@ -34,6 +34,7 @@ import live.cineviet.tv.ui.theme.*
 @Composable
 fun TvShortDetailScreen(
     slug: String,
+    initialPreferFull: Boolean = false,
     onBack: () -> Unit,
     onPlayShort: (slug: String, episode: Int, preferFull: Boolean) -> Unit,
     modifier: Modifier = Modifier
@@ -42,7 +43,7 @@ fun TvShortDetailScreen(
     var detail by remember { mutableStateOf<ShortDetailData?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
-    var preferFull by remember { mutableStateOf(false) }
+    var preferFull by remember(initialPreferFull) { mutableStateOf(initialPreferFull) }
     var useFallback by remember(slug) { mutableStateOf(false) }
     val playBtnFocus = remember { FocusRequester() }
 

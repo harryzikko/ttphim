@@ -212,6 +212,8 @@ data class WatchHistoryItem(
     @SerializedName("has_song_ngu") val hasSongNgu: Boolean = false,
     @SerializedName("type") val type: String? = null,
     @SerializedName("is_short") val isShort: Boolean = false,
+    @SerializedName("is_full") val isFull: Boolean = false,
+    @SerializedName("server_name") val serverName: String? = null,
     @SerializedName("origin_name") val originName: String? = null
 ) {
     val isShortDrama: Boolean
@@ -220,6 +222,7 @@ data class WatchHistoryItem(
                 type == "short" ||
                 type == "shortflix" ||
                 (originName?.contains("Short", ignoreCase = true) == true) ||
+                (serverName?.contains("Shortflix", ignoreCase = true) == true) ||
                 movieSlug.startsWith("shortflix:")
 
     val displayThumb: String

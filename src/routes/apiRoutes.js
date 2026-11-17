@@ -1013,6 +1013,12 @@ router.get('/user/library', async (req, res) => {
         (item.movie_slug && item.movie_slug.startsWith('shortflix:'))
       ),
 
+      is_full: Boolean(
+        item.is_full ||
+        (item.server_name && /full/i.test(item.server_name)) ||
+        (item.episode_name && /bản full|full/i.test(item.episode_name))
+      ),
+
       thumb_url: item.thumb_url || (item.poster_url && item.poster_url.includes('-poster.') ? item.poster_url.replace('-poster.', '-thumb.') : (item.thumb_url || item.poster_url || '')),
 
       has_song_ngu: Boolean(

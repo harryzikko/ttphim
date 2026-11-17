@@ -71,7 +71,7 @@ fun TvHomeScreen(
     sessionManager: TvSessionManager? = null,
     onMovieClick: (String) -> Unit,
     onPlayClick: (String, String?, Long) -> Unit,
-    onNavigateToShortDetail: ((String) -> Unit)? = null,
+    onNavigateToShortDetail: ((String, Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val repository = remember { MovieRepository() }
@@ -141,13 +141,11 @@ fun TvHomeScreen(
         }
     }
 
-    // Load continue watching when user is logged in
-    LaunchedEffect(sessionManager?.isLoggedIn()) {
-        if (sessionManager?.isLoggedIn() == true) {
-            val libResult = repository.getUserLibrary()
-            libResult.onSuccess { lib ->
-                continueWatchingList = lib.continueWatching
-            }
+    // Load continue watching when user is logged in or local history exists
+    LaunchedEffect(Unit) {
+        val libResult = repository.getUserLibrary()
+        libResult.onSuccess { lib ->
+            continueWatchingList = lib.continueWatching
         }
     }
 
@@ -445,7 +443,10 @@ fun TvHomeScreen(
                 selectedContinueItem = null
                 if (continueItem.isShortDrama && onNavigateToShortDetail != null) {
                     val cleanSlug = slug.removePrefix("shortflix:")
-                    onNavigateToShortDetail(cleanSlug)
+                    val isFull = continueItem.isFull ||
+                        continueItem.serverName?.contains("full", ignoreCase = true) == true ||
+                        continueItem.episodeSlug?.contains("full", ignoreCase = true) == true
+                    onNavigateToShortDetail(cleanSlug, isFull)
                 } else {
                     onPlayClick(slug, ep, startMs)
                 }

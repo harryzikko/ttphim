@@ -306,6 +306,14 @@ class DbService {
       (typeof data.origin_name === 'string' && data.origin_name.toLowerCase().includes('short')) ||
       (typeof data.movie_slug === 'string' && data.movie_slug.startsWith('shortflix:'))
     );
+    const isFull = Boolean(
+      data.is_full === true ||
+      data.is_full === 1 ||
+      data.is_full === 'true' ||
+      data.is_full === '1' ||
+      (typeof data.server_name === 'string' && /full/i.test(data.server_name)) ||
+      (typeof data.episode_name === 'string' && /bản full|full/i.test(data.episode_name))
+    );
     const historyItem = {
       id: existingIndex > -1 ? db.history[existingIndex].id : 'hist_' + Date.now(),
       user_id: userId,
@@ -317,8 +325,9 @@ class DbService {
       category: (Array.isArray(data.category) ? data.category : (existingIndex >= 0 && Array.isArray(db.history[existingIndex].category) ? db.history[existingIndex].category : [])).filter(item => typeof item === 'string' && item.length <= 100).slice(0, 20),
       type: isShort ? (data.type || 'short-phim') : (['single', 'series', 'tv', 'movie', 'phim-bo', 'phim-le', 'hoathinh', 'tvshows'].includes(data.type) ? data.type : (existingIndex >= 0 ? db.history[existingIndex].type || '' : '')),
       is_short: isShort,
+      is_full: isFull,
       episode_slug: epSlug,
-      server_name: typeof data.server_name === 'string' ? data.server_name : '',
+      server_name: typeof data.server_name === 'string' ? data.server_name : (isFull ? 'Bản Full (Gộp tất cả tập)' : ''),
       episode_name: formatEpBadge(data.episode_name),
       current_time: Math.round(data.current_time || 0),
       duration: Math.round(data.duration || 0),

@@ -173,7 +173,7 @@ fun TvShortPlayerScreen(
             val chosen = streamData.servers.firstOrNull { it.isFull == preferFull }
                 ?: streamData.servers.firstOrNull()
             if (chosen != null) {
-                preferFull = chosen.isFull
+                if (chosen.isFull) preferFull = true
                 applyMediaServer(chosen)
             } else {
                 isBuffering = false
@@ -219,19 +219,22 @@ fun TvShortPlayerScreen(
             val dur = if (rawDur > 0) rawDur else (duration / 1000L)
             val itm = item
             if (dur > 0 && curr > 0 && itm != null) {
+                val isFullMode = preferFull
                 kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                     repository.saveHistory(
                         movieSlug = slug,
                         movieName = itm.name.ifBlank { slug },
                         posterUrl = itm.posterUrl.ifBlank { itm.posterFallbackUrl },
                         thumbUrl = itm.backgroundUrl ?: itm.posterUrl,
-                        episodeName = "Tập $activeEpisode",
-                        episodeSlug = "tap-$activeEpisode",
+                        episodeName = if (isFullMode) "Bản Full" else "Tập $activeEpisode",
+                        episodeSlug = if (isFullMode) "full" else "tap-$activeEpisode",
                         currentTime = curr,
                         duration = dur,
                         type = "short-phim",
                         originName = "Short Phim Dọc",
-                        isShort = true
+                        isShort = true,
+                        isFull = isFullMode,
+                        serverName = if (isFullMode) "Bản Full (Gộp tất cả tập)" else "Tập lẻ"
                     )
                 }
             }
@@ -241,7 +244,7 @@ fun TvShortPlayerScreen(
     }
 
     // Periodic history progress tracking every 10 seconds
-    LaunchedEffect(isPlaying, slug, activeEpisode, item) {
+    LaunchedEffect(isPlaying, slug, activeEpisode, item, preferFull) {
         if (isPlaying) {
             while (true) {
                 delay(10000)
@@ -250,18 +253,21 @@ fun TvShortPlayerScreen(
                 val dur = if (rawDur > 0) rawDur else (duration / 1000L)
                 val itm = item
                 if (dur > 0 && curr > 0 && itm != null) {
+                    val isFullMode = preferFull
                     repository.saveHistory(
                         movieSlug = slug,
                         movieName = itm.name.ifBlank { slug },
                         posterUrl = itm.posterUrl.ifBlank { itm.posterFallbackUrl },
                         thumbUrl = itm.backgroundUrl ?: itm.posterUrl,
-                        episodeName = "Tập $activeEpisode",
-                        episodeSlug = "tap-$activeEpisode",
+                        episodeName = if (isFullMode) "Bản Full" else "Tập $activeEpisode",
+                        episodeSlug = if (isFullMode) "full" else "tap-$activeEpisode",
                         currentTime = curr,
                         duration = dur,
                         type = "short-phim",
                         originName = "Short Phim Dọc",
-                        isShort = true
+                        isShort = true,
+                        isFull = isFullMode,
+                        serverName = if (isFullMode) "Bản Full (Gộp tất cả tập)" else "Tập lẻ"
                     )
                 }
             }
