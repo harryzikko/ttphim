@@ -1,5 +1,7 @@
 const path = require('path');
 
+const crypto = require('crypto');
+
 const fs = require('fs');
 
 const fsPromises = fs.promises;
@@ -182,7 +184,7 @@ router.post('/donate/claim', async (req, res) => {
 
     }
 
-    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+    const clientIp = req.ip || req.socket?.remoteAddress;
 
 
 
@@ -1569,7 +1571,7 @@ router.post('/admin/donations/manual', async (req, res) => {
 
       claimed_by_user: { id: req.user.id, email: req.user.email, name: req.user.name },
 
-      client_ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress
+      client_ip: req.ip || req.socket?.remoteAddress
 
     });
 
@@ -2263,7 +2265,9 @@ router.post('/admin/app-banner', async (req, res) => {
 
       enabled, title, description, href, cta_text, countdown_seconds,
 
-      image_mobile_vertical, image_ipad_vertical, image_ipad_landscape, cooldown_hours
+      image_mobile_vertical, image_ipad_vertical, image_ipad_landscape, cooldown_hours,
+
+      popunder_href
 
     } = req.body || {};
 
@@ -2336,7 +2340,7 @@ router.get('/popunder-ads', async (req, res) => {
 router.post('/popunder-ads/track', async (req, res) => {
   try {
     const { platform, path } = req.body || {};
-    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+    const ip = req.ip || req.socket?.remoteAddress || '';
     await dbService.recordPopunderClick({ platform, path, ip });
     res.json({ status: true });
   } catch (err) {
@@ -2676,7 +2680,9 @@ router.post('/admin/upload-app-package', async (req, res) => {
 
     const targetPath = path.join(downloadsDir, finalFilename);
 
-    const writeStream = fs.createWriteStream(targetPath);
+    const tmpPath = `${targetPath}.${crypto.randomBytes(6).toString('hex')}.tmp`;
+
+    const writeStream = fs.createWriteStream(tmpPath);
 
 
 
@@ -2684,33 +2690,61 @@ router.post('/admin/upload-app-package', async (req, res) => {
 
     const MAX_SIZE = 300 * 1024 * 1024; // 300 MB limit
 
-
-
-    req.on('data', chunk => {
-
-      bytesWritten += chunk.length;
-
-      if (bytesWritten > MAX_SIZE) {
-
-        req.destroy(new Error('Kích thước tệp vượt quá giới hạn 300MB'));
-
-      }
-
-    });
+    let rejectedErr = null;
 
 
 
-    await new Promise((resolve, reject) => {
+    try {
 
-      req.pipe(writeStream);
+      await new Promise((resolve, reject) => {
 
-      writeStream.on('finish', resolve);
+        const abortUpload = (err) => {
 
-      writeStream.on('error', reject);
+          if (!rejectedErr) rejectedErr = err;
 
-      req.on('error', reject);
+          writeStream.destroy();
 
-    });
+          reject(err);
+
+        };
+
+        req.on('data', chunk => {
+
+          bytesWritten += chunk.length;
+
+          if (bytesWritten > MAX_SIZE) {
+
+            const err = new Error('Kích thước tệp vượt quá giới hạn 300MB');
+
+            req.destroy(err);
+
+            abortUpload(err);
+
+          }
+
+        });
+
+        req.on('aborted', () => abortUpload(new Error('Upload đã bị ngắt kết nối giữa chừng')));
+
+        req.on('error', abortUpload);
+
+        writeStream.on('error', abortUpload);
+
+        writeStream.on('finish', resolve);
+
+        req.pipe(writeStream);
+
+      });
+
+      await fsPromises.rename(tmpPath, targetPath);
+
+    } catch (uploadErr) {
+
+      await fsPromises.unlink(tmpPath).catch(() => {});
+
+      throw uploadErr;
+
+    }
 
 
 

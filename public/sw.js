@@ -1,11 +1,11 @@
-// KKPhim - Mobile PWA Service Worker
-const CACHE_NAME = 'kkphim-mobile-v1.1';
+// CineViet - PWA Service Worker
+const CACHE_NAME = 'cineviet-pwa-v1.2';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/favicon.svg',
-  '/mobile',
-  '/mobile/css/mobile.css',
-  '/mobile/js/mobile-app.js'
+  '/',
+  '/css/custom.css',
+  '/css/site-footer.css?v=1.0.1'
 ];
 
 self.addEventListener('install', (event) => {

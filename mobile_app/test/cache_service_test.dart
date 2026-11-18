@@ -1,11 +1,31 @@
+import 'dart:io';
+
 import 'package:cineviet/services/api_service.dart';
 import 'package:cineviet/services/cache_service.dart';
 import 'package:cineviet/services/season_service.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
+
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pathChannel, (MethodCall call) async {
+      if (call.method == 'getTemporaryDirectory' || call.method == 'getApplicationSupportDirectory') {
+        return Directory.systemTemp.path;
+      }
+      return null;
+    });
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pathChannel, null);
+  });
 
   test('CacheService formats byte sizes clearly for UI display', () {
     expect(CacheService.formatBytes(0), '0 KB');

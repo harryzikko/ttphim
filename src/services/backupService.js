@@ -46,7 +46,10 @@ async function run(options = {}) {
 async function perform({ directory = config.BACKUP_DIR, retention = config.BACKUP_RETENTION, key = keyFromEnvironment() } = {}) {
   if (!Number.isInteger(retention) || retention < 1 || retention > 365) throw new Error('Backup retention must be 1-365 files');
   const real = await validateDirectory(directory);
-  const release = await lockfile.lock(path.join(real, 'backup-job'), { realpath: false, stale: 120000, retries: 0 });
+  const lockTarget = path.join(real, 'backup-job');
+  const fh = await fs.open(lockTarget, 'a');
+  await fh.close();
+  const release = await lockfile.lock(lockTarget, { realpath: false, stale: 120000, retries: 0 });
   let temporary;
   try {
     const snapshot = validateDatabase(await db.getRawDatabase());

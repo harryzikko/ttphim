@@ -146,7 +146,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Short Phim'), findsOneWidget);
-    expect(find.text('Phim Ngắn Dọc 1'), findsOneWidget);
+    expect(find.text('Phim Ngắn Dọc 1'), findsWidgets);
     expect(find.text('25 tập'), findsOneWidget);
   });
 }

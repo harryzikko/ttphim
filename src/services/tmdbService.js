@@ -404,9 +404,10 @@ class TmdbService {
       append_to_response: 'movie_credits,tv_credits,images',
       language: 'vi-VN'
     });
+    if (!detail) return null;
 
     // If biography in Vietnamese is empty, get English biography
-    if (!detail?.biography) {
+    if (!detail.biography) {
       const enDetail = await this.fetchTmdb(`/person/${personId}`, { language: 'en-US' });
       if (enDetail?.biography) {
         detail.biography = enDetail.biography;

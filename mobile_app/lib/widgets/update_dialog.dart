@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/app_update_info.dart';
 import '../services/update_service.dart';
-import '../theme/app_theme.dart';
 
 class UpdateDialog extends StatefulWidget {
   final AppUpdateInfo info;

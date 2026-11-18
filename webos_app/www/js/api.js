@@ -59,7 +59,7 @@
   };
 
   ApiClient.getBaseOrigin = function () {
-    if (global.location && global.location.origin && /^https?:/i.test(global.location.protocol || '')) {
+    if (global.location && global.location.origin && global.location.origin !== 'null' && /^https?:/i.test(global.location.protocol || '')) {
       return global.location.origin;
     }
     return 'https://cineviet.live';
@@ -87,7 +87,9 @@
     }
     return new Promise(function (resolve, reject) {
       var xhr = new XMLHttpRequest();
-      xhr.open(method, '/api' + path, true);
+      var baseOrigin = ApiClient.getBaseOrigin();
+      var apiUrl = (global.location && global.location.origin === baseOrigin) ? ('/api' + path) : (baseOrigin + '/api' + path);
+      xhr.open(method, apiUrl, true);
       xhr.timeout = options.timeout || 14000;
       Object.keys(headers).forEach(function (k) {
         xhr.setRequestHeader(k, headers[k]);

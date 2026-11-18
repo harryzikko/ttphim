@@ -2,7 +2,7 @@
   "name": "CineViet - Rạp Chiếu Phim 4K HDR",
   "short_name": "CineViet",
   "description": "Nền tảng xem phim trực tuyến miễn phí chuẩn điện ảnh 4K HDR, âm thanh Dolby Atmos trên iOS và Android",
-  "start_url": "/mobile",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#11131c",
   "theme_color": "#11131c",
@@ -23,17 +23,17 @@
   "shortcuts": [
     {
       "name": "Trang Chủ",
-      "url": "/mobile",
+      "url": "/",
       "description": "Mở trang chủ phim nổi bật"
     },
     {
       "name": "Khám Phá",
-      "url": "/mobile/kham-pha",
+      "url": "/kham-pha",
       "description": "Tìm kiếm và lọc phim"
     },
     {
       "name": "Danh Sách",
-      "url": "/mobile/danh-sach",
+      "url": "/danh-sach",
       "description": "Phim yêu thích và lịch sử xem"
     }
   ],

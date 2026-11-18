@@ -22,12 +22,12 @@ test('browser account switch reloads stale pages, rejects cookie races and prese
   await page.locator('#input-profile-name').fill('Stale draft');active='B';
   // No focus/storage event: the request's confirmed owner must catch this cookie race.
   await page.locator('#btn-save-profile').click();await page.waitForFunction(()=>document.getElementById('input-profile-name')?.value==='Account B');assert.equal(writes,0);assert.equal(users.B.name,'Account B');
-  active='A';await page.setViewportSize({width:390,height:844});await page.goto(base+'/mobile/tai-khoan');await page.locator('#userName').filter({hasText:'Account A'}).waitFor();
-  await page.locator('#m-security summary').click();await page.locator('#m-mfa-password').fill('fixture-password');await page.locator('#m-mfa-setup').click();await page.locator('#m-mfa-secret').filter({hasText:'FIXTUREONLY'}).waitFor();
-  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.waitForTimeout(100);assert.equal(await page.locator('#m-mfa-enrollment').isVisible(),true);
-  await page.locator('#m-mfa-code').fill('123456');await page.locator('#m-mfa-confirm').click();await page.locator('#m-mfa-recovery-codes').filter({hasText:'FIXTURE-ONE'}).waitFor();
-  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.waitForTimeout(100);assert.equal(await page.locator('#m-mfa-recovery').isVisible(),true);
-  active='B';await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.locator('#userName').filter({hasText:'Account B'}).waitFor();assert.equal(await page.locator('#m-mfa-recovery-codes').textContent(),'');assert.equal(await page.locator('#m-mfa-secret').textContent(),'');
+  active='A';const mobile=await context.newPage();mobile.on('pageerror',e=>errors.push(e.message));await mobile.setViewportSize({width:390,height:844});await mobile.goto(base+'/mobile/tai-khoan');await mobile.locator('#userName').filter({hasText:'Account A'}).waitFor();
+  await mobile.locator('#m-security summary').click();await mobile.locator('#m-mfa-password').fill('fixture-password');await mobile.locator('#m-mfa-setup').click();await mobile.locator('#m-mfa-secret').filter({hasText:'FIXTUREONLY'}).waitFor();
+  await mobile.evaluate(()=>window.dispatchEvent(new Event('focus')));await mobile.waitForTimeout(100);assert.equal(await mobile.locator('#m-mfa-enrollment').isVisible(),true);
+  await mobile.locator('#m-mfa-code').fill('123456');await mobile.locator('#m-mfa-confirm').click();await mobile.locator('#m-mfa-recovery-codes').filter({hasText:'FIXTURE-ONE'}).waitFor();
+  await mobile.evaluate(()=>window.dispatchEvent(new Event('focus')));await mobile.waitForTimeout(100);assert.equal(await mobile.locator('#m-mfa-recovery').isVisible(),true);
+  active='B';await mobile.evaluate(()=>window.dispatchEvent(new Event('focus')));await mobile.locator('#userName').filter({hasText:'Account B'}).waitFor();assert.equal(await mobile.locator('#m-mfa-recovery-codes').textContent(),'');assert.equal(await mobile.locator('#m-mfa-secret').textContent(),'');
   assert.deepEqual(errors,[]);
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
 });

@@ -2,7 +2,6 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/movie.dart';
@@ -13,7 +12,6 @@ import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'account_screen.dart';
 import 'login_screen.dart';
-import 'detail_screen.dart';
 import 'watchlist_screen.dart';
 import '../models/app_update_info.dart';
 import '../services/update_service.dart';
@@ -31,7 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _user;
   List<Movie> _favorites = [];
   List<WatchHistoryItem> _history = [];
-  bool _isLoadingLibrary = true;
   AppUpdateInfo? _availableUpdate;
   bool _isCheckingUpdate = false;
   int _cacheBytes = 0;
@@ -131,7 +128,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _favorites = favs;
         _history = hist;
-        _isLoadingLibrary = false;
       });
     }
   }

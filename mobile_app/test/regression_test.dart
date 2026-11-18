@@ -27,6 +27,20 @@ void main() {
   });
 
   test('history stores the actual episode, server, timestamp and progress', () async {
+    final remoteHistory = <Map<String, dynamic>>[];
+    BackendService.setClientForTesting(MockClient((request) async {
+      if (request.url.path == '/api/user/history') {
+        final decoded = json.decode(request.body) as Map<String, dynamic>;
+        remoteHistory.removeWhere((e) => e['movie_slug'] == decoded['movie_slug']);
+        remoteHistory.insert(0, {...decoded, 'updated_at': DateTime(2026).toIso8601String()});
+        return response({'status': true});
+      }
+      if (request.url.path == '/api/user/library') {
+        return response({'status': true, 'data': {'watchlist': [], 'history': remoteHistory}});
+      }
+      return response({'status': true, 'data': {}});
+    }));
+    await StorageService.saveSession('hist-token', {'id': 'user-hist'});
     final item = WatchHistoryItem(movieSlug: 'film', movieName: 'Film', posterUrl: '', serverName: 'Backup',
       episodeName: '2', episodeSlug: 'tap-2', positionSeconds: 120, durationSeconds: 600, updatedAt: DateTime(2026));
     await StorageService.saveHistory(item);
@@ -88,7 +102,10 @@ void main() {
 
   testWidgets('out-of-order searches cannot overwrite the latest keyword or repopulate a cleared field', (tester) async {
     final requests = <String, Completer<http.Response>>{};
-    ApiService.setClientForTesting(MockClient((request) {
+    ApiService.setClientForTesting(MockClient((request) async {
+      if (request.url.path.contains('/api/shortflix')) {
+        return response({'status': true, 'data': {'items': [], 'genres': [], 'pagination': {'page': 1, 'hasMore': false}}});
+      }
       final keyword = request.url.queryParameters['keyword']!;
       final completion = Completer<http.Response>();
       requests[keyword] = completion;

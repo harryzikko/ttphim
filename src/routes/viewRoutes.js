@@ -102,16 +102,19 @@ router.use('/tv', (req, res, next) => staticAssetExtRe.test(req.path) ? next() :
 // ViCDN Native Embed Proxy - Renders exact ViCDN JWPlayer UI with fMP4 proxy rewrite to avoid error 224003 on iOS/4G
 // Compliance test markers: <track id="track-bilingual"> syncNativeTextTracks video.webkitEnterFullscreen #player-wrap
 const vicdnEmbedHtmlCache = new Map();
+const VICDN_EMBED_CACHE_TTL_MS = 30 * 60 * 1000;
+const VICDN_EMBED_CACHE_MAX = 500;
 
 router.get('/embed/vicdn/:videoId', async (req, res) => {
   const videoId = (req.params.videoId || '').replace(/[^a-zA-Z0-9_-]/g, '');
   if (!videoId) return res.status(404).send('Not found');
 
   const cached = vicdnEmbedHtmlCache.get(videoId);
-  if (cached && (Date.now() - cached.time < 30 * 60 * 1000)) {
+  if (cached && (Date.now() - cached.time < VICDN_EMBED_CACHE_TTL_MS)) {
     res.set('Content-Type', 'text/html; charset=utf-8');
     return res.send(cached.html);
   }
+  if (cached) vicdnEmbedHtmlCache.delete(videoId);
 
   try {
     const upstreamRes = await fetch(`https://vicdn.cc/${videoId}`, {
@@ -238,6 +241,11 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
     </script>`;
     html = html.replace('</body>', injectCode + '</body>');
 
+    if (vicdnEmbedHtmlCache.has(videoId)) vicdnEmbedHtmlCache.delete(videoId);
+    if (vicdnEmbedHtmlCache.size >= VICDN_EMBED_CACHE_MAX) {
+      const oldestKey = vicdnEmbedHtmlCache.keys().next().value;
+      if (oldestKey !== undefined) vicdnEmbedHtmlCache.delete(oldestKey);
+    }
     vicdnEmbedHtmlCache.set(videoId, { html, time: Date.now() });
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');

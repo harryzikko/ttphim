@@ -1,7 +1,25 @@
-const test = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cv-react-'));
+const tmpDb = path.join(tmpDir, 'db.json');
+fs.writeFileSync(tmpDb, JSON.stringify({ users: [], watchlist: [], history: [], comments: [], movie_reactions: [] }));
+const prevDbPath = process.env.DB_PATH;
+process.env.DB_PATH = tmpDb;
 const movieReactionService = require('../src/services/movieReactionService');
 const dbService = require('../src/services/dbService');
+const prevServiceDbPath = dbService.dbPath;
+dbService.dbPath = tmpDb;
+
+after(() => {
+  dbService.dbPath = prevServiceDbPath;
+  if (prevDbPath === undefined) delete process.env.DB_PATH;
+  else process.env.DB_PATH = prevDbPath;
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
 
 test('Movie Reactions Service - basic toggle and count lifecycle', async (t) => {
   const testSlug = 'test-reaction-movie-' + Date.now();

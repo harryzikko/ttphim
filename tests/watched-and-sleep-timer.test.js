@@ -1,7 +1,25 @@
 'use strict';
-const test = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cv-watched-'));
+const tmpDb = path.join(tmpDir, 'db.json');
+fs.writeFileSync(tmpDb, JSON.stringify({ users: [], watchlist: [], history: [], comments: [] }));
+const prevDbPath = process.env.DB_PATH;
+process.env.DB_PATH = tmpDb;
 const db = require('../src/services/dbService');
+const prevServiceDbPath = db.dbPath;
+db.dbPath = tmpDb;
+
+after(() => {
+  db.dbPath = prevServiceDbPath;
+  if (prevDbPath === undefined) delete process.env.DB_PATH;
+  else process.env.DB_PATH = prevDbPath;
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
 
 test('saveHistory accumulates watched_episodes when progress is >= 85%', async () => {
   const userId = 'test_user_watched_' + Date.now();

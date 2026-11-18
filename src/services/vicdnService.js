@@ -19,7 +19,8 @@ try {
 } catch (_) {}
 
 class MemoryCache {
-  constructor() {
+  constructor(maxSize = 2000) {
+    this.maxSize = maxSize;
     this.cache = new Map();
   }
 
@@ -30,10 +31,17 @@ class MemoryCache {
       this.cache.delete(key);
       return null;
     }
+    this.cache.delete(key);
+    this.cache.set(key, item);
     return item.data;
   }
 
   set(key, data, ttlMs) {
+    if (this.cache.has(key)) this.cache.delete(key);
+    else if (this.cache.size >= this.maxSize) {
+      const oldest = this.cache.keys().next().value;
+      if (oldest !== undefined) this.cache.delete(oldest);
+    }
     this.cache.set(key, {
       data,
       expiresAt: Date.now() + ttlMs

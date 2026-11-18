@@ -10,7 +10,7 @@ function createSocialAdminRouter({
 } = {}) {
   const router = express.Router();
 
-  async function forward(req, res, { method = 'GET', targetPath, body }) {
+  async function forward(req, res, { method = 'GET', targetPath, body, timeoutMs = 30000 }) {
     const root = String(typeof baseUrl === 'function' ? baseUrl() : baseUrl || '').replace(/\/+$/, '');
     if (!root) {
       return res.status(503).json({ status: false, code: 'SOCIAL_BOT_DISABLED', message: 'Chưa cấu hình SOCIAL_BOT_URL' });
@@ -28,7 +28,7 @@ function createSocialAdminRouter({
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-        signal: AbortSignal.timeout(25000)
+        signal: AbortSignal.timeout(timeoutMs)
       });
 
       const raw = await upstream.text();
@@ -71,7 +71,7 @@ function createSocialAdminRouter({
   });
 
   router.post('/admin/social/integrations/verify', (req, res) => {
-    return forward(req, res, { method: 'POST', targetPath: '/api/integrations/verify', body: req.body || {} });
+    return forward(req, res, { method: 'POST', targetPath: '/api/integrations/verify', body: req.body || {}, timeoutMs: 60000 });
   });
 
   router.post('/admin/social/integrations/telegram-test', (req, res) => {
@@ -79,11 +79,11 @@ function createSocialAdminRouter({
   });
 
   router.post('/admin/social/jobs/fill-queue', (req, res) => {
-    return forward(req, res, { method: 'POST', targetPath: '/api/jobs/fill-queue', body: req.body || {} });
+    return forward(req, res, { method: 'POST', targetPath: '/api/jobs/fill-queue', body: req.body || {}, timeoutMs: 60000 });
   });
 
   router.post('/admin/social/jobs/tick', (req, res) => {
-    return forward(req, res, { method: 'POST', targetPath: '/api/jobs/tick', body: req.body || {} });
+    return forward(req, res, { method: 'POST', targetPath: '/api/jobs/tick', body: req.body || {}, timeoutMs: 60000 });
   });
 
   router.patch('/admin/social/queue/:id', (req, res) => {

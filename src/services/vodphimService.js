@@ -12,7 +12,8 @@ const VODPHIM_HEADERS = {
 };
 
 class MemoryCache {
-  constructor() {
+  constructor(maxSize = 2000) {
+    this.maxSize = maxSize;
     this.store = new Map();
   }
 
@@ -23,10 +24,17 @@ class MemoryCache {
       this.store.delete(key);
       return null;
     }
+    this.store.delete(key);
+    this.store.set(key, entry);
     return entry.value;
   }
 
   set(key, value, ttlMs) {
+    if (this.store.has(key)) this.store.delete(key);
+    else if (this.store.size >= this.maxSize) {
+      const oldest = this.store.keys().next().value;
+      if (oldest !== undefined) this.store.delete(oldest);
+    }
     this.store.set(key, {
       value,
       expiresAt: Date.now() + ttlMs

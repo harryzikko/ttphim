@@ -5,13 +5,14 @@ const root = path.join(__dirname, '..');
 const targets = ['index', 'kham-pha', 'short-phim', 'chi-tiet', 'xem-phim', 'danh-sach', 'tai-khoan', 'dien-vien'].map(name => `public/${name}.html`).concat(['index', 'kham-pha', 'chi-tiet', 'xem-phim', 'danh-sach', 'tai-khoan'].map(name => `public/mobile/${name}.html`));
 function updateTemplate(html, mobile) {
   if ((html.match(/<\/head>/gi) || []).length !== 1 || (html.match(/<\/body>/gi) || []).length !== 1) throw Error('Expected exactly one head/body close');
+  const eol = html.includes('\r\n') ? '\r\n' : '\n';
   const matches = [...html.matchAll(/<footer\b[\s\S]*?<\/footer>/gi)];
   if (matches.length > 1) throw Error('Unexpected multiple footers');
-  const markup = footer(mobile);
-  let next = matches.length ? html.replace(matches[0][0], markup) : html.replace(/<\/body>/i, `${markup}\n</body>`);
+  const markup = footer(mobile).replace(/\r?\n/g, eol);
+  let next = matches.length ? html.replace(matches[0][0], markup) : html.replace(/<\/body>/i, `${markup}${eol}</body>`);
   if (/\/css\/site-footer\.css(?:\?v=[\d.]+)?/i.test(next)) next = next.replace(/\/css\/site-footer\.css(?:\?v=[\d.]+)?/gi, '/css/site-footer.css?v=1.0.1');
-  else next = next.replace(/<\/head>/i, '<link rel="stylesheet" href="/css/site-footer.css?v=1.0.1">\n</head>');
-  if (!next.includes('/js/site-footer.js?v=1.0.0')) next = next.replace(/<\/body>/i, '<script defer src="/js/site-footer.js?v=1.0.0"></script>\n</body>');
+  else next = next.replace(/<\/head>/i, `<link rel="stylesheet" href="/css/site-footer.css?v=1.0.1">${eol}</head>`);
+  if (!next.includes('/js/site-footer.js?v=1.0.0')) next = next.replace(/<\/body>/i, `<script defer src="/js/site-footer.js?v=1.0.0"></script>${eol}</body>`);
   return next;
 }
 function build(check = false) {

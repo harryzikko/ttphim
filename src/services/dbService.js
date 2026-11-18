@@ -1,4 +1,5 @@
 const fs = require('fs').promises;
+const crypto = require('crypto');
 const path = require('path');
 const config = require('../config');
 const { hashPassword, verifyPassword, passwordValid, publicUser } = require('./passwordService');
@@ -134,7 +135,7 @@ class DbService {
       throw new Error('Email này đã được sử dụng');
     }
     const newUser = {
-      id: 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      id: 'usr_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
       email: email.trim(),
       password: await hashPassword(password),
       name: name || email.split('@')[0],
@@ -407,7 +408,7 @@ class DbService {
     }
 
     const newComment = {
-      id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      id: 'cmt_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
       movie_slug: movieSlug,
       user_id: userId || null,
       user_name: userName || 'Khán giả KKPhim',
@@ -441,7 +442,7 @@ class DbService {
     }
 
     const newReply = {
-      id: 'rep_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      id: 'rep_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
       comment_id: commentId,
       user_id: userId || null,
       user_name: userName || 'Khán giả KKPhim',
@@ -649,7 +650,7 @@ class DbService {
     }
 
     const newDonation = {
-      id: 'don_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      id: 'don_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
       ref: normalizedRef,
       user_id: user_id || null,
       days_left: days_left != null ? days_left : null,

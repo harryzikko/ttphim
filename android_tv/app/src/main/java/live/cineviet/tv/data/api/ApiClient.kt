@@ -1,5 +1,6 @@
 package live.cineviet.tv.data.api
 
+import live.cineviet.tv.BuildConfig
 import live.cineviet.tv.data.local.TvSessionManager
 import okhttp3.Dns
 import okhttp3.OkHttpClient
@@ -83,7 +84,7 @@ object ApiClient {
 
     private val okHttpClient: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
         }
 
         OkHttpClient.Builder()

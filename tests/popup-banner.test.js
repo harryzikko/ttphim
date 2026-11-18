@@ -1,8 +1,30 @@
-const { test } = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { JSDOM } = require('jsdom');
+
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cv-popup-'));
+const tmpDb = path.join(tmpDir, 'db.json');
+fs.writeFileSync(tmpDb, JSON.stringify({
+  users: [], watchlist: [], history: [], comments: [],
+  settings: {
+    popup_banner: { enabled: true, href: 'https://noza.site/', image: '/images/banners/dealpulse-popup.png', cooldown_hours: 12 }
+  }
+}));
+const prevDbPath = process.env.DB_PATH;
+process.env.DB_PATH = tmpDb;
 const dbService = require('../src/services/dbService');
+const prevServiceDbPath = dbService.dbPath;
+dbService.dbPath = tmpDb;
+
+after(() => {
+  dbService.dbPath = prevServiceDbPath;
+  if (prevDbPath === undefined) delete process.env.DB_PATH;
+  else process.env.DB_PATH = prevDbPath;
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
 
 test('popup banner default configuration is present and configurable', async () => {
   const settings = await dbService.getSettings();

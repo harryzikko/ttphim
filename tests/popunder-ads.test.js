@@ -1,8 +1,30 @@
-const { test } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { JSDOM } = require('jsdom');
+
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cv-popunder-'));
+const tmpDb = path.join(tmpDir, 'db.json');
+fs.writeFileSync(tmpDb, JSON.stringify({
+  users: [], watchlist: [], history: [], comments: [],
+  settings: {
+    popunder_ads: { enabled: true, provider: 'clickadu', clocid: '2119458', frequency_minutes: 30 }
+  }
+}));
+const prevDbPath = process.env.DB_PATH;
+process.env.DB_PATH = tmpDb;
 const dbService = require('../src/services/dbService');
+const prevServiceDbPath = dbService.dbPath;
+dbService.dbPath = tmpDb;
+
+after(() => {
+  dbService.dbPath = prevServiceDbPath;
+  if (prevDbPath === undefined) delete process.env.DB_PATH;
+  else process.env.DB_PATH = prevDbPath;
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
 
 test('popunder default configuration is present in settings and api', async () => {
   const settings = await dbService.getSettings();
