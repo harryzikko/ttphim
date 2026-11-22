@@ -46,6 +46,9 @@ router.get('/sitemap-programmatic.xml', (req, res) => {
 router.get('/c4b189a6230f4e1981d9f485e921d7bf.txt', (req, res) => {
   res.type('text/plain').set('Cache-Control', 'public, max-age=86400').send('c4b189a6230f4e1981d9f485e921d7bf');
 });
+router.get('/dbb92619f6997d8b62cbdc92cdc52335.txt', (req, res) => {
+  res.type('text/plain').set('Cache-Control', 'public, max-age=86400').send('dbb92619f6997d8b62cbdc92cdc52335');
+});
 router.get('/sitemap.xml', async (req, res) => {
   if (!seo.originOf(config.PUBLIC_ORIGIN)) return res.status(503).set('Retry-After', '300').type('text').send('Configure PUBLIC_ORIGIN to publish the sitemap.');
   try {
