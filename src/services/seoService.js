@@ -62,7 +62,7 @@ function formatPersonSlug(raw) {
   }
 }
 
-function metadata(req, movie, origin) {
+function metadata(req, movie, origin, programmatic = null) {
   const pathname = canonicalPath(req.path);
   const definition = pages[pathname];
   const detail = /^\/phim\/[^/]+$/.test(pathname);
@@ -70,7 +70,7 @@ function metadata(req, movie, origin) {
   const personMatch = pathname.match(/^\/(?:dien-vien|dao-dien|nghe-si)\/([^/]+)$/);
   const privatePage = /^\/(?:auth|dang-nhap|dang-ky|admin|quan-tri|operations|tai-khoan|danh-sach|tu-phim|tv(?:\/|$)|tv-auth)/.test(pathname);
   const query = req.query || {};
-  const index = Boolean(definition || detail) && !privatePage && !watch && !['keyword', 'q', 'page', 'sort', 'category', 'country', 'year', 'format', 'type'].some(key => query[key]);
+  const index = Boolean(definition || detail || programmatic) && !privatePage && !watch && !['keyword', 'q', 'page', 'sort', 'category', 'country', 'year', 'format', 'type'].some(key => query[key]);
 
   let [title, description] = definition || ['CineViet', 'Khám phá phim và trải nghiệm xem trên CineViet.'];
   let canonical = definition || detail ? pathname : null;
@@ -84,7 +84,11 @@ function metadata(req, movie, origin) {
     canonical = `/dien-vien/${encodeURIComponent(personMatch[1])}`;
   }
 
-  if (movie && (detail || watch)) {
+  if (programmatic) {
+    title = clean(programmatic.title) || title;
+    description = clean(programmatic.meta_description) || description;
+    canonical = `/${encodeURIComponent(programmatic.url_slug)}`;
+  } else if (movie && (detail || watch)) {
     const movieName = clean(movie.name);
     const originName = clean(movie.origin_name || '');
     const yearSuffix = movie.year ? ` (${clean(movie.year)})` : '';
@@ -254,7 +258,7 @@ function middleware(origin) {
     const send = res.send;
     res.send = function (body) {
       if (typeof body === 'string' && /<head[\s>]/i.test(body) && this.statusCode < 400 && !req.path.startsWith('/api/')) {
-        const meta = metadata(req, res.locals.seoMovie, origin);
+        const meta = metadata(req, res.locals.seoMovie, origin, res.locals.seoProgrammatic);
         this.set('X-Robots-Tag', meta.index ? 'index, follow' : 'noindex, follow');
         body = decorate(body, meta);
       }

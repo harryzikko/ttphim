@@ -10,6 +10,7 @@ const { renderHomePage } = require('../services/homePageService');
 const bannerService = require('../services/bannerService');
 const vicdnService = require('../services/vicdnService');
 let vodphimService = null; try { vodphimService = require('../services/vodphimService'); } catch (_) {}
+let programmaticService = null; try { programmaticService = require('../services/programmaticService'); } catch (_) {}
 const router = express.Router();
 
 const publicFile = (file) => path.join(config.PUBLIC_DIR, file);
@@ -37,7 +38,13 @@ router.get('/.well-known/assetlinks.json', (req, res) => {
 });
 router.get('/robots.txt', (req, res) => {
   const origin = seo.originOf(config.PUBLIC_ORIGIN);
-  res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /tu-phim\nDisallow: /auth\nDisallow: /dang-nhap\nDisallow: /dang-ky\nDisallow: /tv-auth\nDisallow: /tv-login\nDisallow: /tv-dang-nhap\nDisallow: /tv/\nDisallow: /webos/\n${origin ? `Sitemap: ${origin}/sitemap.xml\n` : ''}`);
+  res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /tu-phim\nDisallow: /auth\nDisallow: /dang-nhap\nDisallow: /dang-ky\nDisallow: /tv-auth\nDisallow: /tv-login\nDisallow: /tv-dang-nhap\nDisallow: /tv/\nDisallow: /webos/\n${origin ? `Sitemap: ${origin}/sitemap.xml\nSitemap: ${origin}/sitemap-programmatic.xml\n` : ''}`);
+});
+router.get('/sitemap-programmatic.xml', (req, res) => {
+  res.type('application/xml').set('Cache-Control', 'public, max-age=3600').sendFile(path.join(config.PUBLIC_DIR, 'sitemap-programmatic.xml'));
+});
+router.get('/c4b189a6230f4e1981d9f485e921d7bf.txt', (req, res) => {
+  res.type('text/plain').set('Cache-Control', 'public, max-age=86400').send('c4b189a6230f4e1981d9f485e921d7bf');
 });
 router.get('/sitemap.xml', async (req, res) => {
   if (!seo.originOf(config.PUBLIC_ORIGIN)) return res.status(503).set('Retry-After', '300').type('text').send('Configure PUBLIC_ORIGIN to publish the sitemap.');
@@ -294,15 +301,15 @@ router.get('/kham-pha', async (req, res, next) => {
   }
 });
 
-// Movie Details with Server-Side Hydration
-router.get('/phim/:slug', async (req, res) => {
+async function renderMovieDetailPage(req, res, slug, customSeo = null) {
   try {
     const rawHtml = await fs.readFile(publicFile('chi-tiet.html'), 'utf8');
     // Invalid slugs must not create view counters.
-    const movieData = await kkphimService.getMovieDetail(req.params.slug);
+    const movieData = await kkphimService.getMovieDetail(slug);
     if (!movieData?.movie) return sendPageError(res, { status: 404 });
     res.locals.seoMovie = movieData.movie;
-    dbService.incrementMovieView(req.params.slug).catch(() => {});
+    if (customSeo) res.locals.seoProgrammatic = customSeo;
+    dbService.incrementMovieView(slug).catch(() => {});
     
     // Enrich with accurate TMDb / IMDb credits
     try {
@@ -316,15 +323,24 @@ router.get('/phim/:slug', async (req, res) => {
       }
     } catch (_) {}
 
-    const comments = await dbService.getComments(req.params.slug).catch(() => []);
-    const rendered = templateService.renderDetail(rawHtml, movieData, comments);
+    const comments = await dbService.getComments(slug).catch(() => []);
+    let rendered = templateService.renderDetail(rawHtml, movieData, comments);
+    if (customSeo?.h1) {
+      rendered = rendered.replace(/(<h1\b[^>]*>)([\s\S]*?)(<\/h1>)/i, (match, open, content, close) => {
+        const escaped = String(customSeo.h1).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        return `${open}${escaped}${close}`;
+      });
+    }
     res.set('Cache-Control', 'private, no-cache');
     res.send(bannerService.decorate(rendered, await dbService.getSettings()));
   } catch (err) {
     console.error('Error rendering detail view:', err);
     sendPageError(res, err);
   }
-});
+}
+
+// Movie Details with Server-Side Hydration
+router.get('/phim/:slug', (req, res) => renderMovieDetailPage(req, res, req.params.slug));
 
 // Watch Movie Player with Server-Side Hydration
 async function readWatchTemplate() {
@@ -510,6 +526,27 @@ router.get(['/short-phim', '/short-phim/:slug'], async (req, res, next) => {
 // TV QR Code Mobile Authorization Page
 router.get(['/tv-auth', '/tv-login', '/tv-dang-nhap'], (req, res) => {
   res.sendFile(publicFile('tv-auth.html'));
+});
+
+// Programmatic SEO Landing Pages (mapped from CSV plan: slug -> original movie page)
+router.get('/:slug', async (req, res, next) => {
+  const slug = req.params.slug;
+  if (!programmaticService || !programmaticService.has(slug)) return next();
+
+  const entry = programmaticService.get(slug);
+  if (!entry) return next();
+
+  if (entry.source && entry.source.startsWith('genre:')) {
+    const genreName = entry.source.replace(/^genre:/, '').trim();
+    const genreSlug = genreName.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd').replace(/Đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return res.redirect(301, `/kham-pha?category=${encodeURIComponent(genreSlug)}`);
+  }
+
+  return renderMovieDetailPage(req, res, entry.source, entry);
 });
 
 // Favicon
