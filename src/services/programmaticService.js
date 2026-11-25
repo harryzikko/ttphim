@@ -421,78 +421,122 @@ class ProgrammaticService {
     if (kind === 'episodes') {
       const sampleEps = allEps.slice(-8).map(e => {
         const epLabel = escapeHtml(cleanText(e.name || e.slug));
-        return `<a href="/xem-phim/${encodeURIComponent(movie.slug)}/${encodeURIComponent(e.slug)}" class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container text-xs text-on-surface hover:text-on-primary-container transition-colors">Tập ${epLabel}</a>`;
+        return `<a href="/xem-phim/${encodeURIComponent(movie.slug)}/${encodeURIComponent(e.slug)}" class="cv-seo-pill">Tập ${epLabel}</a>`;
       }).join(' ');
       variantBody = `
-        <p class="text-xs text-on-surface-variant leading-relaxed">
+        <p class="cv-seo-text">
           <strong>Lịch chiếu &amp; danh sách tập phim ${name} (${year}):</strong> Hiện tại bộ phim <em>${name}</em>${originName ? ` (${originName})` : ''} đã cập nhật tới trạng thái <strong>${epCurrent}</strong> với tổng số ${allEps.length || 1} tập phát sóng trên hệ thống máy chủ (${serverNames}). Người xem có thể theo dõi tập mới nhất tốc độ cao chuẩn ${quality} mà không cần chờ đợi.
         </p>
-        ${sampleEps ? `<div class="flex flex-wrap items-center gap-1.5 pt-1"><span class="text-xs font-semibold text-on-surface">Truy cập nhanh tập mới:</span> ${sampleEps}</div>` : ''}
+        ${sampleEps ? `<div class="cv-seo-pills" style="margin-top:10px">${sampleEps}</div>` : ''}
       `;
     } else if (kind === 'similar') {
       const simItems = Array.isArray(related) && related.length > 0
         ? related.slice(0, 6).map(r => {
             const rName = escapeHtml(cleanText(r.name));
             const rYear = escapeHtml(cleanText(r.year || ''));
-            return `<li><a href="/phim/${encodeURIComponent(r.slug)}" class="text-primary hover:underline font-semibold">${rName}</a>${rYear ? ` (${rYear})` : ''} — <a href="/${encodeURIComponent(r.slug)}-vietsub" class="text-on-surface-variant hover:text-on-surface underline">Bản Vietsub</a></li>`;
+            return `<li><a href="/phim/${encodeURIComponent(r.slug)}">${rName}</a>${rYear ? ` (${rYear})` : ''} — <a href="/${encodeURIComponent(r.slug)}-vietsub">Bản Vietsub</a></li>`;
           }).join('')
         : '';
       variantBody = `
-        <p class="text-xs text-on-surface-variant leading-relaxed">
+        <p class="cv-seo-text">
           <strong>Tuyển tập phim giống ${name} cùng thể loại ${cats}:</strong> Nếu bạn yêu thích cốt truyện và nhịp phim của <em>${name}</em> (${year}) do đạo diễn ${directors} thực hiện cùng dàn diễn viên ${actors}, danh sách đề xuất dưới đây quy tụ những tác phẩm có cùng mô-típ kịch bản, bối cảnh ${countries} và điểm đánh giá cao nhất.
         </p>
-        ${simItems ? `<ul class="list-disc list-inside text-xs text-on-surface-variant space-y-1 pt-1">${simItems}</ul>` : ''}
+        ${simItems ? `<ul class="cv-seo-list">${simItems}</ul>` : ''}
       `;
     } else if (kind === 'thuyet-minh') {
       variantBody = `
-        <p class="text-xs text-on-surface-variant leading-relaxed">
+        <p class="cv-seo-text">
           <strong>Trải nghiệm xem phim ${name} (${year}) Thuyết Minh &amp; Song Ngữ:</strong> Phiên bản thuyết minh tiếng Việt và phụ đề song ngữ Việt - Anh của <em>${name}</em>${originName ? ` (${originName})` : ''} giúp khán giả thưởng thức trọn vẹn mạch phim ${cats} mà không bỏ lỡ chi tiết hội thoại. Hỗ trợ chuyển đổi âm thanh gốc và bản lồng tiếng trực tiếp trên trình phát HLS ${quality}.
         </p>
       `;
     } else {
       variantBody = `
-        <p class="text-xs text-on-surface-variant leading-relaxed">
+        <p class="cv-seo-text">
           <strong>Thông tin bản phát hành ${name} (${year}) ${lang} ${quality}:</strong> Tác phẩm điện ảnh <em>${name}</em>${originName ? ` (tên gốc: ${originName})` : ''} thuộc dòng phim ${cats} của ${countries}, quy tụ dàn diễn viên ${actors} dưới sự chỉ đạo của đạo diễn ${directors}. ${synopsis}
         </p>
       `;
     }
 
     return `
-<article id="seo-rich-brief" class="w-full max-w-[1680px] mx-auto px-gutter-mobile sm:px-gutter pb-space-md">
-  <div class="rounded-xl bg-surface-container-low/60 border border-white/5 p-space-md space-y-2">
-    <h2 class="text-xs font-bold uppercase tracking-wider text-on-surface flex items-center gap-1.5">
-      <span class="material-symbols-outlined text-[16px] text-primary">movie_info</span>
-      <span>Tổng Quan &amp; Hướng Dẫn Xem Phim ${name} (${year})</span>
-    </h2>
-    ${variantBody}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2 border-t border-white/5 text-xs text-on-surface-variant">
-      <div><strong class="text-on-surface">Xem ${name} Vietsub ở đâu?</strong> Phát trực tuyến miễn phí chất lượng ${quality} tại CineViet với đa luồng server (${serverNames}).</div>
-      <div><strong class="text-on-surface">Tiến độ &amp; Thời lượng:</strong> Trạng thái ${epCurrent}, cập nhật tự động ngay khi có bản dịch chuẩn.</div>
-      <div><strong class="text-on-surface">Thiết bị hỗ trợ:</strong> Xem mượt trên Web, iPhone/iPad, Android, Android TV, LG webOS và máy tính.</div>
+<article id="seo-rich-brief" class="cv-seo-wrap">
+  <details class="cv-seo-drawer">
+    <summary class="cv-seo-summary">
+      <span class="cv-seo-summary-left">
+        <span class="cv-seo-dot"></span>
+        <span class="cv-seo-title">Thông tin chi tiết &amp; Hướng dẫn xem phim ${name} (${year})</span>
+      </span>
+      <span class="cv-seo-toggle">Chi tiết <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg></span>
+    </summary>
+    <div class="cv-seo-body">
+      ${variantBody}
+      <div class="cv-seo-faq-grid">
+        <div class="cv-seo-faq-card"><strong>Xem ${name} Vietsub ở đâu?</strong><span>Phát trực tuyến miễn phí chất lượng ${quality} tại CineViet với đa luồng server (${serverNames}).</span></div>
+        <div class="cv-seo-faq-card"><strong>Tiến độ &amp; Thời lượng</strong><span>Trạng thái ${epCurrent}, cập nhật tự động ngay khi có bản dịch chuẩn.</span></div>
+        <div class="cv-seo-faq-card"><strong>Thiết bị hỗ trợ</strong><span>Xem mượt trên Web, iPhone/iPad, Android, Android TV, LG webOS và máy tính.</span></div>
+      </div>
     </div>
-  </div>
+  </details>
 </article>`;
   }
 
   renderInternalLinksSection(links, heading = 'Từ Khóa & Tuyển Tập Phim Liên Quan') {
     if (!Array.isArray(links) || links.length === 0) return '';
     const pills = links.map(item => {
-      const label = escapeHtml(item.h1 || item.title || item.url_slug);
+      const fullLabel = cleanText(item.h1 || item.title || item.url_slug);
+      const shortLabel = fullLabel
+        .replace(/\s*Vietsub\s*Full\s*HD\s*/i, ' Vietsub ')
+        .replace(/\s*Hay\s*Nhất\s*/i, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
       const href = `/${encodeURIComponent(item.url_slug)}`;
-      return `<a href="${href}" class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs font-medium transition-colors border border-white/5">${label}</a>`;
-    }).join('\n      ');
+      const isGenre = item.kind === 'top-genre' || (item.source && item.source.startsWith('genre:'));
+      return `<a href="${href}" title="${escapeHtml(fullLabel)}" class="cv-seo-pill${isGenre ? ' cv-seo-pill-genre' : ''}">${escapeHtml(shortLabel)}</a>`;
+    }).join('\n        ');
 
     return `
-<section id="programmatic-seo-links" aria-label="${escapeHtml(heading)}" class="w-full max-w-[1680px] mx-auto px-gutter-mobile sm:px-gutter pb-space-lg">
-  <div class="rounded-xl bg-surface-container-low/70 border border-white/5 p-space-md space-y-2.5">
-    <h2 class="text-xs font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-      <span class="material-symbols-outlined text-[16px] text-primary">tag</span>
-      <span>${escapeHtml(heading)}</span>
-    </h2>
-    <div class="flex flex-wrap gap-2">
-      ${pills}
+<style>
+.cv-seo-wrap{width:100%;max-width:1680px;margin:0 auto;padding:0 clamp(16px,3vw,40px) 14px;box-sizing:border-box;font-family:inherit}
+.cv-seo-drawer{background:rgba(17,20,28,0.65);border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;transition:border-color .2s,background .2s}
+.cv-seo-drawer:hover{border-color:rgba(255,255,255,0.11)}
+.cv-seo-drawer[open]{background:rgba(17,20,28,0.88);border-color:rgba(229,9,20,0.25)}
+.cv-seo-summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;cursor:pointer;user-select:none}
+.cv-seo-summary::-webkit-details-marker{display:none}
+.cv-seo-summary-left{display:flex;align-items:center;gap:10px;min-width:0}
+.cv-seo-dot{width:6px;height:6px;border-radius:50%;background:#e50914;box-shadow:0 0 8px rgba(229,9,20,0.8);flex-shrink:0}
+.cv-seo-title{font-size:12.5px;font-weight:600;color:#9ca3af;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+.cv-seo-drawer[open] .cv-seo-title{color:#e5e7eb}
+.cv-seo-toggle{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#9ca3af;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);padding:4px 10px;border-radius:999px;flex-shrink:0;transition:all .2s}
+.cv-seo-summary:hover .cv-seo-toggle{color:#fff;border-color:rgba(255,255,255,0.15)}
+.cv-seo-drawer[open] .cv-seo-toggle svg{transform:rotate(180deg)}
+.cv-seo-body{padding:14px 16px 16px;border-top:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:12px}
+.cv-seo-text{font-size:12.5px;line-height:1.65;color:#9ca3af;margin:0}
+.cv-seo-text strong,.cv-seo-text em{color:#e5e7eb}
+.cv-seo-faq-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.cv-seo-faq-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:12px;color:#9ca3af;line-height:1.5}
+.cv-seo-faq-card strong{color:#e5e7eb;font-size:12px}
+.cv-seo-list{margin:4px 0 0;padding-left:18px;font-size:12.5px;color:#9ca3af;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px}
+.cv-seo-list a{color:#f87171;text-decoration:none}
+.cv-seo-list a:hover{text-decoration:underline}
+.cv-seo-pills{display:flex;flex-wrap:wrap;gap:7px}
+.cv-seo-pill{display:inline-flex;align-items:center;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#9ca3af;font-size:12px;font-weight:500;text-decoration:none;transition:all .18s;line-height:1.3}
+.cv-seo-pill:hover{background:rgba(229,9,20,0.14);border-color:rgba(229,9,20,0.45);color:#fff;transform:translateY(-1px)}
+.cv-seo-pill-genre{background:rgba(229,9,20,0.08);border-color:rgba(229,9,20,0.22);color:#fca5a5}
+</style>
+<section id="programmatic-seo-links" aria-label="${escapeHtml(heading)}" class="cv-seo-wrap">
+  <details class="cv-seo-drawer">
+    <summary class="cv-seo-summary">
+      <span class="cv-seo-summary-left">
+        <span class="cv-seo-dot"></span>
+        <span class="cv-seo-title">${escapeHtml(heading)}</span>
+      </span>
+      <span class="cv-seo-toggle">Khám phá (${links.length}) <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg></span>
+    </summary>
+    <div class="cv-seo-body">
+      <div class="cv-seo-pills">
+        ${pills}
+      </div>
     </div>
-  </div>
+  </details>
 </section>`;
   }
 
