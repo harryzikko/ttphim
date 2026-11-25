@@ -38,7 +38,15 @@ router.get('/.well-known/assetlinks.json', (req, res) => {
 });
 router.get('/robots.txt', (req, res) => {
   const origin = seo.originOf(config.PUBLIC_ORIGIN);
-  res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /tu-phim\nDisallow: /auth\nDisallow: /dang-nhap\nDisallow: /dang-ky\nDisallow: /tv-auth\nDisallow: /tv-login\nDisallow: /tv-dang-nhap\nDisallow: /tv/\nDisallow: /webos/\n${origin ? `Sitemap: ${origin}/sitemap.xml\nSitemap: ${origin}/sitemap-programmatic.xml\n` : ''}`);
+  res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /tu-phim\nDisallow: /auth\nDisallow: /dang-nhap\nDisallow: /dang-ky\nDisallow: /tv-auth\nDisallow: /tv-login\nDisallow: /tv-dang-nhap\nDisallow: /tv/\nDisallow: /webos/\n${origin ? `Sitemap: ${origin}/sitemap-index.xml\nSitemap: ${origin}/sitemap.xml\nSitemap: ${origin}/sitemap-programmatic.xml\n` : ''}`);
+});
+router.get('/sitemap', (req, res) => res.redirect(301, '/sitemap-index.xml'));
+router.get('/sitemap-index.xml', (req, res) => {
+  const origin = seo.originOf(config.PUBLIC_ORIGIN);
+  if (!origin) return res.status(503).set('Retry-After', '300').type('text').send('Configure PUBLIC_ORIGIN to publish the sitemap index.');
+  const today = new Date().toISOString().slice(0, 10);
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap><loc>${origin}/sitemap.xml</loc><lastmod>${today}</lastmod></sitemap>\n  <sitemap><loc>${origin}/sitemap-programmatic.xml</loc><lastmod>${today}</lastmod></sitemap>\n</sitemapindex>`;
+  res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(xml);
 });
 router.get('/sitemap-programmatic.xml', (req, res) => {
   res.type('application/xml').set('Cache-Control', 'public, max-age=3600').sendFile(path.join(config.PUBLIC_DIR, 'sitemap-programmatic.xml'));
@@ -104,6 +112,29 @@ router.get('/mobile/danh-sach', (req, res) => {
 router.get('/mobile/tai-khoan', (req, res) => {
   const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
   res.redirect(301, '/tai-khoan' + query);
+});
+// Legacy /movie and /watch 301 redirects to canonical routes
+router.get(['/movie', '/movies', '/phim', '/goi-y'], (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, '/kham-pha' + query);
+});
+router.get(['/movie/:slug', '/movies/:slug', '/mobile/movie/:slug'], (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, '/phim/' + encodeURIComponent(req.params.slug) + query);
+});
+router.get(['/watch/:slug', '/mobile/watch/:slug'], (req, res) => {
+  const slug = encodeURIComponent(req.params.slug);
+  const rawEp = req.query.ep || req.query.episode || req.query.tap;
+  if (rawEp) {
+    const cleanEp = /^\d+$/.test(String(rawEp).trim()) ? `tap-${String(rawEp).trim()}` : String(rawEp).trim();
+    return res.redirect(301, `/xem-phim/${slug}/${encodeURIComponent(cleanEp)}`);
+  }
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/phim/${slug}${query}`);
+});
+router.get(['/watch/:slug/:episode', '/mobile/watch/:slug/:episode'], (req, res) => {
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/xem-phim/${encodeURIComponent(req.params.slug)}/${encodeURIComponent(req.params.episode)}${query}`);
 });
 const staticAssetExtRe = /\.(?:css|js|mjs|map|png|jpe?g|webp|svg|ico|woff2?|json)$/i;
 router.use('/mobile', (req, res, next) => staticAssetExtRe.test(req.path) ? next() : res.redirect(301, '/'));
@@ -274,7 +305,12 @@ router.get('/embed/vicdn/:videoId', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const [homeData, settings] = await Promise.all([kkphimService.getHomeData(), dbService.getSettings()]);
-    const rendered = await renderHomePage(homeData, settings);
+    let rendered = await renderHomePage(homeData, settings);
+    if (programmaticService && typeof programmaticService.getHomeInternalLinks === 'function') {
+      const homeLinks = programmaticService.getHomeInternalLinks();
+      const linksBlock = programmaticService.renderInternalLinksSection(homeLinks, 'Tuyển Tập & Từ Khóa Phim Thịnh Hành');
+      if (linksBlock) rendered = rendered.replace(/<\/main>/i, `${linksBlock}\n</main>`);
+    }
     res.set('Cache-Control', 'private, no-cache');
     res.send(rendered);
   } catch (err) {
@@ -333,6 +369,11 @@ async function renderMovieDetailPage(req, res, slug, customSeo = null) {
         const escaped = String(customSeo.h1).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         return `${open}${escaped}${close}`;
       });
+    }
+    if (programmaticService && typeof programmaticService.getInternalLinksForMovie === 'function') {
+      const internalLinks = programmaticService.getInternalLinksForMovie(movieData.movie, movieData.related);
+      const linksBlock = programmaticService.renderInternalLinksSection(internalLinks, `Từ Khóa & Tuyển Tập Liên Quan: ${movieData.movie.name || ''}`);
+      if (linksBlock) rendered = rendered.replace(/<\/main>/i, `${linksBlock}\n</main>`);
     }
     res.set('Cache-Control', 'private, no-cache');
     res.send(bannerService.decorate(rendered, await dbService.getSettings()));

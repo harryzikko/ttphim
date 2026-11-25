@@ -24,15 +24,60 @@ describe('Programmatic SEO & Routes', () => {
     assert.strictEqual(entry.h1, '100 Ngày Lừa Dối Vietsub Full HD (2026)');
   });
 
-  test('GET /robots.txt includes sitemap-programmatic.xml', async () => {
+  test('GET /robots.txt includes sitemap-index.xml and sitemap-programmatic.xml', async () => {
     const server = app.listen(0);
     const port = server.address().port;
     try {
       const res = await fetch(`http://127.0.0.1:${port}/robots.txt`);
       assert.strictEqual(res.status, 200);
       const text = await res.text();
+      assert.ok(text.includes('Sitemap: https://cineviet.live/sitemap-index.xml'), 'Includes sitemap index');
       assert.ok(text.includes('Sitemap: https://cineviet.live/sitemap.xml'), 'Includes main sitemap');
       assert.ok(text.includes('Sitemap: https://cineviet.live/sitemap-programmatic.xml'), 'Includes programmatic sitemap');
+    } finally {
+      server.close();
+    }
+  });
+
+  test('GET /sitemap-index.xml returns valid sitemapindex XML and /sitemap redirects 301', async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/sitemap-index.xml`);
+      assert.strictEqual(res.status, 200);
+      assert.ok(res.headers.get('content-type').includes('xml'));
+      const text = await res.text();
+      assert.ok(text.includes('<sitemapindex'));
+      assert.ok(text.includes('<loc>https://cineviet.live/sitemap.xml</loc>'));
+      assert.ok(text.includes('<loc>https://cineviet.live/sitemap-programmatic.xml</loc>'));
+
+      const aliasRes = await fetch(`http://127.0.0.1:${port}/sitemap`, { redirect: 'manual' });
+      assert.strictEqual(aliasRes.status, 301);
+      assert.strictEqual(aliasRes.headers.get('location'), '/sitemap-index.xml');
+    } finally {
+      server.close();
+    }
+  });
+
+  test('Legacy /movie/* and /watch/* routes 301-redirect to canonical /phim/* and /xem-phim/*', async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
+    try {
+      const movieRes = await fetch(`http://127.0.0.1:${port}/movie/100-ngay-lua-doi`, { redirect: 'manual' });
+      assert.strictEqual(movieRes.status, 301);
+      assert.strictEqual(movieRes.headers.get('location'), '/phim/100-ngay-lua-doi');
+
+      const watchRes = await fetch(`http://127.0.0.1:${port}/watch/100-ngay-lua-doi`, { redirect: 'manual' });
+      assert.strictEqual(watchRes.status, 301);
+      assert.strictEqual(watchRes.headers.get('location'), '/phim/100-ngay-lua-doi');
+
+      const watchEpQueryRes = await fetch(`http://127.0.0.1:${port}/watch/100-ngay-lua-doi?ep=1`, { redirect: 'manual' });
+      assert.strictEqual(watchEpQueryRes.status, 301);
+      assert.strictEqual(watchEpQueryRes.headers.get('location'), '/xem-phim/100-ngay-lua-doi/tap-1');
+
+      const watchEpPathRes = await fetch(`http://127.0.0.1:${port}/watch/100-ngay-lua-doi/tap-2`, { redirect: 'manual' });
+      assert.strictEqual(watchEpPathRes.status, 301);
+      assert.strictEqual(watchEpPathRes.headers.get('location'), '/xem-phim/100-ngay-lua-doi/tap-2');
     } finally {
       server.close();
     }
@@ -99,6 +144,9 @@ describe('Programmatic SEO & Routes', () => {
       assert.ok(html.includes('<title>Xem 100 Ngày Lừa Dối (2026) Vietsub Full HD | CineViet</title>'), 'HTML contains programmatic title');
       assert.ok(html.includes('content="Xem phim 100 Ngày Lừa Dối (2026) vietsub full HD'), 'HTML contains programmatic description');
       assert.ok(html.includes('href="https://cineviet.live/100-ngay-lua-doi-vietsub"'), 'HTML contains programmatic canonical link');
+      assert.ok(html.includes('id="programmatic-seo-links"'), 'HTML contains programmatic internal link section');
+      assert.ok(html.includes('href="/100-ngay-lua-doi-tap-moi-nhat"'), 'HTML links to episode programmatic page');
+      assert.ok(html.includes('href="/phim-giong-100-ngay-lua-doi"'), 'HTML links to similar programmatic page');
     } finally {
       server.close();
     }
