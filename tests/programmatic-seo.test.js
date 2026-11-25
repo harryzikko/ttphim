@@ -111,13 +111,35 @@ describe('Programmatic SEO & Routes', () => {
     }
   });
 
-  test('GET /top-phim-ai-2026 redirects 301 to category search', async () => {
+  test('GET /top-phim-ai-2026 renders 200 OK indexable SSR genre landing page with ItemList schema', async () => {
     const server = app.listen(0);
     const port = server.address().port;
     try {
       const res = await fetch(`http://127.0.0.1:${port}/top-phim-ai-2026`, { redirect: 'manual' });
-      assert.strictEqual(res.status, 301);
-      assert.ok(res.headers.get('location').includes('/kham-pha?category='));
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.headers.get('x-robots-tag'), 'index, follow');
+      const html = await res.text();
+      assert.ok(html.includes('<title>Top Phim AI Hay Nhất 2026 Vietsub | CineViet</title>'));
+      assert.ok(html.includes('<meta name="robots" content="index,follow">'));
+      assert.ok(html.includes('"@type":"CollectionPage"'));
+      assert.ok(html.includes('"@type":"ItemList"'));
+      assert.ok(html.includes('id="programmatic-seo-links"'));
+    } finally {
+      server.close();
+    }
+  });
+
+  test('GET /sitemap-movies-1.xml returns expanded multi-variant movie URLs', async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/sitemap-movies-1.xml`);
+      assert.strictEqual(res.status, 200);
+      const xml = await res.text();
+      assert.ok(xml.includes('/phim/100-ngay-lua-doi</loc>'));
+      assert.ok(xml.includes('/100-ngay-lua-doi-vietsub</loc>'));
+      assert.ok(xml.includes('/100-ngay-lua-doi-tap-moi-nhat</loc>'));
+      assert.ok(xml.includes('/100-ngay-lua-doi-thuyet-minh</loc>'));
     } finally {
       server.close();
     }
@@ -134,7 +156,7 @@ describe('Programmatic SEO & Routes', () => {
     }
   });
 
-  test('GET /100-ngay-lua-doi-vietsub serves movie page with programmatic SEO metadata', async () => {
+  test('GET /100-ngay-lua-doi-vietsub and dynamic /100-ngay-lua-doi-thuyet-minh serve Rich Snippets & anti-dedup content', async () => {
     const server = app.listen(0);
     const port = server.address().port;
     try {
@@ -145,8 +167,19 @@ describe('Programmatic SEO & Routes', () => {
       assert.ok(html.includes('content="Xem phim 100 Ngày Lừa Dối (2026) vietsub full HD'), 'HTML contains programmatic description');
       assert.ok(html.includes('href="https://cineviet.live/100-ngay-lua-doi-vietsub"'), 'HTML contains programmatic canonical link');
       assert.ok(html.includes('id="programmatic-seo-links"'), 'HTML contains programmatic internal link section');
+      assert.ok(html.includes('id="seo-rich-brief"'), 'HTML contains anti-dedup semantic SEO brief');
+      assert.ok(html.includes('"@type":"AggregateRating"'), 'JSON-LD contains AggregateRating rich snippet');
+      assert.ok(html.includes('"@type":"VideoObject"'), 'JSON-LD contains VideoObject rich snippet');
+      assert.ok(html.includes('"@type":"FAQPage"'), 'JSON-LD contains FAQPage rich snippet');
       assert.ok(html.includes('href="/100-ngay-lua-doi-tap-moi-nhat"'), 'HTML links to episode programmatic page');
       assert.ok(html.includes('href="/phim-giong-100-ngay-lua-doi"'), 'HTML links to similar programmatic page');
+
+      // Dynamic non-CSV pattern route (-thuyet-minh)
+      const dynRes = await fetch(`http://127.0.0.1:${port}/100-ngay-lua-doi-thuyet-minh`);
+      assert.strictEqual(dynRes.status, 200);
+      const dynHtml = await dynRes.text();
+      assert.ok(dynHtml.includes('Thuyết Minh &amp; Song Ngữ'));
+      assert.ok(dynHtml.includes('href="https://cineviet.live/100-ngay-lua-doi-thuyet-minh"'));
     } finally {
       server.close();
     }

@@ -10,7 +10,9 @@ const { renderHomePage } = require('../services/homePageService');
 const bannerService = require('../services/bannerService');
 const vicdnService = require('../services/vicdnService');
 let vodphimService = null; try { vodphimService = require('../services/vodphimService'); } catch (_) {}
+let nguoncService = null; try { nguoncService = require('../services/nguoncService'); } catch (_) {}
 let programmaticService = null; try { programmaticService = require('../services/programmaticService'); } catch (_) {}
+let indexNowService = null; try { indexNowService = require('../services/indexNowService'); } catch (_) {}
 const router = express.Router();
 
 const publicFile = (file) => path.join(config.PUBLIC_DIR, file);
@@ -40,12 +42,64 @@ router.get('/robots.txt', (req, res) => {
   const origin = seo.originOf(config.PUBLIC_ORIGIN);
   res.type('text').send(`User-agent: *\nDisallow: /api/\nDisallow: /admin\nDisallow: /quan-tri\nDisallow: /operations\nDisallow: /tai-khoan\nDisallow: /danh-sach\nDisallow: /tu-phim\nDisallow: /auth\nDisallow: /dang-nhap\nDisallow: /dang-ky\nDisallow: /tv-auth\nDisallow: /tv-login\nDisallow: /tv-dang-nhap\nDisallow: /tv/\nDisallow: /webos/\n${origin ? `Sitemap: ${origin}/sitemap-index.xml\nSitemap: ${origin}/sitemap.xml\nSitemap: ${origin}/sitemap-programmatic.xml\n` : ''}`);
 });
+const SITEMAP_CHUNK_MOVIES = 1250; // 1250 movies * 4 variants = 5000 URLs per sitemap chunk
+async function collectAllCatalogSlugs() {
+  let homeSlugs = [];
+  try {
+    const home = await kkphimService.getHomeData();
+    homeSlugs = Object.values(home || {}).flatMap(v => Array.isArray(v) ? v : []).map(m => m?.slug).filter(Boolean);
+  } catch (_) {}
+  const csvSlugs = programmaticService?.bySource ? Array.from(programmaticService.bySource.keys()) : [];
+  const vpSlugs = Array.isArray(vodphimService?.allMovies) ? vodphimService.allMovies.map(m => m?.slug).filter(Boolean) : [];
+  const vcSlugs = Array.isArray(vicdnService?.allMovies) ? vicdnService.allMovies.map(m => m?.slug).filter(Boolean) : [];
+  const ncSlugs = Array.isArray(nguoncService?.allMovies) ? nguoncService.allMovies.map(m => m?.slug).filter(Boolean) : [];
+  const unique = [];
+  const seen = new Set();
+  for (const s of [...homeSlugs, ...csvSlugs, ...vpSlugs, ...vcSlugs, ...ncSlugs]) {
+    if (typeof s === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s) && !seen.has(s)) {
+      seen.add(s);
+      unique.push(s);
+      if (unique.length >= 25000) break;
+    }
+  }
+  return unique;
+}
+
 router.get('/sitemap', (req, res) => res.redirect(301, '/sitemap-index.xml'));
-router.get('/sitemap-index.xml', (req, res) => {
+router.get('/sitemap-index.xml', async (req, res) => {
   const origin = seo.originOf(config.PUBLIC_ORIGIN);
   if (!origin) return res.status(503).set('Retry-After', '300').type('text').send('Configure PUBLIC_ORIGIN to publish the sitemap index.');
   const today = new Date().toISOString().slice(0, 10);
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap><loc>${origin}/sitemap.xml</loc><lastmod>${today}</lastmod></sitemap>\n  <sitemap><loc>${origin}/sitemap-programmatic.xml</loc><lastmod>${today}</lastmod></sitemap>\n</sitemapindex>`;
+  const allSlugs = await collectAllCatalogSlugs();
+  const totalChunks = Math.max(1, Math.ceil(allSlugs.length / SITEMAP_CHUNK_MOVIES));
+  const chunkTags = Array.from({ length: totalChunks }, (_, idx) =>
+    `  <sitemap><loc>${origin}/sitemap-movies-${idx + 1}.xml</loc><lastmod>${today}</lastmod></sitemap>`
+  ).join('\n');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap><loc>${origin}/sitemap.xml</loc><lastmod>${today}</lastmod></sitemap>\n  <sitemap><loc>${origin}/sitemap-programmatic.xml</loc><lastmod>${today}</lastmod></sitemap>\n${chunkTags}\n</sitemapindex>`;
+  res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(xml);
+});
+router.get('/sitemap-movies-:page', async (req, res, next) => {
+  const raw = String(req.params.page || '');
+  const m = raw.match(/^(\d+)\.xml$/);
+  if (!m) return next();
+  const pageNum = parseInt(m[1], 10);
+  const origin = seo.originOf(config.PUBLIC_ORIGIN);
+  if (!origin) return res.status(503).set('Retry-After', '300').type('text').send('Configure PUBLIC_ORIGIN to publish the sitemap.');
+  const allSlugs = await collectAllCatalogSlugs();
+  const start = (pageNum - 1) * SITEMAP_CHUNK_MOVIES;
+  const slice = allSlugs.slice(start, start + SITEMAP_CHUNK_MOVIES);
+  if (slice.length === 0) return sendPageError(res, { status: 404 });
+  const today = new Date().toISOString().slice(0, 10);
+  const urls = [];
+  for (const slug of slice) {
+    urls.push(
+      `  <url><loc>${origin}/phim/${slug}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>`,
+      `  <url><loc>${origin}/${slug}-vietsub</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
+      `  <url><loc>${origin}/${slug}-tap-moi-nhat</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>`,
+      `  <url><loc>${origin}/${slug}-thuyet-minh</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`
+    );
+  }
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`;
   res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(xml);
 });
 router.get('/sitemap-programmatic.xml', (req, res) => {
@@ -346,9 +400,15 @@ async function renderMovieDetailPage(req, res, slug, customSeo = null) {
     // Invalid slugs must not create view counters.
     const movieData = await kkphimService.getMovieDetail(slug);
     if (!movieData?.movie) return sendPageError(res, { status: 404 });
+    const hydratedSeo = (customSeo && programmaticService?.hydrateEntryWithMovie)
+      ? programmaticService.hydrateEntryWithMovie(customSeo, movieData.movie)
+      : customSeo;
     res.locals.seoMovie = movieData.movie;
-    if (customSeo) res.locals.seoProgrammatic = customSeo;
+    if (hydratedSeo) res.locals.seoProgrammatic = hydratedSeo;
     dbService.incrementMovieView(slug).catch(() => {});
+    if (indexNowService && typeof indexNowService.submitMovieSlugs === 'function') {
+      indexNowService.submitMovieSlugs([slug]).catch(() => {});
+    }
     
     // Enrich with accurate TMDb / IMDb credits
     try {
@@ -364,16 +424,24 @@ async function renderMovieDetailPage(req, res, slug, customSeo = null) {
 
     const comments = await dbService.getComments(slug).catch(() => []);
     let rendered = templateService.renderDetail(rawHtml, movieData, comments);
-    if (customSeo?.h1) {
+    if (hydratedSeo?.h1) {
       rendered = rendered.replace(/(<h1\b[^>]*>)([\s\S]*?)(<\/h1>)/i, (match, open, content, close) => {
-        const escaped = String(customSeo.h1).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const escaped = String(hydratedSeo.h1).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         return `${open}${escaped}${close}`;
       });
     }
-    if (programmaticService && typeof programmaticService.getInternalLinksForMovie === 'function') {
-      const internalLinks = programmaticService.getInternalLinksForMovie(movieData.movie, movieData.related);
-      const linksBlock = programmaticService.renderInternalLinksSection(internalLinks, `Từ Khóa & Tuyển Tập Liên Quan: ${movieData.movie.name || ''}`);
-      if (linksBlock) rendered = rendered.replace(/<\/main>/i, `${linksBlock}\n</main>`);
+    if (programmaticService) {
+      const richBrief = typeof programmaticService.renderRichSeoBrief === 'function'
+        ? programmaticService.renderRichSeoBrief(movieData.movie, hydratedSeo, movieData.episodes, movieData.related)
+        : '';
+      const internalLinks = typeof programmaticService.getInternalLinksForMovie === 'function'
+        ? programmaticService.getInternalLinksForMovie(movieData.movie, movieData.related)
+        : [];
+      const linksBlock = typeof programmaticService.renderInternalLinksSection === 'function'
+        ? programmaticService.renderInternalLinksSection(internalLinks, `Từ Khóa & Tuyển Tập Liên Quan: ${movieData.movie.name || ''}`)
+        : '';
+      const combined = [richBrief, linksBlock].filter(Boolean).join('\n');
+      if (combined) rendered = rendered.replace(/<\/main>/i, `${combined}\n</main>`);
     }
     res.set('Cache-Control', 'private, no-cache');
     res.send(bannerService.decorate(rendered, await dbService.getSettings()));
@@ -572,22 +640,60 @@ router.get(['/tv-auth', '/tv-login', '/tv-dang-nhap'], (req, res) => {
   res.sendFile(publicFile('tv-auth.html'));
 });
 
-// Programmatic SEO Landing Pages (mapped from CSV plan: slug -> original movie page)
+async function renderTopGenrePage(req, res, entry) {
+  try {
+    const genreName = entry.source.replace(/^genre:/, '').trim();
+    const genreSlug = programmaticService.normalizeSlug(genreName);
+    let items = [];
+    try {
+      const catRes = await kkphimService.getCatalog({ category: genreSlug, limit: 24 });
+      items = Array.isArray(catRes?.items) ? catRes.items : [];
+    } catch (_) {}
+    if (items.length === 0) {
+      try {
+        const home = await kkphimService.getHomeData();
+        items = Object.values(home || {}).flatMap(v => Array.isArray(v) ? v : []).filter(m => m && m.slug).slice(0, 24);
+      } catch (_) {}
+    }
+
+    res.locals.seoProgrammatic = entry;
+    res.locals.seoItemList = items;
+
+    const rawHtml = await fs.readFile(publicFile('kham-pha.html'), 'utf8');
+    const gridHtml = programmaticService.renderTopGenreGrid(items, entry);
+    let shell = rawHtml
+      .replace(/(<section aria-label="Danh sách phim tìm kiếm"[^>]*>)[\s\S]*?(<\/section>)/, (_, open, close) => `${open}\n${gridHtml}\n${close}`)
+      .replace(/(<nav id="catalog-pagination"[^>]*>)[\s\S]*?(<\/nav>)/, (_, open, close) => `${open}${close}`);
+
+    const homeLinks = programmaticService.getHomeInternalLinks();
+    const linksBlock = programmaticService.renderInternalLinksSection(homeLinks, 'Tuyển Tập & Thể Loại Phim Nổi Bật');
+    if (linksBlock) shell = shell.replace(/<\/main>/i, `${linksBlock}\n</main>`);
+
+    try {
+      const settings = await dbService.getSettings();
+      shell = bannerService.decorate(shell, settings);
+    } catch (_) {}
+
+    res.set('Cache-Control', 'public, max-age=600');
+    return res.send(shell);
+  } catch (err) {
+    console.error('Error rendering top-genre view:', err);
+    return sendPageError(res, err);
+  }
+}
+
+// Programmatic SEO Landing Pages (CSV plan + dynamic pattern routing across entire 34k+ catalog)
 router.get('/:slug', async (req, res, next) => {
   const slug = req.params.slug;
-  if (!programmaticService || !programmaticService.has(slug)) return next();
+  if (!programmaticService) return next();
 
-  const entry = programmaticService.get(slug);
+  const entry = typeof programmaticService.resolveDynamic === 'function'
+    ? programmaticService.resolveDynamic(slug)
+    : programmaticService.get(slug);
   if (!entry) return next();
 
   if (entry.source && entry.source.startsWith('genre:')) {
-    const genreName = entry.source.replace(/^genre:/, '').trim();
-    const genreSlug = genreName.toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd').replace(/Đ/g, 'd')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    return res.redirect(301, `/kham-pha?category=${encodeURIComponent(genreSlug)}`);
+    return renderTopGenrePage(req, res, entry);
   }
 
   return renderMovieDetailPage(req, res, entry.source, entry);
